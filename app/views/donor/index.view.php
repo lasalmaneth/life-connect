@@ -188,4 +188,91 @@ include __DIR__ . '/inc/sidebar.view.php';
     </div>
 </main>
 
+<?php if ($is_first_login): ?>
+<!-- First Login: Role Selection Overlay -->
+<div id="firstLoginOverlay" class="d-modal active" style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);">
+    <div class="d-modal__body" style="max-width: 900px; padding: 3rem; background: transparent; box-shadow: none; width: 100%;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <h1 style="font-size: 2.5rem; color: var(--blue-800); font-weight: 800; margin-bottom: 1rem;">Choose how you want to participate</h1>
+            <p style="font-size: 1.1rem; color: var(--g500);">You can select one or more roles. You can add more roles later anytime.</p>
+        </div>
+
+        <div class="selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+            <!-- Organ Donor Card -->
+            <div class="role-select-card" data-role="organ" onclick="toggleRoleCard(this)">
+                <div class="role-select-card__icon"><i class="fas fa-hand-holding-heart"></i></div>
+                <h3>Organ Donor</h3>
+                <p>Donate organs or tissues and help save lives.</p>
+                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
+            </div>
+
+            <!-- Financial Donor Card -->
+            <div class="role-select-card" data-role="financial" onclick="toggleRoleCard(this)">
+                <div class="role-select-card__icon" style="background: #dcfce7; color: #10b981;"><i class="fas fa-hand-holding-dollar"></i></div>
+                <h3>Financial Donor</h3>
+                <p>Support transplant patients with financial contributions.</p>
+                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
+            </div>
+
+            <!-- Non-Donor Card -->
+            <div class="role-select-card" data-role="non" onclick="toggleRoleCard(this)">
+                <div class="role-select-card__icon" style="background: var(--g100); color: var(--g500);"><i class="fas fa-user-slash"></i></div>
+                <h3>Non-Donor</h3>
+                <p>Stay informed and support organ donation awareness.</p>
+                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="d-btn d-btn--primary" id="continueToDashboardBtn" style="padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 91, 170, 0.2);" onclick="saveInitialRoles()">
+                Continue to Dashboard <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleRoleCard(card) {
+    card.classList.toggle('selected');
+}
+
+async function saveInitialRoles() {
+    const selected = document.querySelectorAll('.role-select-card.selected');
+    const roles = Array.from(selected).map(c => c.dataset.role);
+    
+    if (roles.length === 0) {
+        alert("Please select at least one role to continue.");
+        return;
+    }
+
+    const btn = document.getElementById('continueToDashboardBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up your portal...';
+
+    const formData = new FormData();
+    roles.forEach(r => formData.append('roles[]', r));
+
+    try {
+        const response = await fetch('<?= ROOT ?>/donor/update-roles', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.message || "Failed to save roles.");
+            btn.disabled = false;
+            btn.innerText = 'Continue to Dashboard';
+        }
+    } catch (e) {
+        console.error(e);
+        alert("An error occurred. Please try again.");
+        btn.disabled = false;
+        btn.innerText = 'Continue to Dashboard';
+    }
+}
+</script>
+<?php endif; ?>
+
 <?php include __DIR__ . '/inc/footer.view.php'; ?>

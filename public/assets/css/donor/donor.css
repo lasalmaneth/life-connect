@@ -1,11 +1,11 @@
 /* =============================================================================
-   LIFE-CONNECT — DONOR PORTAL CSS
+   LIFE-CONNECT Ã¢â‚¬â€ DONOR PORTAL CSS
    Uses DESIGN_SYSTEM.md tokens exclusively (Section 1 + Section 6)
    ============================================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ---- Tokens (from DESIGN_SYSTEM.md §1) ---- */
+/* ---- Tokens (from DESIGN_SYSTEM.md Ã‚Â§1) ---- */
 :root {
   --blue-900: #0a1628;
   --blue-800: #0f2240;
@@ -60,119 +60,131 @@ body {
 }
 
 /* =============================================================================
-   §6.2  DASHBOARD HEADER
+   Â§6.2  DASHBOARD HEADER (Standardized with Hospital Portal)
    ============================================================================= */
-.d-header {
-  background: var(--white);
-  border-bottom: 1px solid var(--g200);
-  padding: 0 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  height: 68px;
-  display: flex;
-  align-items: center;
+.header {
+    background: var(--white) !important;
+    color: var(--slate) !important;
+    padding: 0 2rem;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--g200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
 }
 
-.d-header__inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+.header-content {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1440px;
+    margin: 0 auto;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.d-header__right {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
 }
 
-.d-user-chip {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
-  background: var(--blue-50);
-  padding: .4rem .8rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all var(--tr);
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--g500);
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    transition: all 0.2s;
 }
 
-.d-user-chip:hover {
-  background: var(--blue-100);
+.nav-link i {
+    font-size: 1.1rem;
+    color: var(--g700);
 }
 
-.d-user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--blue-600);
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1rem;
+.nav-link:hover {
+    background: var(--blue-50);
+    color: var(--blue-700);
 }
 
-.d-user-chip__name {
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: var(--slate);
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--blue-900);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
 }
 
-.d-user-chip__badge {
-  background: #10b981;
-  color: var(--white);
-  padding: 0.2rem 0.6rem;
-  border-radius: 50px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-top: 0.2rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
+.notification-bell:hover {
+    background: var(--g100);
+    color: var(--blue-700);
 }
 
-.d-bell {
-  position: relative;
-  cursor: pointer;
-  font-size: 1.3rem;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all var(--tr);
-  color: var(--slate);
-  background: var(--white);
+/* User Profile Chip */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--blue-50);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid var(--blue-100);
 }
 
-.d-bell:hover {
-  background: var(--blue-50);
-  color: var(--blue-600);
+.user-info:hover {
+    background: var(--blue-100);
 }
 
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.user-id-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--blue-100);
+    color: var(--blue-700);
+    padding: 0.15rem 0.6rem;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    width: fit-content;
+}
 /* =============================================================================
-   §6.1  DASHBOARD SHELL
-   ============================================================================= */
-.d-shell {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 1.5rem;
-  padding: 1.25rem 2rem 2rem; /* Increased top padding from 0.25rem to 1.25rem */
-  max-width: 1400px;
-  margin: 0 auto;
-  align-items: start;
-}
-
-/* =============================================================================
-   §6.3  SIDEBAR
+   Ã‚Â§6.3  SIDEBAR
    ============================================================================= */
 .d-sidebar {
   background: var(--white);
@@ -181,7 +193,7 @@ body {
   overflow: hidden;
   height: fit-content;
   position: sticky;
-  top: 90px;
+  top: 140px;
 }
 
 .d-sidebar__header {
@@ -251,6 +263,16 @@ body {
   justify-content: center;
 }
 
+.d-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+  max-width: 1440px;
+  margin: 1.5rem auto;
+  padding: 0 2rem;
+  align-items: flex-start;
+}
+
 @media (max-width: 1024px) {
   .d-shell {
     grid-template-columns: 1fr;
@@ -294,7 +316,7 @@ body {
 }
 
 /* =============================================================================
-   §6.4  CONTENT AREA
+   Ã‚Â§6.4  CONTENT AREA
    ============================================================================= */
 .d-content {
   background: var(--white);
@@ -340,7 +362,7 @@ body {
 }
 
 /* =============================================================================
-   §6.5  STAT CARDS
+   Ã‚Â§6.5  STAT CARDS
    ============================================================================= */
 .d-stats-grid {
   display: grid;
@@ -403,7 +425,7 @@ body {
 }
 
 /* =============================================================================
-   §6.6  WIDGETS & GRIDS (Donors)
+   Ã‚Â§6.6  WIDGETS & GRIDS (Donors)
    ============================================================================= */
 .d-dashboard-grid {
   display: grid;
@@ -450,7 +472,7 @@ body {
 }
 
 /* =============================================================================
-   §6.7  STATUS BADGES
+   Ã‚Â§6.7  STATUS BADGES
    ============================================================================= */
 .d-status {
   display: inline-flex;
@@ -494,7 +516,7 @@ body {
 }
 
 /* =============================================================================
-   §6.8  BUTTONS
+   Ã‚Â§6.8  BUTTONS
    ============================================================================= */
 .d-btn {
   display: inline-flex;
@@ -545,7 +567,7 @@ body {
 }
 
 /* =============================================================================
-   §6.9  MODALS
+   Ã‚Â§6.9  MODALS
    ============================================================================= */
 .d-modal {
   display: none;
@@ -597,7 +619,7 @@ body {
 }
 
 /* =============================================================================
-   §6.10  FORM ELEMENTS & TABLES
+   Ã‚Â§6.10  FORM ELEMENTS & TABLES
    ============================================================================= */
 .form-group {
   margin-bottom: 1.25rem;
@@ -680,7 +702,7 @@ body {
 }
 
 /* =============================================================================
-   §6.11  DASHBOARD WIDGET GRID & SUMMARY BAR (Appended)
+   Ã‚Â§6.11  DASHBOARD WIDGET GRID & SUMMARY BAR (Appended)
    ============================================================================= */
 
 /* Compact summary bar */
@@ -787,18 +809,37 @@ body {
 }
 
 /* =============================================================================
-   §6.12  DONOR MODE SWITCHER (New)
+   Ã‚Â§6.12  DONOR MODE SWITCHER (New)
    ============================================================================= */
+
+
 .donor-mode-container {
   width: 100%;
-  background: transparent;
-  padding: 0.5rem 0 0.1rem; /* Ultra-thin padding */
+  background: var(--white);
+  padding: 0.6rem 2rem;
   display: flex;
   justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid var(--g200);
   position: sticky;
   top: 68px;
-  /* Below d-header */
-  z-index: 90;
+  z-index: 99;
+}
+
+.mode-switcher-wrapper {
+  max-width: 1440px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.manage-roles-btn {
+  position: absolute !important;
+  right: 0px !important;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .mode-switcher {
@@ -913,3 +954,125 @@ body.mode-financial-donation .section-financial {
     font-size: 0.65rem;
   }
 }
+/* =============================================================================
+   Â§7.0  ROLE MANAGEMENT & SELECTION (New)
+   ============================================================================= */
+
+/* Tab States */
+.mode-tab.inactive {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: help;
+  border-bottom: 2px solid transparent;
+}
+
+.mode-tab.inactive:hover {
+  opacity: 0.8;
+  filter: grayscale(0.5);
+  background: var(--g100);
+}
+
+
+
+/* Tooltip Hint for inactive tabs */
+.mode-tab.inactive[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--slate);
+  color: var(--white);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Role Selection Cards (First Login) */
+.role-select-card {
+  background: var(--white);
+  border: 2px solid var(--g200);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+}
+
+.role-select-card:hover {
+  transform: translateY(-10px);
+  border-color: var(--blue-300);
+  box-shadow: 0 15px 35px rgba(0, 91, 170, 0.1);
+}
+
+.role-select-card.selected {
+  border-color: var(--blue-600);
+  background: var(--blue-50);
+  box-shadow: 0 10px 30px rgba(0, 91, 170, 0.15);
+}
+
+.role-select-card__icon {
+  width: 80px;
+  height: 80px;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  border-radius: 50%;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  transition: var(--tr);
+}
+
+.role-select-card.selected .role-select-card__icon {
+  background: var(--blue-600);
+  color: var(--white);
+}
+
+.role-select-card h3 {
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  color: var(--blue-900);
+}
+
+.role-select-card p {
+  font-size: 0.9rem;
+  color: var(--g500);
+  line-height: 1.5;
+}
+
+.role-select-card__check {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 1.5rem;
+  color: var(--blue-600);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.3s ease;
+}
+
+.role-select-card.selected .role-select-card__check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Manage Roles Styling */
+.role-checkbox-item label:hover {
+  background: var(--g50);
+}
+
+.role-checkbox-item input[type="checkbox"]:checked + div {
+  color: var(--blue-600);
+}
+
+
+
+
+

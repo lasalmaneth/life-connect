@@ -226,22 +226,29 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                 <h4 class="d-section-header"><i class="fas fa-hospital text-accent"></i> Selected Receiving Institution</h4>
                 <p style="font-size:0.9rem; color:var(--g500); margin-bottom:1.5rem; padding: 0 0.5rem;">Choose your preferred hospital where the procedure and laboratory verification takes place.</p>
                 <div id="hospitalList" style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1rem;"></div>
-                <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(2)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep(4)">Continue to Witnesses <i class="fas fa-arrow-right"></i></button></div>
+                <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(2)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep(4)">Continue to Custodians <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
-            <!-- Step 4: Witnesses -->
+            <!-- Step 4: Legal Custodians -->
             <div id="step4" class="d-modal__step">
-                <h4 class="d-section-header"><i class="fas fa-user-edit text-accent"></i> Identity Verification Witnesses</h4>
+                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> Legal Custodians</h4>
+                <p style="font-size:0.8rem; color:var(--g500); margin-bottom:1.5rem;">For living donations, please provide details of two legal custodians who will support your decision.</p>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                    <div style="background:white; padding:1.5rem; border:1.5px solid var(--g200); border-radius:12px;">
-                        <label style="font-size:0.75rem; font-weight:800; color:var(--g400);">WITNESS 1</label>
-                        <input type="text" id="cust1_name" class="d-input" placeholder="Full Name" style="margin-top:10px;">
-                        <input type="text" id="cust1_nic" class="d-input" placeholder="NIC Number" style="margin-top:10px;">
+                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">CUSTODIAN 1</label>
+                        <input type="text" id="cust1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" id="cust1_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:8px;">
+                        <input type="text" id="cust1_phone" class="d-input" placeholder="Phone Number" style="margin-top:8px;">
+                        <input type="text" id="cust1_rel" class="d-input" placeholder="Relationship" style="margin-top:8px;">
+                        <textarea id="cust1_address" class="d-input" placeholder="Home Address" style="margin-top:8px; height:60px;"></textarea>
                     </div>
-                    <div style="background:white; padding:1.5rem; border:1.5px solid var(--g200); border-radius:12px;">
-                        <label style="font-size:0.75rem; font-weight:800; color:var(--g400);">WITNESS 2</label>
-                        <input type="text" id="cust2_name" class="d-input" placeholder="Full Name" style="margin-top:10px;">
-                        <input type="text" id="cust2_nic" class="d-input" placeholder="NIC Number" style="margin-top:10px;">
+                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">CUSTODIAN 2</label>
+                        <input type="text" id="cust2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" id="cust2_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:8px;">
+                        <input type="text" id="cust2_phone" class="d-input" placeholder="Phone Number" style="margin-top:8px;">
+                        <input type="text" id="cust2_rel" class="d-input" placeholder="Relationship" style="margin-top:8px;">
+                        <textarea id="cust2_address" class="d-input" placeholder="Home Address" style="margin-top:8px; height:60px;"></textarea>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(3)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep6()">Review Application <i class="fas fa-marker"></i></button></div>
@@ -504,7 +511,27 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
 
 <!-- Warning / Scripts -->
 <div id="unselectWarningModal" class="d-modal"><div class="d-modal__body" style="max-width:400px; text-align:center; p:2rem;"><h3>Withdraw Pledge?</h3><p id="unselectText" mb:2rem></p><div style="display:flex; gap:1rem; justify:center;"><button class="d-btn d-btn--outline" onclick="closeModal('unselectWarningModal')">Cancel</button><button class="d-btn d-btn--danger" onclick="submitAction('unselect_organ', pendingOrganId)">Withdraw</button></div></div></div>
-<form id="pledgeForm" method="POST" action="<?= ROOT ?>/donor/donations" style="display:none;"><input type="hidden" name="action" value="select_organ"><input type="hidden" name="id" id="pledgeOrganId"><input type="hidden" name="hospital_id" id="pledgeHospitalId"><input type="hidden" name="blood_group" id="pledgeBloodGroup"><input type="hidden" name="conditions" id="pledgeConditions"><input type="hidden" name="cust1_name" id="p_cust1_name"><input type="hidden" name="cust1_nic" id="p_cust1_nic"><input type="hidden" name="rep1_rel" id="p_cust1_rel"><input type="hidden" name="rep1_phone" id="p_cust1_phone"><input type="hidden" name="cust2_name" id="p_cust2_name"><input type="hidden" name="cust2_nic" id="p_cust2_nic"><input type="hidden" name="rep2_rel" id="p_cust2_rel"><input type="hidden" name="rep2_phone" id="p_cust2_phone"></form>
+<form id="pledgeForm" method="POST" action="<?= ROOT ?>/donor/donations" style="display:none;">
+    <input type="hidden" name="action" value="select_organ">
+    <input type="hidden" name="id" id="pledgeOrganId">
+    <input type="hidden" name="hospital_id" id="pledgeHospitalId">
+    <input type="hidden" name="blood_group" id="pledgeBloodGroup">
+    <input type="hidden" name="conditions" id="pledgeConditions">
+    
+    <!-- Custodian 1 -->
+    <input type="hidden" name="cust1_name" id="p_cust1_name">
+    <input type="hidden" name="cust1_nic" id="p_cust1_nic">
+    <input type="hidden" name="cust1_rel" id="p_cust1_rel">
+    <input type="hidden" name="cust1_phone" id="p_cust1_phone">
+    <input type="hidden" name="cust1_address" id="p_cust1_address">
+    
+    <!-- Custodian 2 -->
+    <input type="hidden" name="cust2_name" id="p_cust2_name">
+    <input type="hidden" name="cust2_nic" id="p_cust2_nic">
+    <input type="hidden" name="cust2_rel" id="p_cust2_rel">
+    <input type="hidden" name="cust2_phone" id="p_cust2_phone">
+    <input type="hidden" name="cust2_address" id="p_cust2_address">
+</form>
 
 <script>
 const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
@@ -527,8 +554,8 @@ function updateHospitalList(){ const list=document.getElementById('hospitalList'
 function selectHospital(id,name,el){ selectedHospitalId=id; selectedHospitalName=name; document.querySelectorAll('#hospitalList .d-stat').forEach(c=>c.style.borderColor='var(--g200)'); el.style.borderColor='var(--blue-500)'; el.style.background='var(--blue-50)'; }
 function goToStep6(){ 
     document.getElementById('review_as_organ').textContent=pendingOrganName; 
-    document.getElementById('revLivingW1').textContent = document.getElementById('cust1_name').value + ' (' + document.getElementById('cust1_nic').value + ')';
-    document.getElementById('revLivingW2').textContent = document.getElementById('cust2_name').value + ' (' + document.getElementById('cust2_nic').value + ')';
+    document.getElementById('revLivingW1').textContent = document.getElementById('cust1_name').value + ' (' + document.getElementById('cust1_nic').value + ') - ' + document.getElementById('cust1_rel').value;
+    document.getElementById('revLivingW2').textContent = document.getElementById('cust2_name').value + ' (' + document.getElementById('cust2_nic').value + ') - ' + document.getElementById('cust2_rel').value;
     goToStep(6); 
 }
 function submitPledge(){ 
@@ -536,15 +563,21 @@ function submitPledge(){
     document.getElementById('pledgeHospitalId').value=selectedHospitalId||''; 
     document.getElementById('pledgeBloodGroup').value=document.getElementById('bloodGroup').value; 
     document.getElementById('pledgeConditions').value=document.getElementById('medications').value; 
+    
+    // Collecting Custodian 1
     document.getElementById('p_cust1_name').value=document.getElementById('cust1_name').value; 
     document.getElementById('p_cust1_nic').value=document.getElementById('cust1_nic').value; 
+    document.getElementById('p_cust1_rel').value=document.getElementById('cust1_rel').value; 
+    document.getElementById('p_cust1_phone').value=document.getElementById('cust1_phone').value;
+    document.getElementById('p_cust1_address').value=document.getElementById('cust1_address').value;
+    
+    // Collecting Custodian 2
     document.getElementById('p_cust2_name').value=document.getElementById('cust2_name').value; 
     document.getElementById('p_cust2_nic').value=document.getElementById('cust2_nic').value; 
-    // Custodian fields are no longer collected for living donations
-    document.getElementById('p_cust1_rel').value=''; 
-    document.getElementById('p_cust1_phone').value='';
-    document.getElementById('p_cust2_rel').value=''; 
-    document.getElementById('p_cust2_phone').value='';
+    document.getElementById('p_cust2_rel').value=document.getElementById('cust2_rel').value; 
+    document.getElementById('p_cust2_phone').value=document.getElementById('cust2_phone').value;
+    document.getElementById('p_cust2_address').value=document.getElementById('cust2_address').value;
+
     document.getElementById('pledgeForm').submit(); 
 }
 function openAfterDeathModal(id,name){ document.querySelectorAll('.death-org-check').forEach(c=>c.checked=false); const target=document.getElementById('death_org_'+id); if(target) target.checked=true; goToDeathStep(1); openModal('afterDeathConsentModal'); }

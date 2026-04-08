@@ -43,7 +43,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                         </div>
                     </div>
                 
-                    <a href="<?= ROOT ?>/donor/downloadPdf?type=donor_card" class="d-btn d-btn--primary" style="justify-content: center; width: 100%;"><i class="fas fa-file-pdf"></i> Download PDF Card</a>
+                    <a href="<?= ROOT ?>/donor/download-donor-card" target="_blank" class="d-btn d-btn--primary" style="justify-content: center; width: 100%;"><i class="fas fa-id-badge"></i> Download Official Digital Card</a>
                 </div>
             </div>
 
@@ -74,8 +74,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                             </div>
                         </div>
                         <div style="border-top: 1px dashed var(--g200); padding-top: 1.5rem; text-align: center;">
-                            <p style="font-size: 0.8rem; color: var(--g500); margin-bottom: 1rem;">Need a fresh copy for a new pledge?</p>
-                            <a href="<?= ROOT ?>/donor/downloadPdf?type=organ_consent" class="d-btn d-btn--outline" style="width: 100%; justify-content: center;"><i class="fas fa-file-download"></i> Download Blank Form</a>
+                            <p style="font-size: 0.8rem; color: var(--g500); margin-bottom: 0;">Please follow the pledge process to generate new documents.</p>
                         </div>
                     <?php else: ?>
                         <div style="text-align: center; padding: 1.5rem 0;">
@@ -83,8 +82,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 <i class="fas fa-file-pdf"></i>
                             </div>
                             <h4 style="color: var(--slate); font-size: 0.95rem; margin-bottom: 0.5rem;">No Signed Forms Uploaded</h4>
-                            <p style="font-size: 0.85rem; color: var(--g500); margin-bottom: 1.5rem;">Please download the consent form, sign it with witnesses, and upload it via the "My Donations" page.</p>
-                            <a href="<?= ROOT ?>/donor/downloadPdf?type=organ_consent" class="d-btn d-btn--outline" style="width: 100%; justify-content: center;"><i class="fas fa-download"></i> Download Blank Form</a>
+                            <p style="font-size: 0.85rem; color: var(--g500); margin-bottom: 0.5rem;">Once you initiate a pledge, you will be able to download the custom consent form for signing.</p>
                         </div>
                     <?php endif; ?>
                 </div>

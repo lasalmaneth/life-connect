@@ -34,10 +34,11 @@ class Donor {
 
     /**
      * Get common donor data shared across all pages.
-     * Returns: [donorId, donorData, donorFullName, donorIdDisplay, donorRole]
+     * Returns: associative array with donor data and roles
      */
     private function getCommonData()
     {
+        if (session_status() === PHP_SESSION_NONE) session_start();
         $donorId = $this->getDonorId();
         $donorModel = new \App\Models\DonorModel();
         
@@ -45,10 +46,34 @@ class Donor {
         $donorData = json_decode(json_encode($donorData), true);
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
-        $donorIdDisplay = 'D_' . str_pad($donorData['id'] ?? 0, 5, '0', STR_PAD_LEFT);
+        
+        // Use 'id' from donors table (d.id in query)
+        $rawId = $donorData['id'] ?? $donorData['donor_id'] ?? 0;
+        $donorIdDisplay = 'D_' . str_pad($rawId, 5, '0', STR_PAD_LEFT);
         $donorRole = "Registered Donor";
 
-        return [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole];
+        // Parse active roles
+        $activeRoles = [];
+        if (!empty($donorData['active_roles'])) {
+            $activeRoles = json_decode($donorData['active_roles'], true) ?: [];
+        }
+
+        // Determine current portal mode (Organ vs Financial)
+        $currentMode = $_SESSION['donor_portal_mode'] ?? null;
+        if (!$currentMode && !empty($activeRoles)) {
+            $currentMode = 'mode-' . $activeRoles[0] . '-donation';
+            $_SESSION['donor_portal_mode'] = $currentMode;
+        }
+
+        return [
+            'donorId' => $donorId,
+            'donorData' => $donorData,
+            'donorFullName' => $donorFullName,
+            'donorIdDisplay' => $donorIdDisplay,
+            'donorRole' => $donorRole,
+            'activeRoles' => $activeRoles,
+            'currentMode' => $currentMode ?: 'mode-organ-donation'
+        ];
     }
 
     /**
@@ -60,7 +85,17 @@ class Donor {
         if (!isset($_SESSION['user_id'])) redirect('login');
         if ($_SESSION['role'] != 'DONOR') redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
+
+        // Check if first login (no roles selected yet)
+        $isFirstLogin = empty($activeRoles);
 
         $donorModel = new \App\Models\DonorModel();
         $donorStats = $donorModel->getDonorStats($donorId);
@@ -97,11 +132,59 @@ class Donor {
             'upcoming_appointments' => $upcoming_appointments,
             'latest_health' => $latest_health,
             'districts' => $districts,
+            'active_roles' => $activeRoles,
+            'is_first_login' => $isFirstLogin,
+            'current_mode' => $currentMode,
             'active_page' => 'overview',
             'page_title' => 'Overview',
             'page_css' => [],
             'ROOT' => ROOT
         ]);
+    }
+
+    /**
+     * AJAX Action: Set Portal Mode
+     */
+    public function setPortalMode()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        $mode = $_POST['mode'] ?? null;
+        if ($mode) {
+            $_SESSION['donor_portal_mode'] = $mode;
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX Action: Update User Roles
+     */
+    public function updateRoles()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $roles = $_POST['roles'] ?? [];
+        if (!is_array($roles)) $roles = [$roles];
+
+        $donorId = $this->getDonorId();
+        $donorModel = new \App\Models\DonorModel();
+        
+        if ($donorModel->updateActiveRoles($donorId, $roles)) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update roles']);
+        }
+        exit;
     }
 
     /**
@@ -112,7 +195,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         // Handle POST Actions for organ pledging
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -147,7 +237,7 @@ class Donor {
                         'nic' => $rep1_nic,
                         'relationship' => $_POST['rep1_rel'] ?? $_POST['cust1_rel'] ?? '',
                         'phone' => $_POST['rep1_phone'] ?? $_POST['cust1_phone'] ?? '',
-                        'address' => $_POST['rep1_rel'] ?? $_POST['cust1_rel'] ?? ''
+                        'address' => $_POST['rep1_address'] ?? $_POST['cust1_address'] ?? ''
                     ];
                     
                     $rep2_name = $_POST['rep2_name'] ?? $_POST['cust2_name'] ?? '';
@@ -158,7 +248,7 @@ class Donor {
                             'nic' => $rep2_nic,
                             'relationship' => $_POST['rep2_rel'] ?? $_POST['cust2_rel'] ?? '',
                             'phone' => $_POST['rep2_phone'] ?? $_POST['cust2_phone'] ?? '',
-                            'address' => $_POST['rep2_rel'] ?? $_POST['cust2_rel'] ?? ''
+                            'address' => $_POST['rep2_address'] ?? $_POST['cust2_address'] ?? ''
                         ];
                     }
                 }
@@ -169,11 +259,10 @@ class Donor {
                     if ($oId <= 0) continue;
                     
                     if ($organModel->addDonorPledge($donorId, $oId, $details)) {
-                        // Assuming this modal is ONLY for LIVING donations as requested
-                        // and we expect witnesses for living donations:
+                        // User Preference: Store as Custodians, not Witnesses for Living Donations
                         if (!empty($reps)) {
-                            $witnessModel = new \App\Models\WitnessModel();
-                            $witnessModel->addOrganWitnesses($donorId, $oId, $reps);
+                            $custodianModel = new \App\Models\DonorCustodianModel();
+                            $custodianModel->addOrganCustodians($donorId, $oId, $reps);
                         }
                     } else {
                         $fullyPledged = false;
@@ -190,8 +279,14 @@ class Donor {
             } elseif ($action === 'unselect_organ') {
                 $organId = (int)($_POST['id'] ?? 0);
                 if ($organModel->removeDonorPledge($donorId, $organId)) {
+                    // Update: clear organ-specific representatives
+                    $witnessModel = new \App\Models\WitnessModel();
+                    $custModel = new \App\Models\DonorCustodianModel();
+                    $witnessModel->deleteWitnessesByOrganPledge($donorId, $organId);
+                    $custModel->deleteCustodiansByOrganPledge($donorId, $organId);
+
                     $success = true;
-                    $message = "Pledge withdrawn. Please note this will require re-verification.";
+                    $message = "Pledge withdrawn. All associated legal representative data has been cleared.";
                 }
             } elseif ($action === 'submit_body_consent') {
                 $bodyDonationModel = new \App\Models\BodyDonationModel();
@@ -211,24 +306,7 @@ class Donor {
                 ];
 
                 if ($bodyDonationModel->createConsent($donorId, $bodyData)) {
-                    // 1. Save Witnesses to specialized table
-                    $witnesses = [
-                        [
-                            'name' => $bodyData['witness1_name'],
-                            'nic' => $bodyData['witness1_nic'],
-                            'phone' => $bodyData['witness1_phone'],
-                            'address' => $bodyData['witness1_address']
-                        ],
-                        [
-                            'name' => $bodyData['witness2_name'],
-                            'nic' => $bodyData['witness2_nic'],
-                            'phone' => $bodyData['witness2_phone'],
-                            'address' => $bodyData['witness2_address']
-                        ]
-                    ];
-                    $witnessModel->addOrganWitnesses($donorId, 9, $witnesses);
-
-                    // 2. Save Custodians to specialized table
+                    // 1. Save Custodians to specialized table
                     $custodians = [
                         [
                             'name'         => trim($_POST['cust1_name'] ?? ''),
@@ -284,11 +362,6 @@ class Donor {
                     'allergies' => $_POST['allergies'] ?? null
                 ];
 
-                $witnesses = [
-                    ['name'=>trim($_POST['w1_name']??''), 'nic'=>trim($_POST['w1_nic']??''), 'phone'=>trim($_POST['w1_phone']??''), 'address'=>trim($_POST['w1_address']??'')],
-                    ['name'=>trim($_POST['w2_name']??''), 'nic'=>trim($_POST['w2_nic']??''), 'phone'=>trim($_POST['w2_phone']??''), 'address'=>trim($_POST['w2_address']??'')]
-                ];
-
                 $custodians = [
                     ['name'=>trim($_POST['c1_name']??''), 'nic'=>trim($_POST['c1_nic']??''), 'relationship'=>trim($_POST['c1_rel']??''), 'phone'=>trim($_POST['c1_phone']??''), 'email'=>trim($_POST['c1_email']??''), 'address'=>trim($_POST['c1_address']??'')],
                     ['name'=>trim($_POST['c2_name']??''), 'nic'=>trim($_POST['c2_nic']??''), 'relationship'=>trim($_POST['c2_rel']??''), 'phone'=>trim($_POST['c2_phone']??''), 'email'=>trim($_POST['c2_email']??''), 'address'=>trim($_POST['c2_address']??'')]
@@ -298,7 +371,6 @@ class Donor {
                 foreach ($organIdsInput as $oId) {
                     if ($oId <= 0) continue;
                     if ($organModel->addDonorPledge($donorId, $oId, $details)) {
-                        $witnessModel->addOrganWitnesses($donorId, $oId, $witnesses);
                         $custodianModel->addOrganCustodians($donorId, $oId, $custodians);
                         $successCount++;
                     }
@@ -449,6 +521,8 @@ class Donor {
             'medical_schools'     => $medicalSchools,
             'body_consent'        => $bodyConsent,
             'districts'           => $districts,
+            'active_roles'        => $activeRoles,
+            'current_mode'        => $currentMode,
             'active_page'         => 'donations',
             'page_title'          => 'My Donations',
             'page_css'            => ['organ.css'],
@@ -465,7 +539,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $appointmentModel = new \App\Models\UpcomingAppointmentModel();
 
@@ -480,6 +561,8 @@ class Donor {
             'donor_full_name'       => $donorFullName,
             'donor_id_display'      => $donorIdDisplay,
             'donor_role'            => $donorRole,
+            'active_roles'          => $activeRoles,
+            'current_mode'          => $currentMode,
             'all_appointments'      => $all_appointments,
             'upcoming_appointments' => $upcoming_appointments,
             'active_page'           => 'appointments',
@@ -547,7 +630,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $donorModel = new \App\Models\DonorModel();
         
@@ -560,6 +650,8 @@ class Donor {
             'donor_full_name' => $donorFullName,
             'donor_id_display' => $donorIdDisplay,
             'donor_role' => $donorRole,
+            'active_roles' => $activeRoles,
+            'current_mode' => $currentMode,
             'test_results' => $test_results,
             'active_page' => 'test-results',
             'page_title' => 'Test Results',
@@ -576,7 +668,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         // Handle POST Actions
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -667,6 +766,8 @@ class Donor {
             'donor_full_name' => $donorFullName,
             'donor_id_display' => $donorIdDisplay,
             'donor_role' => $donorRole,
+            'active_roles' => $activeRoles,
+            'current_mode' => $currentMode,
             'witnesses' => $witnesses,
             'witness_count' => count($witnesses),
             'custodians' => $custodians,
@@ -687,7 +788,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $hospitalModel = new \App\Models\HospitalModel();
         $allLabs = $hospitalModel->getAllHospitals();
@@ -727,7 +835,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $organModel = new \App\Models\OrganModel();
         $bodyModel = new \App\Models\BodyDonationModel();
@@ -775,6 +890,8 @@ class Donor {
             'donor_full_name' => $donorFullName,
             'donor_id_display'=> $donorIdDisplay,
             'donor_role'      => $donorRole,
+            'active_roles'    => $activeRoles,
+            'current_mode'    => $currentMode,
             'consent_history' => $combined,
             'active_page'     => 'consent-history',
             'page_title'      => 'Consent History',
@@ -787,7 +904,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $bodyDonationModel = new \App\Models\BodyDonationModel();
 
@@ -827,6 +951,8 @@ class Donor {
             'donor_full_name' => $donorFullName,
             'donor_id_display' => $donorIdDisplay,
             'donor_role' => $donorRole,
+            'active_roles' => $activeRoles,
+            'current_mode' => $currentMode,
             'body_consent' => $bodyConsent,
             'medical_schools' => $medicalSchools,
             'body_usage_status' => $bodyUsageStatus,
@@ -850,7 +976,7 @@ class Donor {
         if ($type === 'body_donation_consent') {
             $this->downloadConsentPDF($donorId);
         } else if ($type === 'donor_card') {
-            $this->downloadDonorCardPDF();
+            $this->viewDigitalCard();
         } else if ($type === 'lab_report') {
             // Lab report download logic if implemented
             $this->redirect('donor/test-results');
@@ -866,7 +992,14 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         // Fetch Aftercare Appointments for this donor
         $nic = $donorData['nic_number'] ?? '';
@@ -892,6 +1025,8 @@ class Donor {
             'donor_full_name' => $donorFullName,
             'donor_id_display' => $donorIdDisplay,
             'donor_role' => $donorRole,
+            'active_roles' => $activeRoles,
+            'current_mode' => $currentMode,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
             'active_page' => 'aftercare',
@@ -999,7 +1134,14 @@ class Donor {
         if (!isset($_SESSION['user_id'])) redirect('login');
         if ($_SESSION['role'] !== 'DONOR') redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $userId        = $_SESSION['user_id'];
         $donationModel = new FinancialDonationModel();
@@ -1017,6 +1159,8 @@ class Donor {
             'donor_full_name'   => $donorFullName,
             'donor_id_display'  => $donorIdDisplay,
             'donor_role'        => $donorRole,
+            'active_roles'      => $activeRoles,
+            'current_mode'      => $currentMode,
             'history'           => $history ?: [],
             'total_donated'     => $totalDonated,
             'active_page'       => 'financial-history',
@@ -1035,7 +1179,14 @@ class Donor {
         if (!isset($_SESSION['user_id'])) redirect('login');
         if ($_SESSION['role'] !== 'DONOR') redirect('login');
 
-        [$donorId, $donorData, $donorFullName, $donorIdDisplay, $donorRole] = $this->getCommonData();
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
 
         $userId           = $_SESSION['user_id'];
         $donationModel    = new FinancialDonationModel();
@@ -1053,6 +1204,8 @@ class Donor {
             'donor_full_name'        => $donorFullName,
             'donor_id_display'       => $donorIdDisplay,
             'donor_role'             => $donorRole,
+            'active_roles'           => $activeRoles,
+            'current_mode'           => $currentMode,
             'donation_history'       => $donation_history ?: [],
             'total_previous_donated' => $totalPrevious,
             'active_page'            => 'financial-donate',
@@ -1094,6 +1247,35 @@ class Donor {
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * View Donor Card as printable HTML
+     */
+    public function viewDigitalCard()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
+
+        $this->view('donor/digital_card', [
+            'donor_data' => $donorData,
+            'donor_full_name' => $donorFullName,
+            'donor_id_display' => $donorIdDisplay,
+            'donor_role' => $donorRole,
+            'active_roles' => $activeRoles,
+            'current_mode' => $currentMode,
+            'ROOT' => ROOT
+        ]);
+        exit;
     }
 
 }

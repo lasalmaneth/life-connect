@@ -258,4 +258,28 @@ class DonorModel {
             'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
         ];
     }
+
+    /**
+     * Update active roles for a donor
+     */
+    public function updateActiveRoles($donorId, array $roles)
+    {
+        // Map the first role to a primary category_id for legacy support
+        $categoryId = 1; // Default to NON
+        if (in_array('organ', $roles)) $categoryId = 3;
+        else if (in_array('financial', $roles)) $categoryId = 2;
+        else if (in_array('non', $roles)) $categoryId = 1;
+
+        $rolesJson = json_encode($roles);
+        $query = "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id";
+        
+        // Use direct PDO execution via the trait's connection logic for non-SELECT queries
+        $con = $this->connect();
+        $stm = $con->prepare($query);
+        return $stm->execute([
+            ':roles' => $rolesJson,
+            ':cat_id' => $categoryId,
+            ':id' => $donorId
+        ]);
+    }
 }
