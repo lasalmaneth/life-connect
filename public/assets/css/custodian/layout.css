@@ -1,0 +1,452 @@
+/* =============================================================================
+   CUSTODIAN PORTAL — LAYOUT
+   Header, Shell, Sidebar, Content Area
+   Mirrors donor/donor.css §6.1–6.4 exactly, using cp- prefix.
+   ============================================================================= */
+
+/* ---- Design Tokens (DESIGN_SYSTEM.md §1) ---- */
+:root {
+  --blue-900: #0a1628;
+  --blue-800: #0f2240;
+  --blue-700: #003b6e;
+  --blue-600: #005baa;
+  --blue-500: #1a6fbe;
+  --blue-400: #3389cc;
+  --blue-300: #60a5d8;
+  --blue-200: #a8d4f0;
+  --blue-100: #dceefb;
+  --blue-50:  #f0f7fd;
+
+  --navy:  #0a1628;
+  --slate: #1e293b;
+  --g700:  #374151;
+  --g500:  #6b7280;
+  --g400:  #9ca3af;
+  --g300:  #d1d5db;
+  --g200:  #e5e7eb;
+  --g100:  #f3f4f6;
+  --g50:   #f9fafb;
+  --white: #ffffff;
+  --gold:  #d4af37;
+  --coral: #e8734a;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+
+  --cp-font:   'Inter', system-ui, sans-serif;
+  --cp-max-w:  1400px;
+  --cp-r:      12px;
+  --cp-tr:     0.3s ease;
+  --cp-shadow: 0 4px 20px rgba(0, 91, 170, 0.06);
+  --cp-shadow-md: 0 8px 24px rgba(0, 91, 170, 0.1);
+}
+
+/* ---- Reset ---- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--cp-font);
+  background: var(--g50);
+  color: var(--slate);
+  line-height: 1.6;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--blue-100); }
+::-webkit-scrollbar-thumb { background: var(--blue-600); border-radius: 10px; }
+
+/* =============================================================================
+   §1  HEADER (Topbar)
+   ============================================================================= */
+.cp-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--g200);
+  padding: 0 1.75rem;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.cp-header__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: var(--cp-max-w);
+  margin: 0 auto;
+}
+
+.cp-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.cp-logo img {
+  height: 40px;
+}
+
+.cp-logo__text strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--blue-700);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.cp-logo__text span {
+  font-size: 0.68rem;
+  color: var(--g500);
+  font-weight: 500;
+}
+
+.cp-header__right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cp-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cp-header__nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--g500);
+  text-decoration: none;
+  transition: all var(--cp-tr);
+}
+
+.cp-header__nav a:hover {
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+/* Bell icon */
+.cp-bell {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--g500);
+  cursor: pointer;
+  transition: all var(--cp-tr);
+  font-size: 1.1rem;
+}
+
+.cp-bell:hover {
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+/* User chip */
+.cp-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--blue-50);
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--cp-tr);
+  border: 1px solid transparent;
+}
+
+.cp-user-chip:hover {
+  background: var(--blue-100);
+  border-color: var(--blue-200);
+}
+
+.cp-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.cp-user-chip__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate);
+  line-height: 1.2;
+}
+
+.cp-user-chip__id {
+  font-size: 0.68rem;
+  color: var(--g500);
+  font-weight: 500;
+}
+
+/* Mobile toggle */
+.cp-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--blue-600);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  transition: all var(--cp-tr);
+}
+
+.cp-mobile-toggle:hover {
+  background: var(--blue-50);
+}
+
+/* =============================================================================
+   §2  SHELL — 2-column grid
+   ============================================================================= */
+.cp-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: var(--cp-max-w);
+  margin: 0 auto;
+  align-items: start;
+  min-height: calc(100vh - 68px);
+}
+
+/* =============================================================================
+   §3  SIDEBAR
+   ============================================================================= */
+.cp-sidebar {
+  background: var(--white);
+  border-radius: var(--cp-r);
+  border: 1px solid var(--g200);
+  box-shadow: var(--cp-shadow);
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+  overflow: hidden;
+}
+
+.cp-sidebar__header {
+  padding: 1.25rem 1rem;
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border-bottom: 1px solid var(--g200);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cp-sidebar__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cp-sidebar__name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--blue-800);
+  line-height: 1.3;
+}
+
+.cp-sidebar__meta {
+  font-size: 0.7rem;
+  color: var(--g500);
+}
+
+.cp-sidebar__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 91, 170, 0.1);
+  border: 1px solid rgba(0, 91, 170, 0.2);
+  color: var(--blue-600);
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.3rem;
+}
+
+/* Menu sections */
+.cp-menu-section {
+  padding: 0.5rem 0;
+}
+
+.cp-menu-section + .cp-menu-section {
+  border-top: 1px solid var(--g100);
+}
+
+.cp-menu-section__title {
+  padding: 0.75rem 1.25rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--g400);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Menu items */
+.cp-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.25rem;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--g500);
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all var(--cp-tr);
+  position: relative;
+}
+
+.cp-menu-item:hover {
+  color: var(--blue-600);
+  background: var(--blue-50);
+  border-left-color: var(--blue-400);
+}
+
+.cp-menu-item.active {
+  color: var(--blue-600);
+  background: var(--blue-100);
+  border-left-color: var(--blue-600);
+  font-weight: 600;
+}
+
+.cp-menu-item__icon {
+  width: 18px;
+  text-align: center;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.cp-menu-item--danger {
+  color: var(--danger) !important;
+}
+
+.cp-menu-item--danger:hover {
+  background: #fef2f2 !important;
+  border-left-color: var(--danger) !important;
+}
+
+/* Sidebar overlay (mobile) */
+.cp-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+}
+
+.cp-sidebar-overlay.active {
+  display: block;
+}
+
+/* =============================================================================
+   §4  CONTENT AREA
+   ============================================================================= */
+.cp-content-area {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cp-content__header {
+  position: relative;
+  padding: 2rem 2rem 1.75rem;
+  border-radius: var(--cp-r);
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border: 1px solid var(--g200);
+  overflow: hidden;
+}
+
+.cp-content__header::before {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(0, 91, 170, 0.06);
+  pointer-events: none;
+}
+
+.cp-content__header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: relative;
+}
+
+.cp-content__header h2 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.3rem;
+}
+
+.cp-content__header h2 i {
+  color: var(--blue-500);
+  font-size: 1.4rem;
+}
+
+.cp-content__header p {
+  color: var(--g500);
+  font-size: 0.9rem;
+  max-width: 560px;
+}
+
+.cp-content__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}

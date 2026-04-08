@@ -1,0 +1,162 @@
+/* =============================================================================
+   CUSTODIAN PORTAL — FORMS
+   Form groups, inputs, upload zones
+   ============================================================================= */
+
+/* =============================================================================
+   §1  FORM GROUP
+   ============================================================================= */
+.cp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.cp-form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+.cp-form-label .cp-required {
+  color: var(--danger);
+  margin-left: 0.2rem;
+}
+
+.cp-form-hint {
+  font-size: 0.72rem;
+  color: var(--g500);
+  margin-top: 0.15rem;
+}
+
+/* =============================================================================
+   §2  INPUTS & TEXTAREAS
+   ============================================================================= */
+.cp-form-control {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--g300);
+  border-radius: 8px;
+  font-family: var(--cp-font);
+  font-size: 0.88rem;
+  color: var(--slate);
+  background: var(--white);
+  transition: all var(--cp-tr);
+}
+
+.cp-form-control:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.1);
+}
+
+.cp-form-control:disabled {
+  background: var(--g50);
+  color: var(--g400);
+  cursor: not-allowed;
+  border-color: var(--g200);
+}
+
+.cp-form-control::placeholder {
+  color: var(--g300);
+}
+
+textarea.cp-form-control {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+select.cp-form-control {
+  appearance: auto;
+}
+
+/* =============================================================================
+   §3  FORM ROWS (grid layouts)
+   ============================================================================= */
+.cp-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.cp-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+/* =============================================================================
+   §4  FIELDSET TITLE
+   ============================================================================= */
+.cp-fieldset-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--blue-800);
+  margin: 1.5rem 0 0.85rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--blue-100);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cp-fieldset-title:first-child {
+  margin-top: 0;
+}
+
+/* =============================================================================
+   §5  UPLOAD ZONE
+   ============================================================================= */
+.cp-upload-zone {
+  border: 2px dashed rgba(0, 91, 170, 0.3);
+  border-radius: 12px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: rgba(0, 91, 170, 0.02);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.cp-upload-zone:hover:not(.cp-upload-zone--disabled) {
+  border-color: var(--blue-600);
+  background: rgba(0, 91, 170, 0.06);
+}
+
+.cp-upload-zone--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cp-upload-zone__icon {
+  font-size: 2rem;
+  color: var(--blue-400);
+  display: block;
+  margin-bottom: 0.65rem;
+}
+
+.cp-upload-zone__text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.25rem;
+}
+
+.cp-upload-zone__sub {
+  font-size: 0.75rem;
+  color: var(--g500);
+}
+
+/* =============================================================================
+   §6  FORM ACTIONS BAR
+   ============================================================================= */
+.cp-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--g200);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}

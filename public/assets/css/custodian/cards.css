@@ -1,0 +1,427 @@
+/* =============================================================================
+   CUSTODIAN PORTAL — CARDS
+   Stat cards, Widget cards, Info cards, Action cards, Section cards, Summary bar
+   ============================================================================= */
+
+/* =============================================================================
+   §1  GENERIC SECTION CARD (white box wrapper)
+   ============================================================================= */
+.cp-section-card {
+  background: var(--white);
+  border-radius: var(--cp-r);
+  border: 1px solid var(--g200);
+  box-shadow: var(--cp-shadow);
+  overflow: hidden;
+}
+
+.cp-section-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--g200);
+  background: var(--g50);
+}
+
+.cp-section-card__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-section-card__title i {
+  color: var(--blue-500);
+  font-size: 0.9rem;
+}
+
+.cp-section-card__body {
+  padding: 1.5rem;
+}
+
+/* =============================================================================
+   §2  STAT CARDS GRID
+   ============================================================================= */
+.cp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.cp-stat {
+  background: var(--white);
+  border-radius: var(--cp-r);
+  padding: 1.5rem 1.25rem;
+  border: 1px solid var(--g200);
+  box-shadow: var(--cp-shadow);
+  transition: all var(--cp-tr);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: default;
+}
+
+.cp-stat:hover {
+  border-color: var(--blue-300);
+  transform: translateY(-4px);
+  box-shadow: var(--cp-shadow-md);
+}
+
+.cp-stat__icon {
+  width: 48px;
+  height: 48px;
+  background: var(--blue-50);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--blue-600);
+  margin-bottom: 0.9rem;
+  transition: all var(--cp-tr);
+}
+
+.cp-stat:hover .cp-stat__icon {
+  background: var(--blue-600);
+  color: var(--white);
+}
+
+.cp-stat__label {
+  font-size: 0.72rem;
+  color: var(--g500);
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cp-stat__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--blue-600);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.cp-stat__sub {
+  font-size: 0.75rem;
+  color: var(--g400);
+  margin-top: 0.3rem;
+}
+
+/* Color variants */
+.cp-stat--success .cp-stat__icon  { background: #dcfce7; color: #059669; }
+.cp-stat--success:hover .cp-stat__icon { background: #059669; }
+.cp-stat--success .cp-stat__value { color: #059669; }
+
+.cp-stat--warning .cp-stat__icon  { background: #fef3c7; color: #d97706; }
+.cp-stat--warning:hover .cp-stat__icon { background: #d97706; }
+.cp-stat--warning .cp-stat__value { color: #d97706; }
+
+.cp-stat--danger .cp-stat__icon   { background: #fee2e2; color: #dc2626; }
+.cp-stat--danger:hover .cp-stat__icon  { background: #dc2626; }
+.cp-stat--danger .cp-stat__value  { color: #dc2626; }
+
+/* =============================================================================
+   §3  DASHBOARD WIDGET GRID
+   ============================================================================= */
+.cp-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.cp-widget {
+  background: var(--white);
+  border-radius: var(--cp-r);
+  border: 1px solid var(--g200);
+  box-shadow: var(--cp-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cp-widget--full {
+  grid-column: 1 / -1;
+}
+
+.cp-widget__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--g200);
+  background: var(--g50);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cp-widget__title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-widget__title i {
+  color: var(--blue-500);
+  font-size: 0.88rem;
+}
+
+.cp-widget__body {
+  padding: 1.25rem;
+  flex: 1;
+}
+
+/* =============================================================================
+   §4  INFO ROW (label + value pairs)
+   ============================================================================= */
+.cp-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+}
+
+.cp-info-row:nth-child(odd) {
+  background: var(--g50);
+}
+
+.cp-info-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--g500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.cp-info-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate);
+  text-align: right;
+}
+
+.cp-info-value--placeholder {
+  color: var(--g400);
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* =============================================================================
+   §5  INFO CARD (labeled block card)
+   ============================================================================= */
+.cp-info-card {
+  background: var(--white);
+  border-radius: var(--cp-r);
+  border: 1px solid var(--g200);
+  box-shadow: var(--cp-shadow);
+  overflow: hidden;
+}
+
+.cp-info-card__header {
+  padding: 0.85rem 1.25rem;
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border-bottom: 1px solid var(--g200);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-info-card__title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--blue-800);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-info-card__title i {
+  color: var(--blue-600);
+  font-size: 0.85rem;
+}
+
+.cp-info-card__body {
+  padding: 0.5rem;
+}
+
+/* =============================================================================
+   §6  ACTION CARDS (CTA — confirm / object)
+   ============================================================================= */
+.cp-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.cp-action-card {
+  border-radius: 14px;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: 2px solid transparent;
+}
+
+.cp-action-card--confirm {
+  background: linear-gradient(145deg, #f0fdf4, #dcfce7);
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.cp-action-card--confirm:hover:not([disabled]) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(5, 150, 105, 0.2);
+  border-color: var(--success);
+}
+
+.cp-action-card--object {
+  background: linear-gradient(145deg, #fff5f5, #fee2e2);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.cp-action-card--object:hover:not([disabled]) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.15);
+  border-color: var(--danger);
+}
+
+.cp-action-card__icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.cp-action-card--confirm .cp-action-card__icon { color: var(--success); }
+.cp-action-card--object  .cp-action-card__icon { color: var(--danger); }
+
+.cp-action-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.cp-action-card--confirm h3 { color: #065f46; }
+.cp-action-card--object  h3 { color: #7f1d1d; }
+
+.cp-action-card p {
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.cp-action-card--confirm p { color: #047857; }
+.cp-action-card--object  p { color: #b91c1c; }
+
+/* Disabled state for action cards */
+.cp-action-card[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   §7  EMPTY STATE
+   ============================================================================= */
+.cp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--g400);
+}
+
+.cp-empty-state__icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--g300);
+}
+
+.cp-empty-state__msg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--g500);
+  margin-bottom: 0.35rem;
+}
+
+.cp-empty-state__sub {
+  font-size: 0.82rem;
+  color: var(--g400);
+  font-style: italic;
+}
+
+/* =============================================================================
+   §8  SUMMARY BAR
+   ============================================================================= */
+.cp-summary-bar {
+  display: flex;
+  background: var(--white);
+  border-radius: var(--cp-r);
+  border: 1px solid var(--g200);
+  padding: 1rem 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--cp-shadow);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.cp-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.cp-summary-item:not(:last-child) {
+  padding-right: 1.5rem;
+  border-right: 1px solid var(--g200);
+}
+
+.cp-summary-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.cp-summary-item__label {
+  font-size: 0.72rem;
+  color: var(--g500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.cp-summary-item__value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+/* =============================================================================
+   §9  GRID HELPERS
+   ============================================================================= */
+.cp-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.cp-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.25rem;
+}

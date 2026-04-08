@@ -1,0 +1,5 @@
+#hero{
+    width: 100%;
+    height: 420px;
+    background: linear-gradient(var(--primary-color), var(--secondary-color));
+}

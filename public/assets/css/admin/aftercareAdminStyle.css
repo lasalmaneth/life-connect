@@ -1,0 +1,314 @@
+/* Aftercare Admin Header Styles - Modern Dashboard Layout */
+.header {
+    background: #ffffff !important;
+    padding: 0 !important;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    min-height: 70px;
+}
+
+.header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1.5rem;
+    padding: 1rem 1.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.logo-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.logo-link:hover {
+    opacity: 0.8;
+}
+
+.header-logo {
+    height: 36px !important;
+    width: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.logo-main {
+    font-size: 16px;
+    font-weight: 700;
+    color: #005baa;
+    white-space: nowrap;
+}
+
+.logo-sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.page-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    padding-left: 1.25rem;
+    border-left: 2px solid #e2e8f0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.header-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.header-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 1;
+    min-width: 200px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.search-input {
+    padding: 8px 12px 8px 34px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12px;
+    width: 100%;
+    min-width: 200px;
+    max-width: 300px;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+    flex-shrink: 1;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #005baa;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.1);
+}
+
+.header-notification {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #64748b;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: #f1f5f9;
+}
+
+.header-notification:hover {
+    background: #e2e8f0;
+    color: #005baa;
+}
+
+.header-user {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.625rem;
+    padding: 4px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.header-user:hover {
+    background: #f1f5f9;
+}
+
+.user-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #005baa 0%, #003d7a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: white;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    white-space: nowrap;
+}
+
+.header-user .fa-chevron-down {
+    font-size: 11px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+/* Sidebar Styles - Clean Modern Look */
+.sidebar {
+    background: #ffffff !important;
+    border-radius: 0 !important;
+    padding: 1.5rem 0 !important;
+    box-shadow: none !important;
+    border-right: 1px solid #e2e8f0;
+    height: calc(100vh - 80px);
+    overflow-y: auto;
+}
+
+.menu-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.875rem 1.5rem !important;
+    color: #64748b !important;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.menu-item:hover {
+    background: #f8fafc;
+    color: #005baa !important;
+    border-left-color: #005baa;
+}
+
+.menu-item.active {
+    background: #eff6ff !important;
+    color: #005baa !important;
+    border-left-color: #005baa;
+    font-weight: 600;
+}
+
+.menu-item .icon {
+    margin-right: 0.75rem;
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 1rem 1.5rem;
+}
+
+.logout-item {
+    color: #ef4444 !important;
+}
+
+.logout-item:hover {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-left-color: #ef4444;
+}
+
+/* Container and Main Content */
+.container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 0;
+    margin-top: 0 !important;
+    height: calc(100vh - 80px);
+}
+
+.content-area {
+    background: #f8fafc;
+    padding: 2rem;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.content-section {
+    background: transparent;
+}
+
+.content-header {
+    background: transparent !important;
+    padding: 0 0 1.5rem 0 !important;
+    border-bottom: none !important;
+}
+
+.content-header h2 {
+    color: #1e293b !important;
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 0 !important;
+}
+
+.content-body {
+    padding: 0 !important;
+}
+
+/* Remove old header styles */
+.header-content,
+.header-logo-section,
+.header-user-section,
+.user-avatar-circle {
+    display: none !important;
+}
+
+/* Remove sidebar header */
+.sidebar-header {
+    display: none !important;
+}
+
+.menu-section {
+    padding: 0 !important;
+    border: none !important;
+}
+
+.menu-section-title {
+    display: none !important;
+}

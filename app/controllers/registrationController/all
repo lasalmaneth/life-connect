@@ -1,0 +1,515 @@
+<?php
+
+class RegistrationController
+{
+    use Controller;
+    // Display the registration page
+    public function index()
+    {
+        $this->view('registration/index');
+    }
+
+    // Handle Live Organ Donor Registration
+    public function registerLiveOrganDonor()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Validate age (must be 21+)
+            $dob = $_POST['dob'] ?? '';
+            $age = $this->calculateAge($dob);
+            
+            if ($age < 21) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'You must be 21 or older to register as a live organ donor'
+                ]);
+                return;
+            }
+
+            // Collect personal information
+            $personalData = [
+                'full_name' => $_POST['fullName'] ?? '',
+                'dob' => $dob,
+                'nic' => $_POST['nic'] ?? '',
+                'gender' => $_POST['gender'] ?? '',
+                'blood_group' => $_POST['bloodGroup'] ?? '',
+                'address' => $_POST['address'] ?? '',
+                'district' => $_POST['district'] ?? '',
+                'divisional_secretariat' => $_POST['divSec'] ?? '',
+                'gn_division' => $_POST['gnDiv'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? ''
+            ];
+
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'live_organ_donor',
+                'status' => 'pending' // Requires admin approval
+            ];
+
+            // Collect donation details
+            $donationData = [
+                'organs' => $_POST['organs'] ?? [], // Array of selected organs
+                'health_declaration' => isset($_POST['healthDeclaration']) ? 1 : 0
+            ];
+
+            // Collect witness information
+            $witness1 = [
+                'name' => $_POST['witness1Name'] ?? '',
+                'nic' => $_POST['witness1NIC'] ?? '',
+                'phone' => $_POST['witness1Phone'] ?? ''
+            ];
+
+            $witness2 = [
+                'name' => $_POST['witness2Name'] ?? '',
+                'nic' => $_POST['witness2NIC'] ?? '',
+                'phone' => $_POST['witness2Phone'] ?? ''
+            ];
+
+            // Legal consent
+            $consent = [
+                'consent_given' => isset($_POST['consentAgree']) ? 1 : 0,
+                'consent_date' => date('Y-m-d H:i:s')
+            ];
+
+            // Validate required fields
+            if (!$this->validatePersonalData($personalData) || 
+                !$this->validateCredentials($credentials) ||
+                !$consent['consent_given']) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Please fill all required fields'
+                ]);
+                return;
+            }
+
+            // Insert into database (you'll need to adapt this to your DB structure)
+            $userId = $this->createUser($credentials);
+            $donorId = $this->createLiveOrganDonor($userId, $personalData, $donationData, $witness1, $witness2, $consent);
+
+            // Send notification emails/SMS
+            $this->sendRegistrationNotification($personalData['email'], $personalData['phone'], 'live_organ_donor');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Registration submitted successfully. Pending admin approval.',
+                'redirect' => 'view4-pending'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Handle Deceased Organ Donor Registration
+    public function registerDeceasedDonor()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Validate age (must be 21+)
+            $dob = $_POST['dob'] ?? '';
+            $age = $this->calculateAge($dob);
+            
+            if ($age < 21) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'You must be 21 or older to register as a deceased organ donor'
+                ]);
+                return;
+            }
+
+            // Collect personal information
+            $personalData = [
+                'full_name' => $_POST['fullName'] ?? '',
+                'dob' => $dob,
+                'nic' => $_POST['nic'] ?? '',
+                'gender' => $_POST['gender'] ?? '',
+                'blood_group' => $_POST['bloodGroup'] ?? '',
+                'address' => $_POST['address'] ?? '',
+                'district' => $_POST['district'] ?? '',
+                'divisional_secretariat' => $_POST['divSec'] ?? '',
+                'gn_division' => $_POST['gnDiv'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? ''
+            ];
+
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'deceased_donor',
+                'status' => 'pending'
+            ];
+
+            // Collect next of kin information
+            $nextOfKin = [
+                'name' => $_POST['kinName'] ?? '',
+                'relationship' => $_POST['kinRelation'] ?? '',
+                'phone' => $_POST['kinPhone'] ?? '',
+                'email' => $_POST['kinEmail'] ?? ''
+            ];
+
+            // Collect organ/tissue consent
+            $organs = $_POST['organs'] ?? [];
+
+            // Collect witness information
+            $witness1 = [
+                'name' => $_POST['witness1Name'] ?? '',
+                'nic' => $_POST['witness1NIC'] ?? '',
+                'phone' => $_POST['witness1Phone'] ?? ''
+            ];
+
+            $witness2 = [
+                'name' => $_POST['witness2Name'] ?? '',
+                'nic' => $_POST['witness2NIC'] ?? '',
+                'phone' => $_POST['witness2Phone'] ?? ''
+            ];
+
+            // Legal consent
+            $consent = [
+                'consent_given' => isset($_POST['consentAgree']) ? 1 : 0,
+                'consent_date' => date('Y-m-d H:i:s')
+            ];
+
+            // Insert into database
+            $userId = $this->createUser($credentials);
+            $donorId = $this->createDeceasedDonor($userId, $personalData, $nextOfKin, $organs, $witness1, $witness2, $consent);
+
+            // Send notifications
+            $this->sendRegistrationNotification($personalData['email'], $personalData['phone'], 'deceased_donor');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Registration submitted successfully. Pending admin approval.',
+                'redirect' => 'view4-pending'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Handle Non-Donor (Opt-Out) Registration
+    public function registerNonDonor()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Collect personal information
+            $personalData = [
+                'full_name' => $_POST['fullName'] ?? '',
+                'dob' => $_POST['dob'] ?? '',
+                'nic' => $_POST['nic'] ?? '',
+                'gender' => $_POST['gender'] ?? '',
+                'blood_group' => $_POST['bloodGroup'] ?? '',
+                'address' => $_POST['address'] ?? '',
+                'district' => $_POST['district'] ?? '',
+                'divisional_secretariat' => $_POST['divSec'] ?? '',
+                'gn_division' => $_POST['gnDiv'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? ''
+            ];
+
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'non_donor',
+                'status' => 'pending'
+            ];
+
+            // Legal consent
+            $consent = [
+                'consent_given' => isset($_POST['consentAgree']) ? 1 : 0,
+                'consent_date' => date('Y-m-d H:i:s')
+            ];
+
+            // Insert into database
+            $userId = $this->createUser($credentials);
+            $this->createNonDonor($userId, $personalData, $consent);
+
+            // Send notifications
+            $this->sendRegistrationNotification($personalData['email'], $personalData['phone'], 'non_donor');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Opt-out registration submitted successfully.',
+                'redirect' => 'view4-pending'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Handle Financial Donor Registration
+    public function registerFinancialDonor()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Collect personal information
+            $personalData = [
+                'full_name' => $_POST['fullName'] ?? '',
+                'dob' => $_POST['dob'] ?? '',
+                'nic' => $_POST['nic'] ?? '',
+                'gender' => $_POST['gender'] ?? '',
+                'address' => $_POST['address'] ?? '',
+                'district' => $_POST['district'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? ''
+            ];
+
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'financial_donor',
+                'status' => 'active' // Financial donors are active immediately
+            ];
+
+            // Legal consent
+            $consent = [
+                'consent_given' => isset($_POST['consentAgree']) ? 1 : 0,
+                'consent_date' => date('Y-m-d H:i:s')
+            ];
+
+            // Insert into database
+            $userId = $this->createUser($credentials);
+            $this->createFinancialDonor($userId, $personalData, $consent);
+
+            // Send notifications
+            $this->sendRegistrationNotification($personalData['email'], $personalData['phone'], 'financial_donor');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Registration completed successfully. You can now log in.',
+                'redirect' => 'view4-success'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Handle Hospital/Transplant Center Registration
+    public function registerHospital()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'hospital',
+                'status' => 'pending'
+            ];
+
+            // Collect institution details
+            $institutionData = [
+                'name' => $_POST['instName'] ?? '',
+                'registration_number' => $_POST['regNo'] ?? '',
+                'type' => $_POST['instType'] ?? '',
+                'address' => $_POST['instAddress'] ?? '',
+                'district' => $_POST['instDistrict'] ?? '',
+                'phone' => $_POST['instPhone'] ?? '',
+                'email' => $_POST['instEmail'] ?? ''
+            ];
+
+            // Collect CMO details
+            $cmoData = [
+                'name' => $_POST['cmoName'] ?? '',
+                'nic' => $_POST['cmoNIC'] ?? '',
+                'license_number' => $_POST['licenseNumber'] ?? ''
+            ];
+
+            // Insert into database
+            $userId = $this->createUser($credentials);
+            $this->createHospital($userId, $institutionData, $cmoData);
+
+            // Send notifications
+            $this->sendRegistrationNotification($institutionData['email'], $institutionData['phone'], 'hospital');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Hospital registration submitted successfully. Pending admin approval.',
+                'redirect' => 'view4-pending'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Handle Medical School Registration
+    public function registerMedicalSchool()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            return;
+        }
+
+        try {
+            // Collect credentials
+            $credentials = [
+                'username' => $_POST['username'] ?? '',
+                'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+                'user_type' => 'medical_school',
+                'status' => 'pending'
+            ];
+
+            // Collect institution details
+            $institutionData = [
+                'name' => $_POST['instName'] ?? '',
+                'university' => $_POST['university'] ?? '',
+                'ugc_number' => $_POST['ugcNumber'] ?? '',
+                'address' => $_POST['instAddress'] ?? ''
+            ];
+
+            // Collect contact person details
+            $contactData = [
+                'name' => $_POST['contactName'] ?? '',
+                'title' => $_POST['contactTitle'] ?? '',
+                'email' => $_POST['contactEmail'] ?? '',
+                'phone' => $_POST['contactPhone'] ?? ''
+            ];
+
+            // Insert into database
+            $userId = $this->createUser($credentials);
+            $this->createMedicalSchool($userId, $institutionData, $contactData);
+
+            // Send notifications
+            $this->sendRegistrationNotification($contactData['email'], $contactData['phone'], 'medical_school');
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Medical school registration submitted successfully. Pending admin approval.',
+                'redirect' => 'view4-pending'
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Helper Methods
+
+    private function calculateAge($dob)
+    {
+        $birthDate = new DateTime($dob);
+        $today = new DateTime('today');
+        return $birthDate->diff($today)->y;
+    }
+
+    private function validatePersonalData($data)
+    {
+        return !empty($data['full_name']) && 
+               !empty($data['dob']) && 
+               !empty($data['nic']) && 
+               !empty($data['phone']);
+    }
+
+    private function validateCredentials($credentials)
+    {
+        return !empty($credentials['username']) && 
+               !empty($credentials['password']);
+    }
+
+    private function createUser($credentials)
+    {
+        // Insert user into users table
+        // Return user ID
+        // Example:
+        // $db = new Database();
+        // return $db->insert('users', $credentials);
+        return 1; // Placeholder
+    }
+
+    private function createLiveOrganDonor($userId, $personal, $donation, $w1, $w2, $consent)
+    {
+        // Insert into live_organ_donors table
+        // Store witnesses, organs, consent
+        return 1; // Placeholder
+    }
+
+    private function createDeceasedDonor($userId, $personal, $kin, $organs, $w1, $w2, $consent)
+    {
+        // Insert into deceased_donors table
+        return 1; // Placeholder
+    }
+
+    private function createNonDonor($userId, $personal, $consent)
+    {
+        // Insert into non_donors table
+        return 1; // Placeholder
+    }
+
+    private function createFinancialDonor($userId, $personal, $consent)
+    {
+        // Insert into financial_donors table
+        return 1; // Placeholder
+    }
+
+    private function createHospital($userId, $institution, $cmo)
+    {
+        // Insert into hospitals table
+        return 1; // Placeholder
+    }
+
+    private function createMedicalSchool($userId, $institution, $contact)
+    {
+        // Insert into medical_schools table
+        return 1; // Placeholder
+    }
+
+    private function sendRegistrationNotification($email, $phone, $type)
+    {
+        // Send email and SMS notifications
+        // Implementation depends on your notification service
+    }
+}
+

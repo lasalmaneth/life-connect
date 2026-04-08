@@ -1,0 +1,442 @@
+.match-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.match-detail-item {
+    padding: 0.75rem;
+    background: var(--gray-bg-color);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 91, 170, 0.1);
+}
+
+.match-detail-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.match-detail-value {
+    font-size: 0.95rem;
+    color: var(--primary-text-color);
+    font-weight: 600;
+}
+
+/* Compatibility badge - MODIFY existing */
+.compatibility-badge,
+.btn.compatibility-high,
+.btn.compatibility-medium,
+.btn.compatibility-low {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.compatibility-high,
+.btn.compatibility-high { 
+    background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+    color: var(--white-color);
+}
+
+.compatibility-medium,
+.btn.compatibility-medium { 
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: var(--white-color);
+}
+
+.compatibility-low,
+.btn.compatibility-low { 
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: var(--white-color);
+}
+
+/* Urgency indicators */
+.urgency-critical {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.urgency-high {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.urgency-medium {
+    background: var(--secondary-hover-color);
+    color: var(--primary-color);
+}
+
+.urgency-low {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Modal body content for match details */
+/* Modal body wrapper */
+#match-modal-body {
+    padding: 2rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 91, 170, 0.08);
+}
+
+/* Section spacing */
+.detail-section {
+    margin-bottom: 2.5rem;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Section headers */
+.detail-section h4 {
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gray-bg-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Grid layout for info blocks */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 15px; /* reduce space between grid items */
+  }
+
+/* Individual info card */
+.info-item {
+    background: #f9fbff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 91, 170, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 91, 170, 0.05);
+    transition: transform 0.2s ease;
+    line-height: 1.3;
+}
+
+.info-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Label text */
+.info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #5a6b8a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+}
+/* Reduce text spacing */
+.info-item label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 2px;
+    font-size: 0.85rem;
+  }
+
+/* Value text */
+.info-value {
+    font-size: 1.05rem;
+    color: #1a2e49;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+
+.status-select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+    width: 100%;
+    max-width: 200px;
+}
+
+.status-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Status timeline for donation progress */
+.status-timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin-top: 1.5rem;
+}
+
+.status-timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.status-timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.status-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 0.5rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 3px solid var(--white-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.status-timeline-item::after {
+    content: '';
+    position: absolute;
+    left: -1.05rem;
+    top: 1.5rem;
+    width: 2px;
+    height: calc(100% - 0.5rem);
+    background: var(--gray-bg-color);
+}
+
+.status-timeline-item:last-child::after {
+    display: none;
+}
+
+.status-timeline-item.completed::before {
+    background: var(--success-color);
+    box-shadow: 0 0 0 2px var(--success-color);
+}
+
+.status-timeline-item.current::before {
+    background: var(--warning-color);
+    box-shadow: 0 0 0 2px var(--warning-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 2px var(--warning-color);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.3);
+    }
+}
+
+.timeline-content h5 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-content p {
+    font-size: 0.85rem;
+    color: var(--secondary-text-color);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-date {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+    font-style: italic;
+}
+
+/* Coordination calendar view */
+.coordination-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--white-color);
+    border: 1px solid rgba(0, 91, 170, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.calendar-day:hover {
+    background: var(--gray-bg-color);
+    transform: translateY(-2px);
+}
+
+.calendar-day.has-event {
+    background: var(--secondary-hover-color);
+    border-color: var(--primary-color);
+}
+
+.calendar-day-number {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-text-color);
+}
+
+.calendar-day-events {
+    font-size: 0.7rem;
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+}
+
+/* Empty state specific to donations */
+.empty-donation-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--secondary-text-color);
+}
+
+.empty-donation-state i {
+    font-size: 5rem;
+    color: var(--primary-color);
+    opacity: 0.2;
+    margin-bottom: 1rem;
+}
+
+.empty-donation-state h3 {
+    font-size: 1.3rem;
+    color: var(--primary-text-color);
+    margin-bottom: 0.5rem;
+}
+
+.empty-donation-state p {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Report generation specific styles */
+.report-preview {
+    background: var(--white-color);
+    border: 2px solid var(--gray-bg-color);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 1.5rem;
+}
+
+.report-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--gray-bg-color);
+}
+
+.report-header h3 {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.report-date {
+    color: var(--secondary-text-color);
+    font-size: 0.9rem;
+}
+
+.report-section {
+    margin-bottom: 2rem;
+}
+
+.report-section h4 {
+    color: var(--primary-text-color);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+/* Match checkbox styling */
+.match-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+.message-preview {
+    max-height: 3em;
+    overflow: hidden;
+    line-height: 1.5em;
+}
+
+.message-full {
+    background: var(--gray-bg-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Alert styles */
+.alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+/* Responsive adjustments specific to donation admin */
+@media (max-width: 768px) {
+    .match-details-grid,
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .status-timeline {
+        padding-left: 1.5rem;
+    }
+
+    .coordination-calendar {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .amount-display {
+        font-size: 1.2rem;
+    }
+}
+
+/* Print styles for reports */
+@media print {
+    .header,
+    .sidebar,
+    .action-section,
+    .btn,
+    .filter-section,
+    .search-bar {
+        display: none !important;
+    }
+
+    .content-area {
+        box-shadow: none;
+        border: none;
+    }
+
+    .report-preview {
+        border: none;
+        padding: 0;
+    }
+}

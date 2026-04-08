@@ -1,0 +1,333 @@
+
+/* ============================================
+   BECOME DONOR PAGE STYLES
+   ============================================ */
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hero-content {
+    flex: 1;
+    color: var(--white);
+    position: relative;
+    z-index: 1;
+}
+
+.hero-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.hero-content h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.hero-illustration {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+.floating-hearts {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.floating-hearts i {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.3);
+    animation: float 3s ease-in-out infinite;
+}
+
+.heart-1 {
+    font-size: 3rem;
+    top: 0;
+    left: 20px;
+    animation-delay: 0s;
+}
+
+.heart-2 {
+    font-size: 2rem;
+    top: 50px;
+    right: 10px;
+    animation-delay: 1s;
+}
+
+.heart-3 {
+    font-size: 2.5rem;
+    bottom: 20px;
+    left: 50px;
+    animation-delay: 2s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+/* Content Section */
+.content-section {
+    margin-bottom: 2rem;
+}
+
+.section-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.section-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--white);
+}
+
+.section-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+/* Benefits Grid */
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.benefit-card {
+    background: var(--gray-50);
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+    background: var(--white);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+}
+
+.benefit-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    display: flex;
+    align-items:center;
+justify-content: center;
+font-size: 2rem;
+color: var(--white);
+margin: 0 auto 1.5rem;
+}
+.benefit-card h3 {
+font-size: 1.25rem;
+font-weight: 600;
+color: var(--gray-900);
+margin-bottom: 0.75rem;
+}
+.benefit-card p {
+font-size: 0.95rem;
+color: var(--gray-600);
+line-height: 1.6;
+}
+/* Steps Container */
+.steps-container {
+display: grid;
+gap: 1.5rem;
+}
+.step-item {
+display: flex;
+align-items: flex-start;
+gap: 1.5rem;
+padding: 1.5rem;
+background: var(--gray-50);
+border-radius: 12px;
+transition: all 0.3s ease;
+}
+.step-item:hover {
+background: var(--white);
+box-shadow: var(--shadow-sm);
+transform: translateX(8px);
+}
+.step-number {
+width: 50px;
+height: 50px;
+background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5rem;
+font-weight: 700;
+color: var(--white);
+flex-shrink: 0;
+}
+.step-content h3 {
+font-size: 1.1rem;
+font-weight: 600;
+color: var(--gray-900);
+margin-bottom: 0.5rem;
+}
+.step-content p {
+font-size: 0.95rem;
+color: var(--gray-600);
+line-height: 1.6;
+}
+/* CTA Section */
+.cta-section {
+margin-top: 2rem;
+}
+.cta-card {
+background: linear-gradient(135deg, rgba(0, 91, 170, 0.05), rgba(0, 59, 110, 0.05));
+border: 2px solid var(--gray-200);
+border-radius: 16px;
+padding: 3rem 2rem;
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 3rem;
+}
+.cta-content {
+flex: 1;
+}
+.cta-content h2 {
+font-size: 2rem;
+font-weight: 700;
+color: var(--gray-900);
+margin-bottom: 1rem;
+}
+.cta-content p {
+font-size: 1rem;
+color: var(--gray-600);
+line-height: 1.6;
+margin-bottom: 2rem;
+}
+.cta-buttons {
+display: flex;
+gap: 1rem;
+flex-wrap: wrap;
+}
+.cta-stats {
+display: flex;
+flex-direction: column;
+gap: 1.5rem;
+}
+.cta-stat {
+text-align: center;
+padding: 1.25rem;
+background: var(--white);
+border-radius: 12px;
+box-shadow: var(--shadow-sm);
+}
+.cta-stat i {
+font-size: 2rem;
+color: var(--primary-color);
+margin-bottom: 0.5rem;
+}
+.cta-stat h3 {
+font-size: 1.75rem;
+font-weight: 700;
+color: var(--gray-900);
+margin-bottom: 0.25rem;
+}
+.cta-stat p {
+font-size: 0.85rem;
+color: var(--gray-600);
+}
+/* Responsive */
+@media (max-width: 1024px) {
+.cta-card {
+flex-direction: column;
+text-align: center;
+}
+.cta-stats {
+    flex-direction: row;
+    justify-content: center;
+}
+}
+@media (max-width: 768px) {
+.hero-section {
+flex-direction: column;
+text-align: center;
+padding: 2rem 1.5rem;
+}
+.hero-content h1 {
+    font-size: 1.75rem;
+}
+
+.hero-content p {
+    font-size: 1rem;
+}
+
+.hero-illustration {
+    width: 120px;
+    height: 120px;
+}
+
+.benefits-grid {
+    grid-template-columns: 1fr;
+}
+
+.cta-content h2 {
+    font-size: 1.5rem;
+}
+
+.cta-buttons {
+    flex-direction: column;
+}
+
+.cta-stats {
+    flex-direction: column;
+}
+}

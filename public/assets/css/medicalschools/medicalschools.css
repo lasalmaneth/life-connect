@@ -1,0 +1,1956 @@
+/* =============================================================================
+   LIFE-CONNECT — DASHBOARD / PORTAL CSS
+   Uses DESIGN_SYSTEM.md tokens exclusively (Section 1 + Section 6)
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ---- Tokens (from DESIGN_SYSTEM.md §1) ---- */
+:root {
+  --blue-900: #0a1628;
+  --blue-800: #0f2240;
+  --blue-700: #003b6e;
+  --blue-600: #005baa;
+  --blue-500: #1a6fbe;
+  --blue-400: #3389cc;
+  --blue-300: #60a5d8;
+  --blue-200: #a8d4f0;
+  --blue-100: #dceefb;
+  --blue-50: #f0f7fd;
+
+  --navy: #0a1628;
+  --slate: #1e293b;
+  --g700: #374151;
+  --g500: #6b7280;
+  --g400: #9ca3af;
+  --g300: #d1d5db;
+  --g200: #e5e7eb;
+  --g100: #f3f4f6;
+  --g50: #f9fafb;
+  --white: #ffffff;
+  --gold: #d4af37;
+  --coral: #e8734a;
+
+  --font: 'Inter', system-ui, sans-serif;
+  --max-w: 1200px;
+  --r: 12px;
+  --tr: .3s ease;
+}
+
+/* ---- Reset ---- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--g50);
+  color: var(--slate);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* =============================================================================
+   §6.2  DASHBOARD HEADER
+   ============================================================================= */
+.d-header {
+  background: var(--white);
+  border-bottom: 1px solid var(--g200);
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 68px;
+  display: flex;
+  align-items: center;
+}
+
+.d-header__inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo img {
+  height: 40px;
+  width: 40px;
+  object-fit: contain;
+}
+
+.logo strong {
+  display: block;
+  font-size: 1.1rem;
+  color: var(--blue-700);
+  line-height: 1.2;
+}
+
+.logo p {
+  display: block;
+  font-size: .68rem;
+  color: var(--g500);
+  font-weight: 400;
+  margin-top: 0;
+}
+
+.d-header__right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* User chip */
+.d-user-chip {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--blue-50);
+  padding: .4rem .8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--tr);
+}
+
+.d-user-chip:hover {
+  background: var(--blue-100);
+}
+
+.d-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.d-user-chip__name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--slate);
+}
+
+.d-user-chip__badge {
+  background: #10b981;
+  color: var(--white);
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Notification bell */
+.d-bell {
+  position: relative;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all var(--tr);
+  color: var(--slate);
+  background: var(--white);
+}
+
+.d-bell:hover {
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+.d-bell__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--coral);
+  color: var(--white);
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid var(--white);
+}
+
+
+/* =============================================================================
+   §6.1  DASHBOARD SHELL (sidebar + content grid)
+   ============================================================================= */
+.d-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+
+/* =============================================================================
+   §6.3  SIDEBAR
+   ============================================================================= */
+.d-sidebar {
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--g200);
+  overflow: hidden;
+  height: fit-content;
+}
+
+.d-sidebar__header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border-bottom: 1px solid var(--g200);
+}
+
+.d-sidebar__header h3 {
+  color: var(--blue-800);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.d-sidebar__header p {
+  font-size: .8rem;
+  color: var(--g500);
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.d-menu-section {
+  padding: 0.75rem 0;
+}
+
+.d-menu-section__title {
+  padding: 0 1.25rem 0.5rem;
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--g500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.d-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.875rem 1.25rem;
+  color: var(--g500);
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all var(--tr);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.d-menu-item:hover {
+  color: var(--blue-600);
+  border-left-color: var(--blue-600);
+  background: var(--blue-50);
+}
+
+.d-menu-item.active {
+  color: var(--blue-600);
+  border-left-color: var(--blue-600);
+  background: var(--blue-100);
+  font-weight: 600;
+}
+
+.d-menu-item__icon {
+  margin-right: .75rem;
+  font-size: 1rem;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-menu-item__badge {
+  background: #ef4444;
+  color: var(--white);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+
+/* =============================================================================
+   §6.4  CONTENT AREA
+   ============================================================================= */
+.d-card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--g200);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: all var(--tr);
+}
+
+.d-card:hover {
+  border-color: var(--blue-300);
+  box-shadow: 0 8px 28px rgba(0, 91, 170, .08);
+  transform: translateY(-4px);
+}
+
+.d-content {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--g200);
+  overflow: hidden;
+  min-height: calc(100vh - 180px);
+  box-shadow: 0 8px 28px rgba(0, 91, 170, .08);
+}
+
+.d-content__header {
+  position: relative;
+  padding: 3rem 2rem;
+  border-bottom: 1px solid var(--g200);
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  overflow: hidden;
+}
+
+.d-content__header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('../../images/patient-care.jpg');
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+  z-index: 0;
+}
+
+.d-content__header>* {
+  position: relative;
+  z-index: 1;
+}
+
+.d-content__header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  letter-spacing: -.01em;
+  margin-bottom: 0.375rem;
+}
+
+.d-content__header p {
+  color: var(--g500);
+  font-size: 0.92rem;
+  font-weight: 400;
+  max-width: 600px;
+}
+
+.d-content__body {
+  padding: 2rem;
+}
+
+/* Section tabs (show/hide) */
+.d-section {
+  display: none;
+}
+
+.d-section.active {
+  display: block;
+}
+
+
+/* =============================================================================
+   §6.5  STAT CARDS
+   ============================================================================= */
+.d-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.d-stat {
+  background: var(--white);
+  border-radius: var(--r);
+  padding: 1.75rem 1.5rem;
+  border: 1px solid var(--g200);
+  transition: all var(--tr);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.d-stat:hover {
+  border-color: var(--blue-300);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(0, 91, 170, .08);
+}
+
+.d-stat__icon {
+  width: 56px;
+  height: 56px;
+  background: var(--blue-50);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: var(--blue-600);
+  margin-bottom: 1rem;
+  transition: all var(--tr);
+}
+
+.d-stat:hover .d-stat__icon {
+  background: var(--blue-600);
+  color: var(--white);
+}
+
+.d-stat:hover .d-stat__icon i {
+  color: var(--white) !important;
+}
+
+.d-stat__label {
+  font-size: 0.88rem;
+  color: var(--g500);
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+/* =============================================================================
+   §6.6  DASHBOARD WIDGET GRID (NEW)
+   ============================================================================= */
+.d-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.d-widget {
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--g200);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.d-widget__header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--g200);
+  background: var(--g50);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.d-widget__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-widget__body {
+  padding: 1.25rem;
+  flex: 1;
+}
+
+/* Compact summary bar */
+.d-summary-bar {
+  display: flex;
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--g200);
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+}
+
+.d-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.d-summary-item:not(:last-child) {
+  border-right: 1px solid var(--g200);
+  padding-right: 2rem;
+}
+
+.d-summary-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.d-summary-item__stats h4 {
+  font-size: 0.75rem;
+  color: var(--g500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.2rem;
+}
+
+.d-summary-item__stats span {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+/* Timeline/Tracker specific */
+.d-timeline {
+  list-style: none;
+}
+
+.d-timeline li {
+  position: relative;
+  padding-left: 24px;
+  padding-bottom: 1.25rem;
+}
+
+.d-timeline li:before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: -6px;
+  width: 2px;
+  background: var(--g200);
+}
+
+.d-timeline li:last-child:before {
+  display: none;
+}
+
+.d-timeline li::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid var(--blue-500);
+}
+
+.d-timeline li.completed::after {
+  background: var(--blue-500);
+}
+
+.d-timeline__date {
+  font-size: 0.75rem;
+  color: var(--g500);
+  margin-bottom: 0.2rem;
+}
+
+.d-timeline__content {
+  font-size: 0.9rem;
+  color: var(--slate);
+  font-weight: 500;
+}
+
+/* Matrix specific */
+.d-matrix-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--g200);
+}
+
+.d-matrix-item:last-child {
+  border-bottom: none;
+}
+
+.d-matrix-item__label {
+  font-size: 0.9rem;
+  color: var(--slate);
+  font-weight: 500;
+}
+
+.d-matrix-item__value {
+  background: var(--blue-50);
+  color: var(--blue-700);
+  padding: 0.2rem 0.6rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.d-stat__value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--blue-600);
+  letter-spacing: -0.02em;
+}
+
+
+/* =============================================================================
+   §6.6  DATA TABLES
+   ============================================================================= */
+.d-table-wrap {
+  overflow: visible;
+  border-radius: var(--r);
+  margin-bottom: 1rem;
+}
+
+.d-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--r);
+  border: 1px solid var(--g200);
+  overflow: hidden;
+  background: var(--white);
+}
+
+.d-table th {
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-800));
+  color: var(--white);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.d-table th:first-child {
+  border-top-left-radius: var(--r);
+}
+
+.d-table th:last-child {
+  border-top-right-radius: var(--r);
+}
+
+.d-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--g200);
+  font-size: 0.85rem;
+  vertical-align: middle;
+}
+
+.d-table td strong {
+  color: var(--blue-600);
+  font-weight: 700;
+}
+
+.d-table tbody tr {
+  cursor: pointer;
+  transition: all var(--tr);
+}
+
+.d-table tbody tr:hover {
+  background: var(--blue-50);
+}
+
+.d-table tbody tr.selected {
+  background: var(--blue-100);
+  border-left: 3px solid var(--blue-600);
+}
+
+.d-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--r);
+}
+
+.d-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--r);
+}
+
+.d-table__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+
+/* =============================================================================
+   §6.7  STATUS INDICATORS
+   ============================================================================= */
+.d-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.d-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Variants */
+.d-status--success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #10b981;
+}
+
+.d-status--success .d-status__dot {
+  background: #10b981;
+}
+
+.d-status--warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+.d-status--warning .d-status__dot {
+  background: #f59e0b;
+}
+
+.d-status--danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+.d-status--danger .d-status__dot {
+  background: #ef4444;
+}
+
+.d-status--info {
+  background: #dbeafe;
+  color: var(--blue-700);
+  border: 1px solid var(--blue-400);
+}
+
+.d-status--info .d-status__dot {
+  background: var(--blue-400);
+}
+
+.d-status--neutral {
+  background: var(--g100);
+  color: var(--g700);
+  border: 1px solid var(--g300);
+}
+
+.d-status--neutral .d-status__dot {
+  background: var(--g400);
+}
+
+
+/* =============================================================================
+   §6.8  BUTTONS
+   ============================================================================= */
+.d-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all var(--tr);
+  border: 1.5px solid transparent;
+  font-family: var(--font);
+  text-decoration: none;
+}
+
+.d-btn--sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+}
+
+.d-btn--primary {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+}
+
+.d-btn--primary:hover {
+  background: var(--blue-700);
+  border-color: var(--blue-700);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 91, 170, .25);
+}
+
+.d-btn--success {
+  background: #10b981;
+  color: var(--white);
+  border-color: #10b981;
+}
+
+.d-btn--success:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, .25);
+}
+
+.d-btn--coral {
+  background: var(--coral);
+  color: var(--white);
+  border-color: var(--coral);
+}
+
+.d-btn--coral:hover {
+  background: #d1633d;
+  border-color: #d1633d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(232, 115, 74, .25);
+}
+
+.d-btn--danger {
+  background: #ef4444;
+  color: var(--white);
+  border-color: #ef4444;
+}
+
+.d-btn--danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}
+
+.d-btn--warning {
+  background: #f59e0b;
+  color: var(--white);
+  border-color: #f59e0b;
+}
+
+.d-btn--warning:hover {
+  background: #d97706;
+  border-color: #d97706;
+  transform: translateY(-2px);
+}
+
+.d-btn--outline {
+  background: var(--white);
+  color: var(--blue-600);
+  border-color: var(--blue-600);
+}
+
+.d-btn--outline:hover {
+  background: var(--blue-50);
+  transform: translateY(-2px);
+}
+
+.d-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.d-btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+
+/* =============================================================================
+   §6.9  MODALS
+   ============================================================================= */
+.d-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-modal.active {
+  display: flex;
+}
+
+.d-modal__body {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
+}
+
+.d-modal__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-modal__text {
+  color: var(--g500);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.d-modal__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.d-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.d-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--g500);
+  transition: color var(--tr);
+}
+
+.d-modal__close:hover {
+  color: #ef4444;
+}
+
+
+/* =============================================================================
+   §6.10 FORM ELEMENTS
+   ============================================================================= */
+.d-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.d-form-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.5rem;
+}
+
+.d-form-input,
+.d-form-select,
+.d-form-textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--g300);
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  color: var(--slate);
+  background: var(--white);
+  transition: all var(--tr);
+}
+
+.d-form-input:focus,
+.d-form-select:focus,
+.d-form-textarea:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0, 91, 170, .1);
+}
+
+.d-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+
+/* =============================================================================
+   §6.11 FILTER BAR
+   ============================================================================= */
+.d-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.d-filter {
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  background: var(--white);
+  border: 1.5px solid var(--g200);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.8rem;
+  transition: all var(--tr);
+  font-family: var(--font);
+  color: var(--slate);
+}
+
+.d-filter:hover {
+  border-color: var(--blue-400);
+  background: var(--blue-50);
+  color: var(--blue-600);
+}
+
+.d-filter.active {
+  background: var(--blue-600);
+  color: var(--white);
+  border-color: var(--blue-600);
+}
+
+
+/* =============================================================================
+   §6.12 SEARCH BAR
+   ============================================================================= */
+.d-search {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.d-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--g400);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.d-search__input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 1px solid var(--g300);
+  border-radius: 50px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  color: var(--slate);
+  transition: all var(--tr);
+}
+
+.d-search__input:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0, 91, 170, .1);
+}
+
+.d-search-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+
+/* =============================================================================
+   §6.13 INFO CALLOUT
+   ============================================================================= */
+.d-callout {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--blue-600);
+  background: var(--blue-50);
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.d-callout strong {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.d-callout ul {
+  margin: 0.5rem 0 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+.d-callout--success {
+  border-left-color: #10b981;
+  background: #d1fae5;
+}
+
+.d-callout--danger {
+  border-left-color: #ef4444;
+  background: #fee2e2;
+}
+
+
+/* =============================================================================
+   §6.14 INFO ROWS
+   ============================================================================= */
+.d-info {
+  margin-bottom: 1.25rem;
+}
+
+.d-info__label {
+  font-size: 0.75rem;
+  color: var(--g500);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.d-info__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--slate);
+}
+
+
+/* =============================================================================
+   §6.15 NOTIFICATIONS PANEL
+   ============================================================================= */
+.d-notif-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.75rem;
+  background: var(--white);
+  border-radius: var(--r);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .15);
+  width: 380px;
+  max-height: 500px;
+  overflow-y: auto;
+  display: none;
+  z-index: 200;
+  border: 1px solid var(--g200);
+}
+
+.d-notif-panel.active {
+  display: block;
+}
+
+.d-notif-panel__header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--g200);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--blue-600);
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-notif-item {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--g200);
+  cursor: pointer;
+  transition: all var(--tr);
+}
+
+.d-notif-item:hover {
+  background: var(--blue-50);
+}
+
+.d-notif-item:last-child {
+  border-bottom: none;
+}
+
+.d-notif-item.unread {
+  background: var(--blue-50);
+  border-left: 3px solid var(--blue-600);
+}
+
+.d-notif-item__title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-notif-item__desc {
+  font-size: 0.82rem;
+  color: var(--g500);
+  line-height: 1.5;
+}
+
+.d-notif-item__time {
+  font-size: 0.72rem;
+  color: var(--g400);
+  margin-top: 0.35rem;
+}
+
+
+/* =============================================================================
+   SECTION-SPECIFIC: section cards, usage logs, documents, etc.
+   ============================================================================= */
+.d-section-card {
+  background: var(--white);
+  border-radius: var(--r);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--g200);
+}
+
+.d-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-section-subtitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-section-subtitle--mt {
+  margin-top: 2rem;
+}
+
+/* Usage logs */
+.d-usage-card {
+  background: var(--blue-50);
+  border: 1px solid var(--blue-200);
+  border-radius: var(--r);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.d-usage-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.d-usage-card__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--blue-600);
+}
+
+.d-usage-card__id {
+  color: var(--g500);
+  font-size: 0.85rem;
+}
+
+.d-usage-type {
+  background: var(--blue-600);
+  color: var(--white);
+  padding: 0.3rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.d-usage-type--research {
+  background: #10b981;
+}
+
+.d-usage-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Document preview */
+.d-doc {
+  background: var(--g50);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.d-doc__icon {
+  width: 46px;
+  height: 46px;
+  background: var(--blue-600);
+  color: var(--white);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.d-doc__info {
+  flex: 1;
+}
+
+.d-doc__name {
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.d-doc__meta {
+  font-size: 0.82rem;
+  color: var(--g500);
+}
+
+/* Form area (light bg) */
+.d-form-area {
+  background: var(--g50);
+  padding: 1.5rem;
+  border-radius: var(--r);
+  margin-bottom: 2rem;
+}
+
+/* Empty state */
+.d-empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--g500);
+}
+
+.d-empty__icon {
+  font-size: 3rem;
+  opacity: 0.4;
+  margin-bottom: 1rem;
+}
+
+/* Detail panel (donor avatar, centered header) */
+.d-detail-header {
+  text-align: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--g200);
+}
+
+.d-detail-avatar {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--blue-600), var(--blue-800));
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto 1rem;
+  font-weight: 700;
+}
+
+.d-detail-name {
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.d-detail-id {
+  color: var(--g500);
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.d-detail-section {
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--g200);
+  margin-top: 1.5rem;
+}
+
+.d-detail-section__title {
+  font-weight: 700;
+  color: var(--blue-600);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Tabs inside modals */
+.d-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--g200);
+}
+
+.d-tab {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--g500);
+  border-bottom: 2px solid transparent;
+  transition: all var(--tr);
+  font-family: var(--font);
+}
+
+.d-tab:hover {
+  color: var(--blue-600);
+}
+
+.d-tab.active {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-600);
+}
+
+.d-tab-content {
+  display: none;
+}
+
+.d-tab-content.active {
+  display: block;
+}
+
+/* Usage history items */
+.d-history-item {
+  padding: 1rem;
+  border: 1px solid var(--g200);
+  border-radius: 8px;
+  background: var(--white);
+  margin-bottom: 0.75rem;
+}
+
+.d-history-item--partial {
+  border-left: 4px solid #f59e0b;
+}
+
+.d-history-item__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.d-history-item__type {
+  font-weight: 600;
+  color: var(--blue-600);
+}
+
+.d-history-item__date {
+  font-size: 0.82rem;
+  color: var(--g500);
+}
+
+.d-history-item__desc {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--slate);
+}
+
+.d-tag {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.d-tag--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.d-tag--danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.d-tag--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Certificate list inside donor details panel */
+.d-cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.d-cert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--g50);
+  border-radius: 8px;
+  border: 1px solid var(--g200);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--slate);
+}
+
+.d-cert-item i {
+  color: #10b981;
+}
+
+
+/* =============================================================================
+   §6.16 ADDITIONAL MODULE CLASSES (Introduced by refactored views)
+   ============================================================================= */
+.d-card {
+  background: var(--white);
+  border-radius: var(--r);
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--g200);
+}
+
+.d-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Base form aliases for new views */
+.d-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate);
+  margin-bottom: 0.5rem;
+}
+
+.d-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--g300);
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  color: var(--slate);
+  background: var(--white);
+  transition: all var(--tr);
+}
+
+.d-input:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0, 91, 170, .1);
+}
+
+.d-table-wrapper {
+  overflow: visible;
+  border-radius: var(--r);
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* Slide-over panel (donor details) */
+.d-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--tr);
+}
+
+.d-panel-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.d-panel {
+  position: fixed;
+  top: 0;
+  right: -500px;
+  /* Start off-screen */
+  width: 500px;
+  height: 100vh;
+  background: var(--white);
+  z-index: 1001;
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.1);
+  transition: right var(--tr);
+  display: flex;
+  flex-direction: column;
+}
+
+.d-panel.active {
+  right: 0;
+}
+
+.d-panel__header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--g200);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+}
+
+.d-panel__header h3 {
+  margin: 0;
+  color: var(--blue-600);
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-panel__close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--g500);
+  cursor: pointer;
+  transition: color var(--tr);
+}
+
+.d-panel__close:hover {
+  color: #ef4444;
+}
+
+.d-panel__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+
+/* =============================================================================
+   §6.17 UTILITY CLASSES FOR VIEWS
+   ============================================================================= */
+.d-grid {
+  display: grid;
+}
+
+.d-grid--2 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.d-grid--3 {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.d-grid--1 {
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.d-text-center {
+  text-align: center;
+}
+
+.d-text-primary {
+  color: var(--blue-600);
+}
+
+.d-text-success {
+  color: #10b981;
+}
+
+.d-text-muted {
+  color: var(--g500);
+}
+
+.d-text-xl {
+  font-size: 2.5rem;
+}
+
+.d-text-lg {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.d-text-sm {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.d-text-xs {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.d-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.d-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-flex-gap {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.d-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.d-icon-box--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.d-icon-box--primary {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+
+@media (max-width: 768px) {
+  .d-header__inner {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .d-btn--sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  .d-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =============================================================================
+   §6.13  MOBILE SIDEBAR OVERLAY
+   ============================================================================= */
+.d-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.d-sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.d-detail-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.d-detail-avatar {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, var(--blue-400), var(--blue-600));
+  color: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+  box-shadow: 0 4px 15px rgba(0, 91, 170, 0.2);
+}
+
+.d-detail-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--slate);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.d-detail-id {
+  color: var(--g500);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.d-detail-section {
+  background: var(--g50);
+  border: 1px solid var(--g200);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.d-detail-section__title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--blue-700);
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.d-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px dashed var(--g300);
+  align-items: center;
+}
+
+.d-info:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.d-info__label {
+  color: var(--g500);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.d-info__value {
+  font-weight: 600;
+  color: var(--slate);
+  text-align: right;
+  font-size: 0.95rem;
+}
+
+/* =============================================================================
+   §6.14  MOBILE RESPONSIVE NAVIGATION
+   ============================================================================= */
+.d-mobile-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--blue-700);
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+  .d-shell {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .d-mobile-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .d-sidebar {
+    position: fixed;
+    top: 68px;
+    left: -320px;
+    bottom: 0;
+    width: 280px;
+    z-index: 1000;
+    overflow-y: auto;
+    border-radius: 0;
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    height: calc(100vh - 68px);
+  }
+
+  .d-sidebar.active {
+    left: 0;
+  }
+
+  .d-header {
+    padding: 0 1rem;
+  }
+
+  .d-content__header {
+    padding: 2rem 1.5rem;
+  }
+
+  .d-user-chip__name,
+  .d-user-chip__badge {
+    display: none;
+  }
+
+  .d-modal__body {
+    padding: 1.5rem;
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 640px) {
+  .d-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .d-filters {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,101 @@
+# LifeConnect Project - Git Ignore File
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.buildpath
+
+# Log Files
+*.log
+error_log
+debug.log
+php_errors.log
+access.log
+error.log
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+
+# Cache Directories
+cache/
+tmp/
+temp/
+.tmp/
+
+# PHP Specific
+composer.phar
+vendor/
+.env
+.env.local
+.env.production
+
+# Database Files
+*.sql
+!database/*.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# Upload Directories (if any)
+uploads/
+files/
+media/
+
+# Node Modules (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build Directories
+build/
+dist/
+public/build/
+
+# Configuration Files with Sensitive Data
+config/database.php
+config/local.php
+*.local.php
+
+# Backup Files
+*.backup
+*.old
+*.bak
+
+# Test Files
+test_*.php
+*_test.php
+test/
+tests/
+
+# Documentation Build
+docs/_build/
+site/
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

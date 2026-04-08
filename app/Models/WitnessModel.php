@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Models;
+
+use App\Core\Database;
+
+class WitnessModel {
+    use Database;
+
+    protected $table = 'witnesses';
+
+    public function addWitness($donorId, $data) {
+        $query = "INSERT INTO witnesses (donor_id, name, nic_number, contact_number, address) 
+                  VALUES (:donor_id, :name, :nic, :phone, :address)";
+        
+        return $this->insert($query, [
+            ':donor_id' => $donorId,
+            ':name' => $data['name'],
+            ':nic' => $data['nic'],
+            ':phone' => $data['phone'],
+            ':address' => $data['address'] ?? null
+        ]);
+    }
+
+    public function getWitnessesByDonorId($donorId) {
+        $query = "SELECT w.*, o.name as organ_name 
+                  FROM witnesses w 
+                  LEFT JOIN organs o ON w.organ_id = o.id 
+                  WHERE w.donor_id = :donor_id 
+                  ORDER BY (w.organ_id IS NULL) DESC, w.organ_id ASC, w.id ASC";
+        $result = $this->query($query, [':donor_id' => $donorId]);
+        return $result ? $result : [];
+    }
+    
+    public function addOrganWitnesses($donorId, $organId, array $witnesses)
+    {
+        // Remove any existing organ-specific witnesses for this organ
+        $this->query(
+            "DELETE FROM witnesses WHERE donor_id = :donor_id AND organ_id = :organ_id",
+            [':donor_id' => $donorId, ':organ_id' => $organId]
+        );
+
+        $saved = 0;
+        foreach ($witnesses as $data) {
+            if (empty($data['nic'])) continue;
+
+            $query = "INSERT INTO witnesses (
+                        donor_id, organ_id, name, nic_number, contact_number, address
+                      ) VALUES (
+                        :donor_id, :organ_id, :name, :nic, :phone, :address
+                      )";
+            $result = $this->insert($query, [
+                ':donor_id' => $donorId,
+                ':organ_id' => $organId,
+                ':name'     => $data['name'] ?? '',
+                ':nic'      => $data['nic'] ?? '',
+                ':phone'    => $data['phone'] ?? null,
+                ':address'  => $data['address'] ?? null,
+            ]);
+            if ($result) $saved++;
+        }
+        return $saved === count($witnesses);
+    }
+
+    public function updateWitness($witnessId, $donorId, $data) {
+        $query = "UPDATE witnesses SET name = :name, nic_number = :nic, contact_number = :phone, address = :address 
+                  WHERE id = :id AND donor_id = :donor_id";
+        return $this->query($query, [
+            ':id' => $witnessId,
+            ':donor_id' => $donorId,
+            ':name' => $data['name'],
+            ':nic' => $data['nic'],
+            ':phone' => $data['phone'],
+            ':address' => $data['address'] ?? null
+        ]);
+    }
+
+    public function deleteWitness($witnessId, $donorId) {
+        $query = "DELETE FROM witnesses WHERE id = :id AND donor_id = :donor_id";
+        return $this->query($query, [':id' => $witnessId, ':donor_id' => $donorId]);
+    }
+
+    public function countWitnessesByDonorId($donorId) {
+        $query = "SELECT COUNT(*) as count FROM witnesses WHERE donor_id = :donor_id";
+        $result = $this->query($query, [':donor_id' => $donorId]);
+        return $result ? $result[0]->count : 0;
+    }
+}

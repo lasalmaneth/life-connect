@@ -1,0 +1,303 @@
+/* =============================================================================
+   CUSTODIAN PORTAL — COMPONENTS
+   Buttons, Modals, Notice Banners, Popup Notifications
+   ============================================================================= */
+
+/* =============================================================================
+   §1  BUTTONS
+   ============================================================================= */
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 50px;
+  font-family: var(--cp-font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--cp-tr);
+  text-decoration: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.cp-btn:active {
+  transform: scale(0.98);
+}
+
+.cp-btn--sm {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.75rem;
+}
+
+.cp-btn--lg {
+  padding: 0.75rem 1.75rem;
+  font-size: 0.95rem;
+}
+
+.cp-btn--fw {
+  width: 100%;
+  justify-content: center;
+}
+
+.cp-btn--primary {
+  background: var(--blue-600);
+  color: var(--white);
+  box-shadow: 0 4px 18px rgba(0, 91, 170, 0.25);
+}
+
+.cp-btn--primary:hover {
+  background: var(--blue-700);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 91, 170, 0.35);
+}
+
+.cp-btn--danger {
+  background: var(--danger);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.cp-btn--danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+}
+
+.cp-btn--success {
+  background: var(--success);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.cp-btn--success:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.cp-btn--outline {
+  background: var(--white);
+  color: var(--blue-600);
+  border-color: rgba(0, 91, 170, 0.3);
+}
+
+.cp-btn--outline:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-600);
+}
+
+.cp-btn--ghost {
+  background: var(--g100);
+  color: var(--g700);
+  border-color: var(--g200);
+  border-radius: 8px;
+}
+
+.cp-btn--ghost:hover {
+  background: var(--g200);
+}
+
+.cp-btn:disabled,
+.cp-btn[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   §2  MODALS
+   ============================================================================= */
+.cp-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.cp-modal.active {
+  display: flex;
+  animation: cpFadeIn 0.2s ease;
+}
+
+.cp-modal__body {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.cp-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--g200);
+}
+
+.cp-modal__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--blue-800);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-modal__close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--g400);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--cp-tr);
+}
+
+.cp-modal__close:hover {
+  background: var(--g100);
+  color: var(--danger);
+}
+
+/* =============================================================================
+   §3  NOTICE BANNERS
+   ============================================================================= */
+.cp-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.cp-notice i {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  font-size: 0.95rem;
+}
+
+.cp-notice strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.cp-notice p {
+  margin: 0;
+}
+
+.cp-notice--info {
+  background: #eff6ff;
+  border: 1px solid rgba(0, 91, 170, 0.18);
+  color: #1e40af;
+}
+
+.cp-notice--warning {
+  background: #fffbeb;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  color: #78350f;
+}
+
+.cp-notice--success {
+  background: #f0fdf4;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+  color: #065f46;
+}
+
+.cp-notice--danger {
+  background: #fef2f2;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #7f1d1d;
+}
+
+/* =============================================================================
+   §4  POPUP NOTIFICATION (floating toast)
+   ============================================================================= */
+.cp-popup {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: 12px;
+  background: var(--white);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--g200);
+  max-width: 360px;
+  transform: translateX(110%);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cp-popup.show {
+  transform: translateX(0);
+}
+
+.cp-popup__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--success);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.cp-popup__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--slate);
+}
+
+.cp-popup__msg {
+  font-size: 0.78rem;
+  color: var(--g500);
+  margin-top: 0.1rem;
+}
+
+.cp-popup__close {
+  background: none;
+  border: none;
+  color: var(--g400);
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* =============================================================================
+   §5  ANIMATIONS
+   ============================================================================= */
+@keyframes cpFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cpSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

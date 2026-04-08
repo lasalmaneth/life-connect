@@ -1,0 +1,167 @@
+/* Education Page - LifeConnect Sri Lanka (vanilla CSS) */
+
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+
+/* Hero */
+.edu-hero{background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));padding:60px 0}
+.edu-hero-content{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center}
+.edu-hero-text h1{color:#fff;font-size:2.4rem;line-height:1.25;margin-bottom:10px}
+.edu-hero-text .tagline{color:#eaf4ff;font-size:1.05rem}
+.edu-hero-visual img{width:100%;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.2);object-fit:cover;max-height:320px}
+
+/* Support aliases for template using education-hero/hero-* classes */
+.education-hero{background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));padding:60px 0}
+.education-hero .hero-content{display:grid;grid-template-columns:1.2fr .8fr;gap:40px;align-items:center;max-width:1200px;margin:0 auto;padding:0 20px}
+.education-hero .hero-text h1{color:#fff;font-size:2.4rem;line-height:1.25;margin-bottom:10px}
+.education-hero .hero-subtitle{color:#eaf4ff;font-size:1.05rem}
+.education-hero .hero-image{width:100%;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.2);object-fit:cover;max-height:320px}
+
+/* Sections */
+.edu-section{padding:70px 0;background:#fff}
+.edu-section:nth-of-type(even){background:#f9fafb}
+/* alias for simpler class name used in template */
+.section{padding:70px 0;background:#fff}
+.section:nth-of-type(even){background:#f9fafb}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center}
+.two-col .visual img{width:100%;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.08);object-fit:cover}
+.edu-section h2{color:var(--secondary-color);font-size:2rem;margin-bottom:14px}
+.edu-section .sub{color:var(--soft-gray);margin-top:-6px;margin-bottom:24px}
+.edu-section p{color:#4b5563;line-height:1.75}
+.section.what p i{color:var(--primary-color);margin-right:8px;font-size:1.1rem}
+.key-points{margin-top:16px;list-style:none;padding:0}
+.key-points li{display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px 12px;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.key-points i{color:var(--success-color)}
+
+/* What is - cards */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.card i{font-size:28px;color:var(--primary-color);margin-bottom:8px}
+.card h3{margin:6px 0 8px 0;color:var(--secondary-color)}
+.highlight{background:linear-gradient(135deg,#eaf4ff,#ffffff);border:1px solid #dbeafe;border-radius:14px;padding:18px;display:flex;gap:12px;align-items:flex-start}
+.highlight i{color:#2563eb;margin-top:2px}
+
+/* Stat Cards (for Organ/Body Donation icons) */
+.stat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:24px}
+.stat-cards .stat{text-align:center;padding:10px}
+.stat-cards .stat i{font-size:2.5rem;margin-bottom:12px;display:block;font-style:normal;color:var(--primary-color)}
+.stat-cards .stat i:before{font-family:'Font Awesome 6 Free';font-weight:900}
+.stat-cards .stat span{font-size:1rem;font-weight:700;display:block;color:var(--secondary-color)}
+
+/* Types */
+.three-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.tile{background:#fff;border-radius:14px;padding:20px;border-left:4px solid var(--primary-color);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.tile h3{margin-bottom:8px;color:var(--secondary-color)}
+
+/* Organs & Tissues */
+.bullets{padding-left:18px;color:#374151}
+.bullets li{margin:6px 0}
+ul.bullet-list,ul.resource-list{list-style:none !important;list-style-type:none !important;padding:0;padding-left:0 !important;margin-top:16px;margin-left:0 !important}
+ul.bullet-list li,ul.resource-list li{display:flex !important;align-items:flex-start;gap:10px;margin:10px 0;padding:10px 12px;background:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.05);color:#4b5563;line-height:1.6;list-style:none !important;list-style-type:none !important}
+ul.bullet-list li:before,ul.bullet-list li::before,ul.resource-list li:before,ul.resource-list li::before{content:none !important;display:none !important}
+ul.bullet-list li i,ul.resource-list li i{color:var(--primary-color);margin-top:2px;flex-shrink:0}
+.section.family ul.bullet-list,section.family ul.bullet-list,.section.resources ul.resource-list,section.resources ul.resource-list{list-style:none !important;padding-left:0 !important}
+.section.family ul.bullet-list li,section.family ul.bullet-list li,.section.resources ul.resource-list li,section.resources ul.resource-list li{list-style:none !important;list-style-type:none !important}
+.note{margin-top:16px;background:#fff3c4;border:1px solid #fde68a;color:#92400e;padding:14px 16px;border-radius:10px;display:flex;align-items:flex-start;gap:10px}
+.note i{flex-shrink:0;margin-top:2px;font-size:1.1rem}
+
+/* Tabs */
+.tabs{margin-top:18px}
+/* original variant */
+.tab-buttons{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tab-button{background:#fff;border:1px solid #e5e7eb;color:#111827;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700}
+.tab-button.active{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
+.tab-panels{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:16px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+/* alias variant used in template (#donationTabs .tab-btn) */
+#donationTabs .tab-btn{background:#fff;border:1px solid #e5e7eb;color:#111827;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700}
+#donationTabs .tab-btn.active{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
+
+/* Process */
+.steps{counter-reset:step;list-style:none;padding:0}
+.steps li{position:relative;padding:12px 12px 12px 44px;margin:10px 0;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.steps li:before{counter-increment:step;content:counter(step);position:absolute;left:12px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--primary-color);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+
+/* Process (div-based variant used in education.view.php) */
+.section.process .steps{display:grid;gap:12px}
+.section.process .step{display:flex;gap:12px;align-items:flex-start;background:#fff;padding:14px 16px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.section.process .step .num{width:32px;height:32px;border-radius:50%;background:var(--primary-color);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+.section.process .step p{margin:0;color:#4b5563;line-height:1.6}
+
+/* Myths */
+/* Accordion (original) */
+.accordion{display:grid;gap:8px}
+.acc-item{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.acc-header{width:100%;text-align:left;border:none;background:transparent;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:700;color:var(--secondary-color)}
+.acc-header i{transition:transform .25s ease}
+.acc-header.open i{transform:rotate(180deg)}
+.acc-panel{padding:0 16px 16px 16px;color:#4b5563}
+/* Accordion alias used in template (.accordion-item/.accordion-header/.accordion-panel) */
+.accordion .accordion-item{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.accordion .accordion-header{width:100%;text-align:left;border:none;background:transparent;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:700;color:var(--secondary-color)}
+.accordion .accordion-panel{display:none;padding:0 16px 16px 16px;color:#4b5563}
+.accordion .accordion-item.active .accordion-panel{display:block}
+.accordion .accordion-item.active .accordion-header i{transform:rotate(45deg);transition:transform .25s ease}
+
+/* Benefits */
+.ticks{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.ticks li{padding:12px 14px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.05);position:relative}
+.ticks li:before{content:"\2714";color:var(--success-color);margin-right:8px}
+
+/* Info Cards (for Benefits, Support sections) */
+.info-card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,.08);transition:transform 0.3s ease}
+.info-card:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,.12)}
+.info-card h4{display:flex;align-items:center;gap:10px;color:var(--secondary-color);margin-bottom:12px;font-size:1.1rem}
+.info-card h4 i{color:var(--primary-color);font-size:1.3rem}
+.info-card p{color:#4b5563;line-height:1.6;margin:0}
+
+/* Resources */
+.resources-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.resource{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;align-items:center;gap:10px}
+.resource i{color:var(--primary-color)}
+
+/* Support */
+.support-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.support-item{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;align-items:center;gap:10px}
+.support-item i{color:var(--primary-color)}
+
+/* CTA */
+.cta .cta-box{background:linear-gradient(135deg,var(--primary-color),var(--secondary-color));color:#fff;border-radius:16px;padding:40px 32px;text-align:center}
+.cta .cta-box h2{color:#fff;margin-bottom:24px;font-size:2rem}
+.cta-actions{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:30px;padding:12px 20px;font-weight:700;transition:all 0.3s ease}
+.btn.primary{background:#10b981;color:#fff}
+.btn.primary:hover{background:#059669;transform:translateY(-2px);box-shadow:0 4px 12px rgba(16,185,129,0.4)}
+.btn.outline{border:2px solid #fff;color:#fff;background:transparent}
+.btn.outline:hover{background:#fff;color:var(--primary-color);transform:translateY(-2px)}
+.btn.link{color:#fff;text-decoration:underline}
+.hero-cta{background:#10b981;color:#fff;margin-top:20px}
+.hero-cta:hover{background:#059669;transform:translateY(-2px);box-shadow:0 4px 12px rgba(16,185,129,0.4)}
+
+/* Contact */
+.contact-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+/* alias used in template */
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.contact-card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 6px 18px rgba(0,0,0,.08);transition:transform 0.3s ease}
+.contact-card:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,.12)}
+.contact-card h4{color:var(--secondary-color);margin-bottom:12px;font-size:1.1rem}
+.contact-card p{color:#4b5563;line-height:1.8;margin:8px 0;display:flex;align-items:center;gap:10px}
+.contact-card p i{color:var(--primary-color);flex-shrink:0}
+.msg{text-align:center;color:#4b5563;margin-top:14px}
+
+/* Section headings */
+.section h2{color:var(--secondary-color,#003b6e);font-size:2rem;margin-bottom:14px}
+.section h3{color:var(--secondary-color,#003b6e);font-size:1.5rem;margin-bottom:18px}
+.section p{color:#4b5563;line-height:1.75}
+
+/* Responsive */
+@media(max-width: 820px){
+  .edu-hero-content{grid-template-columns:1fr}
+  .education-hero .hero-content{grid-template-columns:1fr}
+  .two-col{grid-template-columns:1fr}
+  .cta .cta-box{flex-direction:column;align-items:flex-start}
+  .cta-actions{flex-direction:column}
+  .cards-grid{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr}
+}
+

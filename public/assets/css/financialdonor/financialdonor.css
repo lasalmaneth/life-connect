@@ -1,0 +1,465 @@
+﻿/* =============================================================================
+   LIFE-CONNECT — CUSTODIAN PORTAL CSS
+   Follows DESIGN_SYSTEM.md tokens exclusively (§1 + §6)
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* ---- Design-system tokens (DESIGN_SYSTEM.md §1) ---- */
+:root {
+  /* Blues */
+  --blue-900: #0a1628;
+  --blue-800: #0f2240;
+  --blue-700: #003b6e;
+  --blue-600: #005baa;
+  --blue-500: #1a6fbe;
+  --blue-400: #3389cc;
+  --blue-300: #60a5d8;
+  --blue-200: #a8d4f0;
+  --blue-100: #dceefb;
+  --blue-50:  #f0f7fd;
+
+  /* Neutral / Grayscale */
+  --navy:  #0a1628;
+  --slate: #1e293b;
+  --g700:  #374151;
+  --g500:  #6b7280;
+  --g400:  #9ca3af;
+  --g300:  #d1d5db;
+  --g200:  #e5e7eb;
+  --g100:  #f3f4f6;
+  --g50:   #f9fafb;
+  --white: #ffffff;
+
+  /* Semantics */
+  --gold:    #d4af37;
+  --coral:   #e8734a;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+
+  /* Aliases kept for custodian template backward-compat */
+  --blue:     var(--blue-600);
+  --blue-dk:  var(--blue-700);
+  --blue-dp:  var(--blue-800);
+  --blue-lt:  var(--blue-100);
+  --green:    var(--success);
+  --green-lt: #d1fae5;
+  --red:      var(--danger);
+  --red-lt:   #fef2f2;
+  --amber:    var(--warning);
+  --amber-lt: #fffbeb;
+  --soft:     var(--g500);
+  --mid:      var(--g700);
+  --text:     var(--slate);
+  --border:   var(--g200);
+  --bg:       var(--g50);
+  --slate-lt: var(--g50);
+
+  /* Globals */
+  --font: 'Inter', system-ui, sans-serif;
+  --max-w: 1400px;
+  --r: 12px;
+  --tr: .3s ease;
+}
+
+/* ---- Reset ---- */
+*, *::before, *::after {
+  margin: 0; padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+::-webkit-scrollbar { width: 5px }
+::-webkit-scrollbar-track { background: var(--blue-50) }
+::-webkit-scrollbar-thumb { background: var(--blue-600); border-radius: 10px }
+
+/* ============================================================
+   HEADER  (§6.2)
+   ============================================================ */
+.hdr {
+  background: var(--white);
+  border-bottom: 1px solid var(--g200);
+  padding: 0 1.75rem;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hdr-c {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .75rem;
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.hdr-brand { display: flex; align-items: center; gap: .85rem }
+
+.hdr-brand h1 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--text);
+}
+
+.hdr-brand span { font-size: .7rem; color: var(--g500); display: block }
+
+.hdr-right { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap }
+
+.hdr-badge {
+  background: var(--blue-100);
+  padding: .4rem .85rem;
+  border-radius: 8px;
+  font-size: .77rem;
+  border: 1px solid rgba(0, 91, 170, .15);
+  color: var(--blue-700);
+}
+
+.hdr-badge strong { display: block; color: var(--blue-600); font-size: .85rem }
+
+.avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: .8rem;
+}
+
+.logout-btn {
+  border: 1px solid var(--g200);
+  background: var(--white);
+  color: var(--g700);
+  padding: .45rem 1rem;
+  border-radius: 8px;
+  font-size: .8rem; font-weight: 600;
+  display: inline-flex; align-items: center; gap: .4rem;
+  cursor: pointer; font-family: inherit;
+  transition: all var(--tr);
+}
+
+.logout-btn:hover { background: #fef2f2; color: var(--danger); border-color: rgba(239,68,68,.25) }
+
+/* ============================================================
+   LAYOUT SHELL  (§6.1)
+   ============================================================ */
+.wrap {
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 2rem;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .wrap { grid-template-columns: 1fr; padding: 1rem }
+  .sidebar { position: relative !important; top: 0 !important }
+}
+
+/* ============================================================
+   SIDEBAR  (§6.3)
+   ============================================================ */
+.sidebar {
+  background: var(--white);
+  border-radius: var(--r);
+  box-shadow: 0 4px 20px rgba(0, 91, 170, .06);
+  border: 1px solid var(--g200);
+  height: fit-content;
+  position: sticky;
+  top: 92px;
+  overflow: hidden;
+}
+
+/* Sidebar header — light blue gradient */
+.sb-hdr {
+  padding: 1.5rem 1rem;
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border-bottom: 1px solid var(--g200);
+  display: flex; align-items: center; gap: .65rem;
+}
+
+.donor-av {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--blue-600);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white); font-size: .75rem; font-weight: 700; flex-shrink: 0;
+}
+
+.sb-name { font-size: .9rem; font-weight: 700; color: var(--blue-800); line-height: 1.3 }
+.sb-meta { font-size: .7rem; color: var(--g500) }
+
+.sb-pill {
+  margin-top: .35rem;
+  display: inline-flex; align-items: center; gap: .28rem;
+  background: rgba(0, 91, 170, .1);
+  border: 1px solid rgba(0, 91, 170, .2);
+  color: var(--blue-600);
+  padding: .15rem .6rem; border-radius: 999px;
+  font-size: .63rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+
+nav { padding: .6rem 0 }
+
+/* Menu section titles  (§6.3) */
+.ms-title {
+  font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--g500);
+  padding: .75rem 1.25rem .5rem;
+}
+
+/* Menu items  (§6.3 .d-menu-item pattern) */
+.mi {
+  display: flex; align-items: center; gap: .5rem;
+  padding: 0.875rem 1.25rem;
+  font-size: .88rem; font-weight: 500;
+  color: var(--g500);
+  cursor: pointer;
+  transition: all var(--tr);
+  position: relative;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+
+.mi:hover { color: var(--blue-600); background: var(--blue-50); border-left-color: var(--blue-600) }
+.mi.active { color: var(--blue-600); background: var(--blue-100); border-left-color: var(--blue-600); font-weight: 600 }
+
+.mi i { width: 20px; text-align: center; font-size: .9rem }
+
+.mi-badge {
+  margin-left: auto;
+  background: var(--danger); color: var(--white);
+  font-size: .6rem; font-weight: 700;
+  padding: .1rem .5rem; border-radius: 999px;
+  min-width: 18px; text-align: center;
+}
+
+.mi-badge.amber { background: var(--warning) }
+
+.mi.locked { opacity: .42; cursor: not-allowed }
+.mi.locked:hover { background: transparent; color: var(--g700) }
+.mi-sub { font-size: .68rem; color: var(--g500); padding: .15rem 1.2rem .15rem 2.4rem; font-style: italic }
+
+.mdiv { height: 1px; background: var(--g200); margin: .3rem 1.2rem }
+
+/* Sidebar footer */
+.sb-foot { padding: .9rem 1.25rem; border-top: 1px solid var(--g200); background: var(--g50) }
+.sb-foot-lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--g500) }
+.sb-foot-row { display: flex; align-items: center; gap: .65rem; margin-top: .45rem }
+
+.co-av {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--blue-600); color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem; font-weight: 700; flex-shrink: 0;
+}
+
+/* ============================================================
+   CONTENT AREA  (§6.4)
+   ============================================================ */
+.content { min-width: 0 }
+
+/* Content page header */
+.c-hdr {
+  background: linear-gradient(135deg, var(--blue-100), var(--blue-50));
+  border-radius: var(--r);
+  padding: 1.75rem 1.5rem;
+  margin-bottom: .85rem;
+  box-shadow: 0 1px 6px rgba(0, 91, 170, .06);
+  border: 1px solid var(--g200);
+}
+
+.c-ey {
+  font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--blue-600); margin-bottom: .3rem;
+}
+
+.c-hdr h2 { font-size: 1.5rem; font-weight: 700; color: var(--blue-800); margin-bottom: .25rem }
+.c-hdr p  { font-size: .85rem; color: var(--g500) }
+
+.sec { display: none }
+.sec.active { display: block; animation: fadeIn .3s ease }
+
+/* ============================================================
+   CARDS  (§4.2)
+   ============================================================ */
+.card {
+  background: var(--white);
+  border-radius: var(--r);
+  border: 1px solid var(--g200);
+  box-shadow: 0 4px 20px rgba(0, 91, 170, .04);
+  padding: 1.25rem;
+  margin-bottom: .85rem;
+  transition: box-shadow var(--tr), transform var(--tr);
+}
+
+.card:hover { box-shadow: 0 8px 24px rgba(0, 91, 170, .1); transform: translateY(-2px) }
+.card.gb { border-color: rgba(16, 185, 129, .35); box-shadow: 0 2px 20px rgba(16, 185, 129, .12) }
+.card.rb { border-color: rgba(239, 68, 68, .35); box-shadow: 0 2px 20px rgba(239, 68, 68, .12) }
+.card.bb { border-color: rgba(0, 91, 170, .35); box-shadow: 0 2px 20px rgba(0, 91, 170, .1) }
+
+.ch { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.2rem }
+.ct { font-size: 1rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: .5rem }
+.ct i { font-size: .9rem; color: var(--blue-600) }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .22rem .7rem; border-radius: 999px;
+  font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; white-space: nowrap;
+}
+
+.ba { background: var(--green-lt); color: #065f46; border: 1px solid rgba(16,185,129,.3) }
+.bp { background: var(--amber-lt); color: #78350f; border: 1px solid rgba(245,158,11,.3) }
+.bd { background: var(--g50); color: var(--g500); border: 1px solid var(--g200) }
+.bn { background: var(--blue-100); color: var(--blue-700); border: 1px solid rgba(0,91,170,.2) }
+.bg { background: var(--g50); color: var(--g500); border: 1px solid var(--g200) }
+
+/* ============================================================
+   BUTTONS  (§4.1 Pill format)
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .6rem 1.25rem; border-radius: 50px;
+  font-family: inherit; font-size: .85rem; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent;
+  transition: all var(--tr); text-decoration: none; white-space: nowrap;
+}
+
+.btn:active { transform: scale(.98) }
+
+.btn-p { background: var(--blue-600); color: var(--white); box-shadow: 0 4px 18px rgba(0,91,170,.25) }
+.btn-p:hover { background: var(--blue-700); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,91,170,.35) }
+
+.btn-d { background: var(--danger); color: var(--white); box-shadow: 0 4px 12px rgba(239,68,68,.25) }
+.btn-d:hover { background: #dc2626 }
+
+.btn-s { background: var(--success); color: var(--white); box-shadow: 0 4px 12px rgba(16,185,129,.25) }
+.btn-s:hover { background: #059669 }
+
+.btn-o { background: var(--white); color: var(--blue-600); border: 1.5px solid rgba(0,91,170,.25) }
+.btn-o:hover { background: var(--blue-100); border-color: var(--blue-600) }
+
+.btn-g { background: var(--g50); color: var(--g700); border: 1px solid var(--g200); border-radius: 8px }
+.btn-g:hover { background: var(--g200) }
+
+.btn-sm { font-size: .75rem; padding: .4rem .9rem; border-radius: 50px }
+.btn-lg { padding: .8rem 1.75rem; font-size: .95rem }
+.btn-fw { width: 100%; justify-content: center }
+.btn:disabled { opacity: .42; cursor: not-allowed; transform: none !important; box-shadow: none !important }
+
+/* ============================================================
+   FORMS  (§4.3)
+   ============================================================ */
+.fg { display: flex; flex-direction: column; gap: .4rem; margin-bottom: .9rem }
+.fl { font-size: .75rem; font-weight: 600; color: var(--text); display: block }
+.fh { font-size: .72rem; color: var(--g500); margin-top: .15rem }
+
+.fc {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--g300);
+  border-radius: 8px;
+  font-family: inherit; font-size: .83rem; color: var(--text);
+  background: var(--white); transition: all var(--tr);
+}
+
+.fc:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0,91,170,.1);
+}
+
+textarea.fc { resize: vertical; min-height: 85px }
+
+.fr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem }
+.fr3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem }
+
+@media (max-width: 700px) {
+  .fr2, .fr3 { grid-template-columns: 1fr }
+}
+
+/* Form section titles */
+.fst {
+  font-size: .85rem; font-weight: 700; color: var(--blue-800);
+  margin: 1.5rem 0 .85rem; padding-bottom: .4rem;
+  border-bottom: 2px solid var(--blue-100);
+  display: flex; align-items: center; gap: .4rem;
+}
+
+.fst:first-child { margin-top: 0 }
+.req { color: var(--g400); font-weight: 400 }
+
+/* ============================================================
+   MISC HELPERS
+   ============================================================ */
+.ir { display: flex; justify-content: space-between; align-items: center; padding: .55rem .75rem; border-radius: 8px; gap: .75rem }
+.ir:nth-child(odd) { background: var(--g50) }
+.il { font-size: .72rem; font-weight: 600; color: var(--g500); text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0 }
+.iv { font-size: .88rem; font-weight: 600; color: var(--text) }
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem }
+
+@media (max-width: 900px) {
+  .g2, .g3 { grid-template-columns: 1fr }
+}
+
+/* Notices */
+.notice { display: flex; align-items: flex-start; gap: 1rem; padding: 1.25rem; border-radius: 12px; font-size: .875rem; font-weight: 500; line-height: 1.5 }
+.notice i { font-size: 1.1rem; margin-top: .1rem }
+.ni { background: var(--blue-50); border: 1px solid var(--blue-200); color: var(--blue-700) }
+.nw { background: var(--amber-lt); border: 1px solid rgba(245,158,11,.15); color: #92400e }
+.ns { background: var(--green-lt); border: 1px solid rgba(16,185,129,.15); color: #065f46 }
+
+/* Upload zone */
+.uz {
+  border: 2px dashed rgba(0,91,170,.3); border-radius: 12px;
+  padding: 1.75rem; text-align: center;
+  background: rgba(0,91,170,.02); cursor: pointer; transition: all var(--tr);
+}
+.uz:hover { border-color: var(--blue-600); background: rgba(0,91,170,.06) }
+.uz i { font-size: 2rem; color: var(--blue-600); display: block; margin-bottom: .6rem }
+.uz p { color: var(--g500); font-size: .85rem }
+
+/* Timeline */
+.tl { position: relative; padding-left: 2rem }
+.tl::before { content: ''; position: absolute; left: .55rem; top: 0; bottom: 0; width: 2px; background: var(--g200) }
+.tli { position: relative; margin-bottom: 1.2rem }
+.tld { position: absolute; left: -2rem; top: .1rem; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .6rem; border: 2px solid var(--white) }
+.tld.done { background: var(--success); color: var(--white); box-shadow: 0 0 0 2px rgba(16,185,129,.3) }
+.tld.cur { background: var(--blue-600); color: var(--white); box-shadow: 0 0 0 3px rgba(0,91,170,.25) }
+.tld.pen { background: var(--g50); color: var(--g500); box-shadow: 0 0 0 2px var(--g200) }
+.tlt { font-size: .88rem; font-weight: 700; color: var(--text); margin-bottom: .1rem }
+.tlm { font-size: .75rem; color: var(--g500) }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideD { from { opacity: 0; transform: translateY(-10px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes hb { 0%, 100% { transform: scale(1) } 15% { transform: scale(1.22) } 30% { transform: scale(1) } 45% { transform: scale(1.1) } }
+@keyframes ping { 0% { transform: scale(1); opacity: .5 } 100% { transform: scale(1.7); opacity: 0 } }

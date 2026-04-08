@@ -1,0 +1,448 @@
+<?php
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
+    <title>Organ Requests - Hospital Management - LifeConnect</title>
+</head>
+<body>
+    <?php
+        $current_page = 'organ-requests';
+    
+        require_once __DIR__ . '/header.php';
+    ?>
+
+    <div class="container">
+        <div class="main-content">
+            <?php require_once __DIR__ . '/sidebar.php'; ?>
+
+            <div class="content-area">
+                <div class="content-section" style="display: block;">
+                    <div class="content-header">
+                        <h2>Organ Requests Management</h2>
+                        <p>Create, edit, and delete organ requests with urgency selection.</p>
+                    </div>
+                    <div class="content-body">
+                        <div class="action-section">
+                            <h3>Request Actions</h3>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" onclick="openRequestModal()">Add New Request</button>
+                            </div>
+                        </div>
+
+                        
+                        <div class="organ-request-options">
+                            <h3 style="text-align: center; margin-bottom: 2rem; color: #2c3e50; font-size: 1.5rem;">Select Organ Type</h3>
+                            <div class="organ-options-grid">
+                                <div class="organ-option-card" onclick="selectOrganType('liver')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Liver</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('heart')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Heart</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('lung')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Lung</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('pancreas')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Pancreas</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('intestine')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Intestine</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('cornea')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Cornea</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('bone-marrow')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Bone Marrow</h4>
+                                </div>
+                                
+                                <div class="organ-option-card" onclick="selectOrganType('kidney')" style="cursor: pointer; transition: all 0.3s ease;">
+                                    <h4 style="margin: 0.5rem 0; color: #1f2937;">Kidney</h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="search-bar">
+                            <span class="search-icon">Search:</span>
+                            <input type="text" class="search-input" placeholder="Search by organ type or patient ID...">
+                        </div>
+
+                        <div class="filter-section">
+                            <select class="filter-select">
+                                <option value="">All Organs</option>
+                                <option value="liver">Liver</option>
+                                <option value="heart">Heart</option>
+                                <option value="lung">Lung</option>
+                                <option value="pancreas">Pancreas</option>
+                                <option value="intestine">Intestine</option>
+                                <option value="cornea">Cornea</option>
+                                <option value="bone-marrow">Bone Marrow</option>
+                                <option value="kidney">Kidney</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">All Urgency</option>
+                                <option value="urgent">Urgent</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+
+                        <div class="data-table">
+                            <div class="table-header">
+                                <h4>Organ Requests</h4>
+                            </div>
+                            <div class="table-content" id="organ-requests-table">
+                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                    <div class="table-cell">Organ Type</div>
+                                    <div class="table-cell">Urgency</div>
+                                    <div class="table-cell">Notes</div>
+                                    <div class="table-cell">Created Date</div>
+                                    <div class="table-cell">Actions</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="modal" id="request-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Organ Request</h3>
+                <button class="modal-close" onclick="closeRequestModal()">×</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label class="form-label">Organ Type</label>
+                    <select class="form-select" id="organ-type">
+                        <option value="">Select Organ Type</option>
+                        <optgroup label="Major Organs">
+                            <option value="liver">Liver</option>
+                            <option value="heart">Heart</option>
+                            <option value="lung">Lung</option>
+                            <option value="kidney">Kidney</option>
+                        </optgroup>
+                        <optgroup label="Specialized Organs">
+                            <option value="pancreas">Pancreas</option>
+                            <option value="intestine">Intestine</option>
+                            <option value="cornea">Cornea</option>
+                        </optgroup>
+                        <optgroup label="Other">
+                            <option value="bone-marrow">Bone Marrow</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Urgency Level</label>
+                    <select class="form-select" id="urgency-level">
+                        <option value="">Select Urgency</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Additional Notes</label>
+                    <textarea class="form-textarea" id="request-notes" placeholder="Any additional information..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: linear-gradient(135deg, #005baa 0%, #003b6e 100%); color: white; text-align: center; padding: 20px; margin-top: 40px; box-shadow: 0 -4px 20px rgba(0, 91, 170, 0.2);">
+        <p style="margin: 0; font-size: 14px;">Copyright © 2025 Ministry of Health - LifeConnect Sri Lanka</p>
+    </footer>
+
+    <script>
+                function openRequestModal() { document.getElementById('request-modal').classList.add('show'); }
+        function closeRequestModal() { document.getElementById('request-modal').classList.remove('show'); }
+        
+                function selectOrganType(organType) {
+            document.querySelectorAll('.organ-option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            const organSelect = document.getElementById('organ-type');
+            if (organSelect) {
+                organSelect.value = organType;
+            }
+            
+            showServerMessage(`Selected organ type: ${organType.charAt(0).toUpperCase() + organType.slice(1)}`, 'success');
+            openRequestModal();
+        }
+
+        function saveRequest() { 
+            const organ = document.getElementById('organ-type').value;
+            const urgency = document.getElementById('urgency-level').value;
+            const notes = document.getElementById('request-notes').value;
+            
+            if (!organ || !urgency) {
+                showServerMessage('Error - Please fill all required fields', 'error');
+                return;
+            }
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'add_organ_request';
+            form.appendChild(actionInput);
+            
+            const organInput = document.createElement('input');
+            organInput.type = 'hidden';
+            organInput.name = 'organ_type';
+            organInput.value = organ;
+            form.appendChild(organInput);
+            
+            const urgencyInput = document.createElement('input');
+            urgencyInput.type = 'hidden';
+            urgencyInput.name = 'urgency';
+            urgencyInput.value = urgency;
+            form.appendChild(urgencyInput);
+            
+            const notesInput = document.createElement('input');
+            notesInput.type = 'hidden';
+            notesInput.name = 'notes';
+            notesInput.value = notes;
+            form.appendChild(notesInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function editRequest(requestId) { 
+            showServerMessage('Opening edit form for organ request ID: ' + requestId, 'info'); 
+        }
+
+        function deleteRequest(requestId) { 
+            if (confirm('Are you sure you want to delete this organ request?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.style.display = 'none';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'delete_organ_request';
+                form.appendChild(actionInput);
+                
+                const requestIdInput = document.createElement('input');
+                requestIdInput.type = 'hidden';
+                requestIdInput.name = 'request_id';
+                requestIdInput.value = requestId;
+                form.appendChild(requestIdInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function loadOrganRequests() {
+            const requests = <?php echo json_encode($organ_requests); ?>;
+            // Store original requests globally for filtering
+            window.allOrganRequests = requests || [];
+            console.log('Loaded organ requests:', window.allOrganRequests);
+            
+            // Initial display of all requests
+            updateOrganRequestsTable(window.allOrganRequests);
+        }
+        
+        function updateOrganRequestsTable(requests) {
+            const tableContent = document.querySelector('#organ-requests-table');
+            if (!tableContent) return;
+            
+            const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
+            existingRows.forEach(row => row.remove());
+            
+            if (requests.length === 0) {
+                const emptyRow = document.createElement('div');
+                emptyRow.className = 'table-row';
+                emptyRow.innerHTML = '<div class="table-cell" style="text-align: center; color: #999;">No matching requests found</div>';
+                tableContent.appendChild(emptyRow);
+                return;
+            }
+            
+            requests.forEach(request => {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                row.innerHTML = `
+                    <div class="table-cell name" data-label="Organ Type">${request.organ_name}</div>
+                    <div class="table-cell" data-label="Urgency">
+                        <span class="status-badge ${request.priority_level === 'URGENT' || request.priority_level === 'CRITICAL' ? 'status-danger' : request.priority_level === 'HIGH' ? 'status-active' : 'status-pending'}">${request.priority_level}</span>
+                    </div>
+                    <div class="table-cell" data-label="Notes">${request.notes || 'No notes'}</div>
+                    <div class="table-cell" data-label="Created Date">${new Date(request.created_at).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Actions">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
+                            <button class="btn btn-secondary btn-small" onclick="editRequest(${request.id})" style="white-space: nowrap;">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteRequest(${request.id})" style="white-space: nowrap;">Delete</button>
+                        </div>
+                    </div>
+                `;
+                tableContent.appendChild(row);
+            });
+        }
+
+        /**
+         * Reset all filters to show all requests
+         */
+        function resetOrganFilters() {
+            // Reset search input
+            const searchInput = document.querySelector('.search-input');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            
+            // Reset filter selects to "All"
+            const filterSelects = document.querySelectorAll('.filter-select');
+            filterSelects.forEach(select => {
+                select.value = '';
+            });
+            
+            // Update table with all requests
+            if (window.allOrganRequests) {
+                updateOrganRequestsTable(window.allOrganRequests);
+            }
+        }
+
+        /**
+         * Filter organ requests - FIXED VERSION
+         */
+        function filterOrganRequests() {
+            if (!window.allOrganRequests || window.allOrganRequests.length === 0) {
+                console.log('No requests available to filter');
+                return;
+            }
+            
+            // Get the actual filter elements
+            const searchInput = document.querySelector('.search-input');
+            const allFilterSelects = document.querySelectorAll('.filter-select');
+            
+            if (!searchInput || allFilterSelects.length < 2) {
+                console.log('Filter elements not found');
+                return;
+            }
+            
+            // Get current filter values
+            const searchQuery = (searchInput.value || '').toLowerCase().trim();
+            const organFilterValue = (allFilterSelects[0].value || '').toLowerCase().trim();
+            const urgencyFilterValue = (allFilterSelects[1].value || '').toLowerCase().trim();
+            
+            console.log('=== FILTER STATE ===');
+            console.log('Search:', searchQuery);
+            console.log('Organ Filter:', organFilterValue);
+            console.log('Urgency Filter:', urgencyFilterValue);
+            console.log('Total requests:', window.allOrganRequests.length);
+            
+            // Filter the requests
+            const filtered = window.allOrganRequests.filter(request => {
+                const organName = (request.organ_name || '').toLowerCase().trim();
+                const urgency = (request.priority_level || '').toLowerCase().trim();
+                const notes = (request.notes || '').toLowerCase().trim();
+                
+                // PRIORITY 1: If search query exists, use ONLY search (ignore other filters)
+                // This gives intuitive search behavior: typing "kidney" shows ONLY matching results
+                if (searchQuery) {
+                    const matches = organName.includes(searchQuery) || notes.includes(searchQuery);
+                    if (matches) {
+                        console.log(`✓ SEARCH MATCH: "${organName}"`);
+                    }
+                    return matches;
+                }
+                
+                // PRIORITY 2: If NO search, apply organ and urgency filters with AND logic
+                
+                // FILTER 1: Organ type (exact match)
+                let matchesOrgan = true;
+                if (organFilterValue && organFilterValue !== '') {
+                    matchesOrgan = (organName === organFilterValue);
+                    console.log(`  Organ check: "${organName}" vs "${organFilterValue}" => ${matchesOrgan}`);
+                }
+                
+                // FILTER 2: Urgency level
+                let matchesUrgency = true;
+                if (urgencyFilterValue && urgencyFilterValue !== '') {
+                    const urgencyLevels = {
+                        'low': ['low', 'normal'],
+                        'medium': ['low', 'normal', 'medium'],
+                        'high': ['low', 'normal', 'medium', 'high', 'urgent', 'critical'],
+                        'urgent': ['urgent', 'critical']
+                    };
+                    
+                    const allowedUrgencies = urgencyLevels[urgencyFilterValue] || [];
+                    matchesUrgency = allowedUrgencies.some(level => urgency.includes(level));
+                    console.log(`  Urgency check: "${urgency}" in ${allowedUrgencies} => ${matchesUrgency}`);
+                }
+                
+                const passes = matchesOrgan && matchesUrgency;
+                if (passes) {
+                    console.log(`✓ FILTER MATCH: "${organName}" | "${urgency}"`);
+                }
+                
+                return passes;
+            });
+            
+            console.log(`Final Results: ${filtered.length} requests match filters`);
+            console.log('===================');
+            
+            updateOrganRequestsTable(filtered);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - initializing organ requests');
+            
+            // Load initial data
+            loadOrganRequests();
+            
+            // Attach event listeners with a small delay to ensure elements are ready
+            setTimeout(function() {
+                console.log('Attaching event listeners...');
+                
+                // Setup search input listener
+                const searchInput = document.querySelector('.search-input');
+                console.log('Search input found:', !!searchInput);
+                if (searchInput) {
+                    searchInput.addEventListener('input', function(e) {
+                        console.log('Search input changed:', e.target.value);
+                        filterOrganRequests();
+                    });
+                }
+                
+                // Setup filter select listeners
+                const filterSelects = document.querySelectorAll('.filter-select');
+                console.log('Filter selects found:', filterSelects.length);
+                filterSelects.forEach((select, index) => {
+                    select.addEventListener('change', function(e) {
+                        console.log(`Filter ${index} changed:`, e.target.value);
+                        filterOrganRequests();
+                    });
+                });
+            }, 100);
+        });
+    </script>
+
+    <?php
+        require_once __DIR__ . '/footer.php';
+    ?>
+</body>
+</html>

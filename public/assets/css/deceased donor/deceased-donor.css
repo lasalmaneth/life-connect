@@ -1,0 +1,1700 @@
+/* Deceased Donor Portal CSS */
+
+:root {
+  /* LifeConnect Brand Colors */
+  --primary-color: #005baa;
+  --secondary-color: #003b6e;
+  --gray-bg-color: #e4eaff;
+  --float-bg-color: rgba(122, 135, 255, 0.6);
+  --primary-text-color: #000;
+  --secondary-text-color: #003b6e;
+  --secondary-hover-color: rgba(0, 99, 186, 0.1);
+  --white-color: #fff;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  
+  /* Custom design colors using LifeConnect palette */
+  --cream: #faf8f5;
+  --warm-white: #ffffff;
+  --charcoal: var(--secondary-color);
+  --soft-gray: #6b7280;
+  --gold-accent: #d4af37;
+  --sage: var(--primary-color);
+  --paper-shadow: rgba(0, 91, 170, 0.15);
+  --text-shadow: rgba(0, 59, 110, 0.8);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Nunito Sans", sans-serif;
+  background: var(--gray-bg-color);
+  color: var(--primary-text-color);
+  line-height: 1.6;
+}
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 20px var(--paper-shadow);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.header p {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: rgba(255, 255, 255, 0.15);
+  padding: .5rem 1rem;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.status-badge {
+  background: var(--success-color);
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.status-badge.deceased {
+  background: #64748b;
+}
+
+.status-badge.custodian {
+  background: var(--primary-color);
+}
+
+.status-badge.pending {
+  background: var(--warning-color);
+}
+
+/* Container */
+.container {
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+}
+
+@media(max-width:1024px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar */
+.sidebar {
+  background: var(--warm-white);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px var(--paper-shadow);
+  overflow: hidden;
+  border: 1px solid var(--secondary-hover-color);
+  height: fit-content;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--gray-bg-color), var(--secondary-hover-color));
+}
+
+.sidebar-header h3 {
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.sidebar-header p {
+  font-size: .85rem;
+  color: var(--secondary-text-color);
+  margin-top: 0.25rem;
+}
+
+.menu-section {
+  padding: 1rem 0;
+}
+
+.menu-section-title {
+  padding: 0 1.5rem 0.5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--secondary-text-color);
+  text-transform: uppercase;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  color: var(--secondary-text-color);
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  border-left: 3px solid transparent;
+  transition: all .3s;
+}
+
+.menu-item:hover {
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  background: var(--secondary-hover-color);
+}
+
+.menu-item.active {
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  background: var(--secondary-hover-color);
+  font-weight: 600;
+}
+
+.menu-item .icon {
+  margin-right: .75rem;
+  font-size: 1.1rem;
+}
+
+/* Content Area */
+.content-area {
+  background: var(--warm-white);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px var(--paper-shadow);
+  padding: 0;
+  overflow: visible;
+}
+
+.content-header {
+  background: linear-gradient(135deg, var(--gray-bg-color), var(--secondary-hover-color));
+  padding: 2rem;
+  border-bottom: 1px solid var(--secondary-hover-color);
+}
+
+.content-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+  color: var(--primary-color);
+}
+
+.content-body {
+  padding: 2rem;
+}
+
+/* Alert Banners */
+.alert-banner {
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.alert-banner.warning {
+  background: #fef3c7;
+  border-color: var(--warning-color);
+  color: #92400e;
+}
+
+.alert-banner.info {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.alert-banner.success {
+  background: #dcfce7;
+  border-color: var(--success-color);
+  color: #166534;
+}
+
+.alert-icon {
+  font-size: 2rem;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Welcome Banner */
+.welcome-banner {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.welcome-text {
+  color: var(--secondary-text-color);
+  line-height: 1.6;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #e4eaff 0%, #d0dcff 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 2px solid #005baa;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 91, 170, 0.15);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  background: none;
+  color: #005baa;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #003b6e;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #005baa;
+}
+
+/* Section Card */
+.section-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 91, 170, 0.1);
+  border: 1px solid rgba(0, 91, 170, 0.1);
+  transition: all 0.3s;
+  overflow: visible;
+  width: 100%;
+  max-width: 100%;
+}
+
+.section-card:hover {
+  box-shadow: 0 15px 50px rgba(0, 91, 170, 0.15);
+}
+
+.section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Checklist */
+.checklist {
+  background: var(--gray-bg-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border: 2px solid transparent;
+  transition: all 0.3s;
+}
+
+.checklist-item:hover {
+  border-color: var(--primary-color);
+}
+
+.checklist-item.completed {
+  border-color: var(--success-color);
+  background: #f0fdf4;
+}
+
+.checklist-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.checklist-item.completed .checklist-number {
+  background: var(--success-color);
+}
+
+.checklist-content {
+  flex: 1;
+}
+
+.checklist-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.checklist-desc {
+  font-size: 0.9rem;
+  color: var(--secondary-text-color);
+}
+
+/* Data Table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.data-table th {
+  background: var(--gray-bg-color);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tr:hover {
+  background: var(--secondary-hover-color);
+}
+
+/* Status Pills */
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-pill.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.inprogress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-pill.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Info Grid */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+@media(max-width:768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-item {
+  padding: 1rem;
+  background: var(--gray-bg-color);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 91, 170, 0.08);
+  transition: all 0.3s;
+}
+
+.info-item:hover {
+  background: var(--secondary-hover-color);
+  border-color: var(--primary-color);
+}
+
+.info-label {
+  font-size: 0.85rem;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.info-value {
+  font-size: 1.05rem;
+  color: var(--primary-text-color);
+  font-weight: 600;
+}
+
+/* Organ Summary */
+.organ-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+
+.organ-badge {
+  background: #ffffff;
+  padding: 1.25rem 1rem;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px solid #e0f2fe;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 91, 170, 0.06);
+  color: var(--primary-text-color);
+  min-height: 110px;
+}
+
+.organ-badge:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 91, 170, 0.15);
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.organ-badge .organ-icon {
+  color: var(--primary-color);
+  font-size: 2rem;
+  transition: all 0.3s ease;
+}
+
+.organ-badge:hover .organ-icon {
+  transform: scale(1.15);
+  color: var(--secondary-color);
+}
+
+.organ-toggle-item {
+  transition: all 0.3s ease;
+}
+
+.organ-toggle-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 91, 170, 0.15);
+}
+
+.organ-status {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  border: 2px solid #fff;
+}
+
+/* Note & Warning Boxes */
+.note-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  padding: 1.75rem 2rem;
+  border-radius: 16px;
+  border: 2px solid #86efac;
+  margin-top: 1.5rem;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+}
+
+.note-box::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  border-radius: 16px 0 0 16px;
+}
+
+.note-box strong {
+  color: #065f46;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.note-box p {
+  color: #047857;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.warning-box {
+  background: #fef3c7;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border-left: 4px solid var(--warning-color);
+  margin-top: 1rem;
+}
+
+.warning-box strong {
+  color: #92400e;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.warning-box p {
+  color: #92400e;
+  font-size: 0.95rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 91, 170, 0.3);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-hover-color);
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.btn-warning {
+  background: var(--warning-color);
+  color: #fff;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+}
+
+.btn-danger {
+  background: var(--danger-color);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Family Custodian Card - Compact Credit Card Style */
+.family-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 0;
+  margin-bottom: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 3px 10px rgba(0, 91, 170, 0.15);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+  position: relative;
+  border: 2px solid transparent;
+  min-height: 140px;
+  height: auto;
+}
+
+.family-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  z-index: 0;
+}
+
+.family-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  transform: translate(-35%, 35%);
+  z-index: 1;
+}
+
+.family-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 91, 170, 0.25);
+  transform: translateY(-3px);
+}
+
+/* Decorative Curve on Right */
+.family-card > div:first-of-type::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -8%;
+  width: 160px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* Card Body - Main Content Area */
+.family-card > div:first-of-type {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.family-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  position: relative;
+  transition: all 0.3s ease;
+  z-index: 3;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.family-card:hover .family-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.family-info {
+  flex: 1;
+  min-width: 0;
+  z-index: 3;
+  position: relative;
+}
+
+.family-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.3px;
+}
+
+.family-relation {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  display: block;
+}
+
+.family-relation strong {
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  margin-left: 0.4rem;
+}
+
+.family-contact {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.family-contact > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.family-contact i {
+  color: rgba(255, 255, 255, 1);
+  width: 14px;
+  font-size: 0.8rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+/* Timeline */
+.timeline-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-left: 2px solid var(--primary-color);
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.timeline-item:before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 1.5rem;
+  width: 10px;
+  height: 10px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+.timeline-date {
+  font-size: 0.8rem;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.25rem;
+}
+
+.timeline-action {
+  font-weight: 600;
+  color: var(--primary-text-color);
+  margin-bottom: 0.25rem;
+}
+
+.timeline-desc {
+  font-size: 0.85rem;
+  color: var(--secondary-text-color);
+}
+
+/* Upload Area */
+.upload-area {
+  border: 2px dashed var(--primary-color);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  background: var(--gray-bg-color);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.upload-area:hover {
+  background: var(--secondary-hover-color);
+  border-color: var(--secondary-color);
+}
+
+.upload-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2.5rem;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content[style*="max-width:800px"] {
+  max-width: 850px !important;
+  padding: 2.5rem 3rem;
+}
+
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+.modal-text {
+  color: var(--secondary-text-color);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid rgba(0, 91, 170, 0.2);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  background: var(--secondary-hover-color);
+}
+
+/* Form Validation Styles */
+.form-input:invalid:not(:focus):not(:placeholder-shown),
+.form-textarea:invalid:not(:focus):not(:placeholder-shown),
+.form-select:invalid:not(:focus) {
+  border-color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.form-input:valid:not(:focus):not(:placeholder-shown),
+.form-textarea:valid:not(:focus):not(:placeholder-shown) {
+  border-color: var(--success-color);
+}
+
+.form-input.error,
+.form-select.error,
+.form-textarea.error {
+  border-color: var(--danger-color);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.form-input.success,
+.form-select.success,
+.form-textarea.success {
+  border-color: var(--success-color);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* Role Switch */
+.role-switch {
+  background: var(--gray-bg-color);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.role-switch button {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--primary-color);
+  background: #fff;
+  color: var(--primary-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.role-switch button.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+/* Consent Form */
+.consent-form {
+  background: #fff;
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 0;
+}
+
+.consent-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.consent-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.consent-subtitle {
+  color: var(--secondary-text-color);
+  font-size: 1rem;
+}
+
+.consent-section {
+  margin-bottom: 2rem;
+}
+
+.consent-section h4 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+}
+
+/* Selected Organ Cards - Professional Design */
+.selected-organ-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e0f2fe;
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 91, 170, 0.06);
+  min-height: 130px;
+  position: relative;
+  overflow: hidden;
+}
+
+.selected-organ-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.selected-organ-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 91, 170, 0.15);
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.selected-organ-icon {
+  color: var(--primary-color);
+  font-size: 2.25rem;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.selected-organ-card:hover .selected-organ-icon {
+  transform: scale(1.2);
+  color: var(--secondary-color);
+}
+
+.selected-organ-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--primary-text-color);
+  text-align: center;
+}
+
+.selected-organ-status {
+  font-size: 0.8rem;
+  color: var(--success-color);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f0fdf4;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  border: 1px solid #86efac;
+}
+
+.selected-organ-status i {
+  font-size: 0.75rem;
+}
+
+/* Professional Checkbox Labels for Consent Modal */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.checkbox-label:hover {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 91, 170, 0.1);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  color: var(--primary-color);
+}
+
+.checkbox-label span i {
+  color: var(--primary-color);
+  margin-right: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.checkbox-label:has(input:checked) {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  box-shadow: 0 2px 8px rgba(0, 91, 170, 0.15);
+}
+
+/* Professional Donor Card Design - Actual Card Proportions */
+.donor-card-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+  perspective: 1000px;
+}
+
+.donor-card {
+  width: 100%;
+  max-width: 550px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  box-shadow: 
+    0 2px 5px rgba(0, 0, 0, 0.1),
+    0 8px 20px rgba(102, 126, 234, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  overflow: hidden;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.donor-card:hover {
+  transform: translateY(-5px) rotateX(2deg);
+  box-shadow: 
+    0 5px 15px rgba(0, 0, 0, 0.15),
+    0 15px 35px rgba(102, 126, 234, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+}
+
+.donor-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.donor-card-logo {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.donor-card-title {
+  flex: 1;
+}
+
+.donor-card-org {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  line-height: 1.2;
+}
+
+.donor-card-type {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 1.8px;
+  font-weight: 600;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+}
+
+.donor-card-wave {
+  display: none;
+}
+
+.donor-card-body {
+  padding: 1.5rem;
+  background: #fff;
+  flex: 1;
+  overflow: visible;
+}
+
+.donor-card-id {
+  display: inline-block;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: var(--primary-color);
+  padding: 0.4rem 0.9rem;
+  border-radius: 18px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border: 1.5px solid var(--primary-color);
+  margin-bottom: 0.85rem;
+}
+
+.donor-card-id span {
+  opacity: 0.7;
+  margin-right: 0.2rem;
+}
+
+.donor-card-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary-text-color);
+  margin-bottom: 0.85rem;
+  line-height: 1.2;
+}
+
+.donor-card-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  padding: 0.9rem;
+  background: var(--gray-bg-color);
+  border-radius: 10px;
+}
+
+.donor-card-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.donor-card-info-label {
+  font-size: 0.65rem;
+  color: var(--secondary-text-color);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.donor-card-info-label i {
+  font-size: 0.6rem;
+  color: var(--primary-color);
+}
+
+.donor-card-info-value {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-text-color);
+}
+
+.donor-card-organs {
+  margin-bottom: 0.85rem;
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 10px;
+  border: 1.5px solid #bae6fd;
+}
+
+.donor-card-section-title {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.6rem;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.donor-card-section-title i {
+  font-size: 0.7rem;
+}
+
+.donor-card-organ-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.donor-card-badge {
+  background: #fff;
+  color: var(--primary-color);
+  padding: 0.3rem 0.6rem;
+  border-radius: 14px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border: 1.5px solid var(--primary-color);
+  box-shadow: 0 1px 3px rgba(0, 91, 170, 0.1);
+}
+
+.donor-card-full-body {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: var(--success-color);
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  border: 1.5px solid var(--success-color);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.donor-card-full-body i {
+  font-size: 0.65rem;
+}
+
+.donor-card-emergency {
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 10px;
+  border: 1.5px solid #fbbf24;
+}
+
+.donor-card-emergency-info {
+  color: var(--primary-text-color);
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.donor-card-emergency-info i {
+  color: #d97706;
+  margin-right: 0.3rem;
+  font-size: 0.7rem;
+}
+
+.donor-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.donor-card-footer-text {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 0.9;
+}
+
+.donor-card-footer-text i {
+  font-size: 0.55rem;
+}
+
+.donor-card-verified {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.3rem 0.6rem;
+  border-radius: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  backdrop-filter: blur(10px);
+  font-size: 0.65rem;
+}
+
+.donor-card-verified i {
+  font-size: 0.6rem;
+}
+
+@media (max-width: 768px) {
+  .donor-card-header {
+    padding: 1.5rem;
+  }
+  
+  .donor-card-body {
+    padding: 1.5rem;
+  }
+  
+  .donor-card-name {
+    font-size: 1.5rem;
+  }
+  
+  .donor-card-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .donor-card-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+}
+
+/* Legacy consent checkbox styles (keep for other forms) */
+.consent-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--gray-bg-color);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.consent-checkbox:hover {
+  background: var(--secondary-hover-color);
+}
+
+.consent-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+.consent-checkbox span {
+  font-weight: 600;
+}
+
+.consent-declaration {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  border: 2px solid var(--primary-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.consent-declaration label {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  cursor: pointer;
+}
+
+.consent-declaration input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin-top: 0.25rem;
+}
+
+.consent-declaration div {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Consent History */
+.consent-history {
+  background: var(--gray-bg-color);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.consent-history-item {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.consent-history-item:last-child {
+  border-bottom: none;
+}
+
+.consent-history-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.consent-history-content {
+  flex: 1;
+}
+
+.consent-history-title {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.consent-history-date {
+  font-size: 0.85rem;
+  color: var(--secondary-text-color);
+  margin-bottom: 0.25rem;
+}
+
+.consent-history-desc {
+  font-size: 0.85rem;
+  color: var(--secondary-text-color);
+}
+
+/* Custodian Grid */
+.custodian-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media(max-width: 768px) {
+  .custodian-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Custodian Actions - Compact Vertical Right Side */
+.custodian-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  justify-content: center;
+  position: relative;
+  z-index: 3;
+}
+
+.custodian-actions .btn {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+  min-width: 95px;
+}
+
+.custodian-actions .btn i {
+  font-size: 0.8rem;
+}
+
+.custodian-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--primary-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.custodian-actions .btn-secondary:hover {
+  background: #fff;
+  color: var(--secondary-color);
+  transform: translateX(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.custodian-actions .btn-danger {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--danger-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.custodian-actions .btn-danger:hover {
+  background: var(--danger-color);
+  color: #fff;
+  transform: translateX(-2px);
+  box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+

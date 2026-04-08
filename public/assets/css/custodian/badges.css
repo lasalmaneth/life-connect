@@ -1,0 +1,63 @@
+/* =============================================================================
+   CUSTODIAN PORTAL — STATUS BADGES
+   All badge variants using cp- prefix.
+   ============================================================================= */
+
+.cp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.cp-badge i {
+  font-size: 0.65rem;
+}
+
+/* Active / Success */
+.cp-badge--active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Pending / Warning */
+.cp-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+/* Danger / Rejected */
+.cp-badge--danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Info / Blue */
+.cp-badge--info {
+  background: var(--blue-100);
+  color: var(--blue-700);
+  border-color: rgba(0, 91, 170, 0.25);
+}
+
+/* Neutral / Gray */
+.cp-badge--neutral {
+  background: var(--g100);
+  color: var(--g700);
+  border-color: var(--g300);
+}
+
+/* Large badge variant */
+.cp-badge--lg {
+  font-size: 0.78rem;
+  padding: 0.35rem 1rem;
+}

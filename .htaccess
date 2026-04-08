@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Redirect to public folder
+RewriteRule ^$ public/ [L]
+
+# Handle all other routes by prefixing them with public/ if they aren't already
+# Use a more flexible condition to avoid recursion in subdirectories
+RewriteCond %{REQUEST_URI} !public/
+RewriteRule ^(.*)$ public/$1 [L]

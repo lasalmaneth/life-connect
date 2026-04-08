@@ -1,0 +1,17 @@
+/* =============================================================================
+   LIFE-CONNECT — CUSTODIAN PORTAL CSS — Entry Point
+   Load order matters: layout → components → cards → forms → badges → tables → timeline → responsive
+   All classes use the "cp-" (Custodian Portal) prefix.
+   Design tokens identical to Donor Portal (DESIGN_SYSTEM.md §1).
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import 'layout.css';
+@import 'components.css';
+@import 'cards.css';
+@import 'forms.css';
+@import 'badges.css';
+@import 'tables.css';
+@import 'timeline.css';
+@import 'cadaver-data-sheet.css';
+@import 'responsive.css';
