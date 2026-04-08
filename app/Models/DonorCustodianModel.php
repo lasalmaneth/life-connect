@@ -71,9 +71,9 @@ class DonorCustodianModel {
                 ':custodian_number' => $index + 1,
                 ':name'             => $data['name'] ?? '',
                 ':nic'              => $data['nic'] ?? '',
-                ':phone'            => $data['phone'] ?? null,
-                ':email'            => $data['email'] ?? null,
-                ':address'          => $data['address'] ?? null,
+                ':phone'            => !empty($data['phone']) ? $data['phone'] : null,
+                ':email'            => !empty($data['email']) ? $data['email'] : null,
+                ':address'          => !empty($data['address']) ? $data['address'] : null,
             ]);
             if ($result) $saved++;
         }
@@ -118,9 +118,9 @@ class DonorCustodianModel {
             ':custodian_number' => $custodianNumber,
             ':name' => $data['name'] ?? '',
             ':nic' => $data['nic'] ?? '',
-            ':phone' => $data['phone'] ?? null,
-            ':email' => $data['email'] ?? null,
-            ':address' => $data['address'] ?? null
+            ':phone' => !empty($data['phone']) ? $data['phone'] : null,
+            ':email' => !empty($data['email']) ? $data['email'] : null,
+            ':address' => !empty($data['address']) ? $data['address'] : null
         ]);
     }
 
@@ -143,9 +143,9 @@ class DonorCustodianModel {
             ':name' => $data['name'] ?? '',
             ':relationship' => $data['relationship'] ?? '',
             ':nic' => $data['nic'] ?? '',
-            ':phone' => $data['phone'] ?? null,
-            ':email' => $data['email'] ?? null,
-            ':address' => $data['address'] ?? null
+            ':phone' => !empty($data['phone']) ? $data['phone'] : null,
+            ':email' => !empty($data['email']) ? $data['email'] : null,
+            ':address' => !empty($data['address']) ? $data['address'] : null
         ]);
     }
 
@@ -196,8 +196,8 @@ class DonorCustodianModel {
         return $this->insert($insertQuery, [
             ':username' => $nic,
             ':password' => $defaultPassword,
-            ':email' => $data['email'] ?? null,
-            ':phone' => $data['phone'] ?? null
+            ':email'    => !empty($data['email']) ? $data['email'] : null,
+            ':phone'    => !empty($data['phone']) ? $data['phone'] : null
         ]);
     }
 }

@@ -41,21 +41,22 @@ class WitnessModel {
         );
 
         $saved = 0;
-        foreach ($witnesses as $data) {
+        foreach ($witnesses as $index => $data) {
             if (empty($data['nic'])) continue;
 
             $query = "INSERT INTO witnesses (
-                        donor_id, organ_id, name, nic_number, contact_number, address
+                        donor_id, organ_id, witness_number, name, nic_number, contact_number, address
                       ) VALUES (
-                        :donor_id, :organ_id, :name, :nic, :phone, :address
+                        :donor_id, :organ_id, :witness_number, :name, :nic, :phone, :address
                       )";
             $result = $this->insert($query, [
-                ':donor_id' => $donorId,
-                ':organ_id' => $organId,
-                ':name'     => $data['name'] ?? '',
-                ':nic'      => $data['nic'] ?? '',
-                ':phone'    => $data['phone'] ?? null,
-                ':address'  => $data['address'] ?? null,
+                ':donor_id'       => $donorId,
+                ':organ_id'       => $organId,
+                ':witness_number' => $index + 1,
+                ':name'           => $data['name'] ?? '',
+                ':nic'            => $data['nic'] ?? '',
+                ':phone'          => $data['phone'] ?? null,
+                ':address'        => $data['address'] ?? null,
             ]);
             if ($result) $saved++;
         }
@@ -84,5 +85,11 @@ class WitnessModel {
         $query = "SELECT COUNT(*) as count FROM witnesses WHERE donor_id = :donor_id";
         $result = $this->query($query, [':donor_id' => $donorId]);
         return $result ? $result[0]->count : 0;
+    }
+
+    public function deleteWitnessesByOrganPledge($donorId, $organId)
+    {
+        $query = "DELETE FROM witnesses WHERE donor_id = :donor_id AND organ_id = :organ_id";
+        return $this->query($query, [':donor_id' => $donorId, ':organ_id' => $organId]);
     }
 }

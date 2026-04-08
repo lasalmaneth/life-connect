@@ -211,12 +211,12 @@ class Donor {
             $success = false;
             $message = "";
 
-            if ($action === 'select_organ') {
-                // Support multiple organ ids sent as array
-                $organIdsInput = $_POST['organ_ids'] ?? (isset($_POST['id']) ? [$_POST['id']] : []);
-                $organIdsInput = is_array($organIdsInput) ? array_map('intval', $organIdsInput) : [];
+            if ($action === 'select_organ' || $action === 'submit_living_pledge') {
+                // Support multiple formats: organ_ids[] (checkboxes), organ_id (living modal), or id (legacy)
+                $organIdsInput = $_POST['organ_ids'] ?? $_POST['organ_id'] ?? $_POST['id'] ?? [];
+                $organIdsInput = is_array($organIdsInput) ? array_map('intval', $organIdsInput) : [(int)$organIdsInput];
 
-                if (empty($organIdsInput)) {
+                if (empty($organIdsInput) || (count($organIdsInput) === 1 && $organIdsInput[0] === 0)) {
                     $_SESSION['error_message'] = "No organs selected.";
                     redirect('donor/donations');
                 }
@@ -227,6 +227,14 @@ class Donor {
                     'medications' => $_POST['medications'] ?? null,
                     'allergies' => $_POST['allergies'] ?? null
                 ];
+
+                // Update nationality in donors table
+                if (!empty($_POST['nationality'])) {
+                    $this->query("UPDATE donors SET nationality = :nat WHERE id = :id", [
+                        ':nat' => $_POST['nationality'],
+                        ':id' => $donorId
+                    ]);
+                }
 
                 $rep1_name = $_POST['rep1_name'] ?? $_POST['cust1_name'] ?? '';
                 $rep1_nic = $_POST['rep1_nic'] ?? $_POST['cust1_nic'] ?? '';
@@ -259,10 +267,34 @@ class Donor {
                     if ($oId <= 0) continue;
                     
                     if ($organModel->addDonorPledge($donorId, $oId, $details)) {
-                        // User Preference: Store as Custodians, not Witnesses for Living Donations
+                        // Get the newly created pledge ID
+                        $pledge = $this->query("SELECT id FROM donor_pledges WHERE donor_id = :d AND organ_id = :o AND status = 'PENDING' ORDER BY pledge_date DESC LIMIT 1", [
+                            ':d' => $donorId,
+                            ':o' => $oId
+                        ]);
+                        $pledgeId = $pledge ? $pledge[0]->id : null;
+
+                        if ($pledgeId) {
+                            // save detailed living consent
+                            $livingConsentModel = new \App\Models\LivingConsentModel();
+                            $livingConsentModel->createConsent([
+                                'donor_pledge_id'        => $pledgeId,
+                                'height'                 => $_POST['height'] ?? null,
+                                'weight'                 => $_POST['weight'] ?? null,
+                                'previous_surgeries'      => $_POST['surgeries'] ?? null,
+                                'smoking_alcohol_status'  => $_POST['habits'] ?? null,
+                                'blood_compatibility'    => $_POST['compat_blood'] ?? null,
+                                'tissue_typing'          => $_POST['compat_tissue'] ?? null,
+                                'emergency_contact_name'  => $_POST['emergency_name'] ?? null,
+                                'emergency_relationship'  => $_POST['emergency_rel'] ?? null,
+                                'emergency_phone'         => $_POST['emergency_phone'] ?? null
+                            ]);
+                        }
+
+                        // Legal Requirement: Store as Witnesses for Living Donations
                         if (!empty($reps)) {
-                            $custodianModel = new \App\Models\DonorCustodianModel();
-                            $custodianModel->addOrganCustodians($donorId, $oId, $reps);
+                            $witnessModel = new \App\Models\WitnessModel();
+                            $witnessModel->addOrganWitnesses($donorId, $oId, $reps);
                         }
                     } else {
                         $fullyPledged = false;
@@ -288,59 +320,67 @@ class Donor {
                     $success = true;
                     $message = "Pledge withdrawn. All associated legal representative data has been cleared.";
                 }
-            } elseif ($action === 'submit_body_consent') {
-                $bodyDonationModel = new \App\Models\BodyDonationModel();
-                $witnessModel = new \App\Models\WitnessModel();
-                $custodianModel = new \App\Models\DonorCustodianModel();
+            } elseif ($action === 'submit_body_pledge') {
+                try {
+                    $bodyDonationModel = new \App\Models\BodyDonationModel();
+                    $witnessModel = new \App\Models\WitnessModel();
+                    $custodianModel = new \App\Models\DonorCustodianModel();
 
-                $bodyData = [
-                    'witness1_name' => trim($_POST['witness1_name'] ?? ''),
-                    'witness1_nic' => trim($_POST['witness1_nic'] ?? ''),
-                    'witness1_phone' => trim($_POST['witness1_phone'] ?? ''),
-                    'witness1_address' => trim($_POST['witness1_address'] ?? ''),
-                    'witness2_name' => trim($_POST['witness2_name'] ?? ''),
-                    'witness2_nic' => trim($_POST['witness2_nic'] ?? ''),
-                    'witness2_phone' => trim($_POST['witness2_phone'] ?? ''),
-                    'witness2_address' => trim($_POST['witness2_address'] ?? ''),
-                    'medical_school_id' => !empty($_POST['medical_school_id']) ? (int)$_POST['medical_school_id'] : null
-                ];
-
-                if ($bodyDonationModel->createConsent($donorId, $bodyData)) {
-                    // 1. Save Custodians to specialized table
-                    $custodians = [
-                        [
-                            'name'         => trim($_POST['cust1_name'] ?? ''),
-                            'nic'          => trim($_POST['cust1_nic'] ?? ''),
-                            'relationship' => trim($_POST['cust1_rel'] ?? ''),
-                            'phone'        => trim($_POST['cust1_phone'] ?? ''),
-                            'email'        => trim($_POST['cust1_email'] ?? ''),
-                            'address'      => trim($_POST['cust1_address'] ?? '')
-                        ],
-                        [
-                            'name'         => trim($_POST['cust2_name'] ?? ''),
-                            'nic'          => trim($_POST['cust2_nic'] ?? ''),
-                            'relationship' => trim($_POST['cust2_rel'] ?? ''),
-                            'phone'        => trim($_POST['cust2_phone'] ?? ''),
-                            'email'        => trim($_POST['cust2_email'] ?? ''),
-                            'address'      => trim($_POST['cust2_address'] ?? '')
-                        ]
+                    $bodyData = [
+                        'medical_school_id'     => $_POST['medical_school_id'] ?? null,
+                        'religion'             => $_POST['religion'] ?? null,
+                        'special_requests'      => $_POST['special_requests'] ?? null,
+                        'responsible_person'    => $_POST['responsible_person'] ?? null,
+                        'responsible_contact'   => $_POST['responsible_contact'] ?? null,
+                        'transport_arrangement' => $_POST['transport_arrangement'] ?? null,
+                        'witness1_name'         => $_POST['witness1_name'] ?? '',
+                        'witness1_nic'          => $_POST['witness1_nic'] ?? '',
+                        'witness1_phone'        => $_POST['witness1_phone'] ?? '',
+                        'witness1_address'      => $_POST['witness1_address'] ?? '',
+                        'witness2_name'         => $_POST['witness2_name'] ?? '',
+                        'witness2_nic'          => $_POST['witness2_nic'] ?? '',
+                        'witness2_phone'        => $_POST['witness2_phone'] ?? '',
+                        'witness2_address'      => $_POST['witness2_address'] ?? '',
+                        'status'                => 'ACTIVE'
                     ];
-                    $custodianModel->addOrganCustodians($donorId, 9, $custodians);
 
-                    // 3. Mark the organ as Pledged
-                    $organModel = new \App\Models\OrganModel();
-                    $organModel->addDonorPledge($donorId, 9, [
-                        'hospital_id' => null,
-                        'conditions' => '',
-                        'medications' => '',
-                        'allergies' => ''
-                    ]);
+                    if ($bodyDonationModel->createConsent($donorId, $bodyData)) {
+                        // Save Custodians (Next of Kin) for the body donation (Linked to Organ ID 9)
+                        $custodians = [
+                            [
+                                'name'         => trim($_POST['cust1_name'] ?? ''),
+                                'nic'          => trim($_POST['cust1_nic'] ?? ''),
+                                'relationship' => trim($_POST['cust1_rel'] ?? ''),
+                                'phone'        => trim($_POST['cust1_phone'] ?? ''),
+                                'email'        => trim($_POST['cust1_email'] ?? ''),
+                                'address'      => trim($_POST['cust1_address'] ?? '')
+                            ],
+                            [
+                                'name'         => trim($_POST['cust2_name'] ?? ''),
+                                'nic'          => trim($_POST['cust2_nic'] ?? ''),
+                                'relationship' => trim($_POST['cust2_rel'] ?? ''),
+                                'phone'        => trim($_POST['cust2_phone'] ?? ''),
+                                'email'        => trim($_POST['cust2_email'] ?? ''),
+                                'address'      => trim($_POST['cust2_address'] ?? '')
+                            ]
+                        ];
+                        $custodianModel->addOrganCustodians($donorId, 9, $custodians);
 
-                    $success = true;
-                    $message = "Full body donation consent form submitted!";
-                } else {
-                    $message = "Failed to submit consent form.";
+                        // Mark the body as Pledged in the main donor_pledges table
+                        $organModel = new \App\Models\OrganModel();
+                        $organModel->addDonorPledge($donorId, 9, [
+                            'conditions' => $bodyData['special_requests'] ?? ''
+                        ]);
+
+                        $_SESSION['success_message'] = "Full body donation authorized for scientific research!";
+                        $success = true;
+                    } else {
+                        $_SESSION['error_message'] = "Failed to submit body donation consent. Database record could not be created.";
+                    }
+                } catch (\Exception $e) {
+                    $_SESSION['error_message'] = "System Error: " . $e->getMessage();
                 }
+                redirect('donor/donations');
             } elseif ($action === 'submit_after_death_pledge') {
                 $organModel = new \App\Models\OrganModel();
                 $witnessModel = new \App\Models\WitnessModel();
@@ -352,36 +392,84 @@ class Donor {
                 if (empty($organIdsInput)) {
                     $_SESSION['error_message'] = "No organs selected.";
                     redirect('donor/donations');
-                    exit;
                 }
 
                 $details = [
-                    'hospital_id' => !empty($_POST['hospital_id']) ? $_POST['hospital_id'] : null,
-                    'conditions' => $_POST['conditions'] ?? null,
-                    'medications' => $_POST['medications'] ?? null,
-                    'allergies' => $_POST['allergies'] ?? null
+                    'conditions' => $_POST['special_instructions'] ?? null,
                 ];
 
-                $custodians = [
-                    ['name'=>trim($_POST['c1_name']??''), 'nic'=>trim($_POST['c1_nic']??''), 'relationship'=>trim($_POST['c1_rel']??''), 'phone'=>trim($_POST['c1_phone']??''), 'email'=>trim($_POST['c1_email']??''), 'address'=>trim($_POST['c1_address']??'')],
-                    ['name'=>trim($_POST['c2_name']??''), 'nic'=>trim($_POST['c2_nic']??''), 'relationship'=>trim($_POST['c2_rel']??''), 'phone'=>trim($_POST['c2_phone']??''), 'email'=>trim($_POST['c2_email']??''), 'address'=>trim($_POST['c2_address']??'')]
-                ];
+                $custodians = [];
+                // Process Custodian 1
+                if (!empty($_POST['c1_name']) && !empty($_POST['c1_nic'])) {
+                    $custodians[] = [
+                        'name' => $_POST['c1_name'],
+                        'nic' => $_POST['c1_nic'],
+                        'relationship' => $_POST['c1_rel'] ?? '',
+                        'phone' => $_POST['c1_phone'] ?? '',
+                        'email' => $_POST['c1_email'] ?? '',
+                        'address' => $_POST['c1_address'] ?? ''
+                    ];
+                }
+                // Process Custodian 2
+                if (!empty($_POST['c2_name']) && !empty($_POST['c2_nic'])) {
+                    $custodians[] = [
+                        'name' => $_POST['c2_name'],
+                        'nic' => $_POST['c2_nic'],
+                        'relationship' => $_POST['c2_rel'] ?? '',
+                        'phone' => $_POST['c2_phone'] ?? '',
+                        'email' => $_POST['c2_email'] ?? '',
+                        'address' => $_POST['c2_address'] ?? ''
+                    ];
+                }
+
+                $witnesses = [];
+                if (!empty($_POST['w1_name']) && !empty($_POST['w1_nic'])) {
+                    $witnesses[] = ['name' => $_POST['w1_name'], 'nic' => $_POST['w1_nic']];
+                }
+                if (!empty($_POST['w2_name']) && !empty($_POST['w2_nic'])) {
+                    $witnesses[] = ['name' => $_POST['w2_name'], 'nic' => $_POST['w2_nic']];
+                }
+
+                $custodianModel = new \App\Models\DonorCustodianModel();
+                $witnessModel = new \App\Models\WitnessModel();
+                $deceasedConsentModel = new \App\Models\AfterDeceasedConsentModel();
 
                 $successCount = 0;
                 foreach ($organIdsInput as $oId) {
+                    $oId = (int)$oId;
                     if ($oId <= 0) continue;
+
                     if ($organModel->addDonorPledge($donorId, $oId, $details)) {
-                        $custodianModel->addOrganCustodians($donorId, $oId, $custodians);
+                        // Save Custodians for this organ
+                        if (!empty($custodians)) {
+                            $custodianModel->addOrganCustodians($donorId, $oId, $custodians);
+                        }
+                        // Save Witnesses for this organ
+                        if (!empty($witnesses)) {
+                            $witnessModel->addOrganWitnesses($donorId, $oId, $witnesses);
+                        }
                         $successCount++;
                     }
                 }
 
+                // Save overarching After-Death Consent Metadata
+                $deceasedConsentModel->saveConsent([
+                    'donor_id' => $donorId,
+                    'suitability_any' => $_POST['suitability_any'] ?? 1,
+                    'is_restricted' => $_POST['is_restricted'] ?? 0,
+                    'religion' => $_POST['religion'] ?? null,
+                    'special_instructions' => $_POST['special_instructions'] ?? null,
+                    'witness_name' => $_POST['w1_name'] ?? null,
+                    'witness_nic' => $_POST['w1_nic'] ?? null
+                ]);
+
                 if ($successCount > 0) {
+                    $_SESSION['success_message'] = "Post-mortem donation intent recorded successfully!";
                     $success = true;
-                    $message = "$successCount After Death organ(s) pledged successfully!";
                 } else {
-                    $message = "Recording pledges failed. Please try again.";
+                    $_SESSION['error_message'] = "Failed to record pledge. It may already exist.";
                 }
+                redirect('donor/donations');
             } elseif ($action === 'upload_signed_pledge') {
                 $organId = (int)($_POST['id'] ?? 0);
                 if ($organId > 0 && isset($_FILES['pledge_pdf']) && $_FILES['pledge_pdf']['error'] === UPLOAD_ERR_OK) {
@@ -487,7 +575,7 @@ class Donor {
                     h.address, h.district, h.facility_type
              FROM organ_requests orq
              JOIN hospitals h ON orq.hospital_id = h.id
-             WHERE orq.status = 'OPEN' AND h.verification_status = 'APPROVED'
+             WHERE orq.status IN ('OPEN', 'PENDING') AND h.verification_status = 'APPROVED'
              ORDER BY orq.organ_id, orq.priority_level DESC"
         );
         $hospitalsByOrgan = [];

@@ -24,12 +24,12 @@ class OrganModel {
 
     public function addDonorPledge($donorId, $organId, $details = [])
     {
-        // Check if already pledged
-        $check = "SELECT id FROM donor_pledges WHERE donor_id = :donor_id AND organ_id = :organ_id";
+        // Check if already pledged and active
+        $check = "SELECT id FROM donor_pledges WHERE donor_id = :donor_id AND organ_id = :organ_id AND status != 'WITHDRAWN'";
         $exists = $this->query($check, [':donor_id' => $donorId, ':organ_id' => $organId]);
         
         if ($exists) {
-            return true; // Already pledged
+            return true; // Already active
         }
 
         $conditions = $details['conditions'] ?? null;

@@ -71,6 +71,20 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
         <p>Your selfless pledge can help save multiple lives and heal many more.</p>
     </div>
     <div class="d-content__body">
+        <?php if(isset($_SESSION['success_message'])): ?>
+            <div class="d-instruction-box" style="background:#f0fdf4; border-color:var(--accent); color:#166534; margin-bottom:1.5rem;">
+                <i class="fas fa-check-circle"></i> <?= $_SESSION['success_message'] ?>
+                <?php unset($_SESSION['success_message']); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if(isset($_SESSION['error_message'])): ?>
+            <div class="d-instruction-box" style="background:#fff5f5; border-color:#feb2b2; color:#742a2a; margin-bottom:1.5rem;">
+                <i class="fas fa-exclamation-circle"></i> <?= $_SESSION['error_message'] ?>
+                <?php unset($_SESSION['error_message']); ?>
+            </div>
+        <?php endif; ?>
+
         <div style="display: grid; gap: 2rem;">
             
             <!-- Section: Your Pledged Donations (ORIGINAL UNITARY GRID) -->
@@ -185,110 +199,227 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
         </div>
         
         <div class="d-modal__content">
-            <!-- Step 1: Policies -->
+            <!-- Step 1: A. Donor Personal Information -->
             <div id="step1" class="d-modal__step active">
                 <div class="d-instruction-box">
-                    <h4><i class="fas fa-info-circle"></i> Medical Policies & Consent Guidelines</h4>
-                    <p>By proceeding with this donation pledge, you acknowledge your adherence to clinical standards:</p>
-                    <ul>
-                        <li>Pledge is 100% voluntary and revocable anytime prior to surgery.</li>
-                        <li>Absolutely no commercial trade is permitted under national law.</li>
-                        <li>Donor must be medically verified for compatibility by an approved hospital.</li>
-                    </ul>
+                    <h4><i class="fas fa-info-circle"></i> 1. Live Organ Donation Consent Form</h4>
+                    <p>Please verify your personal information and provide additional details as required by the transplantation act.</p>
                 </div>
-                <div class="d-warning-box">
-                    <i class="fas fa-balance-scale"></i> Certification: I have read and legally accept all medical policies associated with organ donation for educational and healing purposes.
-                </div>
-                <div style="padding: 0 1rem;">
-                    <label style="display:flex; align-items:center; gap:12px; cursor:pointer; font-weight:700; color:var(--slate);"><input type="checkbox" id="medicalConsent" style="width:20px; height:20px; accent-color:var(--accent);"> I formally agree to the terms above</label>
-                </div>
-                <div style="text-align:right; margin-top:2.5rem;"><button class="d-btn d-btn--primary" onclick="handleStep1Next()">Begin Formal Process <i class="fas fa-arrow-right"></i></button></div>
-            </div>
-
-            <!-- Step 2: Medical Details -->
-            <div id="step2" class="d-modal__step">
-                <h4 class="d-section-header"><i class="fas fa-notes-medical text-accent"></i> Clinical Health Profile</h4>
-                <div style="background:#f8fafc; padding:2rem; border-radius:12px; border:1.5px solid var(--g200);">
+                <h4 class="d-section-header"><i class="fas fa-user-circle text-accent"></i> A. Donor Personal Information</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; background:#f8fafc; padding:1.5rem; border-radius:12px; border:1.5px solid var(--g200);">
                     <div class="d-input-group">
-                        <label>Verified Blood Group <span style="color:var(--danger);">*</span></label>
-                        <select id="bloodGroup" class="d-input" style="background:white;"><option value="">Select Blood Group</option><?php foreach(['A+','A-','B+','B-','AB+','AB-','O+','O-'] as $bg): ?><option value="<?=$bg?>"><?=$bg?></option><?php endforeach; ?></select>
+                        <label>Full Name (as in NIC)</label>
+                        <input type="text" class="d-input" value="<?= htmlspecialchars($donor_full_name) ?>" readonly style="background:#f1f5f9;">
                     </div>
-                    <div class="d-input-group" style="margin-top:1.5rem; margin-bottom:0;">
-                        <label>Known Medical Conditions or Chronic Medications</label>
-                        <textarea id="medications" class="d-input" placeholder="Type here..." style="height:120px; background:white;"></textarea>
+                    <div class="d-input-group">
+                        <label>NIC Number</label>
+                        <input type="text" class="d-input" value="<?= htmlspecialchars($donor_data['nic_number'] ?? '') ?>" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="d-input-group">
+                        <label>Date of Birth</label>
+                        <input type="text" class="d-input" value="<?= htmlspecialchars($donor_data['date_of_birth'] ?? '') ?>" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="d-input-group">
+                        <label>Gender</label>
+                        <input type="text" class="d-input" value="<?= htmlspecialchars($donor_data['gender'] ?? '') ?>" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Address</label>
+                        <textarea class="d-input" readonly style="background:#f1f5f9; height:60px;"><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
+                    </div>
+                    <div class="d-input-group">
+                        <label>Blood Group</label>
+                        <input type="text" id="bloodGroup" class="d-input" value="<?= htmlspecialchars($donor_data['blood_group'] ?? '') ?>" readonly style="background:#f1f5f9;">
+                    </div>
+                    <div class="d-input-group">
+                        <label>Nationality <span style="color:var(--danger);">*</span></label>
+                        <input type="text" id="nationality" class="d-input" value="<?= htmlspecialchars($donor_data['nationality'] ?? 'Sri Lankan') ?>" placeholder="e.g. Sri Lankan">
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(1)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="handleStep2Next()">Next Stage <i class="fas fa-arrow-right"></i></button></div>
+                <div style="text-align:right; margin-top:2rem;"><button class="d-btn d-btn--primary" onclick="goToStep(2)">Continue to Medical Details <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
-            <!-- Step 3: Receiving Hospital -->
+            <!-- Step 2: B. Medical Information -->
+            <div id="step2" class="d-modal__step">
+                <h4 class="d-section-header"><i class="fas fa-briefcase-medical text-accent"></i> B. Medical Information</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; background:#f8fafc; padding:1.5rem; border-radius:12px; border:1.5px solid var(--g200);">
+                    <div class="d-input-group">
+                        <label>Height (cm)</label>
+                        <input type="number" id="height" class="d-input" placeholder="e.g. 175">
+                    </div>
+                    <div class="d-input-group">
+                        <label>Weight (kg)</label>
+                        <input type="number" id="weight" class="d-input" placeholder="e.g. 70">
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Existing Medical Conditions</label>
+                        <textarea id="conditions" class="d-input" placeholder="List any chronic illnesses..." style="height:60px;"></textarea>
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Current Medications</label>
+                        <textarea id="medications" class="d-input" placeholder="List medications you are currently taking..." style="height:60px;"></textarea>
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Previous Surgeries</label>
+                        <textarea id="surgeries" class="d-input" placeholder="List any major surgeries..." style="height:60px;"></textarea>
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Allergies</label>
+                        <input type="text" id="allergies" class="d-input" placeholder="Food, Drug or seasonal allergies...">
+                    </div>
+                    <div class="d-input-group" style="grid-column: span 2;">
+                        <label>Smoking / Alcohol Status</label>
+                        <select id="habits" class="d-input">
+                            <option value="None">None</option>
+                            <option value="Smoking Only">Smoking Only</option>
+                            <option value="Alcohol Only">Alcohol Only</option>
+                            <option value="Both">Both (Smoking & Alcohol)</option>
+                            <option value="Occasionally">Occasionally</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button class="d-btn d-btn--outline" onclick="goToStep(1)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="handleStep2Next()">Next: Donation Details <i class="fas fa-arrow-right"></i></button></div>
+            </div>
+
+            <!-- Step 3: C. Hospital Selection (Request Based) -->
             <div id="step3" class="d-modal__step">
-                <h4 class="d-section-header"><i class="fas fa-hospital text-accent"></i> Selected Receiving Institution</h4>
-                <p style="font-size:0.9rem; color:var(--g500); margin-bottom:1.5rem; padding: 0 0.5rem;">Choose your preferred hospital where the procedure and laboratory verification takes place.</p>
-                <div id="hospitalList" style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1rem;"></div>
-                <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(2)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep(4)">Continue to Custodians <i class="fas fa-arrow-right"></i></button></div>
-            </div>
+                <h4 class="d-section-header"><i class="fas fa-hospital text-accent"></i> C. Hospital Selection</h4>
+                
+                <div class="d-instruction-box" style="margin-bottom:1.5rem;">
+                    <h4><i class="fas fa-search-location"></i> Available Organ Requests</h4>
+                    <p>Select a hospital that has submitted an official request for <strong id="req_organ_name">the organ</strong>. Matching your donation with a specific request ensures immediate clinical use.</p>
+                </div>
 
-            <!-- Step 4: Legal Custodians -->
-            <div id="step4" class="d-modal__step">
-                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> Legal Custodians</h4>
-                <p style="font-size:0.8rem; color:var(--g500); margin-bottom:1.5rem;">For living donations, please provide details of two legal custodians who will support your decision.</p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
-                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">CUSTODIAN 1</label>
-                        <input type="text" id="cust1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" id="cust1_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:8px;">
-                        <input type="text" id="cust1_phone" class="d-input" placeholder="Phone Number" style="margin-top:8px;">
-                        <input type="text" id="cust1_rel" class="d-input" placeholder="Relationship" style="margin-top:8px;">
-                        <textarea id="cust1_address" class="d-input" placeholder="Home Address" style="margin-top:8px; height:60px;"></textarea>
-                    </div>
-                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
-                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">CUSTODIAN 2</label>
-                        <input type="text" id="cust2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" id="cust2_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:8px;">
-                        <input type="text" id="cust2_phone" class="d-input" placeholder="Phone Number" style="margin-top:8px;">
-                        <input type="text" id="cust2_rel" class="d-input" placeholder="Relationship" style="margin-top:8px;">
-                        <textarea id="cust2_address" class="d-input" placeholder="Home Address" style="margin-top:8px; height:60px;"></textarea>
+                <div style="background:#f8fafc; padding:1.5rem; border-radius:12px; border:1.5px solid var(--g200); margin-bottom:1.5rem;">
+                    <div class="d-input-group" style="margin-bottom:0;">
+                        <label>Organ willing to donate</label>
+                        <input type="text" id="living_organ_name" class="d-input" readonly style="background:#f1f5f9; font-weight:700;">
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2.5rem;"><button class="d-btn d-btn--outline" onclick="goToStep(3)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep6()">Review Application <i class="fas fa-marker"></i></button></div>
+
+                <div id="hospital_request_label" style="font-size:0.85rem; font-weight:700; color:var(--slate); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Hospitals with active requests</span>
+                    <span style="font-size:0.7rem; color:var(--g500);">(Ordered by Priority)</span>
+                </div>
+                
+                <div class="d-input-group">
+                    <label>Select Destination Hospital <span style="color:var(--danger);">*</span></label>
+                    <select id="hospitalDropdown" class="d-input" onchange="onHospitalChange()" style="margin-top:8px;">
+                        <option value="">-- No specific hospital preference --</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button class="d-btn d-btn--outline" onclick="goToStep(2)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep(4)">Next: Legal & Emergency <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 4: D. Compatibility & F. Emergency Contact -->
+            <div id="step4" class="d-modal__step">
+                <h4 class="d-section-header"><i class="fas fa-flask text-accent"></i> D. Compatibility Information (Staff Update)</h4>
+                <p style="font-size:0.8rem; color:var(--g500); margin-bottom:1rem;">Optional at this stage. Medical staff will update this after investigations.</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; background:white; padding:1.25rem; border:1px solid var(--g200); border-radius:12px; margin-bottom:2rem;">
+                    <div class="d-input-group">
+                        <label>Blood Compatibility</label>
+                        <input type="text" id="compat_blood" class="d-input" placeholder="Pending investigation...">
+                    </div>
+                    <div class="d-input-group">
+                        <label>Tissue Typing (HLA Match)</label>
+                        <input type="text" id="compat_tissue" class="d-input" placeholder="Pending investigation...">
+                    </div>
+                </div>
 
-            <!-- Step 6 (ENHANCED REVIEW) -->
-            <div id="step6" class="d-modal__step">
+                <h4 class="d-section-header"><i class="fas fa-phone-alt text-accent"></i> F. Emergency Contact</h4>
+                <div style="background:#fff7ed; padding:1.5rem; border-radius:12px; border:1.5px solid #fed7aa;">
+                    <div class="d-input-group">
+                        <label>Emergency Contact Name <span style="color:var(--danger);">*</span></label>
+                        <input type="text" id="emergencyName" class="d-input">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                        <div class="d-input-group">
+                            <label>Relationship <span style="color:var(--danger);">*</span></label>
+                            <input type="text" id="emergencyRel" class="d-input">
+                        </div>
+                        <div class="d-input-group">
+                            <label>Phone Number <span style="color:var(--danger);">*</span></label>
+                            <input type="text" id="emergencyPhone" class="d-input">
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> Legal Representatives (Witnesses)</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 1</label>
+                        <input type="text" id="cust1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" id="cust1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                    </div>
+                    <div style="background:white; padding:1rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 2</label>
+                        <input type="text" id="cust2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" id="cust2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button class="d-btn d-btn--outline" onclick="goToStep(3)"><i class="fas fa-arrow-left"></i> Previous</button><button class="d-btn d-btn--primary" onclick="goToStep5()">Review & Legal Consent <i class="fas fa-check-double"></i></button></div>
+            </div>
+
+            <!-- Step 5: E. Legal Consent & Review -->
+            <div id="step5" class="d-modal__step">
                 <div id="livingReviewContent">
-                    <div class="d-review-page" style="padding: 2.5rem;">
+                    <div class="d-review-page" style="padding: 2.5rem; color: var(--slate);">
                         <div class="d-review-header">
-                            <h2>Pledge Authorization Record</h2>
-                            <p>Certificate of Formal Intent for Living Organ Donation</p>
+                            <h2>Live Organ Donation Consent Form</h2>
+                            <p style="text-transform: uppercase; letter-spacing: 2px; font-weight: 700; font-size: 0.75rem; color: var(--blue-600); margin-top: 5px;">Formal Statutory Declaration</p>
                         </div>
-                        <div class="d-info-grid">
-                            <div class="d-info-item"><label>Donor</label><span><?= htmlspecialchars($donor_full_name) ?></span></div>
-                            <div class="d-info-item"><label>Pledge Type</label><span id="review_as_organ" style="color:var(--accent);">-</span></div>
-                            <div class="d-info-item"><label>Certificate Date</label><span><?= date('M d, Y') ?></span></div>
+                        
+                        <div class="d-instruction-box" style="background:#f0fdf4; border-color:var(--accent); color:#166534; font-size:0.85rem; margin-bottom:2rem;">
+                            <strong>Declaration:</strong> I, <span id="rev_donor_name" style="font-weight: 700; text-decoration: underline;"><?= htmlspecialchars($donor_full_name) ?></span>, holder of NIC <strong><?= htmlspecialchars($donor_data['nic_number'] ?? '') ?></strong>, hereby confirm that this pledge is <strong>strictly voluntary</strong> and I have received <strong>no financial compensation</strong> for this act.
                         </div>
-                        <div class="no-print" style="margin: 1.5rem 0; padding: 1.25rem; background: #fffbeb; border: 1px solid #fef08a; border-radius: 8px; color: #854d0e; font-size: 0.85rem; line-height: 1.5;">
-                            <i class="fas fa-info-circle"></i> <strong>Next Step:</strong> Please download this form, obtain a hard copy, add all required signatures (Donor and Witnesses), and upload the signed document back to the system to complete the process.
+
+                        <!-- Formal Info Grid -->
+                        <div class="d-info-grid" style="margin-bottom: 1.5rem;">
+                            <div class="d-info-item"><label>Organ for Donation</label><span id="review_as_organ" style="color:var(--blue-700); font-weight: 800;">-</span></div>
+                            <div class="d-info-item"><label>Filing Date</label><span><?= date('F d, Y') ?></span></div>
                         </div>
-                        <div style="border-top:1px solid var(--g100); padding-top:1.5rem; margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+
+                        <div class="d-info-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; border-top: 1px solid var(--g100); padding-top: 1rem; margin-bottom: 2rem;">
+                            <div class="d-info-item"><label>Nationality</label><span id="rev_nationality">-</span></div>
+                            <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Specified') ?></span></div>
+                            <div class="d-info-item"><label>Gender</label><span><?= htmlspecialchars($donor_data['gender'] ?? '-') ?></span></div>
+                        </div>
+
+                        <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                            <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g200); padding-bottom:5px; margin-bottom: 10px;">Medical Summary</h6>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div style="font-size: 0.85rem;"><strong>Vitals:</strong> <span id="rev_vitals">-</span></div>
+                                <div style="font-size: 0.85rem;"><strong>Habits:</strong> <span id="rev_habits">-</span></div>
+                                <div style="font-size: 0.85rem; grid-column: span 2;"><strong>Surgeries/Conditions:</strong> <span id="rev_medical">-</span></div>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-bottom:3rem;">
                             <div>
-                                <label style="font-size:0.75rem; font-weight:800; color:var(--g400); text-transform:uppercase;">Witness 1</label>
-                                <div id="revLivingW1" style="font-weight:700; color:var(--slate); margin-top:4px;">-</div>
+                                <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:5px;">Recipient Institution</h6>
+                                <p id="rev_hospital_info" style="font-size:0.95rem; font-weight:800; color: var(--blue-700); margin-top:10px;">Registry Managed</p>
+                                <div style="font-size:0.75rem; color:var(--g500); margin-top:4px;">Medical center authorized for recovery and surgical procedures.</div>
                             </div>
                             <div>
-                                <label style="font-size:0.75rem; font-weight:800; color:var(--g400); text-transform:uppercase;">Witness 2</label>
-                                <div id="revLivingW2" style="font-weight:700; color:var(--slate); margin-top:4px;">-</div>
+                                <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:5px;">Witnesses & Verification</h6>
+                                <div style="margin-top: 10px;">
+                                    <div style="font-size: 0.85rem; font-weight: 700;" id="rev_witness1">W1: -</div>
+                                    <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;" id="rev_witness2">W2: -</div>
+                                </div>
                             </div>
                         </div>
-                        <div style="border-top:1px solid var(--g100); padding-top:1.5rem; margin-top:1rem;">
-                            <label style="font-size:0.75rem; font-weight:800; color:var(--g400); text-transform:uppercase;">Declaration of Intent</label>
-                            <p style="font-size:0.95rem; color:var(--slate); line-height:1.7; margin-top:0.75rem;">I, the undersigned, hereby certify that my decision to pledge this anatomical gift is made freely and without coercion. I authorize the medical personnel to record this intent in the registry.</p>
+
+                        <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 2.5rem; font-size: 0.8rem; color: #92400e; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div><strong>Emergency Contact:</strong> <span id="rev_emergency_info" style="font-weight: 800;">-</span></div>
                         </div>
+
                         <div class="signature-block">
-                            <div class="sig-line">WITNESS 1 SIGNATURE</div>
-                            <div class="sig-line">WITNESS 2 SIGNATURE</div>
-                            <div class="sig-line">DONOR SIGNATURE</div>
+                            <div class="sig-line">WITNESS 01 SIGNATURE</div>
+                            <div class="sig-line">WITNESS 02 SIGNATURE</div>
+                            <div class="sig-line">DONOR'S SIGNATURE</div>
                         </div>
                     </div>
                 </div>
@@ -296,7 +427,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                     <button class="d-btn d-btn--outline" onclick="goToStep(4)"><i class="fas fa-arrow-left"></i> Previous</button>
                     <div style="display:flex; gap:12px;">
                         <button class="d-btn d-btn--secondary" onclick="downloadPledge('livingReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button>
-                        <button class="d-btn d-btn--primary" onclick="submitPledge()"><i class="fas fa-check-circle"></i> Submit Official Application</button>
+                        <button class="d-btn d-btn--primary" onclick="submitPledge()"><i class="fas fa-check-circle"></i> Finalize Consent</button>
                     </div>
                 </div>
             </div>
@@ -317,101 +448,190 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
         <form id="afterDeathForm" method="POST" action="<?= ROOT ?>/donor/donations" style="padding: 0 1.5rem 1.5rem;">
             <input type="hidden" name="action" value="submit_after_death_pledge">
             
+            <!-- Step 1: Personal Information -->
             <div id="deathStep1">
-                <div class="d-instruction-box">
-                    <h4><i class="fas fa-shield-alt"></i> Post-Mortem Guidelines</h4>
-                    <p>This pledge constitutes a legal intent for organ recovery following clinical verification of brain death.</p>
-                    <ul>
-                        <li>Recovery only occurs in a certified clinical setting.</li>
-                        <li>Family/Custodians will be consulted for final authorization.</li>
-                        <li>This record serves as primary evidence of your noble intent.</li>
-                    </ul>
+                <h4 class="d-section-header"><i class="fas fa-user-circle text-accent"></i> A. Donor Personal Information</h4>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1.25rem; background:white; padding:1.75rem; border-radius:12px; border:1px solid var(--g200);">
+                    <div class="d-info-item"><label>Full Name</label><span><?= htmlspecialchars($donor_data['first_name'] . ' ' . $donor_data['last_name']) ?></span></div>
+                    <div class="d-info-item"><label>NIC Number</label><span><?= htmlspecialchars($donor_data['nic_number']) ?></span></div>
+                    <div class="d-info-item"><label>Date of Birth</label><span><?= htmlspecialchars($donor_data['date_of_birth']) ?></span></div>
+                    <div class="d-info-item"><label>Gender</label><span><?= htmlspecialchars($donor_data['gender']) ?></span></div>
+                    <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Set') ?></span></div>
+                    <div class="d-info-item"><label>Nationality</label><span><?= htmlspecialchars($donor_data['nationality'] ?? 'Sri Lankan') ?></span></div>
+                    <div class="d-info-item" style="grid-column:span 3; border-top:1px solid var(--g100); padding-top:1rem; margin-top:0.5rem;"><label>Official Address of Record</label><span><?= htmlspecialchars($donor_data['address']) ?></span></div>
                 </div>
-                <div style="text-align:right; margin-top:2rem;"><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(2)">Begin Selection <i class="fas fa-arrow-right"></i></button></div>
+                <div class="d-instruction-box" style="margin-top:1.5rem; background:var(--blue-50); color:var(--blue-700); border-color:var(--blue-100);">
+                    <p style="font-size:0.85rem;"><i class="fas fa-info-circle"></i> This statutory information is synced with your primary donor profile. Accuracy is mandatory for legal validity.</p>
+                </div>
+                <div style="text-align:right; margin-top:2rem;"><button type="button" class="d-btn d-btn--primary" style="padding: 0.8rem 2rem;" onclick="goToDeathStep(2)">Begin Statutory Selection <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 2: Organ Selection -->
             <div id="deathStep2" style="display:none;">
-                <h4 class="d-section-header"><i class="fas fa-check-square text-accent"></i> Authorized Organ Selection</h4>
-                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:12px; margin-bottom:2rem; background:var(--g50); padding:1.5rem; border-radius:12px;">
-                    <?php foreach($available_after_death as $o): ?><label style="display:flex; align-items:center; gap:10px; cursor:pointer;"><input type="checkbox" name="organ_ids[]" id="death_org_<?=$o['organ_id']?>" value="<?=$o['organ_id']?>" class="death-org-check" style="width:18px; height:18px;"> <span style="font-size:0.9rem; font-weight:600; color:var(--slate);"><?=$o['organ_name']?></span></label><?php endforeach; ?>
+                <h4 class="d-section-header"><i class="fas fa-check-square text-accent"></i> B. Donation Preferences</h4>
+                <p style="font-size:0.9rem; color:var(--g600); margin-bottom:1.5rem;">Select the specific organs and tissues you authorize for clinical recovery:</p>
+                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:15px; margin-bottom:2rem;">
+                    <?php foreach($available_after_death as $o): ?>
+                    <label class="organ-sel-card" style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:1.25rem; background:white; border-radius:12px; border:1px solid var(--g200); transition:all 0.2s ease;">
+                        <input type="checkbox" name="organ_ids[]" id="death_org_<?=$o['organ_id']?>" value="<?=$o['organ_id']?>" class="death-org-check" onchange="updateDeathReview()" style="width:22px; height:22px; accent-color:var(--accent);"> 
+                        <span style="font-size:0.95rem; font-weight:700; color:var(--slate);"><?=$o['organ_name']?></span>
+                    </label>
+                    <?php endforeach; ?>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(1)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(3)">Next Step <i class="fas fa-arrow-right"></i></button></div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(1)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(3)">Confirm Selections <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 3: Donation Type -->
             <div id="deathStep3" style="display:none;">
-                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> Verification & Custodians</h4>
+                <h4 class="d-section-header"><i class="fas fa-hand-holding-heart text-accent"></i> C. Donation Type</h4>
+                <div class="d-input-group" style="background:var(--g50); padding:1.5rem; border-radius:12px; margin-bottom:1.5rem;">
+                    <label style="font-weight:700; margin-bottom:10px; display:block;">Donate any suitable organs?</label>
+                    <div style="display:flex; gap:2rem;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="radio" name="suitability_any" value="1" checked> Yes</label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="radio" name="suitability_any" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="d-input-group" style="background:var(--g50); padding:1.5rem; border-radius:12px;">
+                    <label style="font-weight:700; margin-bottom:10px; display:block;">Do you want to restrict specific organs?</label>
+                    <div style="display:flex; gap:2rem;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="radio" name="is_restricted" value="1"> Yes</label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="radio" name="is_restricted" value="0" checked> No</label>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(2)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(4)">Next Step <i class="fas fa-arrow-right"></i></button></div>
+            </div>
+
+            <!-- Step 4: Legal Custodians -->
+            <div id="deathStep4" style="display:none;">
+                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> D. Legal Custodian Information</h4>
+                <p style="font-size:0.85rem; color:var(--g600); margin-bottom:1.5rem;">Provide details for two legal custodians/next of kin who will be consulted even after your consent.</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                    <div class="custodian-card" style="background:var(--blue-50); padding:1.25rem; border-radius:12px; border:1px solid var(--blue-100);">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700); text-transform:uppercase;">Custodian 1</label>
+                        <input type="text" name="c1_name" id="dc_c1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="c1_nic" id="dc_c1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="c1_rel" id="dc_c1_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
+                            <input type="text" name="c1_phone" id="dc_c1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
+                        </div>
+                        <input type="email" name="c1_email" id="dc_c1_email" class="d-input" placeholder="Email" style="margin-top:8px;">
+                        <input type="text" name="c1_address" id="dc_c1_address" class="d-input" placeholder="Address" style="margin-top:8px;">
+                    </div>
+                    <div class="custodian-card" style="background:var(--blue-50); padding:1.25rem; border-radius:12px; border:1px solid var(--blue-100);">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700); text-transform:uppercase;">Custodian 2</label>
+                        <input type="text" name="c2_name" id="dc_c2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="c2_nic" id="dc_c2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="c2_rel" id="dc_c2_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
+                            <input type="text" name="c2_phone" id="dc_c2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
+                        </div>
+                        <input type="email" name="c2_email" id="dc_c2_email" class="d-input" placeholder="Email" style="margin-top:8px;">
+                        <input type="text" name="c2_address" id="dc_c2_address" class="d-input" placeholder="Address" style="margin-top:8px;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(3)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(5)">Next Step <i class="fas fa-arrow-right"></i></button></div>
+            </div>
+
+            <!-- Step 5: Death & Retrieval Preferences -->
+            <div id="deathStep5" style="display:none;">
+                <h4 class="d-section-header"><i class="fas fa-vial text-accent"></i> E. Death & Retrieval Preferences</h4>
+                <div class="d-input-group" style="margin-top:1.5rem;">
+                    <label style="font-weight:700;">Religion / Cultural Considerations</label>
+                    <input type="text" name="religion" id="dc_religion" class="d-input" placeholder="e.g. Buddhist, Christian, Muslim">
+                </div>
+                <div class="d-input-group" style="margin-top:1.5rem;">
+                    <label style="font-weight:700;">Special Instructions</label>
+                    <textarea name="special_instructions" id="dc_instructions" class="d-input" placeholder="Any specific wishes regarding the retrieval or burial..." rows="3"></textarea>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(4)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(6)">Legal Declaration <i class="fas fa-arrow-right"></i></button></div>
+            </div>
+
+            <!-- Step 6: Legal Declaration & Witnesses -->
+            <div id="deathStep6" style="display:none;">
+                <h4 class="d-section-header"><i class="fas fa-scroll text-accent"></i> F. Legal Declaration</h4>
+                <div class="d-instruction-box" style="margin-bottom:1.5rem;">
+                    <p style="font-size:0.9rem; line-height:1.6; color:var(--slate);">
+                        I hereby confirm my consent for organ retrieval after my death. I authorize clinical staff to determine brain death or circulatory death as per national statutory guidelines. I understand this consent can be revoked at any time.
+                    </p>
+                </div>
+                <h4 class="d-section-header"><i class="fas fa-user-shield text-accent"></i> G. Witness Signatures</h4>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
                     <div style="background:#f8fafc; padding:1.25rem; border-radius:12px; border:1px solid var(--g200);">
                         <label style="font-size:0.7rem; font-weight:800; color:var(--blue-600); text-transform:uppercase;">Witness 1</label>
-                        <input type="text" name="w1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" name="w1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                        <input type="text" name="w1_name" id="dc_w1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="w1_nic" id="dc_w1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
                     </div>
                     <div style="background:#f8fafc; padding:1.25rem; border-radius:12px; border:1px solid var(--g200);">
                         <label style="font-size:0.7rem; font-weight:800; color:var(--blue-600); text-transform:uppercase;">Witness 2</label>
-                        <input type="text" name="w2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" name="w2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
-                    </div>
-                    <div style="background:var(--blue-50); padding:1.25rem; border-radius:12px; border:1px solid var(--blue-100);">
-                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700); text-transform:uppercase;">Custodian 1</label>
-                        <input type="text" name="c1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" name="c1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                            <input type="text" name="c1_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
-                            <input type="text" name="c1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
-                        </div>
-                    </div>
-                    <div style="background:var(--blue-50); padding:1.25rem; border-radius:12px; border:1px solid var(--blue-100);">
-                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700); text-transform:uppercase;">Custodian 2</label>
-                        <input type="text" name="c2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
-                        <input type="text" name="c2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                            <input type="text" name="c2_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
-                            <input type="text" name="c2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
-                        </div>
+                        <input type="text" name="w2_name" id="dc_w2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="w2_nic" id="dc_w2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(2)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(4)">Review Pledge <i class="fas fa-marker"></i></button></div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(5)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToDeathStep(7)">Review & Finalize <i class="fas fa-marker"></i></button></div>
             </div>
 
-            <div id="deathStep4" style="display:none;">
+            <!-- Step 7: Final Statutory Review -->
+            <div id="deathStep7" style="display:none;">
                 <div id="afterDeathReviewContent">
-                    <div class="d-review-page">
+                    <div class="d-review-page" style="padding:2.5rem; color:var(--slate);">
                         <div class="d-review-header">
-                            <h2>Intent of Anatomical Gift</h2>
-                            <p>Official Record of Post-Mortem Donation Pledge</p>
+                            <h2>Statutory Declaration of Intent</h2>
+                            <p style="text-transform: uppercase; letter-spacing: 2px; font-weight: 700; font-size: 0.75rem; color: var(--blue-600); margin-top: 5px;">Official Post-Mortem Organ Donation Consent</p>
                         </div>
-                        <div class="d-info-grid">
-                            <div class="d-info-item"><label>Pledgor</label><span><?= htmlspecialchars($donor_full_name) ?></span></div>
-                            <div class="d-info-item"><label>Donor ID</label><span>LC-<?= strtoupper(substr(md5($donor_full_name), 0, 8)) ?></span></div>
+
+                        <div class="d-instruction-box" style="background:#f0fdf4; border-color:var(--accent); color:#166534; font-size:0.85rem; margin-bottom:2rem;">
+                            <strong>Declaration of Intent:</strong> I, <span style="font-weight: 800; text-decoration: underline;"><?= htmlspecialchars($donor_data['first_name'] . ' ' . $donor_data['last_name']) ?></span>, holder of NIC <strong><?= htmlspecialchars($donor_data['nic_number']) ?></strong>, hereby declare my voluntary intent for organ retrieval following clinical verification of death.
                         </div>
-                        <div class="no-print" style="margin: 1.5rem 0; padding: 1.25rem; background: #fffbeb; border: 1px solid #fef08a; border-radius: 8px; color: #854d0e; font-size: 0.85rem; line-height: 1.5;">
-                            <i class="fas fa-info-circle"></i> <strong>Next Step:</strong> Please download this form, obtain a hard copy, add all required signatures (Donor, Witnesses, and Custodians), and upload the signed document back to the system to complete the process.
+                        
+                        <div class="d-info-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom:1.5rem;">
+                            <div class="d-info-item"><label>Date of Declaration</label><span><?= date('F d, Y') ?></span></div>
+                            <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Set') ?></span></div>
+                            <div class="d-info-item"><label>Nationality</label><span><?= htmlspecialchars($donor_data['nationality'] ?? 'Sri Lankan') ?></span></div>
                         </div>
-                        <div style="margin-bottom:2rem;"><label style="font-size:0.7rem; font-weight:700; color:var(--g400); text-transform:uppercase;">Selected Organs for Recovery</label><div id="revDeathOrgans" style="font-size:1.1rem; font-weight:800; color:var(--blue-700); margin-top:0.5rem; padding:1rem; background:var(--blue-50); border-radius:8px;">-</div></div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-bottom:2rem; padding:1.5rem; background:#f8fafc; border-radius:12px;">
-                            <div>
-                                <label style="font-size:0.7rem; font-weight:800; color:var(--blue-600); text-transform:uppercase; display:block; margin-bottom:8px;">Witness Verification</label>
-                                <div id="revDeathW1" style="font-size:0.9rem; font-weight:700; color:var(--slate); margin-bottom:4px;">-</div>
-                                <div id="revDeathW2" style="font-size:0.9rem; font-weight:700; color:var(--slate);">-</div>
+                        
+                        <div style="margin:2rem 0; padding:1.5rem; background:var(--blue-50); border-radius:12px; border:1px solid var(--blue-100);">
+                            <label style="font-size:0.7rem; font-weight:800; color:var(--blue-600); text-transform:uppercase; margin-bottom:10px; display:block;">Authorized Recovery Portfolio</label>
+                            <div id="revDeathOrgans" style="font-size:1.15rem; font-weight:800; color:var(--blue-700); line-height:1.4;">-</div>
+                        </div>
+                        
+                        <div style="margin-bottom:2.5rem;">
+                            <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:8px; margin-bottom:15px;">Legal Custodians / Next of Kin</h6>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+                                <div style="background:#f8fafc; padding:1.25rem; border-radius:10px; border:1px solid var(--g200);">
+                                    <strong id="revDeathC1Name" style="color:var(--blue-900); font-size:1rem; display:block; margin-bottom:4px;">-</strong>
+                                    <div style="font-size:0.8rem; color:var(--g600);"><i class="fas fa-link"></i> <span id="revDeathC1Rel">-</span></div>
+                                    <div style="font-size:0.8rem; color:var(--g600); margin-top:4px;"><i class="fas fa-phone"></i> <span id="revDeathC1Phone">-</span></div>
+                                </div>
+                                <div style="background:#f8fafc; padding:1.25rem; border-radius:10px; border:1px solid var(--g200);">
+                                    <strong id="revDeathC2Name" style="color:var(--blue-900); font-size:1rem; display:block; margin-bottom:4px;">-</strong>
+                                    <div style="font-size:0.8rem; color:var(--g600);"><i class="fas fa-link"></i> <span id="revDeathC2Rel">-</span></div>
+                                    <div style="font-size:0.8rem; color:var(--g600); margin-top:4px;"><i class="fas fa-phone"></i> <span id="revDeathC2Phone">-</span></div>
+                                </div>
                             </div>
-                            <div>
-                                <label style="font-size:0.7rem; font-weight:800; color:var(--blue-600); text-transform:uppercase; display:block; margin-bottom:8px;">Legal Custodians</label>
-                                <div id="revDeathC1" style="font-size:0.9rem; font-weight:700; color:var(--slate); margin-bottom:4px;">-</div>
-                                <div id="revDeathC2" style="font-size:0.9rem; font-weight:700; color:var(--slate);">-</div>
+                        </div>
+
+                        <div style="margin-bottom:3rem;">
+                            <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:8px; margin-bottom:15px;">Legal Witnesses</h6>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+                                <div style="font-size:0.85rem;"><span style="color:var(--g500);">Witness 1:</span> <strong id="revDeathW1Name">-</strong> (NIC: <span id="revDeathW1Nic">-</span>)</div>
+                                <div style="font-size:0.85rem;"><span style="color:var(--g500);">Witness 2:</span> <strong id="revDeathW2Name">-</strong> (NIC: <span id="revDeathW2Nic">-</span>)</div>
                             </div>
                         </div>
-                        <div class="signature-block" style="grid-template-columns: 1fr 1fr; gap: 2rem 4rem;">
-                            <div class="sig-line">Witness 1 Verification</div>
-                            <div class="sig-line">Witness 2 Verification</div>
+
+                        <div class="signature-block" style="border-top:1px solid var(--g100); padding-top:2.5rem; display:grid; grid-template-columns:1fr 1fr; gap:2rem 3rem;">
+                            <div class="sig-line">Donor Signature</div>
+                            <div class="sig-line">Witness 1 Signature</div>
+                            <div class="sig-line">Witness 2 Signature</div>
                             <div class="sig-line">Custodian 1 Authorization</div>
-                            <div class="sig-line">Custodian 2 Authorization</div>
-                            <div class="sig-line">DONOR SIGNATURE</div>
                         </div>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2rem;">
-                    <button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(3)"><i class="fas fa-arrow-left"></i> Back</button>
-                    <div style="display:flex; gap:10px;"><button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('afterDeathReviewContent')"><i class="fas fa-file-pdf"></i> PDF</button><button type="button" class="d-btn d-btn--primary" onclick="submitAfterDeath()"><i class="fas fa-check-circle"></i> Confirm Intent</button></div>
+                    <button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(6)"><i class="fas fa-arrow-left"></i> Back</button>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('afterDeathReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button>
+                        <button type="button" class="d-btn d-btn--primary" onclick="submitAfterDeath()"><i class="fas fa-check-circle"></i> Submit Consent</button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -429,80 +649,169 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
             <button class="d-modal__close" onclick="closeModal('bodyConsentModal')">&times;</button>
         </div>
         <form id="bodyConsentForm" method="POST" action="<?= ROOT ?>/donor/donations" style="padding: 0 1.5rem 1.5rem;">
-            <input type="hidden" name="action" value="submit_body_consent">
+            <input type="hidden" name="action" value="submit_body_pledge">
             
+            <!-- Step 1: Personal Info -->
             <div id="bodyStep1">
-                <div class="d-instruction-box">
-                    <h4><i class="fas fa-balance-scale"></i> Academic Terms & Conditions</h4>
-                    <p>The remains will be utilized for medical research and surgical training at a recognized medical institution.</p>
-                    <ul>
-                        <li>Immediate notification of the institution upon death is mandatory.</li>
-                        <li>Bodies with high communicable diseases may be declined.</li>
-                        <li>Return or cremation of remains follows institutional policy.</li>
-                    </ul>
+                <h4 class="d-section-header"><i class="fas fa-user-circle text-accent"></i> A. Donor Personal Information</h4>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1.25rem; background:white; padding:1.75rem; border-radius:12px; border:1px solid var(--g200);">
+                    <div class="d-info-item"><label>Full Name</label><span><?= htmlspecialchars($donor_full_name) ?></span></div>
+                    <div class="d-info-item"><label>NIC / ID</label><span><?= htmlspecialchars($donor_data['nic_number'] ?? '') ?></span></div>
+                    <div class="d-info-item"><label>Date of Birth</label><span><?= htmlspecialchars($donor_data['date_of_birth'] ?? '') ?></span></div>
+                    <div class="d-info-item"><label>Gender</label><span><?= htmlspecialchars($donor_data['gender'] ?? '-') ?></span></div>
+                    <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Set') ?></span></div>
+                    <div class="d-info-item"><label>Address</label><span style="font-size:0.75rem;"><?= htmlspecialchars($donor_data['address'] ?? '') ?></span></div>
                 </div>
-                <h4 class="d-section-header"><i class="fas fa-hospital text-accent"></i> Receiving Institution</h4>
-                <select name="medical_school_id" id="schoolSelect" class="d-input" required><option value="">-- Select Medical Faculty --</option><?php if(!empty($medical_schools)): foreach($medical_schools as $s): ?><option value="<?=$s->id?>"><?=htmlspecialchars($s->school_name)?></option><?php endforeach; endif; ?></select>
-                <div style="text-align:right; margin-top:2rem;"><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(2)">Next Step <i class="fas fa-arrow-right"></i></button></div>
+                <div style="text-align:right; margin-top:2rem;"><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(2)">Proceed to Academic Details <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 2: Academic Details -->
             <div id="bodyStep2" style="display:none;">
-                <h4 class="d-section-header"><i class="fas fa-user-edit text-accent"></i> Primary Witnesses</h4>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                    <div><label style="font-size:0.75rem; font-weight:700; color:var(--g600);">WITNESS 1</label><input type="text" name="witness1_name" class="d-input" placeholder="Full Name" style="margin-top:5px;"><input type="text" name="witness1_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:10px;"></div>
-                    <div><label style="font-size:0.75rem; font-weight:700; color:var(--g600);">WITNESS 2</label><input type="text" name="witness2_name" class="d-input" placeholder="Full Name" style="margin-top:5px;"><input type="text" name="witness2_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:10px;"></div>
+                <h4 class="d-section-header"><i class="fas fa-university text-accent"></i> B. Body Donation Details</h4>
+                <div class="d-input-group">
+                    <label>Preferred Medical Faculty / University <span style="color:var(--danger);">*</span></label>
+                    <select name="medical_school_id" id="schoolSelect" class="d-input" required>
+                        <option value="">-- Select Medical Faculty --</option>
+                        <?php if(!empty($medical_schools)): foreach($medical_schools as $s): ?>
+                            <option value="<?=$s->id?>"><?=htmlspecialchars($s->school_name)?></option>
+                        <?php endforeach; endif; ?>
+                    </select>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(1)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(3)">Next Step <i class="fas fa-arrow-right"></i></button></div>
+                <div class="d-input-group" style="margin-top:1.25rem;">
+                    <label>Religion</label>
+                    <input type="text" name="religion" id="body_religion" class="d-input" placeholder="e.g. Buddhist, Christian">
+                </div>
+                <div class="d-input-group" style="margin-top:1.25rem;">
+                    <label>Special Requests regarding usage (Optional)</label>
+                    <textarea name="special_requests" id="body_requests" class="d-input" placeholder="Any specific limitations or wishes..." rows="2"></textarea>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(1)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(3)">Accept Conditions <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 3: Acceptance Conditions -->
             <div id="bodyStep3" style="display:none;">
-                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> Legal Custodians</h4>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                    <div><label style="font-size:0.75rem; font-weight:700; color:var(--g600);">CUSTODIAN 1</label><input type="text" name="cust1_name" class="d-input" placeholder="Full Name" style="margin-top:5px;"><input type="text" name="cust1_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:10px;"></div>
-                    <div><label style="font-size:0.75rem; font-weight:700; color:var(--g600);">CUSTODIAN 2</label><input type="text" name="cust2_name" class="d-input" placeholder="Full Name" style="margin-top:5px;"><input type="text" name="cust2_nic" class="d-input" placeholder="NIC / Passport" style="margin-top:10px;"></div>
+                <h4 class="d-section-header"><i class="fas fa-exclamation-triangle text-accent"></i> C. Acceptance Conditions</h4>
+                <div class="d-instruction-box" style="background: #fff5f5; border-color: #feb2b2; color: #742a2a; margin-bottom:1.5rem;">
+                    <p style="font-size:0.85rem; font-weight:700;"><i class="fas fa-info-circle"></i> Medical Schools may decline a body under specific statutory conditions. Please acknowledge you understand these terms:</p>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(2)"><i class="fas fa-arrow-left"></i> Back</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(4)">Review Document <i class="fas fa-marker"></i></button></div>
+                <div style="display:grid; gap:12px;">
+                    <label style="display:flex; gap:12px; font-size:0.9rem; cursor:pointer; padding:12px; border:1px solid var(--g200); border-radius:8px; background:white;">
+                        <input type="checkbox" required style="width:20px; height:20px;">
+                        <span>Body may be refused if infected with communicable diseases (e.g. HIV, Hepatitis).</span>
+                    </label>
+                    <label style="display:flex; gap:12px; font-size:0.9rem; cursor:pointer; padding:12px; border:1px solid var(--g200); border-radius:8px; background:white;">
+                        <input type="checkbox" required style="width:20px; height:20px;">
+                        <span>Body may be refused in cases of severe physical trauma or post-mortem already conducted.</span>
+                    </label>
+                    <label style="display:flex; gap:12px; font-size:0.9rem; cursor:pointer; padding:12px; border:1px solid var(--g200); border-radius:8px; background:white;">
+                        <input type="checkbox" required style="width:20px; height:20px;">
+                        <span>Authorizing Institution reserves the right of final acceptance based on educational needs.</span>
+                    </label>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(2)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(4)">Next: Custodians <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
+            <!-- Step 4: Legal Custodians (Next of Kin) -->
             <div id="bodyStep4" style="display:none;">
-                <div id="bodyReviewContent">
-                    <div class="d-review-page">
-                        <div class="d-review-header">
-                            <h2>Form of Anatomical Consent</h2>
-                            <p>Official Full Body Donation Authorization for Academic Use</p>
+                <h4 class="d-section-header"><i class="fas fa-users text-accent"></i> D. Next of Kin (Custodians)</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+                    <div class="custodian-card" style="background:var(--blue-50); padding:1rem; border-radius:12px; border:1px solid var(--blue-100);">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700);">CUSTODIAN 1 (NOK)</label>
+                        <input type="text" name="cust1_name" id="bc_c1_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="cust1_nic" id="bc_c1_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="cust1_rel" id="bc_c1_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
+                            <input type="text" name="cust1_phone" id="bc_c1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
                         </div>
-                        <div class="d-info-grid">
-                            <div class="d-info-item"><label>Authorized Donor</label><span><?= htmlspecialchars($donor_full_name) ?></span></div>
-                            <div class="d-info-item"><label>Receiving Faculty</label><span id="revBodySchool" style="color:var(--accent); font-weight:800;">-</span></div>
-                        </div>
-                        <div class="no-print" style="margin: 1.5rem 0; padding: 1.25rem; background: #fffbeb; border: 1px solid #fef08a; border-radius: 8px; color: #854d0e; font-size: 0.85rem; line-height: 1.5;">
-                            <i class="fas fa-info-circle"></i> <strong>Next Step:</strong> Please download this form, obtain a hard copy, add all required signatures (Donor, Witnesses, and Custodians), and upload the signed document back to the system to complete the process.
-                        </div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin:1.5rem 0; padding:1.25rem; border:1px solid #e2e8f0; border-radius:8px;">
-                            <div>
-                                <label style="font-size:0.7rem; font-weight:800; color:var(--g500); text-transform:uppercase;">Witnesses</label>
-                                <div id="revBodyW1" style="font-size:0.85rem; font-weight:600; color:var(--slate); margin-top:4px;">-</div>
-                                <div id="revBodyW2" style="font-size:0.85rem; font-weight:600; color:var(--slate); margin-top:2px;">-</div>
-                            </div>
-                            <div>
-                                <label style="font-size:0.7rem; font-weight:800; color:var(--g500); text-transform:uppercase;">Custodians</label>
-                                <div id="revBodyC1" style="font-size:0.85rem; font-weight:600; color:var(--slate); margin-top:4px;">-</div>
-                                <div id="revBodyC2" style="font-size:0.85rem; font-weight:600; color:var(--slate); margin-top:2px;">-</div>
-                            </div>
-                        </div>
-                        <div class="signature-block" style="grid-template-columns: 1fr 1fr; gap: 2rem 4rem;">
-                            <div class="sig-line">Witness 1 Verification</div>
-                            <div class="sig-line">Witness 2 Verification</div>
-                            <div class="sig-line">Custodian 1 Authorization</div>
-                            <div class="sig-line">Custodian 2 Authorization</div>
-                            <div class="sig-line">DONOR SIGNATURE</div>
+                    </div>
+                    <div class="custodian-card" style="background:var(--blue-50); padding:1rem; border-radius:12px; border:1px solid var(--blue-100);">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--blue-700);">CUSTODIAN 2 (NOK)</label>
+                        <input type="text" name="cust2_name" id="bc_c2_name" class="d-input" placeholder="Full Name" style="margin-top:8px;">
+                        <input type="text" name="cust2_nic" id="bc_c2_nic" class="d-input" placeholder="NIC Number" style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="cust2_rel" id="bc_c2_rel" class="d-input" placeholder="Relation" style="margin-top:8px;">
+                            <input type="text" name="cust2_phone" id="bc_c2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
                         </div>
                     </div>
                 </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(3)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(5)">Notification & Transport <i class="fas fa-arrow-right"></i></button></div>
             </div>
-                <div style="display:flex; justify-content:space-between; margin-top:2rem; border-top:1px solid var(--g200); padding-top:1rem;">
-                    <button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(3)"><i class="fas fa-arrow-left"></i> Back</button>
-                    <div style="display:flex; gap:10px;"><button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('bodyReviewContent')"><i class="fas fa-file-pdf"></i> PDF</button><button type="submit" class="d-btn d-btn--primary"><i class="fas fa-check-circle"></i> Confirm Authorization</button></div>
+
+            <!-- Step 5: Notification & Transport -->
+            <div id="bodyStep5" style="display:none;">
+                <h4 class="d-section-header"><i class="fas fa-phone-volume text-accent"></i> E. Death Notification & F. Transport</h4>
+                <div style="background:#f8fafc; padding:1.5rem; border-radius:12px; border:1px solid var(--g200);">
+                    <div class="d-input-group">
+                        <label>Person Responsible to Inform Medical Faculty <span style="color:var(--danger);">*</span></label>
+                        <input type="text" name="responsible_person" id="bc_resp_p" class="d-input" placeholder="Full Name of Primary Contact">
+                    </div>
+                    <div class="d-input-group" style="margin-top:1.25rem;">
+                        <label>Contact Number <span style="color:var(--danger);">*</span></label>
+                        <input type="text" name="responsible_contact" id="bc_resp_c" class="d-input" placeholder="07x-xxxxxxx">
+                    </div>
+                    <hr style="margin:1.5rem 0; border:0; border-top:1px solid var(--g100);">
+                    <div class="d-input-group">
+                        <label>Transport Arrangement Scheme <span style="color:var(--danger);">*</span></label>
+                        <textarea name="transport_arrangement" id="bc_transport" class="d-input" placeholder="Details of how transport will be managed (e.g. Family arranged, specific funeral service)..." rows="2"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(4)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(6)">Review & Sign <i class="fas fa-check-double"></i></button></div>
+            </div>
+
+            <!-- Step 6: Review & Declaration -->
+            <div id="bodyStep6" style="display:none;">
+                <div id="bodyReviewContent">
+                    <div class="d-review-page" style="padding:2.5rem; color:var(--slate);">
+                        <div class="d-review-header">
+                            <h2>Statutory Anatomical Authorization</h2>
+                            <p style="text-transform: uppercase; letter-spacing: 1px; font-weight: 700; font-size: 0.75rem; color: var(--blue-600); margin-top: 5px;">Whole Body Donation for Medical Science</p>
+                        </div>
+                        
+                        <div class="d-instruction-box" style="background:#f0fdf4; border-color:var(--accent); color:#166534; font-size:0.85rem; margin-bottom:2rem;">
+                            <strong>Anatomical Declaration:</strong> I, <span style="font-weight: 800; text-decoration: underline;"><?= htmlspecialchars($donor_full_name) ?></span>, NIC <strong><?= htmlspecialchars($donor_data['nic_number'] ?? '') ?></strong>, hereby authorize the delivery of my body to the <span id="revBodySchool" style="font-weight:800; color:var(--blue-700);">-</span> for purposes of anatomical study and clinical research.
+                        </div>
+
+                        <div class="d-info-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom:2rem;">
+                            <div class="d-info-item"><label>Religion</label><span id="revBodyReligion">-</span></div>
+                            <div class="d-info-item"><label>Notification Contact</label><span id="revBodyResp">-</span></div>
+                            <div class="d-info-item"><label>Filing Date</label><span><?= date('F d, Y') ?></span></div>
+                        </div>
+
+                        <div style="margin-bottom:2rem;">
+                            <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:5px; margin-bottom:12px;">Witnesses & Verification</h6>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                                <div style="background:#f8fafc; padding:1rem; border-radius:8px; border:1px solid var(--g200);">
+                                    <label style="font-size:0.65rem; font-weight:800; color:var(--blue-600);">WITNESS 1</label>
+                                    <input type="text" name="witness1_name" id="bc_w1_name" class="d-input" placeholder="Full Name (Required)" required style="margin-top:4px;">
+                                    <input type="text" name="witness1_nic" id="bc_w1_nic" class="d-input" placeholder="NIC Number (Required)" required style="margin-top:8px;">
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                                        <input type="text" name="witness1_phone" id="bc_w1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
+                                        <input type="text" name="witness1_address" id="bc_w1_address" class="d-input" placeholder="Address" style="margin-top:8px;">
+                                    </div>
+                                </div>
+                                <div style="background:#f8fafc; padding:1rem; border-radius:8px; border:1px solid var(--g200);">
+                                    <label style="font-size:0.65rem; font-weight:800; color:var(--blue-600);">WITNESS 2</label>
+                                    <input type="text" name="witness2_name" id="bc_w2_name" class="d-input" placeholder="Full Name (Required)" required style="margin-top:4px;">
+                                    <input type="text" name="witness2_nic" id="bc_w2_nic" class="d-input" placeholder="NIC Number (Required)" required style="margin-top:8px;">
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                                        <input type="text" name="witness2_phone" id="bc_w2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
+                                        <input type="text" name="witness2_address" id="bc_w2_address" class="d-input" placeholder="Address" style="margin-top:8px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="signature-block" style="margin-top:3rem; grid-template-columns: 1fr 1fr; gap: 2rem 4rem;">
+                            <div class="sig-line">Donor Signature</div>
+                            <div class="sig-line">Custodian (NOK) 1</div>
+                            <div class="sig-line">Witness 1 Signature</div>
+                            <div class="sig-line">Witness 2 Signature</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2rem; border-top:1px solid var(--g200); padding-top:1.5rem;">
+                    <button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(5)"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <div style="display:flex; gap:12px;"><button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('bodyReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button><button type="submit" class="d-btn d-btn--primary"><i class="fas fa-check-circle"></i> Authorize Donation</button></div>
                 </div>
             </div>
         </form>
@@ -511,26 +820,40 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
 
 <!-- Warning / Scripts -->
 <div id="unselectWarningModal" class="d-modal"><div class="d-modal__body" style="max-width:400px; text-align:center; p:2rem;"><h3>Withdraw Pledge?</h3><p id="unselectText" mb:2rem></p><div style="display:flex; gap:1rem; justify:center;"><button class="d-btn d-btn--outline" onclick="closeModal('unselectWarningModal')">Cancel</button><button class="d-btn d-btn--danger" onclick="submitAction('unselect_organ', pendingOrganId)">Withdraw</button></div></div></div>
-<form id="pledgeForm" method="POST" action="<?= ROOT ?>/donor/donations" style="display:none;">
-    <input type="hidden" name="action" value="select_organ">
-    <input type="hidden" name="id" id="pledgeOrganId">
+
+<form id="pledgeForm" method="POST" action="<?= ROOT ?>/donor/donations">
+    <input type="hidden" name="action" value="submit_living_pledge">
+    <input type="hidden" name="organ_id" id="pledgeOrganId">
     <input type="hidden" name="hospital_id" id="pledgeHospitalId">
-    <input type="hidden" name="blood_group" id="pledgeBloodGroup">
-    <input type="hidden" name="conditions" id="pledgeConditions">
     
-    <!-- Custodian 1 -->
+    <!-- Detailed Sections -->
+    <input type="hidden" name="nationality" id="p_nationality">
+    <input type="hidden" name="height" id="p_height">
+    <input type="hidden" name="weight" id="p_weight">
+    <input type="hidden" name="surgeries" id="p_surgeries">
+    <input type="hidden" name="allergies" id="p_allergies">
+    <input type="hidden" name="habits" id="p_habits">
+    
+    <!-- Legacy fields -->
+    <input type="hidden" name="conditions" id="pledgeConditions">
+    <input type="hidden" name="blood_group" id="pledgeBloodGroup">
+    
+    <!-- Recipient Info (REMOVED) -->
+    
+    <!-- Compatibility -->
+    <input type="hidden" name="compat_blood" id="p_compat_blood">
+    <input type="hidden" name="compat_tissue" id="p_compat_tissue">
+    
+    <!-- Emergency Contact -->
+    <input type="hidden" name="emergency_name" id="p_emergency_name">
+    <input type="hidden" name="emergency_rel" id="p_emergency_rel">
+    <input type="hidden" name="emergency_phone" id="p_emergency_phone">
+
+    <!-- Witnesses (Original Custodians Map) -->
     <input type="hidden" name="cust1_name" id="p_cust1_name">
     <input type="hidden" name="cust1_nic" id="p_cust1_nic">
-    <input type="hidden" name="cust1_rel" id="p_cust1_rel">
-    <input type="hidden" name="cust1_phone" id="p_cust1_phone">
-    <input type="hidden" name="cust1_address" id="p_cust1_address">
-    
-    <!-- Custodian 2 -->
     <input type="hidden" name="cust2_name" id="p_cust2_name">
     <input type="hidden" name="cust2_nic" id="p_cust2_nic">
-    <input type="hidden" name="cust2_rel" id="p_cust2_rel">
-    <input type="hidden" name="cust2_phone" id="p_cust2_phone">
-    <input type="hidden" name="cust2_address" id="p_cust2_address">
 </form>
 
 <script>
@@ -538,73 +861,171 @@ const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
 let pendingOrganId=null, pendingOrganName=null, selectedHospitalId=null, selectedHospitalName='No Preference';
 function openModal(id){ document.getElementById(id).style.display='flex'; }
 function closeModal(id){ document.getElementById(id).style.display='none'; }
-function openLivingModal(id,name){ pendingOrganId=id; pendingOrganName=name; goToStep(1); openModal('livingConsentModal'); }
+function openLivingModal(id,name){ 
+    pendingOrganId=id; 
+    pendingOrganName=name; 
+    document.getElementById('living_organ_name').value = name; 
+    document.getElementById('req_organ_name').textContent = name;
+    goToStep(1); 
+    openModal('livingConsentModal'); 
+}
 function goToStep(n){ 
     document.querySelectorAll('.d-modal__step').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('#livingConsentModal [id^="step"]').forEach(s => s.style.display = 'none'); // Reset legacy
+    document.querySelectorAll('#livingConsentModal [id^="step"]').forEach(s => s.style.display = 'none');
     const el = document.getElementById('step' + n);
     if(el) {
         el.classList.add('active');
-        el.style.display = 'block'; // Legacy fallback
+        el.style.display = 'block';
     }
 }
-function handleStep1Next(){ if(!document.getElementById('medicalConsent').checked){ alert("Formal acceptance is required to proceed."); return; } goToStep(2); }
-function handleStep2Next(){ if(!document.getElementById('bloodGroup').value){ alert("Clinical blood group verification required."); return; } updateHospitalList(); goToStep(3); }
-function updateHospitalList(){ const list=document.getElementById('hospitalList'); list.innerHTML=''; (hospitalsByOrgan[pendingOrganId]||[]).forEach(h=>{ const card=document.createElement('div'); card.className='d-stat d-stat--interactive'; card.style.padding='1rem'; card.style.textAlign='center'; card.innerHTML=`<div style="font-size:1.1rem; font-weight:700; color:var(--blue-700);">${h.hospital_name}</div><div style="font-size:0.7rem; color:var(--g500); margin-top:4px;">Licensed Recovery Center</div>`; card.onclick=()=>selectHospital(h.hospital_id, h.hospital_name, card); list.appendChild(card); }); const noPref=document.createElement('div'); noPref.className='d-stat d-stat--interactive'; noPref.style.padding='1rem'; noPref.style.textAlign='center'; noPref.innerHTML=`<div style="font-size:1.1rem; font-weight:700; color:var(--g500);">No Preference</div><div style="font-size:0.7rem; color:var(--g400); margin-top:4px;">Allocation by Registry</div>`; noPref.onclick=()=>selectHospital(null, 'No Preference', noPref); list.appendChild(noPref); }
-function selectHospital(id,name,el){ selectedHospitalId=id; selectedHospitalName=name; document.querySelectorAll('#hospitalList .d-stat').forEach(c=>c.style.borderColor='var(--g200)'); el.style.borderColor='var(--blue-500)'; el.style.background='var(--blue-50)'; }
-function goToStep6(){ 
+function handleStep2Next(){ updateHospitalList(); goToStep(3); }
+function updateHospitalList() {
+    const dropdown = document.getElementById('hospitalDropdown');
+    dropdown.innerHTML = '';
+    
+    // Add default option
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- No specific hospital preference --';
+    dropdown.appendChild(defaultOpt);
+
+    const reqs = hospitalsByOrgan[pendingOrganId] || [];
+    if(reqs.length > 0) {
+        reqs.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h.hospital_id;
+            opt.textContent = `${h.hospital_name} (${h.district}) - ${h.priority} PRIORITY`;
+            dropdown.appendChild(opt);
+        });
+    }
+
+    // Reset selection state
+    selectedHospitalId = null;
+    selectedHospitalName = 'No specific hospital preference';
+}
+
+function onHospitalChange() {
+    const dropdown = document.getElementById('hospitalDropdown');
+    selectedHospitalId = dropdown.value;
+    selectedHospitalName = dropdown.options[dropdown.selectedIndex].text;
+}
+function goToStep5(){ 
     document.getElementById('review_as_organ').textContent=pendingOrganName; 
-    document.getElementById('revLivingW1').textContent = document.getElementById('cust1_name').value + ' (' + document.getElementById('cust1_nic').value + ') - ' + document.getElementById('cust1_rel').value;
-    document.getElementById('revLivingW2').textContent = document.getElementById('cust2_name').value + ' (' + document.getElementById('cust2_nic').value + ') - ' + document.getElementById('cust2_rel').value;
-    goToStep(6); 
+    
+    // Personal & Medical
+    document.getElementById('rev_nationality').textContent = document.getElementById('nationality').value || 'Not Specified';
+    document.getElementById('rev_vitals').textContent = (document.getElementById('height').value || '-') + ' cm | ' + (document.getElementById('weight').value || '-') + ' kg';
+    document.getElementById('rev_habits').textContent = document.getElementById('habits').value;
+    document.getElementById('rev_medical').textContent = document.getElementById('conditions').value + ' | Surgeries: ' + document.getElementById('surgeries').value;
+
+    // Hospital Selection Summary
+    document.getElementById('rev_hospital_info').textContent = selectedHospitalName;
+
+    // Witnesses
+    document.getElementById('rev_witness1').textContent = 'W1: ' + (document.getElementById('cust1_name').value || 'Not Provided') + ' (' + (document.getElementById('cust1_nic').value || '-') + ')';
+    document.getElementById('rev_witness2').textContent = 'W2: ' + (document.getElementById('cust2_name').value || 'Not Provided') + ' (' + (document.getElementById('cust2_nic').value || '-') + ')';
+
+    // Emergency Contact Summary
+    document.getElementById('rev_emergency_info').textContent = document.getElementById('emergencyName').value + ' (' + document.getElementById('emergencyRel').value + ') - ' + document.getElementById('emergencyPhone').value;
+
+    goToStep(5); 
 }
 function submitPledge(){ 
     document.getElementById('pledgeOrganId').value=pendingOrganId; 
     document.getElementById('pledgeHospitalId').value=selectedHospitalId||''; 
-    document.getElementById('pledgeBloodGroup').value=document.getElementById('bloodGroup').value; 
-    document.getElementById('pledgeConditions').value=document.getElementById('medications').value; 
     
-    // Collecting Custodian 1
-    document.getElementById('p_cust1_name').value=document.getElementById('cust1_name').value; 
-    document.getElementById('p_cust1_nic').value=document.getElementById('cust1_nic').value; 
-    document.getElementById('p_cust1_rel').value=document.getElementById('cust1_rel').value; 
-    document.getElementById('p_cust1_phone').value=document.getElementById('cust1_phone').value;
-    document.getElementById('p_cust1_address').value=document.getElementById('cust1_address').value;
+    // Detailed Sections
+    document.getElementById('p_nationality').value = document.getElementById('nationality').value;
+    document.getElementById('p_height').value = document.getElementById('height').value;
+    document.getElementById('p_weight').value = document.getElementById('weight').value;
+    document.getElementById('p_surgeries').value = document.getElementById('surgeries').value;
+    document.getElementById('p_allergies').value = document.getElementById('allergies').value;
+    document.getElementById('p_habits').value = document.getElementById('habits').value;
     
-    // Collecting Custodian 2
-    document.getElementById('p_cust2_name').value=document.getElementById('cust2_name').value; 
-    document.getElementById('p_cust2_nic').value=document.getElementById('cust2_nic').value; 
-    document.getElementById('p_cust2_rel').value=document.getElementById('cust2_rel').value; 
-    document.getElementById('p_cust2_phone').value=document.getElementById('cust2_phone').value;
-    document.getElementById('p_cust2_address').value=document.getElementById('cust2_address').value;
+    // Recipient Info (REMOVED)
+    
+    document.getElementById('p_compat_blood').value = document.getElementById('compat_blood').value;
+    document.getElementById('p_compat_tissue').value = document.getElementById('compat_tissue').value;
+    
+    document.getElementById('p_emergency_name').value = document.getElementById('emergencyName').value;
+    document.getElementById('p_emergency_rel').value = document.getElementById('emergencyRel').value;
+    document.getElementById('p_emergency_phone').value = document.getElementById('emergencyPhone').value;
+
+    document.getElementById('p_cust1_name').value = document.getElementById('cust1_name').value;
+    document.getElementById('p_cust1_nic').value = document.getElementById('cust1_nic').value;
+    document.getElementById('p_cust2_name').value = document.getElementById('cust2_name').value;
+    document.getElementById('p_cust2_nic').value = document.getElementById('cust2_nic').value;
+
+    // Legacy fields still needed by simple model logic
+    document.getElementById('pledgeConditions').value = document.getElementById('conditions').value;
+    document.getElementById('pledgeBloodGroup').value = document.getElementById('bloodGroup').value;
 
     document.getElementById('pledgeForm').submit(); 
 }
 function openAfterDeathModal(id,name){ document.querySelectorAll('.death-org-check').forEach(c=>c.checked=false); const target=document.getElementById('death_org_'+id); if(target) target.checked=true; goToDeathStep(1); openModal('afterDeathConsentModal'); }
-function goToDeathStep(n){ for(let i=1;i<=4;i++){ const el=document.getElementById('deathStep'+i); if(el) el.style.display=(i===n)?'block':'none'; } if(n===4) updateDeathReview(); }
-function updateDeathReview(){ 
-    const sel=[...document.querySelectorAll('.death-org-check:checked')].map(c=>c.nextElementSibling.textContent.trim()); 
-    document.getElementById('revDeathOrgans').textContent=sel.join(', ') || 'None'; 
-    
-    // Summary data
-    const f = document.getElementById('afterDeathForm');
-    document.getElementById('revDeathW1').textContent = f.w1_name.value + ' (' + f.w1_nic.value + ')';
-    document.getElementById('revDeathW2').textContent = f.w2_name.value + ' (' + f.w2_nic.value + ')';
-    document.getElementById('revDeathC1').textContent = f.c1_name.value + ' (' + f.c1_nic.value + ') - ' + f.c1_rel.value;
-    document.getElementById('revDeathC2').textContent = f.c2_name.value + ' (' + f.c2_nic.value + ') - ' + f.c2_rel.value;
+function goToDeathStep(step) {
+    for(let i=1; i<=7; i++) {
+        let el = document.getElementById('deathStep' + i);
+        if(el) el.style.display = 'none';
+    }
+    document.getElementById('deathStep' + step).style.display = 'block';
+    if(step === 7) updateDeathReview();
 }
-function submitAfterDeath(){ document.getElementById('afterDeathForm').submit(); }
+
+function updateDeathReview() {
+    let organs = [];
+    document.querySelectorAll('.death-org-check:checked').forEach(cb => {
+        organs.push(cb.nextElementSibling.textContent);
+    });
+    document.getElementById('revDeathOrgans').textContent = organs.join(', ') || 'No Organs Selected';
+    
+    // Custodians
+    document.getElementById('revDeathC1Name').textContent = document.getElementById('dc_c1_name').value || '-';
+    document.getElementById('revDeathC1Rel').textContent = document.getElementById('dc_c1_rel').value || '-';
+    document.getElementById('revDeathC1Phone').textContent = document.getElementById('dc_c1_phone').value || '-';
+    
+    document.getElementById('revDeathC2Name').textContent = document.getElementById('dc_c2_name').value || '-';
+    document.getElementById('revDeathC2Rel').textContent = document.getElementById('dc_c2_rel').value || '-';
+    document.getElementById('revDeathC2Phone').textContent = document.getElementById('dc_c2_phone').value || '-';
+    
+    // Witnesses
+    document.getElementById('revDeathW1Name').textContent = document.getElementById('dc_w1_name').value || '-';
+    document.getElementById('revDeathW1Nic').textContent = document.getElementById('dc_w1_nic').value || '-';
+    document.getElementById('revDeathW2Name').textContent = document.getElementById('dc_w2_name').value || '-';
+    document.getElementById('revDeathW2Nic').textContent = document.getElementById('dc_w2_nic').value || '-';
+}
+
+function submitAfterDeath() {
+    document.getElementById('afterDeathForm').submit();
+}
 function goToBodyStep(n){ 
-    for(let i=1;i<=4;i++){ const el=document.getElementById('bodyStep'+i); if(el) el.style.display=(i===n)?'block':'none'; } 
-    if(n===4) { 
+    const currentStepNum = parseInt(document.querySelector('#bodyConsentForm div[id^="bodyStep"]:not([style*="display: none"])')?.id.replace('bodyStep','') || '1');
+    
+    // Validate Current Step before moving forward
+    if(n > currentStepNum) {
+        const currentStep = document.getElementById('bodyStep' + currentStepNum);
+        const inputs = currentStep.querySelectorAll('input[required], select[required], textarea[required]');
+        let valid = true;
+        inputs.forEach(input => {
+            if(!input.value || (input.type === 'checkbox' && !input.checked)) {
+                input.style.borderColor = 'var(--danger)';
+                valid = false;
+            } else {
+                input.style.borderColor = 'var(--g200)';
+            }
+        });
+        if(!valid) {
+            alert('Please fill all required fields and acknowledge conditions before proceeding.');
+            return;
+        }
+    }
+
+    for(let i=1;i<=6;i++){ const el=document.getElementById('bodyStep'+i); if(el) el.style.display=(i===n)?'block':'none'; } 
+    if(n===6) { 
         const s=document.getElementById('schoolSelect'); 
         document.getElementById('revBodySchool').textContent=s.options[s.selectedIndex].text; 
-        
-        const f = document.getElementById('bodyConsentForm');
-        document.getElementById('revBodyW1').textContent = f.witness1_name.value + ' (' + f.witness1_nic.value + ')';
-        document.getElementById('revBodyW2').textContent = f.witness2_name.value + ' (' + f.witness2_nic.value + ')';
-        document.getElementById('revBodyC1').textContent = f.cust1_name.value + ' (' + f.cust1_nic.value + ')';
-        document.getElementById('revBodyC2').textContent = f.cust2_name.value + ' (' + f.cust2_nic.value + ')';
+        document.getElementById('revBodyReligion').textContent = document.getElementById('body_religion').value || 'Not Specified';
+        document.getElementById('revBodyResp').textContent = document.getElementById('bc_resp_p').value + ' (' + document.getElementById('bc_resp_c').value + ')';
     } 
 }
 function submitAction(action,id){ const f=document.createElement('form'); f.method='POST'; f.action='<?= ROOT ?>/donor/donations'; f.innerHTML=`<input type="hidden" name="action" value="${action}"><input type="hidden" name="id" value="${id}">`; document.body.appendChild(f); f.submit(); }

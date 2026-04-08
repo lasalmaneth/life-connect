@@ -13,11 +13,11 @@ class DonorModel {
     {
         $query = "INSERT INTO donors (
             user_id, category_id, pledge_type, first_name, last_name, gender, date_of_birth, 
-            blood_group, nic_number, address, district, divisional_secretariat, 
+            blood_group, nic_number, nationality, address, district, divisional_secretariat, 
             grama_niladhari_division, verification_status, consent_status, consent_date
         ) VALUES (
             :user_id, :category_id, :pledge_type, :first_name, :last_name, :gender, :dob,
-            :blood_group, :nic, :address, :district, :div_sec,
+            :blood_group, :nic, :nationality, :address, :district, :div_sec,
             :gn_div, 'PENDING', 'PENDING', NULL
         )";
         
@@ -31,6 +31,7 @@ class DonorModel {
             ':dob' => $personalData['dob'],
             ':blood_group' => $personalData['blood_group'] ?? null,
             ':nic' => $personalData['nic'],
+            ':nationality' => $personalData['nationality'] ?? 'Sri Lankan',
             ':address' => $personalData['address'] ?? '',
             ':district' => $personalData['district'] ?? '',
             ':div_sec' => $personalData['divisional_secretariat'] ?? '',
@@ -214,6 +215,7 @@ class DonorModel {
         // Update donors table
         $donorQuery = "UPDATE donors SET 
                        address = :address,
+                       nationality = :nationality,
                        grama_niladhari_division = :gn_div,
                        district = :district,
                        divisional_secretariat = :div_sec
@@ -221,6 +223,7 @@ class DonorModel {
         
         $donorParams = [
             ':address' => $address,
+            ':nationality' => $updateData['nationality'] ?? 'Sri Lankan',
             ':gn_div' => $gnDiv,
             ':district' => $district,
             ':div_sec' => $divSec,
