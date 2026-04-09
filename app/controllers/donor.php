@@ -66,7 +66,21 @@ class Donor {
         }
 
         // Fetch current withdrawal status for global modal access
-        $withdrawal = $donorModel->getWithdrawalByDonorId($donorId);
+        // Prioritize the organ currently being handled in the session
+        $targetOrganId = $_SESSION['withdrawal_organ_id'] ?? null;
+        if ($targetOrganId) {
+            $withdrawal = $donorModel->getPendingWithdrawalByOrgan($donorId, $targetOrganId);
+            // If no pending one for this organ, try to find a completed one (for Step 3/Success display if needed)
+            if (!$withdrawal) {
+                // Fetch latest for this specific organ
+                $withdrawal = $this->query("SELECT * FROM consent_withdrawals WHERE donor_id = :d AND organ_id = :o ORDER BY created_at DESC LIMIT 1", [
+                    ':d' => $donorId,
+                    ':o' => $targetOrganId
+                ])[0] ?? null;
+            }
+        } else {
+            $withdrawal = $donorModel->getWithdrawalByDonorId($donorId);
+        }
 
         return [
             'donorId' => $donorId,

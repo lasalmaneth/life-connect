@@ -1,5 +1,6 @@
 <!-- Modal: Formal Consent Withdrawal Form -->
-<div id="withdrawFormalModal" class="d-modal <?= ((isset($_SESSION['show_withdrawal']) && $_SESSION['show_withdrawal']) || (!empty($withdrawal) && $withdrawal->status === 'PENDING_UPLOAD')) ? 'active' : '' ?>">
+<?php $shouldClear = isset($_SESSION['show_withdrawal']) && $_SESSION['show_withdrawal']; ?>
+<div id="withdrawFormalModal" class="d-modal <?= (isset($_SESSION['show_withdrawal']) && $_SESSION['show_withdrawal']) ? 'active' : '' ?>">
     <div class="d-modal__body" style="max-width: 800px; padding: 0; overflow: hidden; border-radius: 20px;">
         
         <!-- Header -->
@@ -182,3 +183,12 @@ function printFormalWithdrawal() {
     printWindow.print();
 }
 </script>
+
+<?php
+// Clear the trigger flags so the modal doesn't re-appear on standard page navigation
+if (isset($shouldClear) && $shouldClear) {
+    unset($_SESSION['show_withdrawal']);
+    unset($_SESSION['force_step1']);
+    // We keep 'withdrawal_organ_id' for now as it's used inside the modal forms
+}
+?>
