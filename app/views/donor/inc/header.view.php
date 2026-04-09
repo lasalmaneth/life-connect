@@ -323,7 +323,7 @@ function applyRedWarningStyle(customMessage = null, role = 'non') {
     withdrawBtn.style.display = "inline-block";
     withdrawBtn.innerText = "Proceed to Withdrawal Form";
     withdrawBtn.href = "javascript:void(0)";
-    withdrawBtn.onclick = () => { closeModal('addRoleModal'); openModal('withdrawFormalModal'); };
+    withdrawBtn.onclick = () => { window.location.href = '<?= ROOT ?>/donor/donations'; };
   } else if (activePledgeCount > 0) {
     // OTHER HARD BLOCK CASE (Emergency/Safety)
     title.innerText = "Action Required";

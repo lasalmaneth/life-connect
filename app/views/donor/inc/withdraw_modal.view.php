@@ -4,11 +4,11 @@
     <div class="d-modal__body" style="max-width: 800px; padding: 0; overflow: hidden; border-radius: 20px;">
         
         <!-- Header -->
-        <div style="background: var(--red-600); color: white; padding: 30px; text-align: center; position: relative;">
-            <button class="d-modal__close" onclick="closeModal('withdrawFormalModal')" style="position: absolute; right: 20px; top: 15px; color: white; font-size: 2rem; background: none; border: none; cursor: pointer;">&times;</button>
-            <i class="fas fa-file-contract" style="font-size: 2.5rem; margin-bottom: 10px; opacity: 0.9;"></i>
-            <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; text-transform: uppercase;">Consent Withdrawal portal</h2>
-            <p style="margin: 5px 0 0; opacity: 0.8; font-size: 0.9rem;">Statutory Revocation of Organ Donation Intent</p>
+        <div style="background: #fff; border-top: 6px solid #ef4444; border-bottom: 1px solid #fecaca; color: #991b1b; padding: 25px; text-align: center; position: relative; border-radius: 20px 20px 0 0;">
+            <button class="d-modal__close" onclick="closeWithdrawModal()" style="position: absolute; right: 20px; top: 15px; color: #ef4444; font-size: 2.2rem; background: none; border: none; cursor: pointer; line-height: 1;">&times;</button>
+            <i class="fas fa-file-contract" style="font-size: 2.2rem; margin-bottom: 10px; color: #ef4444;"></i>
+            <h2 style="margin: 0; font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Formal Withdrawal Portal</h2>
+            <p style="margin: 5px 0 0; color: #6b7280; font-size: 0.85rem; font-weight: 500;">Official Statutory Revocation of Organ Donation Consent</p>
         </div>
 
         <div class="d-modal__content" style="padding: 30px; max-height: 70vh; overflow-y: auto;">
@@ -102,12 +102,17 @@
                             </div>
                             <input type="file" name="withdrawal_pdf" accept=".pdf" required style="margin-bottom: 20px; font-size: 0.8rem; width: 100%; border: 1px solid var(--g200); padding: 10px; border-radius: 8px;">
                             
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                <button type="button" class="d-btn d-btn--outline" onclick="closeModal('withdrawFormalModal')" style="padding: 12px;">
-                                    Upload Later
-                                </button>
-                                <button type="submit" class="d-btn d-btn--primary" style="background: #2e7d32; padding: 12px;">
-                                    Finalize Revocation
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <button type="button" class="d-btn d-btn--outline" onclick="closeWithdrawModal()" style="padding: 12px; font-size: 0.85rem;">
+                                        Upload Later
+                                    </button>
+                                    <button type="submit" class="d-btn d-btn--primary" style="background: #2e7d32; padding: 12px; font-size: 0.85rem;">
+                                        Finalize Revocation
+                                    </button>
+                                </div>
+                                <button type="button" class="d-btn" style="background: none; color: #dc2626; border: 1px solid #fecaca; padding: 8px; font-size: 0.75rem; font-weight: 600;" onclick="cancelWithdrawal(<?= $withdrawal->id ?>)">
+                                    <i class="fas fa-trash-alt"></i> Cancel Withdrawal & Delete My Data
                                 </button>
                             </div>
                         </form>
@@ -172,6 +177,37 @@
 </div>
 
 <script>
+function closeWithdrawModal() {
+    closeModal('withdrawFormalModal');
+}
+
+function closeWithdrawModal() {
+    closeModal('withdrawFormalModal');
+}
+
+function cancelWithdrawal(id) {
+    if (confirm("Are you sure you want to cancel this withdrawal? This will permanently delete the witness information you entered for this revocation.")) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '<?= ROOT ?>/donor/withdraw-consent';
+        
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'cancel_withdrawal';
+        form.appendChild(actionInput);
+        
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'withdrawal_id';
+        idInput.value = id;
+        form.appendChild(idInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 function printFormalWithdrawal() {
     const printContents = document.getElementById('formalPrintableForm').innerHTML;
     const printWindow = window.open('', '_blank', 'height=800,width=1000');

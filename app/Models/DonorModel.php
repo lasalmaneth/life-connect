@@ -217,6 +217,15 @@ class DonorModel {
     }
 
     /**
+     * Delete a pending withdrawal record
+     */
+    public function deleteWithdrawal($id)
+    {
+        $query = "DELETE FROM consent_withdrawals WHERE id = :id AND status = 'PENDING_UPLOAD'";
+        return $this->query($query, [':id' => $id]);
+    }
+
+    /**
      * Get all completed withdrawals for a specific donor
      */
     public function getWithdrawalsByDonor($donorId)

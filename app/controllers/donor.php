@@ -1578,6 +1578,16 @@ class Donor {
                         redirect('donor/donations');
                     }
                 }
+            } elseif ($action === 'cancel_withdrawal') {
+                $withdrawalId = (int)($_POST['withdrawal_id'] ?? 0);
+                if ($withdrawalId > 0) {
+                    $donorModel->deleteWithdrawal($withdrawalId);
+                    $_SESSION['success_message'] = "Withdrawal process cancelled. Pledges remain active.";
+                }
+                unset($_SESSION['show_withdrawal']);
+                unset($_SESSION['withdrawal_organ_id']);
+                unset($_SESSION['force_step1']);
+                redirect('donor/donations');
             }
         } else {
             // Handle GET request for restarting or specific organ
