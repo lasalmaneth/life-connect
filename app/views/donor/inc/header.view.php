@@ -145,7 +145,7 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
     <div style="display: flex; gap: 10px; justify-content: center;">
       <button class="d-btn d-btn--outline" onclick="closeModal('addRoleModal')">Cancel</button>
       <button class="d-btn d-btn--primary" id="confirmAddRoleBtn">Add Role</button>
-      <a href="<?= ROOT ?>/donor/donations" id="withdrawPledgesBtn" class="d-btn" style="display: none; background: #ef4444; color: white; text-decoration: none;">Withdraw Pledges First</a>
+      <a href="<?= ROOT ?>/donor/withdraw-consent" id="withdrawPledgesBtn" class="d-btn" style="display: none; background: #ef4444; color: white; text-decoration: none;">Withdraw Pledges First</a>
     </div>
   </div>
 </div>
@@ -289,11 +289,9 @@ function promptAddRole(role, roleName) {
   title.innerText = `Add ${roleName} Role`;
   title.style.color = "var(--blue-800)";
 
-  // Check for Non-Donor Case
+  // Mandatory Red Warning for Non-Donor Case
   if (role === 'non') {
-      const message = activePledgeCount > 0 
-          ? "You cannot switch to Non-Donor status while you have active donation pledges. Please withdraw your consents in the 'My Donations' section first."
-          : "Becoming a Non-Donor signifies your choice to opt out of ALL organ, tissue, and body recovery efforts, even after death. This will deactivate your other donation roles.";
+      const message = "Becoming a Non-Donor signifies your official choice to opt out of ALL organ, tissue, and body recovery efforts. This requires a formal legal withdrawal form even if you have no current pledges.";
       applyRedWarningStyle(message, role);
   }
 
@@ -317,22 +315,24 @@ function applyRedWarningStyle(customMessage = null, role = 'non') {
   warningSection.style.color = "#852626";
   warningSection.style.border = "1px solid #fecaca";
 
-  if (activePledgeCount > 0) {
-    // HARD BLOCK CASE
+  if (role === 'non') {
+    // MANDATORY WITHDRAWAL PORTAL FOR NON-DONOR
+    title.innerText = "Formal Declaration Required";
+    title.style.color = "#991b1b";
+    addBtn.style.display = "none";
+    withdrawBtn.style.display = "inline-block";
+    withdrawBtn.innerText = "Proceed to Withdrawal Form";
+    withdrawBtn.href = "javascript:void(0)";
+    withdrawBtn.onclick = () => { closeModal('addRoleModal'); openModal('withdrawFormalModal'); };
+  } else if (activePledgeCount > 0) {
+    // OTHER HARD BLOCK CASE (Emergency/Safety)
     title.innerText = "Action Required";
     title.style.color = "#991b1b";
     addBtn.style.display = "none";
     withdrawBtn.style.display = "inline-block";
-    withdrawBtn.innerText = "Withdraw Pledges First";
+    withdrawBtn.innerText = "Manage Pledges";
     withdrawBtn.href = "<?= ROOT ?>/donor/donations";
-  } else {
-    // CONFIRMATION CASE (0 Pledges)
-    title.innerText = "Switch to Non-Donor Status";
-    title.style.color = "#991b1b";
-    addBtn.style.display = "inline-block";
-    addBtn.innerText = "Accept & Switch Mode";
-    addBtn.style.background = "#ef4444";
-    withdrawBtn.style.display = "none";
+    withdrawBtn.onclick = null;
   }
 
   warningSection.style.display = "block";
@@ -343,10 +343,14 @@ function applyRedWarningStyle(customMessage = null, role = 'non') {
   }
 }
 
-function showRoleWarning(message, isSoft = false) {
+function showRoleWarning(message) {
   // Use the existing addRoleModal but set it to warning mode
   promptAddRole('non', 'Non-Donor');
-  applyRedWarningStyle(message, isSoft);
+  applyRedWarningStyle(message, 'non');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
 }
 
 function openManageRolesModal() {
@@ -404,13 +408,10 @@ async function saveRolesFromModal() {
       return;
   }
 
-  if (newRoles.includes('non') && activePledgeCount > 0) {
+  // Intercept Non-Donor selection to force the formal withdrawal portal
+  if (newRoles.includes('non')) {
       closeModal('manageRolesModal');
-      if (finalizedPledgeCount > 0) {
-          showRoleWarning("You have legally finalized donation consents. Please withdraw all pledges before switching to Non-Donor status.", false);
-      } else {
-          showRoleWarning("You have pending pledges that have not been finalized. Switching to Non-Donor status will automatically withdraw them. Continue?", true);
-      }
+      showRoleWarning("Becoming a Non-Donor requires a formal declaration and withdrawal of any possible previous consents. You will now be guided through the legal process.");
       return;
   }
   
@@ -462,5 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+
+<?php include 'withdraw_modal.view.php'; ?>
 
 <div class="d-shell">

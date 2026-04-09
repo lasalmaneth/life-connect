@@ -97,42 +97,69 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                         <?php if(!empty($selected_living) || !empty($selected_after_death) || !empty($selected_full_body)): ?>
                             <?php foreach($selected_living as $o): 
                                 $isPending = ($o['status'] === 'PENDING' && empty($o['signed_form_path']));
-                                $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--accent); background: #f0fdf4;';
-                                $statusClass = $isPending ? 'd-status--pending' : 'd-status--success';
-                                $statusText = $isPending ? 'Pending Upload' : 'Active';
-                                $clickHandler = $isPending ? "openPledgeActionModal(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')" : "openUnselectWarning(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
+                                
+                                if ($isWithdrawPending) {
+                                    $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
+                                    $statusClass = 'd-status--danger';
+                                    $statusText = 'Withdrawal Pending';
+                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                } else {
+                                    $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--accent); background: #f0fdf4;';
+                                    $statusClass = $isPending ? 'd-status--pending' : 'd-status--success';
+                                    $statusText = $isPending ? 'Pending Upload' : 'Active';
+                                    $clickHandler = $isPending ? "openPledgeActionModal(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')" : "openUnselectWarning(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                }
                             ?>
                                 <div class="d-stat" style="<?= $boxStyle ?> cursor: pointer; text-align:center;" onclick="<?= $clickHandler ?>">
-                                    <div style="color: <?= $isPending ? '#d97706' : 'var(--accent)' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><?= $o['organ_icon'] ?></div>
-                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= $isPending ? '#92400e' : '#166534' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
+                                    <div style="color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#ef4444' : '#d97706') : 'var(--accent)' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><?= $o['organ_icon'] ?></div>
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#991b1b' : '#92400e') : '#166534' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
                                     <span class="d-status <?= $statusClass ?>" style="font-size: 0.6rem; margin-top: 5px;"><?= $statusText ?></span>
                                 </div>
                             <?php endforeach; ?>
                             <?php foreach($selected_after_death as $o): 
                                 $isPending = ($o['status'] === 'PENDING' && empty($o['signed_form_path']));
-                                $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--blue-500); background: var(--blue-50);';
-                                $statusClass = $isPending ? 'd-status--pending' : 'd-status--info';
-                                $statusText = $isPending ? 'Pending Upload' : 'Pledged';
-                                $clickHandler = $isPending ? "openPledgeActionModal(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')" : "openUnselectWarning(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
+
+                                if ($isWithdrawPending) {
+                                    $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
+                                    $statusClass = 'd-status--danger';
+                                    $statusText = 'Withdrawal Pending';
+                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                } else {
+                                    $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--blue-500); background: var(--blue-50);';
+                                    $statusClass = $isPending ? 'd-status--pending' : 'd-status--info';
+                                    $statusText = $isPending ? 'Pending Upload' : 'Pledged';
+                                    $clickHandler = $isPending ? "openPledgeActionModal(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')" : "openUnselectWarning(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                }
                             ?>
                                 <div class="d-stat" style="<?= $boxStyle ?> cursor: pointer; text-align:center;" onclick="<?= $clickHandler ?>">
-                                    <div style="color: <?= $isPending ? '#d97706' : 'var(--blue-600)' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><?= $o['organ_icon'] ?></div>
-                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= $isPending ? '#92400e' : 'var(--blue-800)' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
+                                    <div style="color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#ef4444' : '#d97706') : 'var(--blue-600)' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><?= $o['organ_icon'] ?></div>
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#991b1b' : '#92400e') : 'var(--blue-800)' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
                                     <span class="d-status <?= $statusClass ?>" style="font-size: 0.6rem; margin-top: 5px;"><?= $statusText ?></span>
                                 </div>
                             <?php endforeach; ?>
                             <?php if(!empty($selected_full_body)): 
                                 $o = $selected_full_body[0];
                                 $isPending = ($o['status'] === 'PENDING' && empty($o['signed_form_path']));
-                                $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
-                                $statusClass = $isPending ? 'd-status--pending' : '';
-                                $statusStyle = $isPending ? '' : 'background:#8b5cf6; color:white;';
-                                $statusText = $isPending ? 'Pending Upload' : 'Pledged';
-                                $clickHandler = $isPending ? "openPledgeActionModal(9, 'Full Body')" : "openUnselectWarning(9, 'Full Body')";
+                                $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
+
+                                if ($isWithdrawPending) {
+                                    $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
+                                    $statusClass = 'd-status--danger';
+                                    $statusText = 'Withdrawal Pending';
+                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                } else {
+                                    $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
+                                    $statusClass = $isPending ? 'd-status--pending' : '';
+                                    $statusStyle = $isPending ? '' : 'background:#8b5cf6; color:white;';
+                                    $statusText = $isPending ? 'Pending Upload' : 'Pledged';
+                                    $clickHandler = $isPending ? "openPledgeActionModal(9, 'Full Body')" : "openUnselectWarning(9, 'Full Body')";
+                                }
                             ?>
                                 <div class="d-stat" style="<?= $boxStyle ?> cursor: pointer; text-align:center;" onclick="<?= $clickHandler ?>">
-                                    <div style="color: <?= $isPending ? '#d97706' : '#8b5cf6' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-university"></i></div>
-                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= $isPending ? '#92400e' : '#5b21b6' ?>;">Full Body</div>
+                                    <div style="color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#ef4444' : '#d97706') : '#8b5cf6' ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-university"></i></div>
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: <?= ($isPending || $isWithdrawPending) ? ($isWithdrawPending ? '#991b1b' : '#92400e') : '#5b21b6' ?>;">Full Body</div>
                                     <span class="d-status <?= $statusClass ?>" style="font-size: 0.6rem; margin-top: 5px; <?= $statusStyle ?>"><?= $statusText ?></span>
                                 </div>
                             <?php endif; ?>
@@ -861,9 +888,8 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
 </div>
 
 <!-- Warning / Scripts -->
-<div id="unselectWarningModal" class="d-modal"><div class="d-modal__body" style="max-width:400px; text-align:center; p:2rem;"><h3>Withdraw Pledge?</h3><p id="unselectText" mb:2rem></p><div style="display:flex; gap:1rem; justify:center;"><button class="d-btn d-btn--outline" onclick="closeModal('unselectWarningModal')">Cancel</button><button class="d-btn d-btn--danger" onclick="submitAction('unselect_organ', pendingOrganId)">Withdraw</button></div></div></div>
-
 <form id="pledgeForm" method="POST" action="<?= ROOT ?>/donor/donations">
+
     <input type="hidden" name="action" value="submit_living_pledge">
     <input type="hidden" name="organ_id" id="pledgeOrganId">
     <input type="hidden" name="hospital_id" id="pledgeHospitalId">
@@ -902,8 +928,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
 <script>
 const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
 let pendingOrganId=null, pendingOrganName=null, selectedHospitalId=null, selectedHospitalName='No Preference';
-function openModal(id){ document.getElementById(id).style.display='flex'; }
-function closeModal(id){ document.getElementById(id).style.display='none'; }
+
 function openLivingModal(id,name){ 
     pendingOrganId=id; 
     pendingOrganName=name; 
@@ -1162,7 +1187,17 @@ function downloadPledge(id) {
     `);
     printWindow.document.close();
 }
-function openUnselectWarning(id,name){ pendingOrganId=id; document.getElementById('unselectText').textContent=`Withdraw pledge for ${name}?`; openModal('unselectWarningModal'); }
+function openUnselectWarning(id,name){ 
+    pendingOrganId=id; 
+    const globalInput = document.getElementById('withdrawOrganId');
+    const formInput = document.getElementById('withdrawOrganIdForm');
+    
+    if (globalInput) globalInput.value = id;
+    if (formInput) formInput.value = id;
+    
+    document.getElementById('unselectText').textContent=`Withdraw pledge for ${name}?`; 
+    openModal('unselectWarningModal'); 
+}
 function openPledgeActionModal(id, name) {
     pendingOrganId = id;
     document.getElementById('actionPledgeTitle').textContent = name;
@@ -1222,7 +1257,7 @@ function uploadPledgeFile() {
         <p style="color:var(--g500); font-size:0.9rem; margin-top:0.5rem;">This will remove the intent from the official registry and notify relevant departments.</p>
         <div style="display:flex; justify-content:center; gap:12px; margin-top:2rem;">
             <button class="d-btn d-btn--outline" onclick="closeModal('unselectWarningModal')">Keep Pledge</button>
-            <button class="d-btn d-btn--primary" style="background:var(--danger);" onclick="submitAction('unselect_organ', pendingOrganId)">Yes, Withdraw</button>
+            <button class="d-btn d-btn--primary" style="background:var(--danger);" onclick="window.location.href = '<?= ROOT ?>/donor/withdraw-consent?action=restart&organ_id=' + pendingOrganId;">Yes, Withdraw</button>
         </div>
     </div>
 </div>

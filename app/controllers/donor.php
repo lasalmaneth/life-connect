@@ -65,6 +65,9 @@ class Donor {
             $_SESSION['donor_portal_mode'] = $currentMode;
         }
 
+        // Fetch current withdrawal status for global modal access
+        $withdrawal = $donorModel->getWithdrawalByDonorId($donorId);
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -72,7 +75,8 @@ class Donor {
             'donorIdDisplay' => $donorIdDisplay,
             'donorRole' => $donorRole,
             'activeRoles' => $activeRoles,
-            'currentMode' => $currentMode ?: 'mode-organ-donation'
+            'currentMode' => $currentMode ?: 'mode-organ-donation',
+            'withdrawal' => $withdrawal
         ];
     }
 
@@ -135,6 +139,7 @@ class Donor {
             'active_roles' => $activeRoles,
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
+            'withdrawal' => $common['withdrawal'],
             'active_page' => 'overview',
             'page_title' => 'Overview',
             'page_css' => [],
@@ -696,6 +701,7 @@ class Donor {
             'districts'           => $districts,
             'active_roles'        => $activeRoles,
             'current_mode'        => $currentMode,
+            'withdrawal'          => $common['withdrawal'],
             'active_page'         => 'donations',
             'page_title'          => 'My Donations',
             'page_css'            => ['organ.css'],
@@ -738,6 +744,7 @@ class Donor {
             'current_mode'          => $currentMode,
             'all_appointments'      => $all_appointments,
             'upcoming_appointments' => $upcoming_appointments,
+            'withdrawal'            => $common['withdrawal'],
             'active_page'           => 'appointments',
             'page_title'            => 'Upcoming Appointments',
             'page_css'              => [],
@@ -826,6 +833,7 @@ class Donor {
             'active_roles' => $activeRoles,
             'current_mode' => $currentMode,
             'test_results' => $test_results,
+            'withdrawal'   => $common['withdrawal'],
             'active_page' => 'test-results',
             'page_title' => 'Test Results',
             'page_css' => ['testresult.css'],
@@ -948,6 +956,7 @@ class Donor {
             'custodians' => $custodians,
             'custodian_count' => $custodianCount,
             'districts' => $districts,
+            'withdrawal' => $common['withdrawal'],
             'active_page' => 'family',
             'page_title' => 'Family & Custodians',
             'page_css' => ['family-custodians.css'],
@@ -995,6 +1004,7 @@ class Donor {
             'allDistrictsSet' => array_keys($allDistrictsSet),
             'selectedDistrict' => $selectedDistrict,
             'districts' => $districts,
+            'withdrawal' => $common['withdrawal'],
             'active_page' => 'labs',
             'page_title' => 'Approved Labs',
             'page_css' => ['approvedlabs.css'],
@@ -1068,6 +1078,7 @@ class Donor {
             'active_roles'    => $activeRoles,
             'current_mode'    => $currentMode,
             'consent_history' => $combined,
+            'withdrawal'      => $common['withdrawal'],
             'active_page'     => 'consent-history',
             'page_title'      => 'Consent History',
             'ROOT'            => ROOT
@@ -1133,6 +1144,7 @@ class Donor {
             'body_usage_status' => $bodyUsageStatus,
             'uploaded_pledges' => $uploadedPledges,
             'districts' => $districts,
+            'withdrawal' => $common['withdrawal'],
             'active_page' => 'documents',
             'page_title' => 'Documents',
             'page_css' => ['document.css'],
@@ -1204,6 +1216,7 @@ class Donor {
             'current_mode' => $currentMode,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
+            'withdrawal' => $common['withdrawal'],
             'active_page' => 'aftercare',
             'page_title' => 'Aftercare Support',
             'page_css' => ['../aftercare/aftercare.css'],
@@ -1451,6 +1464,109 @@ class Donor {
             'ROOT' => ROOT
         ]);
         exit;
+    }
+
+    /**
+     * Formal Consent Withdrawal Workflow
+     */
+    public function withdrawConsent()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        $donorData = $common['donorData'];
+        $donorFullName = $common['donorFullName'];
+        $donorIdDisplay = $common['donorIdDisplay'];
+        $donorRole = $common['donorRole'];
+        $activeRoles = $common['activeRoles'];
+        $currentMode = $common['currentMode'];
+
+        $donorModel = new \App\Models\DonorModel();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $action = $_POST['action'] ?? '';
+
+            if ($action === 'submit_metadata') {
+                $organId = (int)($_POST['organ_id'] ?? 0);
+                if ($organId <= 0) {
+                    $_SESSION['error_message'] = "Invalid organ selection for withdrawal.";
+                    redirect('donor/donations');
+                }
+
+                $data = [
+                    ':donor_id' => $donorId,
+                    ':organ_id' => $organId,
+                    ':full_name' => $_POST['full_name'],
+                    ':nic_number' => $_POST['nic_number'],
+                    ':dob' => $_POST['dob'],
+                    ':address' => $_POST['address'],
+                    ':contact_number' => $_POST['contact_number'],
+                    ':prev_consent_date' => !empty($_POST['prev_consent_date']) ? $_POST['prev_consent_date'] : null,
+                    ':organization' => $_POST['organization'] ?? null,
+                    ':witness1_name' => $_POST['w1_name'],
+                    ':witness1_nic' => $_POST['w1_nic'],
+                    ':witness2_name' => $_POST['w2_name'],
+                    ':witness2_nic' => $_POST['w2_nic']
+                ];
+
+                if ($donorModel->createWithdrawal($data)) {
+                    $_SESSION['success_message'] = "Metadata Recorded Successfully! Please download and sign the form.";
+                    $_SESSION['show_withdrawal'] = true;
+                    $_SESSION['withdrawal_organ_id'] = $organId;
+                    unset($_SESSION['force_step1']); // Step 1 completed
+                } else {
+                    $_SESSION['error_message'] = "Failed to save withdrawal details.";
+                }
+                redirect('donor/donations');
+
+            } elseif ($action === 'upload_withdrawal') {
+                $withdrawalId = (int)($_POST['withdrawal_id'] ?? 0);
+                $withdrawal = $donorModel->query("SELECT * FROM consent_withdrawals WHERE id = :id", [':id' => $withdrawalId]);
+                $withdrawal = $withdrawal ? $withdrawal[0] : null;
+
+                if ($withdrawal && isset($_FILES['withdrawal_pdf']) && $_FILES['withdrawal_pdf']['error'] === UPLOAD_ERR_OK) {
+                    $file = $_FILES['withdrawal_pdf'];
+                    $folder = "uploads/withdrawals/";
+                    if (!file_exists($folder)) mkdir($folder, 0777, true);
+                    
+                    $filename = "withdrawal_" . $donorId . "_" . time() . ".pdf";
+                    $destination = $folder . $filename;
+                    
+                    if (move_uploaded_file($file['tmp_name'], $destination)) {
+                        $donorModel->updateWithdrawalPath($withdrawalId, $destination);
+                        
+                        if (!empty($withdrawal->organ_id)) {
+                            $donorModel->deactivateSpecificPledge($donorId, $withdrawal->organ_id);
+                            $_SESSION['success_message'] = "Withdrawal formalized. Consent for this organ has been revoked.";
+                        } else {
+                            $donorModel->deactivateAllPledges($donorId);
+                            $_SESSION['success_message'] = "Withdrawal document uploaded. All donation commitments are now revoked.";
+                        }
+                        
+                        unset($_SESSION['show_withdrawal']);
+                        unset($_SESSION['withdrawal_organ_id']);
+                        unset($_SESSION['force_step1']);
+                        redirect('donor/donations');
+                    }
+                }
+            }
+        } else {
+            // Handle GET request for restarting or specific organ
+            $action = $_GET['action'] ?? '';
+            $organId = (int)($_GET['organ_id'] ?? 0);
+
+            if ($action === 'restart') {
+                $_SESSION['force_step1'] = true;
+                $_SESSION['show_withdrawal'] = true;
+                if ($organId > 0) $_SESSION['withdrawal_organ_id'] = $organId;
+                redirect('donor/donations');
+            }
+            
+            // Default redirect for direct GET access
+            redirect('donor/donations');
+        }
     }
 
 }

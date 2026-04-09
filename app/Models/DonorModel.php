@@ -153,7 +153,7 @@ class DonorModel {
     }
 
     /**
-     * Withdraw all non-finalized pledges for a donor across ALL systems
+     * Withdraw all non-finalized pledges for a donor across ALL systems (Internal quick-withdraw)
      */
     public function withdrawPendingPledges($donorId)
     {
@@ -173,17 +173,89 @@ class DonorModel {
         return $this->query($query2, [':donor_id' => $donorId]);
     }
 
+    public function createWithdrawal($data)
+    {
+        $query = "INSERT INTO consent_withdrawals (
+                    donor_id, organ_id, full_name, nic_number, dob, address, 
+                    contact_number, prev_consent_date, organization, 
+                    witness1_name, witness1_nic, witness2_name, witness2_nic
+                  ) VALUES (
+                    :donor_id, :organ_id, :full_name, :nic_number, :dob, :address, 
+                    :contact_number, :prev_consent_date, :organization, 
+                    :witness1_name, :witness1_nic, :witness2_name, :witness2_nic
+                  )";
+        return $this->insert($query, $data);
+    }
+
+    public function getWithdrawalByDonorId($donorId)
+    {
+        $query = "SELECT * FROM consent_withdrawals WHERE donor_id = :donor_id ORDER BY created_at DESC LIMIT 1";
+        $res = $this->query($query, [':donor_id' => $donorId]);
+        return $res ? $res[0] : null;
+    }
+
+    /**
+     * Get pending withdrawal for a specific organ
+     */
+    public function getPendingWithdrawalByOrgan($donorId, $organId)
+    {
+        $query = "SELECT * FROM consent_withdrawals 
+                  WHERE donor_id = :donor_id 
+                  AND organ_id = :organ_id 
+                  AND status = 'PENDING_UPLOAD' 
+                  ORDER BY created_at DESC LIMIT 1";
+        $res = $this->query($query, [':donor_id' => $donorId, ':organ_id' => $organId]);
+        return $res ? $res[0] : null;
+    }
+
+    public function updateWithdrawalPath($id, $path)
+    {
+        $query = "UPDATE consent_withdrawals SET signed_form_path = :path, status = 'COMPLETED' WHERE id = :id";
+        $con = $this->connect();
+        $stm = $con->prepare($query);
+        return $stm->execute([':path' => $path, ':id' => $id]);
+    }
+
+    /**
+     * Deactivate a SPECIFIC organ/full body pledge after formal withdrawal
+     */
+    public function deactivateSpecificPledge($donorId, $organId)
+    {
+        $organId = (int)$organId;
+        if ($organId === 9) {
+            // Full Body Donation
+            $this->query("UPDATE body_donation_consents SET status = 'WITHDRAWN' WHERE donor_id = :donor_id AND (status = 'ACTIVE' OR status = 'PENDING')", [':donor_id' => $donorId]);
+        }
+        
+        // Also update donor_pledges (covers all types)
+        $this->query("UPDATE donor_pledges SET status = 'WITHDRAWN' WHERE donor_id = :donor_id AND organ_id = :organ_id", [':donor_id' => $donorId, ':organ_id' => $organId]);
+        
+        return true;
+    }
+
+    /**
+     * Mass deactivate ALL active intents after formal withdrawal (Legacy)
+     */
+    public function deactivateAllPledges($donorId)
+    {
+        $this->query("UPDATE donor_pledges SET status = 'WITHDRAWN' WHERE donor_id = :donor_id", [':donor_id' => $donorId]);
+        $this->query("UPDATE body_donation_consents SET status = 'WITHDRAWN' WHERE donor_id = :donor_id", [':donor_id' => $donorId]);
+        return true;
+    }
+
     public function getPledgedOrgans($donorId)
     {
-        $query = "SELECT p.*, o.name as organ_name, o.description 
+        $query = "SELECT p.*, o.name as organ_name, o.description,
+                  (SELECT status FROM consent_withdrawals 
+                   WHERE donor_id = p.donor_id AND organ_id = p.organ_id 
+                   AND status = 'PENDING_UPLOAD' 
+                   ORDER BY created_at DESC LIMIT 1) as withdrawal_status
                   FROM donor_pledges p 
                   JOIN organs o ON p.organ_id = o.id 
                   WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'";
         
         $results = $this->query($query, [':donor_id' => $donorId]);
         
-        // Add icons manually for now as they aren't in the DB
-        // In a real app, these could be in the organs table
         if ($results) {
             foreach ($results as $key => $organ) {
                 $icon = '❓';
@@ -192,7 +264,7 @@ class DonorModel {
                     case 'liver': $icon = '🥃'; break;
                     case 'heart': $icon = '❤️'; break;
                     case 'lung': $icon = '🫁'; break;
-                    case 'pancreas': $icon = '🍬'; break; // Abstract representation
+                    case 'pancreas': $icon = '🍬'; break;
                     case 'intestine': $icon = '🧶'; break;
                     case 'cornea': $icon = '👁️'; break;
                     case 'bone marrow': $icon = '🦴'; break;
@@ -201,7 +273,6 @@ class DonorModel {
             }
         }
         
-        // Convert objects to arrays for view compatibility if needed, but objects are standard in this app
         return $results ? json_decode(json_encode($results), true) : []; 
     }
 
