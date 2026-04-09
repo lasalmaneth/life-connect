@@ -39,19 +39,25 @@ include __DIR__ . '/inc/sidebar.view.php';
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
                     <?php if (!empty($custodians)): foreach ($custodians as $c): ?>
                         <div style="border: 1px solid var(--g200); border-radius: var(--r); padding: 1.5rem; background: var(--white); position: relative; transition: all 0.2s ease;" onmouseover="this.style.borderColor='var(--blue-300)'; this.style.boxShadow='0 4px 12px rgba(0,91,170,0.05)';" onmouseout="this.style.borderColor='var(--g200)'; this.style.boxShadow='none';">
-                            <?php if ($c->organ_id): ?>
-                                <span class="d-status" style="position: absolute; top: 1rem; right: 1rem; background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid #34d399;"><i class="fas fa-leaf"></i> For <?= htmlspecialchars($c->organ_name) ?></span>
-                            <?php elseif ($c->custodian_number == 1): ?>
-                                <span class="d-status d-status--info" style="position: absolute; top: 1rem; right: 1rem; background: rgba(59, 130, 246, 0.1); color: var(--blue-600);"><i class="fas fa-star"></i> Primary</span>
+                            <?php if ($c->user_status === 'SUSPENDED'): ?>
+                                <span class="d-status d-status--danger" style="position: absolute; top: 1rem; right: 1rem; background: rgba(220, 38, 38, 0.1); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.2);"><i class="fas fa-exclamation-triangle"></i> Suspended</span>
+                            <?php elseif ($c->status === 'ACTIVE'): ?>
+                                <span class="d-status d-status--success" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-check-circle"></i> Active</span>
+                            <?php else: ?>
+                                <span class="d-status d-status--warning" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-clock"></i> Pending Approval</span>
                             <?php endif; ?>
                             
                             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                                 <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--blue-50); color: var(--blue-600); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                                     <i class="fas fa-user-shield"></i>
                                 </div>
-                                <div>
                                     <div style="font-weight: 700; color: var(--blue-900); font-size: 1rem;"><?= htmlspecialchars($c->name) ?></div>
-                                    <div style="font-size: 0.85rem; color: var(--g600);"><?= htmlspecialchars($c->relationship) ?></div>
+                                    <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                                        <div style="font-size: 0.85rem; color: var(--g600);"><?= htmlspecialchars($c->relationship) ?></div>
+                                        <?php if ($c->organ_id): ?>
+                                            <div style="font-size: 0.75rem; color: #059669; font-weight: 600;"><i class="fas fa-leaf"></i> For <?= htmlspecialchars($c->organ_name) ?></div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
 
@@ -61,16 +67,19 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 <?php if (!empty($c->email)): ?>
                                     <div style="font-size: 0.85rem; color: var(--g700);"><i class="fas fa-envelope" style="color: var(--g400); width: 20px;"></i> <?= htmlspecialchars($c->email) ?></div>
                                 <?php endif; ?>
+                                <?php if ($c->user_status === 'SUSPENDED' && !empty($c->review_message)): ?>
+                                    <div style="font-size: 0.8rem; color: #dc2626; background: rgba(220, 38, 38, 0.05); padding: 0.5rem; border-radius: 4px; border-left: 2px solid #dc2626; margin-top: 0.5rem;">
+                                        <strong>Reason:</strong> <?= htmlspecialchars($c->review_message) ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span class="d-status d-status--success" style="font-size: 0.7rem;"><i class="fas fa-check"></i> Linked Account</span>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button class="d-btn d-btn--sm d-btn--outline" onclick="openCustodianModal(<?= htmlspecialchars(json_encode($c)) ?>, 'edit')"><i class="fas fa-edit"></i> Edit</button>
-                                    <?php if (!$c->organ_id): // Hide delete button for organ-specific custodians since they are mandatory for the pledge ?>
-                                        <button class="d-btn d-btn--sm d-btn--outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeCustodian(<?= $c->id ?>, '<?= addslashes($c->name) ?>')"><i class="fas fa-trash"></i></button>
-                                    <?php endif; ?>
-                                </div>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button class="d-btn d-btn--sm d-btn--outline" onclick="openCustodianModal(<?= htmlspecialchars(json_encode($c)) ?>, 'edit')"><i class="fas fa-edit"></i> Edit</button>
+                                        <button class="d-btn d-btn--sm d-btn--outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeCustodian(<?= $c->id ?>, '<?= addslashes($c->name) ?>', <?= $custodian_count ?>)"><i class="fas fa-trash"></i></button>
+                                    </div>
                             </div>
                         </div>
                     <?php endforeach; else: ?>
@@ -160,6 +169,11 @@ include __DIR__ . '/inc/sidebar.view.php';
             <input type="hidden" name="action" id="custodianAction" value="add_custodian">
             <input type="hidden" name="custodian_id" id="custodianId">
             
+            <div id="suspensionNotice" style="display: none; background: rgba(220, 38, 38, 0.1); color: #dc2626; padding: 1rem; border-radius: var(--r); margin-bottom: 1rem; font-size: 0.9rem;">
+                <div style="font-weight: 700; margin-bottom: 0.25rem;"><i class="fas fa-exclamation-circle"></i> This account is currently suspended</div>
+                <div id="suspensionReasonText"></div>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.8;">Saving your changes will clear the suspension and send this record for re-approval.</div>
+            </div>
             <div class="form-group">
                 <label>Full Name <span style="color:var(--danger)">*</span></label>
                 <input type="text" class="form-control" name="name" id="cust_name" required placeholder="Enter full legal name">
@@ -193,7 +207,7 @@ include __DIR__ . '/inc/sidebar.view.php';
             </div>
 
             <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--blue-600); padding: 0.75rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--blue-800); border-radius: 4px;">
-                <i class="fas fa-info-circle"></i> An account will be automatically created or linked for this NIC.
+                <i class="fas fa-info-circle"></i> <span id="custodianModalInfo">An account will be automatically created or linked for this NIC.</span>
             </div>
 
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
@@ -280,6 +294,17 @@ include __DIR__ . '/inc/sidebar.view.php';
 
     // Custodian Functions
     function openCustodianModal(custodian, mode) {
+        const nameInput = document.getElementById('cust_name');
+        const nicInput = document.getElementById('cust_nic');
+        const suspensionNotice = document.getElementById('suspensionNotice');
+        const modalInfo = document.getElementById('custodianModalInfo');
+
+        // Reset locking
+        nameInput.readOnly = false;
+        nicInput.readOnly = false;
+        suspensionNotice.style.display = 'none';
+        modalInfo.textContent = 'An account will be automatically created or linked for this NIC.';
+
         if (mode === 'add') {
             document.getElementById('custodianModalTitle').textContent = 'Add Custodian';
             document.getElementById('custodianAction').value = 'add_custodian';
@@ -288,17 +313,34 @@ include __DIR__ . '/inc/sidebar.view.php';
             document.getElementById('custodianModalTitle').textContent = 'Edit Custodian';
             document.getElementById('custodianAction').value = 'edit_custodian';
             document.getElementById('custodianId').value = custodian.id;
-            document.getElementById('cust_name').value = custodian.name || '';
+            nameInput.value = custodian.name || '';
             document.getElementById('cust_relationship').value = custodian.relationship || '';
-            document.getElementById('cust_nic').value = custodian.nic_number || '';
+            nicInput.value = custodian.nic_number || '';
             document.getElementById('cust_contact').value = custodian.phone || '';
             document.getElementById('cust_email').value = custodian.email || '';
             document.getElementById('cust_address').value = custodian.address || '';
+
+            // Locked fields for Active (Link Level Status)
+            if (custodian.status === 'ACTIVE') {
+                nameInput.readOnly = true;
+                nicInput.readOnly = true;
+                modalInfo.textContent = 'Fields for "Full Name" and "NIC" are locked for active custodians.';
+            }
+
+            // Suspension info
+            if (custodian.user_status === 'SUSPENDED') {
+                suspensionNotice.style.display = 'block';
+                document.getElementById('suspensionReasonText').textContent = custodian.review_message || 'No reason provided.';
+            }
         }
         openModal('custodianModal');
     }
 
-    function removeCustodian(id, name) {
+    function removeCustodian(id, name, count) {
+        if (count <= 2) {
+            alert('Cannot remove custodian. You must maintain at least 2 custodians at all times.');
+            return;
+        }
         if (confirm('Are you sure you want to remove ' + name + ' as custodian? Their login access will remain but they will no longer be linked to this donor.')) {
             const form = document.createElement('form');
             form.method = 'POST';

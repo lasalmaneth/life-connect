@@ -106,6 +106,73 @@ class DonorModel {
         ];
     }
 
+    /**
+     * Get a summary of pledges categorized by their legal finalization status across ALL systems
+     */
+    public function getPledgeSummary($donorId)
+    {
+        // 1. Organ Pledges (Most common)
+        $organQuery = "SELECT * FROM donor_pledges WHERE donor_id = :donor_id AND status != 'WITHDRAWN'";
+        $organPledges = $this->query($organQuery, [':donor_id' => $donorId]);
+        
+        // 2. Body Donation
+        $bodyQuery = "SELECT * FROM body_donation_consents WHERE donor_id = :donor_id AND status != 'WITHDRAWN'";
+        $bodyPledges = $this->query($bodyQuery, [':donor_id' => $donorId]);
+
+        $finalized = 0;
+        $pending = 0;
+
+        if ($organPledges) {
+            foreach ($organPledges as $pledge) {
+                $status = strtoupper($pledge->status ?? '');
+                if (in_array($status, ['APPROVED', 'UPLOADED', 'COMPLETED']) || !empty($pledge->signed_form_path)) {
+                    $finalized++;
+                } else if ($status === 'PENDING') {
+                    $pending++;
+                }
+            }
+        }
+
+        if ($bodyPledges) {
+            foreach ($bodyPledges as $pledge) {
+                $status = strtoupper($pledge->status ?? '');
+                // Body donation status ACTIVE is prioritized as finalized
+                if ($status === 'ACTIVE') {
+                    $finalized++;
+                } else {
+                    $pending++;
+                }
+            }
+        }
+
+        return [
+            'finalized' => $finalized,
+            'pending' => $pending,
+            'total' => (is_array($organPledges) ? count($organPledges) : 0) + (is_array($bodyPledges) ? count($bodyPledges) : 0)
+        ];
+    }
+
+    /**
+     * Withdraw all non-finalized pledges for a donor across ALL systems
+     */
+    public function withdrawPendingPledges($donorId)
+    {
+        // 1. Withdraw Organ Pledges
+        $query1 = "UPDATE donor_pledges 
+                  SET status = 'WITHDRAWN' 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'PENDING' 
+                  AND (signed_form_path IS NULL OR signed_form_path = '')";
+        $this->query($query1, [':donor_id' => $donorId]);
+
+        // 2. Withdraw Body Donations
+        $query2 = "UPDATE body_donation_consents 
+                  SET status = 'WITHDRAWN' 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'PENDING'";
+        return $this->query($query2, [':donor_id' => $donorId]);
+    }
+
     public function getPledgedOrgans($donorId)
     {
         $query = "SELECT p.*, o.name as organ_name, o.description 

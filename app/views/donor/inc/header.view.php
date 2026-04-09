@@ -21,6 +21,11 @@ if (!isset($donor_id_display) && isset($donor_data)) {
 $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
+$donorModelForHeader = new \App\Models\DonorModel();
+$targetDonorIdForPledges = $donor_data['id'] ?? $donor_data['donor_id'] ?? $user_id;
+$pledgeSummary = $donorModelForHeader->getPledgeSummary($targetDonorIdForPledges);
+$activePledgeCount = $pledgeSummary['total'];
+$finalizedPledgeCount = $pledgeSummary['finalized'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -124,14 +129,23 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
 <!-- Modal: Add New Role Confirmation -->
 <div id="addRoleModal" class="d-modal">
-  <div class="d-modal__body" style="max-width: 400px; text-align: center;">
+  <div class="d-modal__body" id="addRoleModalBody" style="max-width: 400px; text-align: center; transition: all 0.3s ease;">
+    <div id="addRoleWarningIcon" style="display: none; width: 50px; height: 50px; background: #fee2e2; color: #ef4444; border-radius: 50%; align-items: center; justify-content: center; font-size: 1.25rem; margin: 0 auto 1rem;">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
     <h3 class="d-modal__title" id="addRoleTitle">Add New Role</h3>
-    <p style="margin: 1.5rem 0; color: var(--g600);" id="addRoleMessage">
-      This role is not currently active in your profile. Would you like to enable it?
-    </p>
+    <div style="margin: 1.5rem 0;">
+      <p style="color: var(--g600); margin-bottom: 0.5rem;" id="addRoleMessage">
+        This role is not currently active in your profile. Would you like to enable it?
+      </p>
+      <div id="addRoleRedWarning" style="display: none; color: #ef4444; font-weight: 600; font-size: 0.9rem; padding: 10px; background: #fee2e2; border-radius: 8px; margin-top: 10px;">
+        <i class="fas fa-info-circle"></i> You must withdraw all active pledges before becoming a Non-Donor.
+      </div>
+    </div>
     <div style="display: flex; gap: 10px; justify-content: center;">
       <button class="d-btn d-btn--outline" onclick="closeModal('addRoleModal')">Cancel</button>
       <button class="d-btn d-btn--primary" id="confirmAddRoleBtn">Add Role</button>
+      <a href="<?= ROOT ?>/donor/donations" id="withdrawPledgesBtn" class="d-btn" style="display: none; background: #ef4444; color: white; text-decoration: none;">Withdraw Pledges First</a>
     </div>
   </div>
 </div>
@@ -148,7 +162,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
       
       <div class="role-checkbox-item">
         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px; border-radius: 8px; transition: var(--tr);">
-          <input type="checkbox" name="role_check" value="organ" <?= $has_organ ? 'checked' : '' ?> style="width: 18px; height: 18px;">
+          <input type="checkbox" name="role_check" value="organ" <?= $has_organ ? 'checked' : '' ?> style="width: 18px; height: 18px;" onchange="handleRoleExclusivity(this)">
           <div>
             <div style="font-weight: 600; font-size: 0.95rem;">Organ Donor</div>
             <div style="font-size: 0.75rem; color: var(--g500);">Donate organs and save lives</div>
@@ -158,7 +172,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
       <div class="role-checkbox-item">
         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px; border-radius: 8px; transition: var(--tr);">
-          <input type="checkbox" name="role_check" value="financial" <?= $has_financial ? 'checked' : '' ?> style="width: 18px; height: 18px;">
+          <input type="checkbox" name="role_check" value="financial" <?= $has_financial ? 'checked' : '' ?> style="width: 18px; height: 18px;" onchange="handleRoleExclusivity(this)">
           <div>
             <div style="font-weight: 600; font-size: 0.95rem;">Financial Donor</div>
             <div style="font-size: 0.75rem; color: var(--g500);">Support transplant patients financially</div>
@@ -168,7 +182,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
       <div class="role-checkbox-item">
         <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 10px; border-radius: 8px; transition: var(--tr);">
-          <input type="checkbox" name="role_check" value="non" <?= $has_non ? 'checked' : '' ?> style="width: 18px; height: 18px;">
+          <input type="checkbox" name="role_check" value="non" <?= $has_non ? 'checked' : '' ?> style="width: 18px; height: 18px;" onchange="handleRoleExclusivity(this)">
           <div>
             <div style="font-weight: 600; font-size: 0.95rem;">Non-Donor</div>
             <div style="font-size: 0.75rem; color: var(--g500);">Stay informed and support awareness</div>
@@ -185,20 +199,30 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
 <script>
 const activeRoles = <?= json_encode($active_roles ?? []) ?>;
+const activePledgeCount = <?= (int)($activePledgeCount ?? 0) ?>;
+const finalizedPledgeCount = <?= (int)($finalizedPledgeCount ?? 0) ?>;
 
 async function setDonorMode(mode, element) {
   if (element.classList.contains('inactive')) return;
 
-  // Update Body Class
-  document.body.classList.remove('mode-organ-donation', 'mode-financial-donation', 'mode-non-donor');
-  document.body.classList.add(mode);
+  // Add confirmation for Non-Donor if switching via tab (even if role is active)
+  if (mode === 'mode-non-donor' && activePledgeCount > 0) {
+      showRoleWarning("You cannot switch to Non-Donor view while you have active donation consents. Please withdraw your pledges first.");
+      return;
+  }
 
   // Update Active Tab
-  document.querySelectorAll('.mode-tab').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
   element.classList.add('active');
+  
+  // Update Body Class (Primary mode indicator for CSS)
+  document.body.className = mode;
 
-  // Move Indicator
+  // Move Indicator UI
   updateModeIndicator(element);
+
+  // Update Sidebar Visibility
+  updateSidebarVisibility(mode);
 
   // Persist on Server
   const formData = new FormData();
@@ -212,6 +236,33 @@ async function setDonorMode(mode, element) {
   localStorage.setItem('donor_portal_mode', mode);
 }
 
+function updateSidebarVisibility(mode) {
+  const organSections = document.querySelectorAll('.section-organ');
+  const financialSections = document.querySelectorAll('.section-financial');
+  
+  if (mode === 'mode-organ-donation') {
+    organSections.forEach(s => s.style.display = 'block');
+    financialSections.forEach(s => s.style.display = 'none');
+  } else if (mode === 'mode-financial-donation') {
+    organSections.forEach(s => s.style.display = 'none');
+    financialSections.forEach(s => s.style.display = 'block');
+  } else {
+    // Non-Donor or Overview
+    organSections.forEach(s => s.style.display = 'none');
+    financialSections.forEach(s => s.style.display = 'none');
+  }
+}
+
+// Ensure initial sidebar state matches active tab
+document.addEventListener('DOMContentLoaded', () => {
+    const activeTab = document.querySelector('.mode-tab.active');
+    if (activeTab) {
+        const mode = activeTab.dataset.mode;
+        updateSidebarVisibility(mode);
+        updateModeIndicator(activeTab);
+    }
+});
+
 function updateModeIndicator(element) {
   const indicator = document.getElementById('modeIndicator');
   if (indicator && element) {
@@ -221,9 +272,81 @@ function updateModeIndicator(element) {
 }
 
 function promptAddRole(role, roleName) {
-  document.getElementById('addRoleTitle').innerText = `Add ${roleName} Role`;
+  const modalBody = document.getElementById('addRoleModalBody');
+  const warningSection = document.getElementById('addRoleRedWarning');
+  const warningIcon = document.getElementById('addRoleWarningIcon');
+  const addBtn = document.getElementById('confirmAddRoleBtn');
+  const withdrawBtn = document.getElementById('withdrawPledgesBtn');
+  const title = document.getElementById('addRoleTitle');
+
+  modalBody.style.borderTop = "none";
+  warningSection.style.display = "none";
+  warningIcon.style.display = "none";
+  addBtn.style.display = "inline-block";
+  addBtn.innerText = "Add Role";
+  addBtn.style.background = "var(--blue-600)";
+  withdrawBtn.style.display = "none";
+  title.innerText = `Add ${roleName} Role`;
+  title.style.color = "var(--blue-800)";
+
+  // Check for Non-Donor Case
+  if (role === 'non') {
+      const message = activePledgeCount > 0 
+          ? "You cannot switch to Non-Donor status while you have active donation pledges. Please withdraw your consents in the 'My Donations' section first."
+          : "Becoming a Non-Donor signifies your choice to opt out of ALL organ, tissue, and body recovery efforts, even after death. This will deactivate your other donation roles.";
+      applyRedWarningStyle(message, role);
+  }
+
   document.getElementById('confirmAddRoleBtn').onclick = () => activateRole(role);
   document.getElementById('addRoleModal').classList.add('active');
+}
+
+function applyRedWarningStyle(customMessage = null, role = 'non') {
+  const modalBody = document.getElementById('addRoleModalBody');
+  const warningSection = document.getElementById('addRoleRedWarning');
+  const warningIcon = document.getElementById('addRoleWarningIcon');
+  const addBtn = document.getElementById('confirmAddRoleBtn');
+  const withdrawBtn = document.getElementById('withdrawPledgesBtn');
+  const title = document.getElementById('addRoleTitle');
+  const msg = document.getElementById('addRoleRedWarning');
+
+  modalBody.style.borderTop = "5px solid #ef4444";
+  warningIcon.style.background = "#fee2e2";
+  warningIcon.style.color = "#ef4444";
+  warningSection.style.background = "#fee2e2";
+  warningSection.style.color = "#852626";
+  warningSection.style.border = "1px solid #fecaca";
+
+  if (activePledgeCount > 0) {
+    // HARD BLOCK CASE
+    title.innerText = "Action Required";
+    title.style.color = "#991b1b";
+    addBtn.style.display = "none";
+    withdrawBtn.style.display = "inline-block";
+    withdrawBtn.innerText = "Withdraw Pledges First";
+    withdrawBtn.href = "<?= ROOT ?>/donor/donations";
+  } else {
+    // CONFIRMATION CASE (0 Pledges)
+    title.innerText = "Switch to Non-Donor Status";
+    title.style.color = "#991b1b";
+    addBtn.style.display = "inline-block";
+    addBtn.innerText = "Accept & Switch Mode";
+    addBtn.style.background = "#ef4444";
+    withdrawBtn.style.display = "none";
+  }
+
+  warningSection.style.display = "block";
+  warningIcon.style.display = "flex";
+  
+  if (customMessage) {
+    msg.innerHTML = `<i class="fas fa-info-circle"></i> ${customMessage}`;
+  }
+}
+
+function showRoleWarning(message, isSoft = false) {
+  // Use the existing addRoleModal but set it to warning mode
+  promptAddRole('non', 'Non-Donor');
+  applyRedWarningStyle(message, isSoft);
 }
 
 function openManageRolesModal() {
@@ -234,8 +357,41 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('active');
 }
 
+function handleRoleExclusivity(checkbox) {
+  const allChecks = document.querySelectorAll('input[name="role_check"]');
+  if (checkbox.checked) {
+    if (checkbox.value === 'non') {
+      // If Non-Donor is selected, uncheck Organ Donor only
+      allChecks.forEach(cb => {
+        if (cb.value === 'organ') cb.checked = false;
+      });
+    } else if (checkbox.value === 'organ') {
+      // If Organ Donor is selected, uncheck Non-Donor
+      allChecks.forEach(cb => {
+        if (cb.value === 'non') cb.checked = false;
+      });
+    }
+  }
+}
+
 async function activateRole(role) {
-  const newRoles = [...activeRoles, role];
+  let newRoles = [...activeRoles];
+  
+  if (role === 'non') {
+      // Adding Non-Donor removes Organ Donor
+      newRoles = newRoles.filter(r => r !== 'organ');
+      newRoles.push('non');
+  } else if (role === 'organ') {
+      // Adding Organ Donor removes Non-Donor
+      newRoles = newRoles.filter(r => r !== 'non');
+      newRoles.push('organ');
+  } else {
+      newRoles.push(role);
+  }
+
+  // Deduplicate and filter any possible nulls
+  newRoles = [...new Set(newRoles)].filter(r => r);
+  
   await saveRolesToServer(newRoles);
 }
 
@@ -247,13 +403,24 @@ async function saveRolesFromModal() {
       alert("Please select at least one role.");
       return;
   }
+
+  if (newRoles.includes('non') && activePledgeCount > 0) {
+      closeModal('manageRolesModal');
+      if (finalizedPledgeCount > 0) {
+          showRoleWarning("You have legally finalized donation consents. Please withdraw all pledges before switching to Non-Donor status.", false);
+      } else {
+          showRoleWarning("You have pending pledges that have not been finalized. Switching to Non-Donor status will automatically withdraw them. Continue?", true);
+      }
+      return;
+  }
   
   await saveRolesToServer(newRoles);
 }
 
-async function saveRolesToServer(roles) {
+async function saveRolesToServer(roles, confirmWithdraw = false) {
   const formData = new FormData();
   roles.forEach(r => formData.append('roles[]', r));
+  if (confirmWithdraw) formData.append('confirm_withdraw', '1');
 
   try {
     const response = await fetch('<?= ROOT ?>/donor/update-roles', {
@@ -262,9 +429,15 @@ async function saveRolesToServer(roles) {
     });
     const data = await response.json();
     if (data.success) {
-      window.location.reload();
+      // Direct redirect to overview on any role change
+      window.location.href = '<?= ROOT ?>/donor';
     } else {
-      alert(data.message || "Failed to update roles.");
+      // If the message indicates legally finalized pledges, show the red modal
+      if (data.message && (data.message.toLowerCase().includes('finalized') || data.message.toLowerCase().includes('consent') || data.message.toLowerCase().includes('pledge'))) {
+          showRoleWarning(data.message);
+      } else {
+          alert(data.message || "Failed to update roles.");
+      }
     }
   } catch (e) {
     console.error(e);

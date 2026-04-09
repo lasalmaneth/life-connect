@@ -199,26 +199,42 @@ include __DIR__ . '/inc/sidebar.view.php';
 
         <div class="selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
             <!-- Organ Donor Card -->
-            <div class="role-select-card" data-role="organ" onclick="toggleRoleCard(this)">
-                <div class="role-select-card__icon"><i class="fas fa-hand-holding-heart"></i></div>
-                <h3>Organ Donor</h3>
-                <p>Donate organs or tissues and help save lives.</p>
+            <div class="role-select-card" data-role="organ" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div class="role-select-card__icon" style="margin-bottom: 1.5rem;"><i class="fas fa-hand-holding-heart"></i></div>
+                <h3 style="margin-bottom: 1rem; color: var(--blue-800);">Organ Donor</h3>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Donate organs or tissues in life</li>
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Pledge body for medical research</li>
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Manage legal representatives</li>
+                </ul>
                 <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
             </div>
-
+ 
             <!-- Financial Donor Card -->
-            <div class="role-select-card" data-role="financial" onclick="toggleRoleCard(this)">
-                <div class="role-select-card__icon" style="background: #dcfce7; color: #10b981;"><i class="fas fa-hand-holding-dollar"></i></div>
-                <h3>Financial Donor</h3>
-                <p>Support transplant patients with financial contributions.</p>
+            <div class="role-select-card" data-role="financial" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div class="role-select-card__icon" style="background: #dcfce7; color: #10b981; margin-bottom: 1.5rem;"><i class="fas fa-hand-holding-dollar"></i></div>
+                <h3 style="margin-bottom: 1rem; color: #166534;">Financial Donor</h3>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Support patient medical costs</li>
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Fund transplant infrastructure</li>
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Track your donation impact</li>
+                </ul>
                 <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
             </div>
-
+ 
             <!-- Non-Donor Card -->
-            <div class="role-select-card" data-role="non" onclick="toggleRoleCard(this)">
-                <div class="role-select-card__icon" style="background: var(--g100); color: var(--g500);"><i class="fas fa-user-slash"></i></div>
-                <h3>Non-Donor</h3>
-                <p>Stay informed and support organ donation awareness.</p>
+            <div class="role-select-card" data-role="non" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px dashed var(--g300);">
+                <div class="role-select-card__icon" style="background: var(--g100); color: var(--g500); margin-bottom: 1.5rem;"><i class="fas fa-user-slash"></i></div>
+                <h3 style="margin-bottom: 1rem; color: var(--g700);">Non-Donor</h3>
+                <div style="background: #fff1f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <p style="font-size: 0.8rem; color: #be123c; font-weight: 600; line-height: 1.4; margin: 0;">
+                        I do not wish to be a donor. I opt out of all organ and tissue recovery efforts, even after death.
+                    </p>
+                </div>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-times-circle" style="color: var(--g400); margin-right: 8px;"></i> No personal donation impact</li>
+                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle" style="color: var(--g400); margin-right: 8px;"></i> Support through awareness only</li>
+                </ul>
                 <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
             </div>
         </div>
@@ -233,6 +249,22 @@ include __DIR__ . '/inc/sidebar.view.php';
 
 <script>
 function toggleRoleCard(card) {
+    const role = card.dataset.role;
+    const isSelected = card.classList.contains('selected');
+    
+    if (!isSelected) {
+        if (role === 'non') {
+            // If selecting Non-Donor, deselect Organ Donor ONLY
+            document.querySelectorAll('.role-select-card.selected[data-role="organ"]').forEach(c => {
+                c.classList.remove('selected');
+            });
+        } else if (role === 'organ') {
+            // If selecting Organ Donor, deselect Non-Donor if it was selected
+            const nonCard = document.querySelector('.role-select-card.selected[data-role="non"]');
+            if (nonCard) nonCard.classList.remove('selected');
+        }
+    }
+    
     card.classList.toggle('selected');
 }
 

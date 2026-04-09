@@ -178,6 +178,44 @@ class Donor {
 
         $donorId = $this->getDonorId();
         $donorModel = new \App\Models\DonorModel();
+
+        // Enforce role exclusivity and consent requirements
+        $isNonDonorRequested = in_array('non', $roles);
+        $isOrganDonorRequested = in_array('organ', $roles);
+
+        if ($isNonDonorRequested && !$isOrganDonorRequested) {
+            // Check for finalized vs pending pledges before allowing switch to Non-Donor
+            $summary = $donorModel->getPledgeSummary($donorId);
+            
+            if ($summary['finalized'] > 0) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'You have legally finalized donation consents. Please withdraw all pledges before switching to Non-Donor status.'
+                ]);
+                exit;
+            }
+
+            // If only pending pledges exist, require explicit confirmation for auto-withdrawal
+            if ($summary['pending'] > 0 && !isset($_POST['confirm_withdraw'])) {
+                echo json_encode([
+                    'success' => false,
+                    'require_confirmation' => true,
+                    'message' => 'You have pending pledges that have not been finalized. Switching to Non-Donor status will automatically withdraw them. Continue?'
+                ]);
+                exit;
+            }
+
+            // Perform auto-withdrawal if confirmed
+            if ($summary['pending'] > 0 && isset($_POST['confirm_withdraw'])) {
+                $donorModel->withdrawPendingPledges($donorId);
+            }
+
+            // Remove Organ role if switching to Non-Donor
+            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
+        } else if ($isOrganDonorRequested) {
+            // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
+            $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
+        }
         
         if ($donorModel->updateActiveRoles($donorId, $roles)) {
             echo json_encode(['success' => true]);
@@ -228,12 +266,25 @@ class Donor {
                     'allergies' => $_POST['allergies'] ?? null
                 ];
 
-                // Update nationality in donors table
+                // Update donor profile info (Nationality, Blood Group, Address)
+                $updateFields = [];
+                $updateParams = [':id' => $donorId];
+
                 if (!empty($_POST['nationality'])) {
-                    $this->query("UPDATE donors SET nationality = :nat WHERE id = :id", [
-                        ':nat' => $_POST['nationality'],
-                        ':id' => $donorId
-                    ]);
+                    $updateFields[] = "nationality = :nat";
+                    $updateParams[':nat'] = $_POST['nationality'];
+                }
+                if (!empty($_POST['blood_group'])) {
+                    $updateFields[] = "blood_group = :bg";
+                    $updateParams[':bg'] = $_POST['blood_group'];
+                }
+                if (!empty($_POST['address'])) {
+                    $updateFields[] = "address = :addr";
+                    $updateParams[':addr'] = encrypt($_POST['address']);
+                }
+
+                if (!empty($updateFields)) {
+                    $this->query("UPDATE donors SET " . implode(", ", $updateFields) . " WHERE id = :id", $updateParams);
                 }
 
                 $rep1_name = $_POST['rep1_name'] ?? $_POST['cust1_name'] ?? '';
@@ -322,6 +373,23 @@ class Donor {
                 }
             } elseif ($action === 'submit_body_pledge') {
                 try {
+                    // Update donor profile info
+                    $updateFields = [];
+                    $updateParams = [':id' => $donorId];
+
+                    if (!empty($_POST['blood_group'])) {
+                        $updateFields[] = "blood_group = :bg";
+                        $updateParams[':bg'] = $_POST['blood_group'];
+                    }
+                    if (!empty($_POST['address'])) {
+                        $updateFields[] = "address = :addr";
+                        $updateParams[':addr'] = encrypt($_POST['address']);
+                    }
+
+                    if (!empty($updateFields)) {
+                        $this->query("UPDATE donors SET " . implode(", ", $updateFields) . " WHERE id = :id", $updateParams);
+                    }
+
                     $bodyDonationModel = new \App\Models\BodyDonationModel();
                     $witnessModel = new \App\Models\WitnessModel();
                     $custodianModel = new \App\Models\DonorCustodianModel();
@@ -382,6 +450,23 @@ class Donor {
                 }
                 redirect('donor/donations');
             } elseif ($action === 'submit_after_death_pledge') {
+                // Update donor profile info
+                $updateFields = [];
+                $updateParams = [':id' => $donorId];
+
+                if (!empty($_POST['blood_group'])) {
+                    $updateFields[] = "blood_group = :bg";
+                    $updateParams[':bg'] = $_POST['blood_group'];
+                }
+                if (!empty($_POST['address'])) {
+                    $updateFields[] = "address = :addr";
+                    $updateParams[':addr'] = encrypt($_POST['address']);
+                }
+
+                if (!empty($updateFields)) {
+                    $this->query("UPDATE donors SET " . implode(", ", $updateFields) . " WHERE id = :id", $updateParams);
+                }
+
                 $organModel = new \App\Models\OrganModel();
                 $witnessModel = new \App\Models\WitnessModel();
                 $custodianModel = new \App\Models\DonorCustodianModel();
@@ -831,6 +916,8 @@ class Donor {
                     if ($custodianModel->deleteCustodian($custodianId, $donorId)) {
                         $success = true;
                         $message = "Custodian removed successfully.";
+                    } else {
+                        $message = "Cannot remove custodian. At least 2 custodians must be maintained at all times.";
                     }
                     break;
             }
@@ -1233,7 +1320,7 @@ class Donor {
 
         $userId        = $_SESSION['user_id'];
         $donationModel = new FinancialDonationModel();
-        $history       = $donationModel->getDonationsByUserId($userId);
+        $history       = $donationModel->getDonationsByDonorId($userId);
 
         $totalDonated = 0;
         if ($history) {
@@ -1278,7 +1365,7 @@ class Donor {
 
         $userId           = $_SESSION['user_id'];
         $donationModel    = new FinancialDonationModel();
-        $donation_history = $donationModel->getDonationsByUserId($userId);
+        $donation_history = $donationModel->getDonationsByDonorId($userId);
 
         $totalPrevious = 0;
         if ($donation_history) {

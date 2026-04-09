@@ -224,12 +224,22 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                         <input type="text" class="d-input" value="<?= htmlspecialchars($donor_data['gender'] ?? '') ?>" readonly style="background:#f1f5f9;">
                     </div>
                     <div class="d-input-group" style="grid-column: span 2;">
-                        <label>Address</label>
-                        <textarea class="d-input" readonly style="background:#f1f5f9; height:60px;"><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
+                        <label>Address <span style="color:var(--danger);">*</span></label>
+                        <textarea id="livingAddress" class="d-input" style="height:60px;"><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
                     </div>
                     <div class="d-input-group">
-                        <label>Blood Group</label>
-                        <input type="text" id="bloodGroup" class="d-input" value="<?= htmlspecialchars($donor_data['blood_group'] ?? '') ?>" readonly style="background:#f1f5f9;">
+                        <label>Blood Group <span style="color:var(--danger);">*</span></label>
+                        <select id="bloodGroup" class="d-input">
+                            <option value="">-- Select Blood Group --</option>
+                            <option value="A+" <?= ($donor_data['blood_group'] ?? '') == 'A+' ? 'selected' : '' ?>>A+</option>
+                            <option value="A-" <?= ($donor_data['blood_group'] ?? '') == 'A-' ? 'selected' : '' ?>>A-</option>
+                            <option value="B+" <?= ($donor_data['blood_group'] ?? '') == 'B+' ? 'selected' : '' ?>>B+</option>
+                            <option value="B-" <?= ($donor_data['blood_group'] ?? '') == 'B-' ? 'selected' : '' ?>>B-</option>
+                            <option value="AB+" <?= ($donor_data['blood_group'] ?? '') == 'AB+' ? 'selected' : '' ?>>AB+</option>
+                            <option value="AB-" <?= ($donor_data['blood_group'] ?? '') == 'AB-' ? 'selected' : '' ?>>AB-</option>
+                            <option value="O+" <?= ($donor_data['blood_group'] ?? '') == 'O+' ? 'selected' : '' ?>>O+</option>
+                            <option value="O-" <?= ($donor_data['blood_group'] ?? '') == 'O-' ? 'selected' : '' ?>>O-</option>
+                        </select>
                     </div>
                     <div class="d-input-group">
                         <label>Nationality <span style="color:var(--danger);">*</span></label>
@@ -456,9 +466,25 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                     <div class="d-info-item"><label>NIC Number</label><span><?= htmlspecialchars($donor_data['nic_number']) ?></span></div>
                     <div class="d-info-item"><label>Date of Birth</label><span><?= htmlspecialchars($donor_data['date_of_birth']) ?></span></div>
                     <div class="d-info-item"><label>Gender</label><span><?= htmlspecialchars($donor_data['gender']) ?></span></div>
-                    <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Set') ?></span></div>
+                    <div class="d-info-item">
+                        <label>Blood Group <span style="color:var(--danger);">*</span></label>
+                        <select name="blood_group" class="d-input" style="padding: 0.4rem; font-size: 0.8rem; height: auto;" required>
+                            <option value="">-- Select --</option>
+                            <option value="A+" <?= ($donor_data['blood_group'] ?? '') == 'A+' ? 'selected' : '' ?>>A+</option>
+                            <option value="A-" <?= ($donor_data['blood_group'] ?? '') == 'A-' ? 'selected' : '' ?>>A-</option>
+                            <option value="B+" <?= ($donor_data['blood_group'] ?? '') == 'B+' ? 'selected' : '' ?>>B+</option>
+                            <option value="B-" <?= ($donor_data['blood_group'] ?? '') == 'B-' ? 'selected' : '' ?>>B-</option>
+                            <option value="AB+" <?= ($donor_data['blood_group'] ?? '') == 'AB+' ? 'selected' : '' ?>>AB+</option>
+                            <option value="AB-" <?= ($donor_data['blood_group'] ?? '') == 'AB-' ? 'selected' : '' ?>>AB-</option>
+                            <option value="O+" <?= ($donor_data['blood_group'] ?? '') == 'O+' ? 'selected' : '' ?>>O+</option>
+                            <option value="O-" <?= ($donor_data['blood_group'] ?? '') == 'O-' ? 'selected' : '' ?>>O-</option>
+                        </select>
+                    </div>
                     <div class="d-info-item"><label>Nationality</label><span><?= htmlspecialchars($donor_data['nationality'] ?? 'Sri Lankan') ?></span></div>
-                    <div class="d-info-item" style="grid-column:span 3; border-top:1px solid var(--g100); padding-top:1rem; margin-top:0.5rem;"><label>Official Address of Record</label><span><?= htmlspecialchars($donor_data['address']) ?></span></div>
+                    <div class="d-info-item" style="grid-column:span 4; border-top:1px solid var(--g100); padding-top:1rem; margin-top:0.5rem;">
+                        <label>Official Address of Record <span style="color:var(--danger);">*</span></label>
+                        <textarea name="address" class="d-input" style="height: 60px; font-size: 0.85rem;" required><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
+                    </div>
                 </div>
                 <div class="d-instruction-box" style="margin-top:1.5rem; background:var(--blue-50); color:var(--blue-700); border-color:var(--blue-100);">
                     <p style="font-size:0.85rem;"><i class="fas fa-info-circle"></i> This statutory information is synced with your primary donor profile. Accuracy is mandatory for legal validity.</p>
@@ -659,8 +685,24 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                     <div class="d-info-item"><label>NIC / ID</label><span><?= htmlspecialchars($donor_data['nic_number'] ?? '') ?></span></div>
                     <div class="d-info-item"><label>Date of Birth</label><span><?= htmlspecialchars($donor_data['date_of_birth'] ?? '') ?></span></div>
                     <div class="d-info-item"><label>Gender</label><span><?= htmlspecialchars($donor_data['gender'] ?? '-') ?></span></div>
-                    <div class="d-info-item"><label>Blood Group</label><span><?= htmlspecialchars($donor_data['blood_group'] ?? 'Not Set') ?></span></div>
-                    <div class="d-info-item"><label>Address</label><span style="font-size:0.75rem;"><?= htmlspecialchars($donor_data['address'] ?? '') ?></span></div>
+                    <div class="d-info-item">
+                        <label>Blood Group <span style="color:var(--danger);">*</span></label>
+                        <select name="blood_group" class="d-input" style="padding: 0.4rem; font-size: 0.8rem; height: auto;" required>
+                            <option value="">-- Select --</option>
+                            <option value="A+" <?= ($donor_data['blood_group'] ?? '') == 'A+' ? 'selected' : '' ?>>A+</option>
+                            <option value="A-" <?= ($donor_data['blood_group'] ?? '') == 'A-' ? 'selected' : '' ?>>A-</option>
+                            <option value="B+" <?= ($donor_data['blood_group'] ?? '') == 'B+' ? 'selected' : '' ?>>B+</option>
+                            <option value="B-" <?= ($donor_data['blood_group'] ?? '') == 'B-' ? 'selected' : '' ?>>B-</option>
+                            <option value="AB+" <?= ($donor_data['blood_group'] ?? '') == 'AB+' ? 'selected' : '' ?>>AB+</option>
+                            <option value="AB-" <?= ($donor_data['blood_group'] ?? '') == 'AB-' ? 'selected' : '' ?>>AB-</option>
+                            <option value="O+" <?= ($donor_data['blood_group'] ?? '') == 'O+' ? 'selected' : '' ?>>O+</option>
+                            <option value="O-" <?= ($donor_data['blood_group'] ?? '') == 'O-' ? 'selected' : '' ?>>O-</option>
+                        </select>
+                    </div>
+                    <div class="d-info-item" style="grid-column: span 2;">
+                        <label>Address <span style="color:var(--danger);">*</span></label>
+                        <textarea name="address" class="d-input" style="height: 60px; font-size: 0.85rem;" required><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
+                    </div>
                 </div>
                 <div style="text-align:right; margin-top:2rem;"><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(2)">Proceed to Academic Details <i class="fas fa-arrow-right"></i></button></div>
             </div>
@@ -837,6 +879,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
     <!-- Legacy fields -->
     <input type="hidden" name="conditions" id="pledgeConditions">
     <input type="hidden" name="blood_group" id="pledgeBloodGroup">
+    <input type="hidden" name="address" id="pledgeAddress">
     
     <!-- Recipient Info (REMOVED) -->
     
@@ -870,6 +913,27 @@ function openLivingModal(id,name){
     openModal('livingConsentModal'); 
 }
 function goToStep(n){ 
+    const currentStepNum = parseInt(document.querySelector('.d-modal__step.active')?.id.replace('step','') || '1');
+    
+    // Validate Current Step before moving forward
+    if(n > currentStepNum) {
+        const currentStep = document.getElementById('step' + currentStepNum);
+        const inputs = currentStep.querySelectorAll('input[required], select[required], textarea[required]');
+        let valid = true;
+        inputs.forEach(input => {
+            if(!input.value || (input.type === 'checkbox' && !input.checked)) {
+                input.style.borderColor = 'var(--danger)';
+                valid = false;
+            } else {
+                input.style.borderColor = 'var(--g200)';
+            }
+        });
+        if(!valid) {
+            alert('Please fill all required fields in Step ' + currentStepNum + ' before proceeding.');
+            return;
+        }
+    }
+
     document.querySelectorAll('.d-modal__step').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('#livingConsentModal [id^="step"]').forEach(s => s.style.display = 'none');
     const el = document.getElementById('step' + n);
@@ -959,11 +1023,33 @@ function submitPledge(){
     // Legacy fields still needed by simple model logic
     document.getElementById('pledgeConditions').value = document.getElementById('conditions').value;
     document.getElementById('pledgeBloodGroup').value = document.getElementById('bloodGroup').value;
+    document.getElementById('pledgeAddress').value = document.getElementById('livingAddress').value;
 
     document.getElementById('pledgeForm').submit(); 
 }
 function openAfterDeathModal(id,name){ document.querySelectorAll('.death-org-check').forEach(c=>c.checked=false); const target=document.getElementById('death_org_'+id); if(target) target.checked=true; goToDeathStep(1); openModal('afterDeathConsentModal'); }
 function goToDeathStep(step) {
+    const currentStepNum = parseInt(document.querySelector('#afterDeathForm div[id^="deathStep"]:not([style*="display: none"])')?.id.replace('deathStep','') || '1');
+    
+    // Validate Current Step before moving forward
+    if(step > currentStepNum) {
+        const currentStep = document.getElementById('deathStep' + currentStepNum);
+        const inputs = currentStep.querySelectorAll('input[required], select[required], textarea[required]');
+        let valid = true;
+        inputs.forEach(input => {
+            if(!input.value || (input.type === 'checkbox' && !input.checked)) {
+                input.style.borderColor = 'var(--danger)';
+                valid = false;
+            } else {
+                input.style.borderColor = 'var(--g200)';
+            }
+        });
+        if(!valid) {
+            alert('Please fill all required fields in Step ' + currentStepNum + ' before proceeding.');
+            return;
+        }
+    }
+
     for(let i=1; i<=7; i++) {
         let el = document.getElementById('deathStep' + i);
         if(el) el.style.display = 'none';
