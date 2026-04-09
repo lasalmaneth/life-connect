@@ -1501,6 +1501,16 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['user_id'])) redirect('login');
 
+        // Handle GET request to trigger modal from other pages/links
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $organId = (int)($_GET['organ_id'] ?? 0);
+            if ($organId > 0) {
+                $_SESSION['withdrawal_organ_id'] = $organId;
+                $_SESSION['show_withdrawal'] = true;
+                redirect('donor/donations');
+            }
+        }
+
         $common = $this->getCommonData();
         $donorId = $common['donorId'];
         $donorData = $common['donorData'];

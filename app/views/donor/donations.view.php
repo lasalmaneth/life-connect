@@ -103,7 +103,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                                     $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                     $statusClass = 'd-status--danger';
                                     $statusText = 'Withdrawal Pending';
-                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                    $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=" . (int)$o['organ_id'] . "'"; 
                                 } else {
                                     $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--accent); background: #f0fdf4;';
                                     $statusClass = $isPending ? 'd-status--pending' : 'd-status--success';
@@ -125,7 +125,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                                     $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                     $statusClass = 'd-status--danger';
                                     $statusText = 'Withdrawal Pending';
-                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                    $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=" . (int)$o['organ_id'] . "'"; 
                                 } else {
                                     $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid var(--blue-500); background: var(--blue-50);';
                                     $statusClass = $isPending ? 'd-status--pending' : 'd-status--info';
@@ -148,7 +148,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                                     $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                     $statusClass = 'd-status--danger';
                                     $statusText = 'Withdrawal Pending';
-                                    $clickHandler = "openModal('withdrawFormalModal')"; 
+                                    $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=9'"; 
                                 } else {
                                     $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
                                     $statusClass = $isPending ? 'd-status--pending' : '';
