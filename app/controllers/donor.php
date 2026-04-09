@@ -70,17 +70,15 @@ class Donor {
         $targetOrganId = $_SESSION['withdrawal_organ_id'] ?? null;
         if ($targetOrganId) {
             $withdrawal = $donorModel->getPendingWithdrawalByOrgan($donorId, $targetOrganId);
-            // If no pending one for this organ, try to find a completed one (for Step 3/Success display if needed)
-            if (!$withdrawal) {
-                // Fetch latest for this specific organ
-                $withdrawal = $this->query("SELECT * FROM consent_withdrawals WHERE donor_id = :d AND organ_id = :o ORDER BY created_at DESC LIMIT 1", [
-                    ':d' => $donorId,
-                    ':o' => $targetOrganId
-                ])[0] ?? null;
-            }
         } else {
             $withdrawal = $donorModel->getWithdrawalByDonorId($donorId);
+            if ($withdrawal && $withdrawal->status !== 'PENDING_UPLOAD') {
+                $withdrawal = null;
+            }
         }
+
+        // Fetch counts for role switching logic
+        $stats = $donorModel->getPledgeSummary($donorId);
 
         return [
             'donorId' => $donorId,
@@ -90,7 +88,8 @@ class Donor {
             'donorRole' => $donorRole,
             'activeRoles' => $activeRoles,
             'currentMode' => $currentMode ?: 'mode-organ-donation',
-            'withdrawal' => $withdrawal
+            'withdrawal' => $withdrawal,
+            'stats' => $stats
         ];
     }
 
@@ -180,6 +179,72 @@ class Donor {
     }
 
     /**
+     * AJAX Action: Get Pledge Metadata for Download
+     */
+    public function getPledgeDetails()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $organId = $_GET['organ_id'] ?? null;
+        if (!$organId) {
+            echo json_encode(['success' => false, 'message' => 'Missing Organ ID']);
+            exit;
+        }
+
+        $donorId = $this->getDonorId();
+        $donorModel = new \App\Models\DonorModel();
+        
+        // 1. Get Donor & Organ Info
+        $donorData = $donorModel->getDonorById($donorId);
+        $pledge = $this->query("SELECT dp.*, o.name as organ_name, o.description as organ_desc 
+                                FROM donor_pledges dp 
+                                JOIN organs o ON dp.organ_id = o.id 
+                                WHERE dp.donor_id = :d AND dp.organ_id = :o AND dp.status != 'WITHDRAWN'", 
+                               [':d' => $donorId, ':o' => $organId]);
+        
+        if (!$pledge) {
+            echo json_encode(['success' => false, 'message' => 'Pledge not found']);
+            exit;
+        }
+
+        $pledgeData = $pledge[0];
+        
+        // 2. Get Witnesses
+        $witnessModel = new \App\Models\WitnessModel();
+        $witnesses = $this->query("SELECT * FROM witnesses WHERE donor_id = :d AND organ_id = :o", 
+                                  [':d' => $donorId, ':o' => $organId]);
+
+        // 3. Get Consent Details (Living/After Death/Body)
+        $consent = null;
+        if ($organId == 9) { // Full Body
+            $bodyModel = new \App\Models\BodyDonationModel();
+            $consent = $bodyModel->getConsentByDonorId($donorId);
+        } else if (stripos($pledgeData->organ_desc, 'living donor') !== false) {
+            $livingModel = new \App\Models\LivingConsentModel();
+            $consent = $livingModel->getConsentByPledgeId($pledgeData->id);
+        } else {
+            $deathModel = new \App\Models\AfterDeceasedConsentModel();
+            $consent = $deathModel->getConsentByDonorId($donorId);
+        }
+
+        echo json_encode([
+            'success'   => true,
+            'donor'     => $donorData,
+            'pledge'    => $pledgeData,
+            'witnesses' => $witnesses ? $witnesses : [],
+            'consent'   => $consent,
+            'today'     => date('F d, Y')
+        ]);
+        exit;
+    }
+
+    /**
      * AJAX Action: Update User Roles
      */
     public function updateRoles()
@@ -203,34 +268,24 @@ class Donor {
         $isOrganDonorRequested = in_array('organ', $roles);
 
         if ($isNonDonorRequested && !$isOrganDonorRequested) {
-            // Check for finalized vs pending pledges before allowing switch to Non-Donor
-            $summary = $donorModel->getPledgeSummary($donorId);
-            
-            if ($summary['finalized'] > 0) {
-                echo json_encode([
-                    'success' => false, 
-                    'message' => 'You have legally finalized donation consents. Please withdraw all pledges before switching to Non-Donor status.'
-                ]);
-                exit;
-            }
+            // If switching to Non-Donor, ensure Organ role is removed
+            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
+        }
 
-            // If only pending pledges exist, require explicit confirmation for auto-withdrawal
-            if ($summary['pending'] > 0 && !isset($_POST['confirm_withdraw'])) {
+        // Check if Organ Donor role is being removed
+        $currentRoles = $donorModel->getActiveRoles($donorId);
+        $wasOrganDonor = in_array('organ', $currentRoles);
+        $isOrganDonorNow = in_array('organ', $roles);
+
+        if ($wasOrganDonor && !$isOrganDonorNow) {
+            $summary = $donorModel->getPledgeSummary($donorId);
+            if ($summary['total'] > 0) {
                 echo json_encode([
                     'success' => false,
-                    'require_confirmation' => true,
-                    'message' => 'You have pending pledges that have not been finalized. Switching to Non-Donor status will automatically withdraw them. Continue?'
+                    'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
                 ]);
                 exit;
             }
-
-            // Perform auto-withdrawal if confirmed
-            if ($summary['pending'] > 0 && isset($_POST['confirm_withdraw'])) {
-                $donorModel->withdrawPendingPledges($donorId);
-            }
-
-            // Remove Organ role if switching to Non-Donor
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
         } else if ($isOrganDonorRequested) {
             // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
             $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
@@ -337,8 +392,8 @@ class Donor {
                     if ($oId <= 0) continue;
                     
                     if ($organModel->addDonorPledge($donorId, $oId, $details)) {
-                        // Get the newly created pledge ID
-                        $pledge = $this->query("SELECT id FROM donor_pledges WHERE donor_id = :d AND organ_id = :o AND status = 'PENDING' ORDER BY pledge_date DESC LIMIT 1", [
+                        // Get the existing or newly created pledge ID (Status can be PENDING, UPLOADED, etc.)
+                        $pledge = $this->query("SELECT id FROM donor_pledges WHERE donor_id = :d AND organ_id = :o AND status != 'WITHDRAWN' ORDER BY pledge_date DESC LIMIT 1", [
                             ':d' => $donorId,
                             ':o' => $oId
                         ]);
@@ -347,7 +402,9 @@ class Donor {
                         if ($pledgeId) {
                             // save detailed living consent
                             $livingConsentModel = new \App\Models\LivingConsentModel();
-                            $livingConsentModel->createConsent([
+                            $existingConsent = $livingConsentModel->getConsentByPledgeId($pledgeId);
+                            
+                            $consentData = [
                                 'donor_pledge_id'        => $pledgeId,
                                 'height'                 => $_POST['height'] ?? null,
                                 'weight'                 => $_POST['weight'] ?? null,
@@ -358,7 +415,13 @@ class Donor {
                                 'emergency_contact_name'  => $_POST['emergency_name'] ?? null,
                                 'emergency_relationship'  => $_POST['emergency_rel'] ?? null,
                                 'emergency_phone'         => $_POST['emergency_phone'] ?? null
-                            ]);
+                            ];
+
+                            if ($existingConsent) {
+                                $livingConsentModel->updateConsent($pledgeId, $consentData);
+                            } else {
+                                $livingConsentModel->createConsent($consentData);
+                            }
                         }
 
                         // Legal Requirement: Store as Witnesses for Living Donations
@@ -621,8 +684,16 @@ class Donor {
         $organModel = new \App\Models\OrganModel();
         $donorModel = new \App\Models\DonorModel();
         
-        $allOrgans = $organModel->getAllAvailableOrgans();
-        $allOrgans = json_decode(json_encode($allOrgans), true);
+        $allOrgansRaw = $organModel->getAllAvailableOrgans();
+        $existingPledges = $donorModel->getPledgedOrgans($donorId);
+        $pledgedOrganIds = array_column($existingPledges, 'organ_id');
+        
+        // Filter out organs that are already pledged and not withdrawn
+        $filteredOrgans = array_filter($allOrgansRaw, function($o) use ($pledgedOrganIds) {
+            return !in_array($o->id, $pledgedOrganIds);
+        });
+        
+        $allOrgans = json_decode(json_encode($filteredOrgans), true);
         $pledgedOrgans = $donorModel->getPledgedOrgans($donorId);
         $pledgedIds = array_column($pledgedOrgans, 'organ_id');
 

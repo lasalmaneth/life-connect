@@ -158,18 +158,6 @@
                         </div>
                     </div>
                 </div>
-            <?php else: ?>
-                <!-- STEP 3: COMPLETED -->
-                <div style="text-align: center; padding: 20px;">
-                    <div style="background: #e0f2fe; color: #0369a1; width: 70px; height: 70px; line-height: 70px; border-radius: 50%; margin: 0 auto 20px; font-size: 2rem;">
-                        <i class="fas fa-check-double"></i>
-                    </div>
-                    <h3 style="margin: 0; color: #0c4a6e;">Withdrawal Formalized</h3>
-                    <p style="color: var(--g600); font-size: 0.95rem; margin: 15px auto 25px; line-height: 1.6;">
-                        Your revocation of consent for this organ has been successfully processed and legally recorded. Your remaining pledges (if any) stay active.
-                    </p>
-                    <button class="d-btn d-btn--outline" onclick="closeModal('withdrawFormalModal'); window.location.reload();">Back to Dashboard</button>
-                </div>
             <?php endif; ?>
 
         </div>

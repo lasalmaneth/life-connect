@@ -211,6 +211,30 @@ async function setDonorMode(mode, element) {
       return;
   }
 
+  // Perform UI Updates
+  updatePortalUI(mode, element);
+
+  // Persist on Server & Navigate
+  const formData = new FormData();
+  formData.append('mode', mode);
+  try {
+    const response = await fetch('<?= ROOT ?>/donor/set-portal-mode', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json();
+    if (data.success) {
+      // Navigate to overview on role/mode click
+      window.location.href = '<?= ROOT ?>/donor';
+    }
+  } catch (e) {
+    console.error("Failed to set donor mode:", e);
+    // Fallback if fetch fails: still redirect to update context
+    window.location.href = '<?= ROOT ?>/donor';
+  }
+}
+
+function updatePortalUI(mode, element) {
   // Update Active Tab
   document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
   element.classList.add('active');
@@ -224,15 +248,7 @@ async function setDonorMode(mode, element) {
   // Update Sidebar Visibility
   updateSidebarVisibility(mode);
 
-  // Persist on Server
-  const formData = new FormData();
-  formData.append('mode', mode);
-  fetch('<?= ROOT ?>/donor/set-portal-mode', {
-    method: 'POST',
-    body: formData
-  });
-
-  // Persist in LocalStorage (fallback/legacy)
+  // Update LocalStorage
   localStorage.setItem('donor_portal_mode', mode);
 }
 
@@ -271,6 +287,8 @@ function updateModeIndicator(element) {
   }
 }
 
+const hasActiveConsents = <?= ($activePledgeCount > 0) ? 'true' : 'false' ?>;
+
 function promptAddRole(role, roleName) {
   const modalBody = document.getElementById('addRoleModalBody');
   const warningSection = document.getElementById('addRoleRedWarning');
@@ -289,9 +307,9 @@ function promptAddRole(role, roleName) {
   title.innerText = `Add ${roleName} Role`;
   title.style.color = "var(--blue-800)";
 
-  // Mandatory Red Warning for Non-Donor Case
-  if (role === 'non') {
-      const message = "Becoming a Non-Donor signifies your official choice to opt out of ALL organ, tissue, and body recovery efforts. This requires a formal legal withdrawal form even if you have no current pledges.";
+  // Mandatory Red Warning for Non-Donor Case (Only if active finalized pledges exist)
+  if (role === 'non' && hasActiveConsents) {
+      const message = "Becoming a Non-Donor signifies your official choice to opt out of ALL organ, tissue, and body recovery efforts. This requires a formal legal withdrawal form because you have legally finalized pledges.";
       applyRedWarningStyle(message, role);
   }
 
@@ -408,10 +426,20 @@ async function saveRolesFromModal() {
       return;
   }
 
-  // Intercept Non-Donor selection to force the formal withdrawal portal
-  if (newRoles.includes('non')) {
+  // Intercept Organ Donor role removal if ANY pledges exist
+  const wasOrganDonor = activeRoles.includes('organ');
+  const isOrganDonorNow = newRoles.includes('organ');
+
+  if (wasOrganDonor && !isOrganDonorNow && activePledgeCount > 0) {
       closeModal('manageRolesModal');
-      showRoleWarning("Becoming a Non-Donor requires a formal declaration and withdrawal of any possible previous consents. You will now be guided through the legal process.");
+      showRoleWarning("You have active donation pledges. You must formally withdraw all pledges via the donations page before removing the Organ Donor role.");
+      return;
+  }
+  
+  // Also intercept Non-Donor selection (hard block if pledges exist)
+  if (newRoles.includes('non') && activePledgeCount > 0) {
+      closeModal('manageRolesModal');
+      showRoleWarning("Becoming a Non-Donor signifies your official choice to opt out of ALL recovery efforts. Since you have active pledges, a formal withdrawal form is required.");
       return;
   }
   
@@ -458,7 +486,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (targetTab) {
     setTimeout(() => {
-      setDonorMode(targetTab.dataset.mode, targetTab);
+      // Use UI-only update for initialization to avoid infinite redirect loop
+      updatePortalUI(targetTab.dataset.mode, targetTab);
     }, 50);
   }
 });

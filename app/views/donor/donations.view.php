@@ -1212,7 +1212,120 @@ function uploadPledgeFile() {
     }
     document.getElementById('pledgeUploadForm').submit();
 }
+
+async function downloadExistingPledge(organId) {
+    const btn = document.getElementById('downloadExistingBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('<?= ROOT ?>/donor/get-pledge-details?organ_id=' + organId);
+        const data = await response.json();
+
+        if (data.success) {
+            // Populate Universal Template
+            const t = document.getElementById('universalDownloadTemplate');
+            
+            // Donor Info
+            t.querySelector('.rev_donor_name').textContent = (data.donor.first_name + ' ' + data.donor.last_name).toUpperCase();
+            t.querySelector('.rev_donor_nic').textContent = data.donor.nic_number || '-';
+            t.querySelector('.rev_organ_name').textContent = data.pledge.organ_name;
+            t.querySelector('.rev_date').textContent = data.today;
+            
+            // Medical/Consent Info
+            t.querySelector('.rev_nationality').textContent = data.donor.nationality || '-';
+            t.querySelector('.rev_blood').textContent = data.donor.blood_group || '-';
+            t.querySelector('.rev_gender').textContent = data.donor.gender || '-';
+            
+            if (data.consent) {
+                t.querySelector('.rev_vitals').textContent = (data.consent.height || '-') + ' cm | ' + (data.consent.weight || '-') + ' kg';
+                t.querySelector('.rev_habits').textContent = data.consent.smoking_alcohol_status || 'None';
+                t.querySelector('.rev_medical').textContent = (data.pledge.conditions || 'None') + ' | Surgeries: ' + (data.consent.previous_surgeries || 'None');
+                t.querySelector('.rev_emergency').textContent = (data.consent.emergency_contact_name || '-') + ' (' + (data.consent.emergency_relationship || '-') + ') - ' + (data.consent.emergency_phone || '-');
+            }
+
+            // Witnesses
+            const witnesses = Array.isArray(data.witnesses) ? data.witnesses : [];
+            const w1 = witnesses.find(w => w.witness_number == 1) || {};
+            const w2 = witnesses.find(w => w.witness_number == 2) || {};
+            t.querySelector('.rev_w1').textContent = 'W1: ' + (w1.name || 'Not Provided') + ' (' + (w1.nic_number || '-') + ')';
+            t.querySelector('.rev_w2').textContent = 'W2: ' + (w2.name || 'Not Provided') + ' (' + (w2.nic_number || '-') + ')';
+
+            // Trigger Download
+            downloadPledge('universalDownloadTemplate');
+        } else {
+            alert("Error: " + (data.message || "Failed to fetch pledge details."));
+        }
+    } catch (e) {
+        console.error(e);
+        alert("System error while generating document.");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 </script>
+
+<!-- HIDDEN DOWNLOAD TEMPLATE (UNIVERSAL) -->
+<div id="universalDownloadTemplate" style="display:none;">
+    <div class="d-review-page" style="padding: 2.5rem; color: var(--slate);">
+        <div class="d-review-header">
+            <h2 class="rev_form_title">Organ Donation Consent Form</h2>
+            <p style="text-transform: uppercase; letter-spacing: 2px; font-weight: 700; font-size: 0.75rem; color: var(--blue-600); margin-top: 5px;">Formal Statutory Declaration</p>
+        </div>
+        
+        <div class="d-instruction-box" style="background:#f0fdf4; border-color:var(--accent); color:#166534; font-size:0.85rem; margin-bottom:2rem;">
+            <strong>Declaration:</strong> I, <span class="rev_donor_name" style="font-weight: 700; text-decoration: underline;">-</span>, holder of NIC <strong class="rev_donor_nic">-</strong>, hereby confirm that this pledge is <strong>strictly voluntary</strong> and I have received <strong>no financial compensation</strong> for this act.
+        </div>
+
+        <div class="d-info-grid" style="margin-bottom: 1.5rem;">
+            <div class="d-info-item"><label>Organ for Donation</label><span class="rev_organ_name" style="color:var(--blue-700); font-weight: 800;">-</span></div>
+            <div class="d-info-item"><label>Filing Date</label><span class="rev_date">-</span></div>
+        </div>
+
+        <div class="d-info-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; border-top: 1px solid var(--g100); padding-top: 1rem; margin-bottom: 2rem;">
+            <div class="d-info-item"><label>Nationality</label><span class="rev_nationality">-</span></div>
+            <div class="d-info-item"><label>Blood Group</label><span class="rev_blood">-</span></div>
+            <div class="d-info-item"><label>Gender</label><span class="rev_gender">-</span></div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+            <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g200); padding-bottom:5px; margin-bottom: 10px;">Medical Summary</h6>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="font-size: 0.85rem;"><strong>Vitals:</strong> <span class="rev_vitals">-</span></div>
+                <div style="font-size: 0.85rem;"><strong>Habits:</strong> <span class="rev_habits">-</span></div>
+                <div style="font-size: 0.85rem; grid-column: span 2;"><strong>Surgeries/Conditions:</strong> <span class="rev_medical">-</span></div>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-bottom:3rem;">
+            <div>
+                <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:5px;">Recipient Institution</h6>
+                <p style="font-size:0.95rem; font-weight:800; color: var(--blue-700); margin-top:10px;">Registry Managed</p>
+                <div style="font-size:0.75rem; color:var(--g500); margin-top:4px;">Medical center authorized for recovery and surgical procedures.</div>
+            </div>
+            <div>
+                <h6 style="font-size:0.7rem; color:var(--g500); text-transform:uppercase; border-bottom:1px solid var(--g100); padding-bottom:5px;">Witnesses & Verification</h6>
+                <div style="margin-top: 10px;">
+                    <div style="font-size: 0.85rem; font-weight: 700;" class="rev_w1">W1: -</div>
+                    <div style="font-size: 0.85rem; font-weight: 700; margin-top: 4px;" class="rev_w2">W2: -</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin-bottom: 2.5rem; font-size: 0.8rem; color: #92400e; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div><strong>Emergency Contact:</strong> <span class="rev_emergency" style="font-weight: 800;">-</span></div>
+        </div>
+
+        <div class="signature-block">
+            <div class="sig-line">WITNESS 01 SIGNATURE</div>
+            <div class="sig-line">WITNESS 02 SIGNATURE</div>
+            <div class="sig-line">DONOR'S SIGNATURE</div>
+        </div>
+    </div>
+</div>
 
 <!-- MODAL: PLEDGE ACTION (UPLOAD/WITHDRAW) -->
 <div id="pledgeActionModal" class="d-modal">
@@ -1237,10 +1350,13 @@ function uploadPledgeFile() {
             </form>
 
             <div style="display:grid; grid-template-columns: 1fr; gap: 10px; margin-top: 1.5rem;">
+                <button class="d-btn d-btn--secondary" id="downloadExistingBtn" onclick="downloadExistingPledge(pendingOrganId)">
+                    <i class="fas fa-file-pdf"></i> Download Consent Form
+                </button>
+                <div style="text-align:center; margin: 5px 0; font-size: 0.8rem; color: var(--g400);">— OR —</div>
                 <button class="d-btn d-btn--primary" onclick="uploadPledgeFile()">
                     <i class="fas fa-upload"></i> Upload & Complete
                 </button>
-                <div style="text-align:center; margin: 5px 0; font-size: 0.8rem; color: var(--g400);">— OR —</div>
                 <button class="d-btn d-btn--outline" onclick="closeModal('pledgeActionModal'); openUnselectWarning(pendingOrganId, document.getElementById('actionPledgeTitle').textContent)" style="color: var(--danger); border-color: var(--danger);">
                     <i class="fas fa-trash"></i> Withdraw Pledge
                 </div>

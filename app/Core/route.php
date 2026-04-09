@@ -32,6 +32,7 @@ route('donor/financial-history', 'Donor@financialHistory');
 route('donor/financial-donate', 'Donor@financialDonate');
 route('donor/process-financial-donation', 'Donor@processFinancialDonation');
 route('donor/withdraw-consent', 'Donor@withdrawConsent');
+route('donor/get-pledge-details', 'Donor@getPledgeDetails');
 route('custodian', 'Custodian@index');
 route('custodian/dashboard-data', 'Custodian@getDashboardData');
 route('custodian/declare-death', 'Custodian@declareDeath');
