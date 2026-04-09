@@ -3,12 +3,17 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\AftercarePatientModel;
 use App\Models\LoginModel;
 
 class Login {
     use Controller;
 
     public function index() {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Cache-Control: post-check=0, pre-check=0', false);
+        header('Pragma: no-cache');
+        header('Expires: 0');
         $this->view('login');
     }
 
@@ -18,6 +23,10 @@ class Login {
 
     public function verify() {
         header('Content-Type: application/json');
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Invalid request']);
@@ -77,12 +86,49 @@ class Login {
                 'success' => true,
                 'role' => $user->role
             ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Invalid credentials'
-            ]);
+
+            return;
         }
+
+        // Fallback: Aftercare Recipient login via main login page
+        // Username = registration_number (e.g., REG-2026-0001)
+        $looksLikeAftercareReg = (bool)preg_match('/^REG-\d{4}-\d{4}$/', $username);
+        if ($looksLikeAftercareReg) {
+            $aftercareModel = new AftercarePatientModel();
+            $patient = $aftercareModel->getByRegistrationNumber($username);
+
+            if (
+                $patient &&
+                !empty($patient->password_hash) &&
+                password_verify($password, (string)$patient->password_hash) &&
+                strtoupper((string)($patient->patient_type ?? '')) === 'RECIPIENT' &&
+                strtoupper((string)($patient->status ?? 'ACTIVE')) === 'ACTIVE'
+            ) {
+                session_regenerate_id(true);
+
+                // Clear main-auth session keys to avoid mixing contexts
+                unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['status']);
+                unset($_SESSION['donor_id'], $_SESSION['hospital_id'], $_SESSION['school_id']);
+
+                // Set Aftercare session keys
+                $_SESSION['aftercare_patient_id'] = (int)$patient->id;
+                $_SESSION['aftercare_registration_number'] = (string)$patient->registration_number;
+                $_SESSION['aftercare_must_change_password'] = !empty($patient->must_change_password) ? 1 : 0;
+
+                session_write_close();
+
+                echo json_encode([
+                    'success' => true,
+                    'role' => 'AFTERCARE_PATIENT'
+                ]);
+                return;
+            }
+        }
+
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid credentials'
+        ]);
     }
 
     public function logout() {

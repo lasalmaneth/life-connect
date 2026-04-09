@@ -5,6 +5,16 @@ route('login', 'Login@index');
 route('login/verify', 'Login@verify');
 route('logout', 'Login@logout');
 
+// Aftercare Patient Portal
+route('aftercare', 'Aftercare@index');
+route('aftercare/login', 'Aftercare@login');
+route('aftercare/verify', 'Aftercare@verify');
+route('aftercare/change-password', 'Aftercare@changePassword');
+route('aftercare/update-password', 'Aftercare@updatePassword');
+route('aftercare/logout', 'Aftercare@logout');
+route('aftercare/create-appointment', 'Aftercare@createAppointment');
+route('aftercare/submit-support-request', 'Aftercare@submitSupportRequest');
+
 route('forgot-password', 'ForgotPassword@index');
 route('forgot-password/sendOtp', 'ForgotPassword@sendOtp');
 route('forgot-password/verifyOtp', 'ForgotPassword@verifyOtp');
@@ -88,6 +98,9 @@ route('hospital/export-recipients', 'Hospital@exportRecipients');
 route('hospital/lab-reports', 'Hospital@labReports');
 route('hospital/search-donors', 'Hospital@searchDonors');
 route('hospital/addpatient', 'Hospital@addpatient');
+route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
+route('hospital/addpatient/donor', 'Hospital@addpatientDonor');
+route('hospital/fetch-donor-details', 'Hospital@fetchDonorDetails');
 route('medical-school', 'MedicalSchool@index');
 route('medical-school/consents', 'MedicalSchool@consents');
 route('medical-school/withdrawals', 'MedicalSchool@withdrawals');

@@ -45,18 +45,29 @@
                                     <div class="table-cell">Actions</div>
                                 </div>
 
-                                <div class="table-row">
-                                    <div class="table-cell name" data-label="Donor Details">NIC 2001XXXXXXX - S. Fernando</div>
-                                    <div class="table-cell" data-label="Organ Type">Kidney</div>
-                                    <div class="table-cell" data-label="Test Date">2025-10-10</div>
-                                    <div class="table-cell" data-label="Current Status"><span class="status-badge status-pending">Under Review</span></div>
-                                    <div class="table-cell" data-label="Actions">
-                                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
-                                            <button class="btn btn-success btn-small" onclick="approveEligibility()" style="white-space: nowrap;">Approve</button>
-                                            <button class="btn btn-danger btn-small" onclick="rejectEligibility()" style="white-space: nowrap;">Reject</button>
+                                <?php if (!empty($eligibility_pledges ?? [])): ?>
+                                    <?php foreach (($eligibility_pledges ?? []) as $p): ?>
+                                        <div class="table-row">
+                                            <div class="table-cell name" data-label="Donor Details">
+                                                NIC <?= htmlspecialchars($p->nic_number ?? 'N/A') ?> -
+                                                <?= htmlspecialchars(trim(($p->first_name ?? '') . ' ' . ($p->last_name ?? '')) ?: 'N/A') ?>
+                                            </div>
+                                            <div class="table-cell" data-label="Organ Type"><?= htmlspecialchars($p->organ_name ?? 'N/A') ?></div>
+                                            <div class="table-cell" data-label="Test Date"><?= htmlspecialchars(isset($p->pledge_date) ? date('Y-m-d', strtotime($p->pledge_date)) : 'N/A') ?></div>
+                                            <div class="table-cell" data-label="Current Status"><span class="status-badge status-pending">Under Review</span></div>
+                                            <div class="table-cell" data-label="Actions">
+                                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
+                                                    <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Approve</button>
+                                                    <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Reject</button>
+                                                </div>
+                                            </div>
                                         </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="table-row">
+                                        <div class="table-cell" style="text-align: center; color: #999; grid-column: 1 / -1;">No approved donor pledges assigned to this hospital.</div>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

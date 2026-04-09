@@ -13,6 +13,97 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
+    <style>
+        /* Donor-style calendar (reused for Hospital Upcoming Appointments) */
+        :root {
+            --cal-green:  var(--success-color);
+            --cal-blue:   var(--primary-color);
+            --cal-yellow: var(--warning-color);
+            --cal-red:    var(--danger-color);
+        }
+
+        .lab-tabs { display:flex; flex-wrap:wrap; gap:.45rem; }
+        .lab-tab {
+            border: 1px solid var(--border-color);
+            background: var(--white-color);
+            color: var(--primary-text-color);
+            border-radius: 999px;
+            padding: .38rem .75rem;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .15s;
+        }
+        .lab-tab:hover { background: var(--gray-bg-color); }
+        .lab-tab.active { background: var(--primary-color); border-color: var(--primary-color); color: var(--white-color); }
+
+        .lab-tabs.vertical .lab-tab {
+            border-radius: 10px;
+            padding: .75rem 1rem;
+            text-align: left;
+            font-size: .95rem;
+            width: 100%;
+        }
+
+        .cal-wrap { padding: 1rem; background: var(--white-color); border: 1px solid var(--border-color); border-radius: 14px; width: 320px; }
+        .cal-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem; }
+        .cal-nav h3 { margin:0; font-size: 1.15rem; font-weight: 800; color: var(--primary-text-color); }
+        .cal-nav-btn {
+            width: 40px; height: 40px; border-radius: 999px;
+            border: 2px solid var(--primary-color);
+            background: var(--white-color);
+            color: var(--primary-color);
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .cal-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap: 6px; text-align:center; }
+        .cal-day-hdr { font-size: .8rem; font-weight: 800; color: var(--secondary-text-color); padding: .35rem 0; }
+        .cal-day { padding: .75rem .25rem; border-radius: 12px; font-weight: 800; font-size: 1.02rem;
+                   cursor: default; position: relative; color: var(--primary-text-color); border: 2.5px solid transparent; }
+        .cal-day.clickable { cursor: pointer; }
+        .cal-day.clickable:hover { filter: brightness(.96); }
+        .cal-day.is-today { border-color: var(--primary-color); }
+        .cal-day.is-selected { outline: 2.5px solid var(--primary-color); outline-offset: 1px; }
+        .cal-day::before { content:''; position:absolute; inset:0; border-radius: 12px; opacity: .18; z-index: 0; }
+        .cal-day span { position: relative; z-index: 1; }
+
+        .cal-day.apt-green { color: var(--cal-green); }
+        .cal-day.apt-green::before { background: var(--cal-green); }
+        .cal-day.apt-blue { color: var(--cal-blue); }
+        .cal-day.apt-blue::before { background: var(--cal-blue); }
+        .cal-day.apt-yellow { color: var(--cal-yellow); }
+        .cal-day.apt-yellow::before { background: var(--cal-yellow); }
+        .cal-day.apt-red { color: var(--cal-red); }
+        .cal-day.apt-red::before { background: var(--cal-red); }
+        .cal-day:not(.apt-green):not(.apt-blue):not(.apt-yellow):not(.apt-red)::before { background: transparent; }
+
+        /* Calendar details (shown after clicking a date) */
+        .cal-details { margin-top: .9rem; }
+        .cal-details__title { font-weight: 900; font-size: .95rem; color: var(--primary-text-color); margin-bottom: .25rem; }
+        .cal-details__hint {
+            font-weight: 700;
+            font-size: .86rem;
+            color: var(--secondary-text-color);
+            padding: .65rem;
+            background: var(--gray-bg-color);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+        }
+        .cal-details-list { display:flex; flex-direction:column; gap: .55rem; }
+        .cal-details-item {
+            display:flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .75rem;
+            padding: .7rem .75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--white-color);
+        }
+        .cal-details-left { min-width: 0; }
+        .cal-details-test { font-weight: 900; font-size: .95rem; color: var(--primary-text-color); white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+        .cal-details-sub { font-weight: 700; font-size: .82rem; color: var(--secondary-text-color); margin-top: .12rem; }
+    </style>
     <title>Hospital Management - LifeConnect</title>
 </head>
 
@@ -161,6 +252,10 @@
                     <div class="menu-item" onclick="showContent('lab-reports', this)" style="text-align: left; white-space: nowrap;">
                         <span class="icon"></span>
                         <span>Upcoming Appointments</span>
+                    </div>
+                    <div class="menu-item" onclick="showContent('test-results', this)" style="text-align: left; white-space: nowrap;">
+                        <span class="icon"></span>
+                        <span>Test Results</span>
                     </div>
                     
                     <div class="menu-section-title" style="margin-top: 1.5rem;">AFTERCARE</div>
@@ -323,87 +418,65 @@
                             <h3 style="text-align: center; margin-bottom: 2rem; color: #2c3e50; font-size: 1.5rem;">
                                 Organ Request Types</h3>
                             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-top: 1rem;">
-                                <div class="organ-option-card" onclick="selectOrganType('kidney')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px;">
-                                        <img src="<?= ROOT ?>/public/assets/icons/kidneys.png" style="width: 48px; height: 48px; object-fit: contain;">
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Kidney</h4>
-                                </div>
+                                <?php
+                                    $organsList = $organs ?? [];
 
-                                <div class="organ-option-card" onclick="selectOrganType('bone marrow')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px;">
-                                        <img src="<?= ROOT ?>/public/assets/icons/bone_marrow.png" style="width: 48px; height: 48px; object-fit: contain;">
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Bone Marrow</h4>
-                                </div>
+                                    $iconForOrgan = function($organName) {
+                                        $n = strtolower(trim((string)$organName));
+                                        if ($n === 'kidney') {
+                                            return '<img src="' . ROOT . '/public/assets/icons/kidneys.png" style="width: 48px; height: 48px; object-fit: contain;">';
+                                        }
+                                        if ($n === 'bone marrow') {
+                                            return '<img src="' . ROOT . '/public/assets/icons/bone_marrow.png" style="width: 48px; height: 48px; object-fit: contain;">';
+                                        }
+                                        if ($n === 'part of liver') {
+                                            return '<img src="' . ROOT . '/public/assets/icons/liver.png" style="width: 48px; height: 48px; object-fit: contain;">';
+                                        }
+                                        if ($n === 'cornea') {
+                                            return '<i class="fas fa-eye" style="font-size: 40px; color: #3b82f6;"></i>';
+                                        }
+                                        if ($n === 'skin') {
+                                            return '<i class="fas fa-bandage" style="font-size: 40px; color: #16a34a;"></i>';
+                                        }
+                                        if ($n === 'bones') {
+                                            return '<i class="fas fa-bone" style="font-size: 40px; color: #64748b;"></i>';
+                                        }
+                                        if ($n === 'heart valves') {
+                                            return '<img src="' . ROOT . '/public/assets/icons/heart.png" style="width: 48px; height: 48px; object-fit: contain;">';
+                                        }
+                                        if ($n === 'tendons') {
+                                            return '🦵';
+                                        }
+                                        return '';
+                                    };
+                                ?>
 
-                                <div class="organ-option-card" onclick="selectOrganType('part of liver')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px;">
-                                        <img src="<?= ROOT ?>/public/assets/icons/liver.png" style="width: 48px; height: 48px; object-fit: contain;">
+                                <?php foreach ($organsList as $organ): ?>
+                                    <div class="organ-option-card" onclick='selectOrganType(<?= (int)$organ->id ?>, <?= json_encode($organ->name, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)'
+                                        style="cursor: pointer; transition: all 0.3s ease;">
+                                        <div class="option-emoji"
+                                            style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px;">
+                                            <?= $iconForOrgan($organ->name) ?>
+                                        </div>
+                                        <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">
+                                            <?= htmlspecialchars($organ->name) ?>
+                                        </h4>
                                     </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Part of Liver</h4>
-                                </div>
-
-                                <div class="organ-option-card" onclick="selectOrganType('eye cornea')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px; color: #3b82f6;">
-                                        <i class="fas fa-eye" style="font-size: 40px;"></i>
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Eye Cornea</h4>
-                                </div>
-
-                                <div class="organ-option-card" onclick="selectOrganType('skin graft')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px; color: #16a34a;">
-                                        <i class="fas fa-bandage" style="font-size: 40px;"></i>
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Skin Graft</h4>
-                                </div>
-
-                                <div class="organ-option-card" onclick="selectOrganType('bones')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px; color: #64748b;">
-                                        <i class="fas fa-bone" style="font-size: 40px;"></i>
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Bones</h4>
-                                </div>
-
-                                <div class="organ-option-card" onclick="selectOrganType('heart valves')"
-                                    style="cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="option-emoji"
-                                        style="margin-bottom: 1rem; display: flex; justify-content: center; background: #f8fafc; padding: 15px; border-radius: 20px;">
-                                        <img src="<?= ROOT ?>/public/assets/icons/heart.png" style="width: 48px; height: 48px; object-fit: contain;">
-                                    </div>
-                                    <h4 style="margin: 0.5rem 0; color: #1f2937; font-weight: 600;">Heart Valves</h4>
-                                </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
 
                         <div class="search-bar">
-                            <span class="search-icon">Search:</span>
                             <input type="text" id="organ-search" class="search-input"
-                                placeholder="Search by organ type or patient ID..." onkeyup="applyOrganFilters()">
+                                placeholder="Search by organ type or Urgency" onkeyup="applyOrganFilters()">
                         </div>
 
                         <div class="filter-section">
                             <select id="organ-type-filter" class="filter-select" onchange="applyOrganFilters()">
                                 <option value="">All Organs</option>
-                                <option value="kidney">Kidney</option>
-                                <option value="bone marrow">Bone Marrow</option>
-                                <option value="part of liver">Part of Liver</option>
-                                <option value="eye cornea">Eye Cornea</option>
-                                <option value="skin graft">Skin Graft</option>
-                                <option value="bones">Bones</option>
-                                <option value="heart valves">Heart Valves</option>
+                                <?php foreach (($organs ?? []) as $organ): ?>
+                                    <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                                <?php endforeach; ?>
                             </select>
                             <select id="urgency-filter" class="filter-select" onchange="applyOrganFilters()">
                                 <option value="">All Urgency</option>
@@ -421,38 +494,9 @@
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
                                     <div class="table-cell">Organ Type</div>
                                     <div class="table-cell">Urgency</div>
-                                    <div class="table-cell">Notes</div>
                                     <div class="table-cell">Created Date</div>
+                                    <div class="table-cell">Status</div>
                                     <div class="table-cell">Actions</div>
-                                </div>
-
-                                <div class="table-row">
-                                    <div class="table-cell name" data-label="Organ Type">Kidney</div>
-                                    <div class="table-cell" data-label="Urgency"><span
-                                            class="status-badge status-danger">Urgent</span></div>
-                                    <div class="table-cell" data-label="Notes">Patient requires immediate kidney
-                                        transplant</div>
-                                    <div class="table-cell" data-label="Created Date">2025-10-15</div>
-                                    <div class="table-cell" data-label="Actions">
-                                        <button class="btn btn-secondary btn-small"
-                                            onclick="editRequest()">Edit</button>
-                                        <button class="btn btn-danger btn-small"
-                                            onclick="deleteRequest()">Delete</button>
-                                    </div>
-                                </div>
-
-                                <div class="table-row">
-                                    <div class="table-cell name" data-label="Organ Type">Liver</div>
-                                    <div class="table-cell" data-label="Urgency"><span
-                                            class="status-badge status-pending">Medium</span></div>
-                                    <div class="table-cell" data-label="Notes">Liver cirrhosis, stable condition</div>
-                                    <div class="table-cell" data-label="Created Date">2025-10-14</div>
-                                    <div class="table-cell" data-label="Actions">
-                                        <button class="btn btn-secondary btn-small"
-                                            onclick="editRequest()">Edit</button>
-                                        <button class="btn btn-danger btn-small"
-                                            onclick="deleteRequest()">Delete</button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -484,23 +528,30 @@
                                     <div class="table-cell">Actions</div>
                                 </div>
 
-                                <div class="table-row">
-                                    <div class="table-cell name" data-label="Donor Details">NIC 2001XXXXXXX - S.
-                                        Fernando</div>
-                                    <div class="table-cell" data-label="Organ Type">Kidney</div>
-                                    <div class="table-cell" data-label="Test Date">2025-10-10</div>
-                                    <div class="table-cell" data-label="Current Status"><span
-                                            class="status-badge status-pending">Under Review</span></div>
-                                    <div class="table-cell" data-label="Actions"
-                                        style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <button class="btn btn-secondary btn-small"
-                                            onclick="viewDonorLabData('NIC 2001XXXXXXX')">View Labs</button>
-                                        <button class="btn btn-success btn-small"
-                                            onclick="approveEligibility('NIC 2001XXXXXXX')">Approve</button>
-                                        <button class="btn btn-danger btn-small"
-                                            onclick="rejectEligibility('NIC 2001XXXXXXX')">Reject</button>
+                                <?php if (!empty($eligibility_pledges ?? [])): ?>
+                                    <?php foreach (($eligibility_pledges ?? []) as $p): ?>
+                                        <div class="table-row">
+                                            <div class="table-cell name" data-label="Donor Details">
+                                                NIC <?= htmlspecialchars($p->nic_number ?? 'N/A') ?> -
+                                                <?= htmlspecialchars(trim(($p->first_name ?? '') . ' ' . ($p->last_name ?? '')) ?: 'N/A') ?>
+                                            </div>
+                                            <div class="table-cell" data-label="Organ Type"><?= htmlspecialchars($p->organ_name ?? 'N/A') ?></div>
+                                            <div class="table-cell" data-label="Test Date"><?= htmlspecialchars(isset($p->pledge_date) ? date('d/m/Y', strtotime($p->pledge_date)) : 'N/A') ?></div>
+                                            <div class="table-cell" data-label="Current Status"><span class="status-badge status-pending">Under Review</span></div>
+                                            <div class="table-cell" data-label="Actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                <button class="btn btn-secondary btn-small" onclick="viewDonorLabData('<?= htmlspecialchars($p->nic_number ?? '') ?>')">View Labs</button>
+                                                <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Approve</button>
+                                                <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Reject</button>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="table-row">
+                                        <div class="table-cell" style="text-align:center; color:#999; grid-column: 1 / -1;">
+                                            No approved donor pledges assigned to this hospital.
+                                        </div>
                                     </div>
-                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -578,15 +629,38 @@
                             </div>
                         </div>
 
-                        <div class="search-bar">
-                            <span class="search-icon">Search:</span>
-                            <input type="text" class="search-input" id="lab-donor-search"
-                                placeholder="Search by donor NIC, name, or test type...">
+                        <div style="display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
+                            <!-- Left: Donors Menu and Tests List -->
+                            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                <div style="background: var(--white-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.25rem;">
+                                    <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.05rem; font-weight: 800; color: var(--primary-text-color);">Select Donor</h3>
+                                    <div class="search-bar" style="margin-bottom: 1.25rem;">
+                                        <span class="search-icon">🔍</span>
+                                        <input type="text" class="search-input" id="lab-donor-search"
+                                            placeholder="Search tests or donors..." style="width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div id="lab-donor-tabs" class="lab-tabs vertical" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+                                </div>
+
+                                <div style="background: var(--white-color); border: 1px solid var(--border-color); border-radius: 14px; padding: 1.25rem;">
+                                    <div id="lab-cal-details" class="cal-details" style="margin-top: 0;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Calendar -->
+                            <div class="cal-wrap" aria-label="Appointment calendar" style="width: 100%; margin: 0; box-sizing: border-box; position: sticky; top: 1.5rem;">
+                                <div class="cal-nav">
+                                    <button type="button" class="cal-nav-btn" aria-label="Previous month" onclick="labCalPrev()">‹</button>
+                                    <h3 id="lab-cal-title">—</h3>
+                                    <button type="button" class="cal-nav-btn" aria-label="Next month" onclick="labCalNext()">›</button>
+                                </div>
+                                <div class="cal-grid" id="lab-cal-grid"></div>
+                            </div>
                         </div>
 
                         <div class="data-table">
                             <div class="table-header">
-                                <h4>Lab Reports</h4>
+                                <h4>Upcoming Appointments</h4>
                             </div>
                             <div class="table-content" id="lab-reports-table">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
@@ -601,6 +675,62 @@
                                 <!-- Content populated by JS -->
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div id="test-results" class="content-section" style="display: none;">
+                    <div class="content-header">
+                        <h2>Test Results</h2>
+                        <p>Upload and review lab reports submitted by your hospital. Donors can view these under their Test Results page.</p>
+                    </div>
+                    <div class="content-body">
+                        <div class="action-section">
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" onclick="openTestResultModal()">Upload Test Result</button>
+                            </div>
+                        </div>
+
+                        <div class="data-table">
+                            <div class="table-header">
+                                <h4>Uploaded Results</h4>
+                            </div>
+                            <div class="table-content">
+                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                    <div class="table-cell">Donor ID</div>
+                                    <div class="table-cell">Test Name</div>
+                                    <div class="table-cell">Test Date</div>
+                                    <div class="table-cell">Result</div>
+                                    <div class="table-cell">Document</div>
+                                </div>
+                                <?php if (!empty($test_results)): foreach ($test_results as $tr): ?>
+                                    <div class="table-row">
+                                        <div class="table-cell" data-label="Donor ID"><?php echo htmlspecialchars($tr->donor_id ?? ''); ?></div>
+                                        <div class="table-cell" data-label="Test Name"><?php echo htmlspecialchars($tr->test_name ?? ''); ?></div>
+                                        <div class="table-cell" data-label="Test Date"><?php echo htmlspecialchars(!empty($tr->test_date) ? date('d/m/Y', strtotime($tr->test_date)) : ''); ?></div>
+                                        <div class="table-cell" data-label="Result"><?php echo htmlspecialchars($tr->result_value ?? ''); ?></div>
+                                        <div class="table-cell" data-label="Document">
+                                            <?php if (!empty($tr->document_path)): ?>
+                                                <?php
+                                                    $doc = (string)$tr->document_path;
+                                                    $root = (string)(ROOT ?? '');
+                                                    $isAbs = (strpos($doc, 'http://') === 0 || strpos($doc, 'https://') === 0);
+                                                    $isRooted = ($root !== '' && strpos($doc, $root) === 0);
+                                                    $href = ($isAbs || $isRooted) ? $doc : ($root . '/' . ltrim($doc, '/'));
+                                                ?>
+                                                <a href="<?php echo htmlspecialchars($href); ?>" target="_blank" rel="noopener" class="btn btn-secondary btn-small">View</a>
+                                            <?php else: ?>
+                                                <span style="color:#6b7280; font-size:.9rem;">—</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; else: ?>
+                                    <div class="table-row">
+                                        <div class="table-cell" style="grid-column:1/-1; text-align:center; padding:20px; color:#999;">No test results uploaded yet</div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -706,23 +836,51 @@
                     <label class="form-label">Organ Type</label>
                     <select class="form-select" id="organ-type">
                         <option value="">Select Organ</option>
-                        <option value="kidney">Kidney</option>
-                        <option value="bone marrow">Bone Marrow</option>
-                        <option value="part of liver">Part of Liver</option>
-                        <option value="eye cornea">Eye Cornea</option>
-                        <option value="skin graft">Skin Graft</option>
-                        <option value="bones">Bones</option>
-                        <option value="heart valves">Heart Valves</option>
+                        <?php foreach (($organs ?? []) as $organ): ?>
+                            <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Urgency Level</label>
                     <select class="form-select" id="urgency-level">
                         <option value="">Select Urgency</option>
-                        <option value="CRITICAL">Critical</option>
-                        <option value="URGENT">Urgent</option>
-                        <option value="NORMAL">Normal</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="emergency">Emergency</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Recipient Age</label>
+                    <input class="form-input" id="recipient-age" type="number" min="18" max="80" placeholder="18 - 80">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Recipient Blood Group</label>
+                    <select class="form-select" id="recipient-blood-group">
+                        <option value="">Select Blood Group</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Recipient Gender</label>
+                    <select class="form-select" id="recipient-gender">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">HLA-typing</label>
+                    <input class="form-input" id="recipient-hla-typing" type="text" placeholder="e.g., HLA-A*02:01, HLA-B*07:02">
                 </div>
                 <div id="urgency-reason-group" class="form-group" style="display: none;">
                     <label class="form-label">Reason for Change <span style="color:red">*</span></label>
@@ -730,11 +888,33 @@
                         placeholder="Explain why the urgency was updated..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Additional Notes</label>
-                    <textarea class="form-textarea" id="request-notes"
-                        placeholder="Any additional information..."></textarea>
+                    <label class="form-label">Reason for Transplant</label>
+                    <textarea class="form-textarea" id="transplant-reason"
+                        placeholder="e.g., End-stage renal disease"></textarea>
                 </div>
                 <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organ Request Details Modal -->
+    <div class="modal" id="request-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Organ Request Details</h3>
+                <button class="modal-close" onclick="closeDetailsModal()">×</button>
+            </div>
+            <div style="display: grid; gap: 0.75rem;">
+                <div><strong>Organ Type:</strong> <span id="details-organ"></span></div>
+                <div><strong>Urgency:</strong> <span id="details-urgency"></span></div>
+                <div><strong>Status:</strong> <span id="details-status"></span></div>
+                <div><strong>Edited:</strong> <span id="details-edited"></span></div>
+                <div><strong>Edit Reason:</strong> <span id="details-edit-reason"></span></div>
+                <div><strong>Recipient Age:</strong> <span id="details-age"></span></div>
+                <div><strong>Blood Group:</strong> <span id="details-blood"></span></div>
+                <div><strong>Gender:</strong> <span id="details-gender"></span></div>
+                <div><strong>HLA-typing:</strong> <span id="details-hla"></span></div>
+                <div><strong>Reason for Transplant:</strong> <span id="details-reason"></span></div>
             </div>
         </div>
     </div>
@@ -808,7 +988,7 @@
     <div class="modal" id="lab-report-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add Lab Report</h3>
+                <h3>Schedule Appointment</h3>
                 <button class="modal-close" onclick="closeLabReportModal()">×</button>
             </div>
             <input type="hidden" id="lab-report-id" value="">
@@ -820,6 +1000,15 @@
                     </select>
                     <input type="hidden" id="lab-donor-id" value="">
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Organ Type <span style="color: #e74c3c;">*</span></label>
+                    <select class="form-select" id="lab-organ-id">
+                        <option value="">Select Organ</option>
+                        <?php foreach (($organs ?? []) as $organ): ?>
+                            <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="form-group" style="display: none;">
                     <label class="form-label">Recipient Patient (Optional)</label>
                     <select class="form-select" id="lab-recipient-patient">
@@ -828,31 +1017,8 @@
                     <input type="hidden" id="lab-recipient-id" value="">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Test Type <span style="color: #e74c3c;">*</span></label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="HIV"> HIV Test</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Hepatitis B"> Hepatitis B</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Hepatitis C"> Hepatitis C</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Syphilis"> Syphilis Test</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="TB"> Tuberculosis (TB)</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="CBC"> Complete Blood Count (CBC)</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Liver Function"> Liver Function Test</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Kidney Function"> Kidney Function Test</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                name="lab_test_types[]" value="Blood Pressure"> Blood Pressure</label>
-                        <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox"
-                                id="lab_test_type_other_checkbox" value="Other"
-                                onclick="document.getElementById('lab_test_type_other_input').style.display = this.checked ? 'block' : 'none';">
-                            Other</label>
-                    </div>
+                    <label class="form-label">Select Tests <span style="color: #e74c3c;">*</span></label>
+                    <div id="lab-tests-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;"></div>
                     <input type="text" id="lab_test_type_other_input" class="form-input"
                         placeholder="Enter other test name(s)..." style="display: none; margin-top: 10px;">
                     <input type="hidden" id="lab-test-type" value="">
@@ -862,7 +1028,7 @@
                     <input type="date" class="form-input" id="lab-test-date">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Test Notes/Results</label>
+                    <label class="form-label">Notes (Optional)</label>
                     <textarea class="form-textarea" id="lab-result-notes"
                         placeholder="Detailed test results and measurements..."></textarea>
                 </div>
@@ -880,7 +1046,46 @@
                         <option value="AB-">AB-</option>
                     </select>
                 </div>
-                <button class="btn btn-primary" onclick="saveLabReport()">Submit Lab Report</button>
+                <button class="btn btn-primary" onclick="saveLabReport()">Schedule Appointment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Result Upload Modal -->
+    <div class="modal" id="test-result-modal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h3>Upload Test Result</h3>
+                <button class="modal-close" onclick="closeTestResultModal()">×</button>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label class="form-label">Select Donor <span style="color: #e74c3c;">*</span></label>
+                    <select class="form-select" id="tr-donor-select">
+                        <option value="">Select a Donor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Test Name <span style="color: #e74c3c;">*</span></label>
+                    <input type="text" class="form-input" id="tr-test-name" placeholder="e.g., CBC / LFT / Kidney Function" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Test Date <span style="color: #e74c3c;">*</span></label>
+                    <input type="date" class="form-input" id="tr-test-date" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Result Value (Optional)</label>
+                    <input type="text" class="form-input" id="tr-result-value" placeholder="e.g., Normal / Positive / 12.5 g/dL" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Document (Optional: PDF/Image)</label>
+                    <input type="file" class="form-input" id="tr-document" accept=".pdf,.png,.jpg,.jpeg,.webp" />
+                </div>
+
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="closeTestResultModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitTestResult()">Upload</button>
+                </div>
             </div>
         </div>
     </div>
@@ -969,7 +1174,7 @@
         function closeRequestModal() { document.getElementById('request-modal').classList.remove('show'); }
 
         // Organ Type Selection Function
-        function selectOrganType(organType) {
+        function selectOrganType(organId, organName) {
             // Remove selected class from all cards
             document.querySelectorAll('.organ-option-card').forEach(card => {
                 card.classList.remove('selected');
@@ -981,53 +1186,11 @@
             // Set the organ type in the modal form
             const organSelect = document.getElementById('organ-type');
             if (organSelect) {
-                organSelect.value = organType;
+                organSelect.value = String(organId);
             }
 
             // Open the request modal
             openRequestModal();
-        }
-        function saveRequest() {
-            const organ = document.getElementById('organ-type').value;
-            const urgency = document.getElementById('urgency-level').value;
-            const notes = document.getElementById('request-notes').value;
-
-            if (!organ || !urgency) {
-                showServerMessage('localhost: Error - Please fill all required fields', 'error');
-                return;
-            }
-
-            // Submit form to same page
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'add_organ_request';
-            form.appendChild(actionInput);
-
-            const organInput = document.createElement('input');
-            organInput.type = 'hidden';
-            organInput.name = 'organ_type';
-            organInput.value = organ;
-            form.appendChild(organInput);
-
-            const urgencyInput = document.createElement('input');
-            urgencyInput.type = 'hidden';
-            urgencyInput.name = 'urgency';
-            urgencyInput.value = urgency;
-            form.appendChild(urgencyInput);
-
-            const notesInput = document.createElement('input');
-            notesInput.type = 'hidden';
-            notesInput.name = 'notes';
-            notesInput.value = notes;
-            form.appendChild(notesInput);
-
-            document.body.appendChild(form);
-            form.submit();
         }
         function editRequest(requestId) {
             const requests = <?php echo json_encode($organ_requests); ?>;
@@ -1038,18 +1201,29 @@
             document.querySelector('#request-modal h3').textContent = 'Edit Organ Request';
 
             document.getElementById('request-id').value = request.id;
-            document.getElementById('organ-type').value = request.organ_name.toLowerCase();
+            document.getElementById('organ-type').value = String(request.organ_id);
             document.getElementById('organ-type').disabled = true; // Cannot change organ type, only priority
 
-            // Set priority level - Ensure it matches the Uppercase values in the SELECT
-            document.getElementById('urgency-level').value = request.priority_level;
+            // Map DB enum -> UI select
+            const priorityToUi = {
+                'NORMAL': 'low',
+                'URGENT': 'medium',
+                'CRITICAL': 'emergency',
+                'HIGH': 'high'
+            };
+            document.getElementById('urgency-level').value = priorityToUi[request.priority_level] || 'low';
 
-            // Clean up notes if they contain the combined [Reason] string
-            let existingNotes = request.patient_details || '';
-            if (existingNotes.startsWith("[Reason]:")) {
-                existingNotes = existingNotes.split(" | [Notes]: ")[1] || '';
-            }
-            document.getElementById('request-notes').value = existingNotes;
+            const ageEl = document.getElementById('recipient-age');
+            const bgEl = document.getElementById('recipient-blood-group');
+            const genderEl = document.getElementById('recipient-gender');
+            const hlaEl = document.getElementById('recipient-hla-typing');
+            const transplantReasonEl = document.getElementById('transplant-reason');
+
+            if (ageEl) ageEl.value = request.recipient_age ?? '';
+            if (bgEl) bgEl.value = request.blood_group || '';
+            if (genderEl) genderEl.value = request.gender || '';
+            if (hlaEl) hlaEl.value = request.hla_typing || '';
+            if (transplantReasonEl) transplantReasonEl.value = request.transplant_reason || '';
 
             // Show reason field during edit
             document.getElementById('urgency-reason-group').style.display = 'block';
@@ -1064,17 +1238,54 @@
             document.getElementById('request-id').value = '';
             document.getElementById('organ-type').disabled = false;
             document.getElementById('urgency-reason-group').style.display = 'none';
+            const ageEl = document.getElementById('recipient-age');
+            const bgEl = document.getElementById('recipient-blood-group');
+            const genderEl = document.getElementById('recipient-gender');
+            const hlaEl = document.getElementById('recipient-hla-typing');
+            const transplantReasonEl = document.getElementById('transplant-reason');
+            if (ageEl) ageEl.value = '';
+            if (bgEl) bgEl.value = '';
+            if (genderEl) genderEl.value = '';
+            if (hlaEl) hlaEl.value = '';
+            if (transplantReasonEl) transplantReasonEl.value = '';
+            document.getElementById('urgency-level').value = '';
+            document.getElementById('organ-type').value = '';
         }
 
         function saveRequest() {
             const requestId = document.getElementById('request-id').value;
-            const organType = document.getElementById('organ-type').value;
+            const organId = document.getElementById('organ-type').value;
             const urgency = document.getElementById('urgency-level').value;
-            const notes = document.getElementById('request-notes').value;
             const reason = document.getElementById('urgency-reason').value;
+            const age = document.getElementById('recipient-age') ? document.getElementById('recipient-age').value : '';
+            const bloodGroup = document.getElementById('recipient-blood-group') ? document.getElementById('recipient-blood-group').value : '';
+            const gender = document.getElementById('recipient-gender') ? document.getElementById('recipient-gender').value : '';
+            const hlaTyping = document.getElementById('recipient-hla-typing') ? document.getElementById('recipient-hla-typing').value : '';
+            const transplantReason = document.getElementById('transplant-reason') ? document.getElementById('transplant-reason').value : '';
 
-            if (!organType || !urgency) {
+            if (!organId || !urgency) {
                 showServerMessage('Please complete all required fields', 'error');
+                return;
+            }
+
+            const ageNum = parseInt(age, 10);
+            if (!age || isNaN(ageNum) || ageNum < 18 || ageNum > 80) {
+                showServerMessage('Recipient age must be between 18 and 80', 'error');
+                return;
+            }
+
+            if (!bloodGroup) {
+                showServerMessage('Please select a blood group', 'error');
+                return;
+            }
+
+            if (!gender) {
+                showServerMessage('Please select a gender', 'error');
+                return;
+            }
+
+            if (!transplantReason || !transplantReason.trim()) {
+                showServerMessage('Reason for transplant is required', 'error');
                 return;
             }
 
@@ -1103,15 +1314,15 @@
 
                 const reasonInput = document.createElement('input');
                 reasonInput.type = 'hidden';
-                reasonInput.name = 'urgency_reason';
+                reasonInput.name = 'edited_reason';
                 reasonInput.value = reason;
                 form.appendChild(reasonInput);
             }
 
             const organInput = document.createElement('input');
             organInput.type = 'hidden';
-            organInput.name = 'organ_type';
-            organInput.value = organType;
+            organInput.name = 'organ_id';
+            organInput.value = organId;
             form.appendChild(organInput);
 
             const urgencyInput = document.createElement('input');
@@ -1120,11 +1331,35 @@
             urgencyInput.value = urgency;
             form.appendChild(urgencyInput);
 
-            const notesInput = document.createElement('input');
-            notesInput.type = 'hidden';
-            notesInput.name = 'notes';
-            notesInput.value = notes;
-            form.appendChild(notesInput);
+            const ageInput = document.createElement('input');
+            ageInput.type = 'hidden';
+            ageInput.name = 'recipient_age';
+            ageInput.value = ageNum;
+            form.appendChild(ageInput);
+
+            const bgInput = document.createElement('input');
+            bgInput.type = 'hidden';
+            bgInput.name = 'blood_group';
+            bgInput.value = bloodGroup;
+            form.appendChild(bgInput);
+
+            const genderInput = document.createElement('input');
+            genderInput.type = 'hidden';
+            genderInput.name = 'gender';
+            genderInput.value = gender;
+            form.appendChild(genderInput);
+
+            const hlaInput = document.createElement('input');
+            hlaInput.type = 'hidden';
+            hlaInput.name = 'hla_typing';
+            hlaInput.value = hlaTyping;
+            form.appendChild(hlaInput);
+
+            const transplantReasonInput = document.createElement('input');
+            transplantReasonInput.type = 'hidden';
+            transplantReasonInput.name = 'transplant_reason';
+            transplantReasonInput.value = transplantReason;
+            form.appendChild(transplantReasonInput);
 
             document.body.appendChild(form);
             form.submit();
@@ -1161,16 +1396,38 @@
 
         function applyOrganFilters() {
             const searchTerm = document.getElementById('organ-search').value.toLowerCase();
-            const organFilter = document.getElementById('organ-type-filter').value.toLowerCase();
+            const organFilter = document.getElementById('organ-type-filter').value;
             const urgencyFilter = document.getElementById('urgency-filter').value;
 
             // Access original organ requests from PHP
             const allRequests = <?php echo json_encode($organ_requests); ?>;
 
             const filtered = allRequests.filter(req => {
-                const matchesSearch = req.organ_name.toLowerCase().includes(searchTerm) ||
-                    (req.patient_details && req.patient_details.toLowerCase().includes(searchTerm));
-                const matchesOrgan = !organFilter || req.organ_name.toLowerCase() === organFilter;
+                const organName = String(req.organ_name || '').toLowerCase();
+                const priority = String(req.priority_level || '').toUpperCase().trim();
+                const q = (searchTerm || '').trim();
+
+                let matchesSearch = true;
+                if (q) {
+                    const matchesOrgan = organName.includes(q);
+
+                    // Allow searching by urgency keywords too
+                    // DB values: NORMAL / URGENT / CRITICAL
+                    // UI labels: low/medium -> NORMAL, high -> URGENT, emergency -> CRITICAL
+                    let matchesUrgency = priority.toLowerCase().includes(q);
+                    if (!matchesUrgency) {
+                        if (q === 'emergency' || q === 'critical') {
+                            matchesUrgency = (priority === 'CRITICAL');
+                        } else if (q === 'high' || q === 'urgent') {
+                            matchesUrgency = (priority === 'URGENT');
+                        } else if (q === 'low' || q === 'medium' || q === 'normal') {
+                            matchesUrgency = (priority === 'NORMAL');
+                        }
+                    }
+
+                    matchesSearch = matchesOrgan || matchesUrgency;
+                }
+                const matchesOrgan = !organFilter || String(req.organ_id) === String(organFilter);
                 const matchesUrgency = !urgencyFilter || req.priority_level === urgencyFilter;
 
                 return matchesSearch && matchesOrgan && matchesUrgency;
@@ -1191,15 +1448,8 @@
             requests.forEach(request => {
                 const row = document.createElement('div');
                 row.className = 'table-row';
-
-                // Parse the combined details if they follow the [Reason]: pattern
-                let displayNotes = request.patient_details || 'No notes';
-                let reasonFound = '';
-
-                if (displayNotes && displayNotes.startsWith("[Reason]:")) {
-                    const parts = displayNotes.split(" | [Notes]: ");
-                    reasonFound = parts[0].replace("[Reason]: ", "");
-                    displayNotes = parts[1] || 'No notes';
+                if (request.edited_reason && String(request.edited_reason).trim() !== '') {
+                    row.style.fontStyle = 'italic';
                 }
 
                 row.innerHTML = `
@@ -1208,20 +1458,43 @@
                         <span class="status-badge ${request.priority_level === 'CRITICAL' ? 'status-danger' : request.priority_level === 'URGENT' ? 'status-active' : 'status-pending'}">
                             ${request.priority_level}
                         </span>
-                        ${reasonFound ? `
-                        <button onclick="alert('Update Log: ${reasonFound}')" 
-                                style="background:none; border:none; color:var(--primary-color); cursor:pointer; font-size:0.8rem; margin-left:4px;" 
-                                title="View update reason">ℹ️</button>` : ''}
                     </div>
-                    <div class="table-cell" data-label="Notes">${displayNotes}</div>
-                    <div class="table-cell" data-label="Created Date">${new Date(request.created_at).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Created Date">${new Date(request.created_at).toLocaleDateString('en-GB')}</div>
+                    <div class="table-cell" data-label="Status">${request.status || 'PENDING'}</div>
                     <div class="table-cell" data-label="Actions">
-                        <button class="btn btn-secondary btn-small" onclick="editRequest(${request.id})" style="white-space: nowrap;">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteRequest(${request.id})" style="white-space: nowrap;">Delete</button>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
+                            <button class="btn btn-secondary btn-small" onclick="viewDetails(${request.id})" style="white-space: nowrap;">More Details</button>
+                            <button class="btn btn-secondary btn-small" onclick="editRequest(${request.id})" style="white-space: nowrap;">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteRequest(${request.id})" style="white-space: nowrap;">Delete</button>
+                        </div>
                     </div>
                 `;
                 tableContent.appendChild(row);
             });
+        }
+
+        function viewDetails(requestId) {
+            const requests = <?php echo json_encode($organ_requests); ?>;
+            const request = requests.find(r => r.id == requestId);
+            if (!request) return;
+
+            document.getElementById('details-organ').textContent = request.organ_name || '';
+            document.getElementById('details-urgency').textContent = request.priority_level || '';
+            document.getElementById('details-status').textContent = request.status || 'PENDING';
+            const editedText = (request.edited_reason && String(request.edited_reason).trim() !== '') ? 'Yes' : 'No';
+            document.getElementById('details-edited').textContent = editedText;
+            document.getElementById('details-edit-reason').textContent = (request.edited_reason && String(request.edited_reason).trim() !== '') ? request.edited_reason : 'N/A';
+            document.getElementById('details-age').textContent = request.recipient_age ?? 'N/A';
+            document.getElementById('details-blood').textContent = request.blood_group || 'N/A';
+            document.getElementById('details-gender').textContent = request.gender || 'N/A';
+            document.getElementById('details-hla').textContent = request.hla_typing || 'N/A';
+            document.getElementById('details-reason').textContent = request.transplant_reason || 'N/A';
+
+            document.getElementById('request-details-modal').classList.add('show');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('request-details-modal').classList.remove('show');
         }
 
 
@@ -1475,7 +1748,7 @@
                     <div class="table-cell name" data-label="NIC">${recipient.nic}</div>
                     <div class="table-cell" data-label="Name">${recipient.name}</div>
                     <div class="table-cell" data-label="Organ">${recipient.organ_received}</div>
-                    <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span class="status-badge ${recipient.status === 'Active' ? 'status-active' : recipient.status === 'Discharged' ? 'status-success' : 'status-pending'}">${recipient.status}</span>
                     </div>
@@ -1664,19 +1937,22 @@
             }
 
             const headerTitle = modal.querySelector('.modal-header h3');
-            if (headerTitle) headerTitle.textContent = 'Add Lab Report';
+            if (headerTitle) headerTitle.textContent = 'Schedule Appointment';
             const submitBtn = modal.querySelector('button[onclick="saveLabReport()"]');
             if (submitBtn) submitBtn.style.display = 'inline-flex';
 
             document.getElementById('lab-donor-select').value = '';
             document.getElementById('lab-donor-id').value = '';
+            const organEl = document.getElementById('lab-organ-id');
+            if (organEl) organEl.value = '';
             document.getElementById('lab-test-type').value = '';
+            renderLabTests();
             document.getElementById('lab-test-date').value = '';
             document.getElementById('lab-test-date').value = '';
             document.getElementById('lab-result-notes').value = '';
             document.getElementById('lab-blood-type').value = '';
 
-            const fields = ['lab-donor-select', 'lab-recipient-patient', 'lab-test-type', 'lab-test-date', 'lab-result-notes', 'lab-blood-type'];
+            const fields = ['lab-donor-select', 'lab-organ-id', 'lab-recipient-patient', 'lab-test-date', 'lab-result-notes', 'lab-blood-type'];
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.disabled = false;
@@ -1734,6 +2010,12 @@
                 });
             }
 
+            // Render tests when organ changes (assign, avoid stacking listeners)
+            const organSelect = document.getElementById('lab-organ-id');
+            if (organSelect) {
+                organSelect.onchange = function() { renderLabTests(); };
+            }
+
             // Focus on donor select field
             setTimeout(() => {
                 document.getElementById('lab-donor-select').focus();
@@ -1763,18 +2045,18 @@
             modal.classList.remove('show');
 
             // Reset modal header
-            modal.querySelector('.modal-header h3').textContent = 'Add Lab Report';
+            modal.querySelector('.modal-header h3').textContent = 'Schedule Appointment';
 
             // Reset all form fields
             document.getElementById('lab-report-id').value = '';
             document.getElementById('lab-donor-select').value = '';
             document.getElementById('lab-donor-id').value = '';
+            const organEl = document.getElementById('lab-organ-id');
+            if (organEl) organEl.value = '';
             document.getElementById('lab-test-type').value = '';
             document.getElementById('lab_test_type_other_input').value = '';
             document.getElementById('lab_test_type_other_input').style.display = 'none';
-            document.querySelectorAll('input[name="lab_test_types[]"]').forEach(cb => cb.checked = false);
-            const otherCb = document.getElementById('lab_test_type_other_checkbox');
-            if (otherCb) otherCb.checked = false;
+            renderLabTests();
             document.getElementById('lab-test-date').value = '';
             document.getElementById('lab-test-date').value = '';
             document.getElementById('lab-result-notes').value = '';
@@ -1783,7 +2065,7 @@
             document.getElementById('lab-recipient-id').value = '';
 
             // Make all fields enabled for new entry
-            const fields = ['lab-donor-select', 'lab-recipient-patient', 'lab-test-type', 'lab-test-date', 'lab-result-notes', 'lab-blood-type'];
+            const fields = ['lab-donor-select', 'lab-organ-id', 'lab-recipient-patient', 'lab-test-date', 'lab-result-notes', 'lab-blood-type'];
             fields.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.disabled = false;
@@ -1862,6 +2144,7 @@
         function saveLabReport() {
             const reportId = document.getElementById('lab-report-id').value;
             const donorId = document.getElementById('lab-donor-id').value;
+            const organId = (document.getElementById('lab-organ-id') || {}).value || '';
             let selectedTests = [];
             document.querySelectorAll('input[name="lab_test_types[]"]:checked').forEach(cb => selectedTests.push(cb.value));
             const otherCheckbox = document.getElementById('lab_test_type_other_checkbox');
@@ -1873,7 +2156,6 @@
 
             const testType = document.getElementById('lab-test-type').value;
             const testDate = document.getElementById('lab-test-date').value;
-            const resultStatus = document.getElementById('lab-result-status').value;
             const resultNotes = document.getElementById('lab-result-notes').value;
             const bloodType = document.getElementById('lab-blood-type').value;
 
@@ -1882,7 +2164,7 @@
                 return;
             }
 
-            if (!testType || !testDate) {
+            if (!organId || !testType || !testDate) {
                 showServerMessage('localhost: Error - Please fill all required fields', 'error');
                 return;
             }
@@ -1896,17 +2178,8 @@
             const actionInput = document.createElement('input');
             actionInput.type = 'hidden';
             actionInput.name = 'action';
-            actionInput.value = reportId ? 'edit_lab_report' : 'submit_lab_report';
+            actionInput.value = 'schedule_appointment';
             form.appendChild(actionInput);
-
-            // Add report_id if editing
-            if (reportId) {
-                const reportIdInput = document.createElement('input');
-                reportIdInput.type = 'hidden';
-                reportIdInput.name = 'report_id';
-                reportIdInput.value = reportId;
-                form.appendChild(reportIdInput);
-            }
 
             const donorIdInput = document.createElement('input');
             donorIdInput.type = 'hidden';
@@ -1914,11 +2187,20 @@
             donorIdInput.value = donorId;
             form.appendChild(donorIdInput);
 
-            const testTypeInput = document.createElement('input');
-            testTypeInput.type = 'hidden';
-            testTypeInput.name = 'test_type';
-            testTypeInput.value = testType;
-            form.appendChild(testTypeInput);
+            const organIdInput = document.createElement('input');
+            organIdInput.type = 'hidden';
+            organIdInput.name = 'organ_id';
+            organIdInput.value = organId;
+            form.appendChild(organIdInput);
+
+            // Send selected tests as tests[]
+            selectedTests.forEach(t => {
+                const testInput = document.createElement('input');
+                testInput.type = 'hidden';
+                testInput.name = 'tests[]';
+                testInput.value = t;
+                form.appendChild(testInput);
+            });
 
             const testDateInput = document.createElement('input');
             testDateInput.type = 'hidden';
@@ -1926,15 +2208,9 @@
             testDateInput.value = testDate;
             form.appendChild(testDateInput);
 
-            const resultStatusInput = document.createElement('input');
-            resultStatusInput.type = 'hidden';
-            resultStatusInput.name = 'result_status';
-            resultStatusInput.value = 'Pending'; 
-            form.appendChild(resultStatusInput);
-
             const resultNotesInput = document.createElement('input');
             resultNotesInput.type = 'hidden';
-            resultNotesInput.name = 'result_notes';
+            resultNotesInput.name = 'notes';
             resultNotesInput.value = resultNotes;
             form.appendChild(resultNotesInput);
 
@@ -1952,6 +2228,180 @@
 
             document.body.appendChild(form);
             form.submit();
+        }
+
+        // Auto-filter tests list by organ selection
+        function getOrganKeyFromName(name) {
+            const n = String(name || '').toLowerCase().trim();
+            if (!n) return 'generic';
+            if (n.includes('kidney')) return 'kidney';
+            if (n.includes('liver')) return 'liver';
+            if (n.includes('bone marrow') || n.includes('marrow')) return 'bone_marrow';
+            if (n.includes('cornea') || n.includes('skin') || n.includes('heart valve') || n.includes('valve') || n.includes('tendon') || (n === 'bones') || n.includes('tissue')) return 'tissue';
+            return 'generic';
+        }
+
+        function getTestsForOrganKey(key) {
+            const infectious = [
+                { value: 'Infectious Disease Screening - HIV', label: 'Infectious Disease (HIV)' },
+                { value: 'Infectious Disease Screening - Hepatitis B', label: 'Infectious Disease (Hepatitis B)' },
+                { value: 'Infectious Disease Screening - Hepatitis C', label: 'Infectious Disease (Hepatitis C)' },
+                { value: 'Infectious Disease Screening - Syphilis', label: 'Infectious Disease (Syphilis)' },
+            ];
+
+            if (key === 'kidney') {
+                return [
+                    { value: 'ABO Typing', label: 'ABO Typing' },
+                    { value: 'HLA Typing (6 markers)', label: 'HLA Typing (6 markers)' },
+                    { value: 'Crossmatch Test', label: 'Crossmatch Test' },
+                    { value: 'Renal Function Tests', label: 'Renal Function Tests' },
+                    ...infectious,
+                ];
+            }
+
+            if (key === 'liver') {
+                return [
+                    { value: 'ABO Typing', label: 'ABO Typing' },
+                    { value: 'Volumetric CT Scan (Liver size matching)', label: 'Volumetric CT Scan' },
+                    { value: 'Liver Function Tests (LFTs)', label: 'Liver Function Tests (LFTs)' },
+                    { value: 'BMI Assessment', label: 'BMI Assessment' },
+                    ...infectious,
+                ];
+            }
+
+            if (key === 'bone_marrow') {
+                return [
+                    { value: 'High-Resolution HLA Typing (10 markers)', label: 'High-Resolution HLA Typing (10 markers)' },
+                    { value: 'Complete Blood Count (CBC)', label: 'Complete Blood Count (CBC)' },
+                    ...infectious,
+                ];
+            }
+
+            if (key === 'tissue') {
+                return [
+                    ...infectious,
+                    { value: 'Tissue Quality Assessment', label: 'Tissue Quality Assessment' },
+                    { value: 'ABO Matching (Heart Valves)', label: 'ABO Matching (Heart Valves)' },
+                ];
+            }
+
+            // Generic fallback
+            return [
+                ...infectious,
+                { value: 'Complete Blood Count (CBC)', label: 'Complete Blood Count (CBC)' },
+                { value: 'Blood Pressure', label: 'Blood Pressure' },
+            ];
+        }
+
+        function renderLabTests() {
+            const container = document.getElementById('lab-tests-container');
+            if (!container) return;
+
+            const organSelect = document.getElementById('lab-organ-id');
+            const organName = organSelect && organSelect.selectedOptions && organSelect.selectedOptions[0]
+                ? organSelect.selectedOptions[0].text
+                : '';
+
+            const key = getOrganKeyFromName(organName);
+            const tests = getTestsForOrganKey(key);
+
+            container.innerHTML = '';
+            tests.forEach(t => {
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '8px';
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = 'lab_test_types[]';
+                input.value = t.value;
+
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(' ' + t.label));
+                container.appendChild(label);
+            });
+
+            // Always include Other option
+            const otherLabel = document.createElement('label');
+            otherLabel.style.display = 'flex';
+            otherLabel.style.alignItems = 'center';
+            otherLabel.style.gap = '8px';
+
+            const otherInput = document.createElement('input');
+            otherInput.type = 'checkbox';
+            otherInput.id = 'lab_test_type_other_checkbox';
+            otherInput.value = 'Other';
+            otherInput.onclick = function() {
+                const otherText = document.getElementById('lab_test_type_other_input');
+                if (otherText) otherText.style.display = this.checked ? 'block' : 'none';
+            };
+
+            otherLabel.appendChild(otherInput);
+            otherLabel.appendChild(document.createTextNode(' Other'));
+            container.appendChild(otherLabel);
+
+            // Reset other input visibility
+            const otherText = document.getElementById('lab_test_type_other_input');
+            if (otherText) otherText.style.display = 'none';
+        }
+
+        // Test Results Upload
+        function openTestResultModal() {
+            const modal = document.getElementById('test-result-modal');
+            modal.classList.add('show');
+
+            document.getElementById('tr-donor-select').innerHTML = '<option value="">Select a Donor</option>';
+            document.getElementById('tr-test-name').value = '';
+            document.getElementById('tr-test-date').value = '';
+            document.getElementById('tr-result-value').value = '';
+            const file = document.getElementById('tr-document');
+            if (file) file.value = '';
+
+            fetch('<?php echo ROOT; ?>/hospital/search-donors?q=')
+                .then(response => response.json())
+                .then(donors => {
+                    const donorSelect = document.getElementById('tr-donor-select');
+                    if (donors && Array.isArray(donors) && donors.length > 0) {
+                        donors.forEach(donor => {
+                            const option = document.createElement('option');
+                            option.value = donor.id;
+                            option.text = `${donor.nic_number || ''} - ${donor.first_name} ${donor.last_name}`;
+                            donorSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => console.error('Error loading donors:', error));
+        }
+
+        function closeTestResultModal() {
+            const modal = document.getElementById('test-result-modal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        function submitTestResult() {
+            const donorId = document.getElementById('tr-donor-select').value;
+            const testName = document.getElementById('tr-test-name').value.trim();
+            const testDate = document.getElementById('tr-test-date').value;
+            const resultValue = document.getElementById('tr-result-value').value.trim();
+            const documentFile = document.getElementById('tr-document').files[0] || null;
+
+            if (!donorId || !testName || !testDate) {
+                alert('Please select donor, test name, and test date.');
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('action', 'submit_test_result');
+            fd.append('donor_id', donorId);
+            fd.append('test_name', testName);
+            fd.append('test_date', testDate);
+            fd.append('result_value', resultValue);
+            if (documentFile) fd.append('document', documentFile);
+
+            fetch(window.location.href, { method: 'POST', body: fd, credentials: 'include' })
+                .then(() => window.location.reload())
+                .catch(() => window.location.reload());
         }
 
         function deleteLabReport(reportId) {
@@ -1984,12 +2434,327 @@
             // Store globally so editLabReport can access it
             window.allLabReports = labReports;
             console.log('Lab reports loaded:', window.allLabReports);
-            updateLabReportsTable(labReports);
+            // Do not show deleted schedules in Upcoming Appointments
+            const visible = (labReports || []).filter(r => {
+                const raw = (r && (r.status ?? r.result_status)) ?? '';
+                return String(raw || '').trim().toLowerCase() !== 'deleted';
+            });
+
+            // Keep visible list for filtering
+            window.allVisibleLabReports = visible;
+            initLabReportsFilters(visible);
+            applyLabReportsFilters();
+        }
+
+        function initLabReportsFilters(labReports) {
+            const searchInput = document.getElementById('lab-donor-search');
+            const tabsWrap = document.getElementById('lab-donor-tabs');
+            if (!tabsWrap) return;
+
+            // Build unique donors list from scheduled appointments
+            const byId = new Map();
+            (labReports || []).forEach(r => {
+                const donorId = r && (r.donor_id ?? r.patient_id);
+                const id = String(donorId ?? '').trim();
+                if (!id) return;
+                if (!byId.has(id)) {
+                    const name = String(r.donor_name ?? '').trim();
+                    const nic = String(r.donor_nic ?? '').trim();
+                    byId.set(id, { id, name, nic });
+                }
+            });
+
+            const donors = Array.from(byId.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            window.labDonors = donors;
+            if (!window.labCalState) {
+                const now = new Date();
+                window.labCalState = {
+                    year: now.getFullYear(),
+                    month: now.getMonth(),
+                    selectedDate: '',
+                    activeDonorId: '',
+                    touched: false,
+                };
+            }
+
+            // Render donor tabs
+            tabsWrap.innerHTML = '';
+            donors.forEach(d => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'lab-tab';
+                btn.dataset.donorId = d.id;
+                // Keep it simple: don't show full donor details in the tab
+                btn.textContent = d.name ? d.name : `Donor ${d.id}`;
+                btn.addEventListener('click', () => {
+                    window.labCalState.activeDonorId = d.id;
+                    window.labCalState.selectedDate = '';
+                    window.labCalState.touched = false;
+                    applyLabReportsFilters();
+                });
+                tabsWrap.appendChild(btn);
+            });
+
+            // Require explicit selection; auto-select only when there is exactly one donor
+            if (!window.labCalState.activeDonorId && donors.length === 1) {
+                window.labCalState.activeDonorId = donors[0].id;
+            }
+
+            // Hook search (bind once)
+            if (searchInput && !searchInput.dataset.bound) {
+                searchInput.addEventListener('input', applyLabReportsFilters);
+                searchInput.dataset.bound = '1';
+            }
+        }
+
+        function applyLabReportsFilters() {
+            const labReports = window.allVisibleLabReports || [];
+            const searchInput = document.getElementById('lab-donor-search');
+
+            const state = window.labCalState || { activeDonorId: '', selectedDate: '', year: new Date().getFullYear(), month: new Date().getMonth(), touched: false };
+            const donorId = String(state.activeDonorId || '').trim();
+
+            const dateVal = String(state.selectedDate || '').trim();
+            const q = searchInput ? String(searchInput.value || '').trim().toLowerCase() : '';
+
+            // update tab active state
+            const tabsWrap = document.getElementById('lab-donor-tabs');
+            if (tabsWrap) {
+                tabsWrap.querySelectorAll('.lab-tab').forEach(b => {
+                    b.classList.toggle('active', String(b.dataset.donorId || '') === donorId);
+                });
+            }
+
+            // Require donor selection (as requested)
+            if (!donorId) {
+                updateLabReportsTable([]);
+                renderLabCalendar([]);
+                renderLabCalendarDetails([], '', '');
+                return;
+            }
+
+            const donorReports = labReports.filter(r => String((r && (r.donor_id ?? r.patient_id)) ?? '').trim() === donorId);
+
+            // If calendar hasn't been navigated yet, jump to first appointment month for this donor
+            const allDates = donorReports
+                .map(r => String(r.test_date || '').slice(0, 10))
+                .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d))
+                .sort();
+            if (allDates.length > 0 && state && !state.touched) {
+                const first = allDates[0];
+                const y = parseInt(first.slice(0, 4), 10);
+                const m = parseInt(first.slice(5, 7), 10) - 1;
+                if (!Number.isNaN(y) && !Number.isNaN(m) && m >= 0 && m <= 11) {
+                    state.year = y;
+                    state.month = m;
+                }
+            }
+
+            renderLabCalendar(donorReports);
+
+            let filtered = donorReports;
+
+            if (dateVal) {
+                filtered = filtered.filter(r => {
+                    const d = String(r.test_date || '').slice(0, 10);
+                    return d === dateVal;
+                });
+            }
+
+            if (q) {
+                filtered = filtered.filter(r => {
+                    const tt = String(r.test_type || '').toLowerCase();
+                    return tt.includes(q);
+                });
+            }
+
+            updateLabReportsTable(filtered);
+
+            // Render details inside the calendar card (only after selecting a date)
+            const donorLabel = (window.labDonors || []).find(d => String(d.id) === donorId);
+            const donorName = donorLabel ? String(donorLabel.name || '').trim() : '';
+            const donorDisplay = donorName ? donorName : `Donor ${donorId}`;
+            renderLabCalendarDetails(donorReports, donorDisplay, dateVal);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function renderLabCalendarDetails(donorReports, donorDisplay, dateVal) {
+            const container = document.getElementById('lab-cal-details');
+            if (!container) return;
+
+            const safeLabel = String(donorDisplay || '').trim();
+            if (!safeLabel) {
+                container.innerHTML = '';
+                return;
+            }
+
+            // Only show details after user clicks a date
+            if (!dateVal) {
+                container.innerHTML = `
+                    <div class="cal-details__title">Scheduled tests</div>
+                    <div class="cal-details__hint">Click a highlighted date to see the scheduled tests for that date.</div>
+                `;
+                return;
+            }
+
+            const rows = (donorReports || []).filter(r => String(r.test_date || '').slice(0, 10) === dateVal);
+
+            if (rows.length === 0) {
+                container.innerHTML = `
+                    <div class="cal-details__title">${escapeHtml(safeLabel)} — ${escapeHtml(dateVal)}</div>
+                    <div class="cal-details__hint">No tests scheduled for this date.</div>
+                `;
+                return;
+            }
+
+            const listHtml = rows
+                .slice()
+                .sort((a, b) => String(a.test_type || '').localeCompare(String(b.test_type || '')))
+                .map(r => {
+                    const testType = escapeHtml(String(r.test_type || '').trim() || 'Test');
+                    const testDate = escapeHtml(String(r.test_date || '').trim() || dateVal);
+                    return `
+                        <div class="cal-details-item">
+                            <div class="cal-details-left">
+                                <div class="cal-details-test">${testType}</div>
+                                <div class="cal-details-sub">${testDate}</div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            container.innerHTML = `
+                <div class="cal-details__title">${escapeHtml(safeLabel)} — ${escapeHtml(dateVal)}</div>
+                <div class="cal-details-list">${listHtml}</div>
+            `;
+        }
+
+        function normalizeAptStatus(report) {
+            const raw = (report && (report.status ?? report.result_status)) ?? 'Pending';
+            const s = String(raw || '').trim().toLowerCase();
+            if (s === 'rejected' || s === 'positive') return 'rejected';
+            if (s === 'pending') return 'pending';
+            if (s === 'approved' || s === 'negative' || s === 'active') return 'approved';
+            return 'pending';
+        }
+
+        function dateToIso(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function renderLabCalendar(donorReports) {
+            const grid = document.getElementById('lab-cal-grid');
+            const title = document.getElementById('lab-cal-title');
+            const state = window.labCalState;
+            if (!grid || !title || !state) return;
+
+            const year = state.year;
+            const month = state.month;
+            const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            title.textContent = `${monthNames[month]} ${year}`;
+
+            const todayIso = dateToIso(new Date());
+            const selectedIso = String(state.selectedDate || '').trim();
+
+            // Build appointment presence per date (Hospital: single highlight color)
+            const byDate = new Set();
+            (donorReports || []).forEach(r => {
+                const iso = String(r.test_date || '').slice(0, 10);
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
+                byDate.add(iso);
+            });
+
+            // Calendar structure: day headers + blanks + days
+            grid.innerHTML = '';
+            ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+                const hdr = document.createElement('div');
+                hdr.className = 'cal-day-hdr';
+                hdr.textContent = d;
+                grid.appendChild(hdr);
+            });
+
+            const first = new Date(year, month, 1);
+            const startDow = first.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < startDow; i++) {
+                const blank = document.createElement('div');
+                blank.className = 'cal-day';
+                blank.style.visibility = 'hidden';
+                grid.appendChild(blank);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const mm = String(month + 1).padStart(2, '0');
+                const dd = String(day).padStart(2, '0');
+                const iso = `${year}-${mm}-${dd}`;
+                const has = byDate.has(iso);
+                const cls = has ? 'apt-blue' : '';
+
+                const cell = document.createElement('div');
+                cell.className = ['cal-day', cls, has ? 'clickable' : ''].filter(Boolean).join(' ');
+                if (iso === todayIso) cell.classList.add('is-today');
+                if (selectedIso && iso === selectedIso) cell.classList.add('is-selected');
+                cell.innerHTML = `<span>${day}</span>`;
+
+                if (has) {
+                    cell.addEventListener('click', () => {
+                        state.selectedDate = (state.selectedDate === iso) ? '' : iso;
+                        applyLabReportsFilters();
+                    });
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        function labCalPrev() {
+            const state = window.labCalState;
+            if (!state) return;
+            state.touched = true;
+            state.month -= 1;
+            if (state.month < 0) { state.month = 11; state.year -= 1; }
+            applyLabReportsFilters();
+        }
+
+        function labCalNext() {
+            const state = window.labCalState;
+            if (!state) return;
+            state.touched = true;
+            state.month += 1;
+            if (state.month > 11) { state.month = 0; state.year += 1; }
+            applyLabReportsFilters();
         }
 
         function updateLabReportsTable(labReports) {
             const tableContent = document.querySelector('#lab-reports-table');
             if (!tableContent) return;
+
+            const normalizeStatus = (report) => {
+                // Backwards-compatible: some code paths used `result_status`, but DB uses `status`.
+                const raw = (report && (report.status ?? report.result_status)) ?? 'Pending';
+                const str = String(raw || '').trim();
+                return str !== '' ? str : 'Pending';
+            };
+
+            const statusClass = (status) => {
+                const s = String(status || '').toLowerCase();
+                if (s === 'approved' || s === 'negative' || s === 'active') return 'status-success';
+                if (s === 'rejected' || s === 'positive') return 'status-danger';
+                return 'status-pending';
+            };
 
             // Clear existing rows (except header)
             const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
@@ -2005,6 +2770,7 @@
 
             // Add new rows
             labReports.forEach(report => {
+                const status = normalizeStatus(report);
                 const row = document.createElement('div');
                 row.className = 'table-row';
                 row.innerHTML = `
@@ -2012,15 +2778,11 @@
                     <div class="table-cell" data-label="Donor NIC">${report.donor_nic}</div>
                     <div class="table-cell name" data-label="Donor Name">${report.donor_name}</div>
                     <div class="table-cell" data-label="Test Type">${report.test_type}</div>
-                    <div class="table-cell" data-label="Test Date">${new Date(report.test_date).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Test Date">${new Date(report.test_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Result Status">
-                        <span class="status-badge ${report.result_status === 'Negative' ? 'status-success' : report.result_status === 'Positive' ? 'status-danger' : 'status-pending'}">${report.result_status}</span>
+                        <span class="status-badge ${statusClass(status)}">${status}</span>
                     </div>
                     <div class="table-cell" data-label="Actions" style="display: flex; gap: 0.2rem; align-items: center; flex-wrap: wrap;">
-                        ${report.result_status === 'Pending' ? `
-                            <button class="btn btn-success btn-small" onclick="approveLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Approve</button>
-                            <button class="btn btn-danger btn-small" onclick="rejectLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Reject</button>
-                        ` : ''}
                         <button class="btn btn-secondary btn-small" onclick="editLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
                         <button class="btn btn-danger btn-small" onclick="deleteLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Delete</button>
                     </div>
@@ -2257,7 +3019,7 @@
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Title">${story.title}</div>
                     <div class="table-cell" data-label="Description">${story.description.substring(0, 100)}${story.description.length > 100 ? '...' : ''}</div>
-                    <div class="table-cell" data-label="Success Date">${new Date(story.success_date).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Success Date">${new Date(story.success_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span class="status-badge ${story.status === 'Approved' ? 'status-success' : story.status === 'Pending' ? 'status-pending' : 'status-danger'}">${story.status}</span>
                     </div>

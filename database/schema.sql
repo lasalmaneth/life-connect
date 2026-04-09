@@ -47,6 +47,63 @@ CREATE TABLE IF NOT EXISTS `aftercare_appointments` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `aftercare_patients`
+--
+
+DROP TABLE IF EXISTS `aftercare_patients`;
+CREATE TABLE IF NOT EXISTS `aftercare_patients` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `registration_number` varchar(20) NOT NULL,
+  `nic` varchar(20) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `patient_type` enum('RECIPIENT','DONOR') NOT NULL DEFAULT 'RECIPIENT',
+  `hospital_registration_no` varchar(50) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `must_change_password` tinyint(1) NOT NULL DEFAULT '1',
+  `age` int DEFAULT NULL,
+  `gender` varchar(20) DEFAULT NULL,
+  `blood_group` varchar(10) DEFAULT NULL,
+  `contact_details` varchar(255) DEFAULT NULL,
+  `medical_details` text,
+  `status` enum('ACTIVE','SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_aftercare_reg` (`registration_number`),
+  UNIQUE KEY `uniq_aftercare_nic` (`nic`),
+  KEY `idx_aftercare_hosp` (`hospital_registration_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `recipient_patient`
+--
+
+DROP TABLE IF EXISTS `recipient_patient`;
+CREATE TABLE IF NOT EXISTS `recipient_patient` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `registration_number` varchar(20) NOT NULL,
+  `nic` varchar(20) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `hospital_registration_no` varchar(50) NOT NULL,
+  `age` int DEFAULT NULL,
+  `gender` varchar(20) DEFAULT NULL,
+  `blood_group` varchar(10) DEFAULT NULL,
+  `contact_details` varchar(255) DEFAULT NULL,
+  `medical_details` text,
+  `status` enum('ACTIVE','SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_recipient_reg` (`registration_number`),
+  UNIQUE KEY `uniq_recipient_nic` (`nic`),
+  KEY `idx_recipient_hosp` (`hospital_registration_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `body_donation_consents`
 --
 
@@ -906,8 +963,14 @@ CREATE TABLE IF NOT EXISTS `organ_requests` (
   `id` int NOT NULL AUTO_INCREMENT,
   `hospital_id` int NOT NULL,
   `organ_id` int NOT NULL,
+  `recipient_age` tinyint unsigned DEFAULT NULL,
+  `blood_group` varchar(3) DEFAULT NULL,
+  `gender` enum('Male','Female','Other') DEFAULT NULL,
+  `hla_typing` varchar(255) DEFAULT NULL,
+  `transplant_reason` text,
   `priority_level` enum('NORMAL','URGENT','CRITICAL') DEFAULT 'NORMAL',
-  `status` enum('OPEN','MATCHED','CLOSED') DEFAULT 'OPEN',
+  `urgency_reason` text,
+  `status` enum('PENDING','OPEN','MATCHED','CLOSED') DEFAULT 'PENDING',
   `patient_details` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

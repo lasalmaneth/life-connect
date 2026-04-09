@@ -9,7 +9,7 @@ class UserModel {
 
     protected $table = 'users';
 
-    public function createUser($username, $password, $role, $email = null, $phone = null, $status = 'pending')
+    public function createUser($username, $password, $role, $email = null, $phone = null, $status = 'PENDING')
     {
         $query = "INSERT INTO users (username, password_hash, role, email, phone, status, created_at) 
                   VALUES (:username, :password, :role, :email, :phone, :status, NOW())";
@@ -24,6 +24,26 @@ class UserModel {
         ];
         
         return $this->insert($query, $params);
+    }
+
+    private function usersHasColumn($column)
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+
+        $result = $this->query(
+            "SELECT COUNT(*) AS cnt
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = :db
+               AND TABLE_NAME = 'users'
+               AND COLUMN_NAME = :col",
+            [':db' => DBNAME, ':col' => $column]
+        );
+
+        $cache[$column] = ($result && (int)$result[0]->cnt > 0);
+        return $cache[$column];
     }
 
     public function usernameExists($username)
@@ -58,8 +78,11 @@ class UserModel {
 
     public function getStatusByIdentifier($identifier)
     {
+        $hasReviewMessage = $this->usersHasColumn('review_message');
+        $reviewSelect = $hasReviewMessage ? 'review_message' : "'' AS review_message";
+
         // Try fetching by username or email directly from users table
-        $query = "SELECT status, review_message, username, email, role FROM users WHERE username = :id OR email = :id LIMIT 1";
+        $query = "SELECT status, {$reviewSelect}, username, email, role FROM users WHERE username = :id OR email = :id LIMIT 1";
         $result = $this->query($query, [':id' => $identifier]);
         
         if ($result && count($result) > 0) {
@@ -67,7 +90,7 @@ class UserModel {
         }
 
         // Try fetching by NIC/RegNo from donors, hospitals, or medical schools
-        $queryNIC = "SELECT u.status, u.review_message, u.username, u.email, u.role
+          $queryNIC = "SELECT u.status, " . ($hasReviewMessage ? 'u.review_message' : "''") . " AS review_message, u.username, u.email, u.role
                      FROM users u 
                      LEFT JOIN donors d ON u.id = d.user_id 
                      LEFT JOIN hospitals h ON u.id = h.user_id

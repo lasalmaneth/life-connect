@@ -18,7 +18,7 @@ class DonationAdminController {
         }
 
         // Fetch Organ Request Stats for Bar Charts
-        $open_requests = $this->query("SELECT COUNT(*) as count FROM organ_requests WHERE status = 'OPEN'")[0]->count ?? 0;
+        $open_requests = $this->query("SELECT COUNT(*) as count FROM organ_requests WHERE status IN ('OPEN','PENDING')")[0]->count ?? 0;
         $matched_requests = $this->query("SELECT COUNT(*) as count FROM organ_requests WHERE status = 'MATCHED'")[0]->count ?? 0;
         $closed_requests = $this->query("SELECT COUNT(*) as count FROM organ_requests WHERE status = 'CLOSED'")[0]->count ?? 0;
         $total_requests = $open_requests + $matched_requests + $closed_requests;

@@ -9,6 +9,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="<?php echo ROOT; ?>/assets/css/hospital/hospital.css">
     <title>Patient Aftercare Portal - LifeConnect</title>
+    <style>
+        .ac-alert { padding: 1rem; border-radius: 10px; margin-bottom: 1.25rem; border-left: 4px solid; font-weight: 600; }
+        .ac-alert.success { background: #ecfdf5; color: #065f46; border-left-color: #10b981; }
+        .ac-alert.error { background: #fef2f2; color: #991b1b; border-left-color: #ef4444; }
+
+        .ac-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.25rem;
+        }
+        @media (max-width: 860px) {
+            .ac-cards { grid-template-columns: 1fr; }
+        }
+        .ac-card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            background: #fff;
+            border: 1px solid rgba(0, 91, 170, 0.12);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 35px rgba(0, 91, 170, 0.08);
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        }
+        .ac-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 50px rgba(0, 91, 170, 0.14);
+            border-color: rgba(0, 91, 170, 0.35);
+        }
+        .ac-card__top { display:flex; gap: 1rem; align-items: flex-start; }
+        .ac-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: rgba(0, 91, 170, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+        .ac-icon svg { stroke: var(--primary-color); }
+        .ac-title { font-weight: 900; font-size: 1.05rem; color: var(--secondary-text-color); margin: 0 0 0.25rem; }
+        .ac-desc { margin: 0; color: #64748b; font-size: 0.95rem; line-height: 1.5; }
+        .ac-cta { margin-top: 1rem; display:flex; align-items:center; gap: 0.5rem; color: var(--primary-color); font-weight: 800; }
+        .ac-cta svg { stroke: var(--primary-color); }
+    </style>
 </head>
 
 <body>
@@ -68,178 +115,61 @@
                     </div>
 
                     <div class="content-body">
-                        <?php if (isset($_SESSION['flash_success'])): ?>
-                            <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #28a745; font-weight: 500;">
-                                <?php 
-                                    echo $_SESSION['flash_success']; 
-                                    unset($_SESSION['flash_success']); 
-                                ?>
-                            </div>
+                        <?php if (!empty($_SESSION['flash_error'])): ?>
+                            <div class="ac-alert error"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
                         <?php endif; ?>
 
-                        <!-- Create Patient Account Form -->
-                        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem;">
-                            <h3 style="color: var(--primary-text-color); margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem;">Generate Account</h3>
-                            <form action="<?php echo ROOT; ?>/hospital/addpatient" method="POST">
-                                <input type="hidden" name="action" value="create_aftercare_account">
-                                
-                                <div style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Patient NIC (Used as default password)</label>
-                                    <input type="text" name="nic" placeholder="Enter Patient's NIC" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                                    <small style="color: #6c757d; display: block; margin-top: 0.5rem;">The system will automatically generate a secure User ID for the patient. They must log in using this generated ID and their NIC as the password.</small>
-                                </div>
+                        <?php if (!empty($_SESSION['flash_success'])): ?>
+                            <div class="ac-alert success"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                        <?php endif; ?>
 
-                                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer;">Generate Login Credentials</button>
-                            </form>
-                        </div>
-
-                        <!-- Generated Accounts Table -->
-                        <div class="data-table">
-                            <div class="table-header">
-                                <h4>Generated Patient Accounts</h4>
-                            </div>
-                            <div class="table-content">
-                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                    <div class="table-cell">System User ID</div>
-                                    <div class="table-cell">Account Type</div>
-                                    <div class="table-cell">Generated On</div>
-                                    <div class="table-cell">Actions</div>
-                                </div>
-                                <?php if (!empty($patient_accounts)): ?>
-                                    <?php foreach ($patient_accounts as $account): ?>
-                                        <div class="table-row">
-                                            <div class="table-cell" style="font-family: monospace; font-weight: bold; color: var(--primary-color);">
-                                                <?php echo htmlspecialchars(explode('@', $account->user_id)[0]); ?>
-                                            </div>
-                                            <div class="table-cell"><span style="background: #e1f5fe; color: #0288d1; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Aftercare Portal</span></div>
-                                            <div class="table-cell"><?php echo date('M d, Y · H:i A', strtotime($account->created_at)); ?></div>
-                                            <div class="table-cell" style="display: flex; gap: 0.5rem;">
-                                                <!-- Mock Edit/Delete for UI demonstration -->
-                                                <button class="btn btn-secondary btn-small" onclick="alert('Functionality to reset password coming soon.')">Reset Password</button>
-                                                <button class="btn btn-danger btn-small" onclick="if(confirm('Are you sure you want to deactivate this portal access?')) { alert('Account deactivated.'); }">Deactivate</button>
-                                            </div>
+                        <div class="ac-cards">
+                            <a class="ac-card" href="<?php echo ROOT; ?>/hospital/addpatient/recipient">
+                                <div class="ac-card__top">
+                                    <div class="ac-icon" aria-hidden="true">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M4 21v-2a4 4 0 0 1 4-4h4"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M16 11h6"></path>
+                                            <path d="M19 8v6"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="ac-title">Add Recipient Patient</h3>
+                                        <p class="ac-desc">Create a recipient account with a generated registration number (REG-YYYY-0001) for Aftercare Portal login.</p>
+                                        <div class="ac-cta">
+                                            Continue
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M5 12h14"></path>
+                                                <path d="M13 5l7 7-7 7"></path>
+                                            </svg>
                                         </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <div style="padding: 3rem; text-align: center; color: var(--secondary-text-color);">
-                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.5;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                                        <p>No aftercare accounts generated yet.</p>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <!-- Aftercare Management Section (Simulated) -->
-                        <div style="margin-top: 3rem; border-top: 2px solid var(--border-color); padding-top: 2rem;">
-                            <h3 style="color: var(--primary-color); margin-bottom: 0.5rem; display:flex; align-items:center; gap: 0.5rem;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-                                Patient Aftercare Management
-                            </h3>
-                            <p style="color: var(--secondary-text-color); margin-bottom: 2rem;">Select a patient from the active accounts above to instantly schedule their post-surgery appointments and file support requests.</p>
-
-                            <!-- Visual Calendar Section -->
-                            <div style="background: white; border-radius: 12px; padding: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 2rem; max-width: 800px; margin-left: auto; margin-right: auto;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                                    <h4 style="margin: 0; font-size: 1rem; color: #1a202c;"><span style="margin-right: 8px;">📅</span>Appointments Calendar</h4>
-                                    <div style="font-weight: 600; color: var(--primary-color);">April 2026</div>
-                                    <div style="display:flex; gap: 0.5rem;">
-                                        <button class="btn btn-secondary btn-small" style="padding: 0.25rem 0.5rem;">&lt; Prev</button>
-                                        <button class="btn btn-secondary btn-small" style="padding: 0.25rem 0.5rem;">Next &gt;</button>
                                     </div>
                                 </div>
-                                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; text-align: center;">
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Sun</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Mon</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Tue</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Wed</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Thu</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Fri</div>
-                                    <div style="font-weight: 600; color: #718096; font-size: 0.85rem; padding-bottom: 0.5rem;">Sat</div>
-                                    
-                                    <!-- Calendar full month grid (April 2026) -->
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; color: transparent;">0</div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; color: transparent;">0</div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; color: transparent;">0</div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">1<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">2<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">3<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">4<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">5<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">6<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">7<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">8<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">9<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">10<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">11<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">12<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">13<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">14<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">15<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">16<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 2px solid var(--primary-color); background:#e1f5fe; border-radius: 6px; font-weight: bold; color: var(--primary-color); cursor: pointer; transition: 0.2s;">17<br><small style="color:var(--primary-color);font-size:0.65rem;">1 appt</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">18<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
+                            </a>
 
-                                    <!-- Added missing days to complete April 2026 -->
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">19<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">20<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">21<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">22<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">23<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">24<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">25<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">26<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">27<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">28<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">29<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    <div style="padding: 0.35rem; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: 0.2s;">30<br><small style="color:#a0aec0;font-size:0.65rem;">Book</small></div>
-                                    
-                                    <div style="padding: 0.5rem; border: 1px solid transparent; border-radius: 8px; color: transparent;">0</div>
-                                    <div style="padding: 0.5rem; border: 1px solid transparent; border-radius: 8px; color: transparent;">0</div>
-                                </div>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                                <!-- Book Appointment Panel -->
-                                <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                                        <h4 style="margin: 0; font-size: 1.1rem; color: #1a202c;"><span style="margin-right: 8px;">📝</span>My Appointments</h4>
-                                        <button class="btn btn-primary btn-small" style="width: auto; margin: 0; padding: 0.4rem 1rem;" onclick="alert('Select a PAT- user first!')">+ Book Appointment</button>
+                            <a class="ac-card" href="<?php echo ROOT; ?>/hospital/addpatient/donor">
+                                <div class="ac-card__top">
+                                    <div class="ac-icon" aria-hidden="true">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 21s-7-4.35-9.5-9A5.8 5.8 0 0 1 12 4a5.8 5.8 0 0 1 9.5 8c-2.5 4.65-9.5 9-9.5 9z"></path>
+                                        </svg>
                                     </div>
-                                    <div class="data-table" style="box-shadow: none; border: 1px solid var(--border-color); margin-top: 0;">
-                                        <div class="table-header" style="background:#005baa; color:white; padding: 0.75rem; font-size: 0.85rem;">
-                                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
-                                                <div>DATE & TIME</div>
-                                                <div>TYPE</div>
-                                                <div>STATUS</div>
-                                            </div>
+                                    <div>
+                                        <h3 class="ac-title">Enable Donor Aftercare Access</h3>
+                                        <p class="ac-desc">Grant Aftercare Support access for an existing donor (enables the donor portal Aftercare tab).</p>
+                                        <div class="ac-cta">
+                                            Continue
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M5 12h14"></path>
+                                                <path d="M13 5l7 7-7 7"></path>
+                                            </svg>
                                         </div>
-                                        <div style="padding: 1.5rem; text-align: center; color: #718096; font-size: 0.9rem;">No upcoming appointments booked.</div>
                                     </div>
                                 </div>
-
-                                <!-- Support Requests Panel -->
-                                <div style="background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-                                        <h4 style="margin: 0; font-size: 1.1rem; color: #1a202c;"><span style="margin-right: 8px;">💼</span>Support Requests</h4>
-                                        <button class="btn btn-primary btn-small" style="width: auto; margin: 0; padding: 0.4rem 1rem;" onclick="alert('Select a PAT- user first!')">+ New Request</button>
-                                    </div>
-                                    <div class="data-table" style="box-shadow: none; border: 1px solid var(--border-color); margin-top: 0;">
-                                        <div class="table-header" style="background:#005baa; color:white; padding: 0.75rem; font-size: 0.85rem;">
-                                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
-                                                <div>DATE</div>
-                                                <div>REASON</div>
-                                                <div>STATUS</div>
-                                            </div>
-                                        </div>
-                                        <div style="padding: 1.5rem; text-align: center; color: #718096; font-size: 0.9rem;">No active support requests filed.</div>
-                                    </div>
-                                </div>
-                            </div>
+                            </a>
                         </div>
-
                     </div>
                 </div>
             </div>

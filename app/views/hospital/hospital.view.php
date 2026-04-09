@@ -1904,7 +1904,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     (request.urgency === 'high' ? 'status-active' : 'status-pending');
                 const urgencyText = request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1);
                 const organType = request.organ_type.charAt(0).toUpperCase() + request.organ_type.slice(1);
-                const requestDate = new Date(request.request_date || request.created_at).toLocaleDateString();
+                const requestDate = new Date(request.request_date || request.created_at).toLocaleDateString('en-GB');
                 
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Organ Type">${organType}</div>
@@ -2394,7 +2394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Title">${story.title}</div>
                     <div class="table-cell" data-label="Description">${story.description.substring(0, 100)}${story.description.length > 100 ? '...' : ''}</div>
-                    <div class="table-cell" data-label="Success Date">${new Date(story.success_date).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Success Date">${new Date(story.success_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span class="status-badge ${story.status === 'Approved' ? 'status-success' : story.status === 'Pending' ? 'status-pending' : 'status-danger'}">${story.status}</span>
                     </div>

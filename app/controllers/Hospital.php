@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\AftercarePatientModel;
 use App\Models\HospitalModel;
 
 class Hospital {
@@ -19,6 +20,7 @@ class Hospital {
         
         // Get hospital details
         $hospital = $hospitalModel->getHospitalByUserId($userId);
+        $hospitalId = $hospital ? (int)$hospital->id : 0;
         
         if (!$hospital) {
             $hospital_registration = $_SESSION['hospital_registration'] ?? 'HOSP001';
@@ -40,7 +42,7 @@ class Hospital {
                 'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
                 'role' => $_SESSION['role'] ?? 'Medical Coordinator',
                 'address' => $hospital->address,
-                'phone' => $hospital->phone ?? 'Not specified',
+                'phone' => $hospital->contact_number ?? 'Not specified',
                 'status' => $hospital->verification_status ?? 'Active',
                 'last_login' => date('Y-m-d H:i:s')
             ];
@@ -53,16 +55,27 @@ class Hospital {
 
         // Fetch Data - ensure they are arrays even if model returns false
         $organ_requests = $hospitalModel->getOrganRequests($hospital_registration) ?: [];
+        $organs = $hospitalModel->getAvailableOrgans() ?: [];
         $recipients = $hospitalModel->getRecipients($hospital_registration) ?: [];
         $success_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: [];
         $aftercare_appointments = $hospitalModel->getAftercareAppointments($hospital_registration) ?: [];
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
+        $eligibility_pledges = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
+        $test_results = $hospitalModel->getTestResultsByHospitalId($hospitalId) ?: [];
 
         // Calculate Stats
         $stats = [
             'total_organ_requests' => count($organ_requests),
-            'pending_requests' => count(array_filter($organ_requests, function($req) { return $req->status === 'Pending'; })),
-            'approved_requests' => count(array_filter($organ_requests, function($req) { return $req->status === 'Approved'; })),
+            // Treat PENDING (and legacy OPEN) as "pending" requests
+            'pending_requests' => count(array_filter($organ_requests, function($req) {
+                $s = strtoupper(trim((string)($req->status ?? '')));
+                return $s === 'PENDING' || $s === 'OPEN';
+            })),
+            // Treat MATCHED as "approved" for existing UI counters
+            'approved_requests' => count(array_filter($organ_requests, function($req) {
+                $s = strtoupper(trim((string)($req->status ?? '')));
+                return $s === 'MATCHED';
+            })),
             'total_recipients' => count($recipients),
             'active_recipients' => count(array_filter($recipients, function($rec) { return $rec->status === 'Active'; })),
             'recovered_recipients' => count(array_filter($recipients, function($rec) { return $rec->status === 'Recovered'; })),
@@ -77,10 +90,13 @@ class Hospital {
             'hospital_registration' => $hospital_registration,
             'hospital_details' => $hospital_details,
             'organ_requests' => $organ_requests,
+            'organs' => $organs,
             'recipients' => $recipients,
             'success_stories' => $success_stories,
             'aftercare_appointments' => $aftercare_appointments,
             'lab_reports' => $lab_reports,
+            'test_results' => $test_results,
+            'eligibility_pledges' => $eligibility_pledges,
             'stats' => $stats
         ];
 
@@ -91,13 +107,47 @@ class Hospital {
         $hospitalModel = new HospitalModel();
         $action = $_POST['action'] ?? '';
 
+        $allowedBloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+        $allowedGenders = ['Male', 'Female', 'Other'];
+
         switch ($action) {
             case 'add_organ_request':
+                $recipientAge = $_POST['recipient_age'] ?? null;
+                $bloodGroup = trim((string)($_POST['blood_group'] ?? ''));
+                $gender = trim((string)($_POST['gender'] ?? ''));
+                $hlaTyping = trim((string)($_POST['hla_typing'] ?? ''));
+                $transplantReason = trim((string)($_POST['transplant_reason'] ?? ''));
+
+                $ageNum = filter_var($recipientAge, FILTER_VALIDATE_INT);
+                if ($ageNum === false || $ageNum < 18 || $ageNum > 80) {
+                    $_SESSION['flash_error'] = 'Recipient age must be between 18 and 80.';
+                    break;
+                }
+                if (!in_array($bloodGroup, $allowedBloodGroups, true)) {
+                    $_SESSION['flash_error'] = 'Please select a valid blood group.';
+                    break;
+                }
+                if (!in_array($gender, $allowedGenders, true)) {
+                    $_SESSION['flash_error'] = 'Please select a valid gender.';
+                    break;
+                }
+                if ($transplantReason === '') {
+                    $_SESSION['flash_error'] = 'Reason for transplant is required.';
+                    break;
+                }
+
                 $data = [
                     'registration_no' => $regNo,
-                    'organ_type' => $_POST['organ_type'],
-                    'urgency' => $_POST['urgency'],
-                    'notes' => $_POST['notes']
+                    // Prefer organ_id (matches organs table IDs)
+                    'organ_id' => $_POST['organ_id'] ?? '',
+                    // Backwards compatibility if any view still posts organ_type
+                    'organ_type' => $_POST['organ_type'] ?? '',
+                    'urgency' => $_POST['urgency'] ?? '',
+                    'recipient_age' => $ageNum,
+                    'blood_group' => $bloodGroup,
+                    'gender' => $gender,
+                    'hla_typing' => $hlaTyping,
+                    'transplant_reason' => $transplantReason
                 ];
                 if ($hospitalModel->addOrganRequest($data)) {
                     $_SESSION['flash_success'] = "Organ request added successfully.";
@@ -105,11 +155,48 @@ class Hospital {
                 break;
 
             case 'edit_organ_request':
-                $requestId = $_POST['request_id'];
+                $requestId = $_POST['request_id'] ?? null;
+                $recipientAge = $_POST['recipient_age'] ?? null;
+                $bloodGroup = trim((string)($_POST['blood_group'] ?? ''));
+                $gender = trim((string)($_POST['gender'] ?? ''));
+                $hlaTyping = trim((string)($_POST['hla_typing'] ?? ''));
+                $transplantReason = trim((string)($_POST['transplant_reason'] ?? ''));
+                $editedReason = trim((string)($_POST['edited_reason'] ?? ($_POST['urgency_reason'] ?? '')));
+
+                $ageNum = filter_var($recipientAge, FILTER_VALIDATE_INT);
+                if ($ageNum === false || $ageNum < 18 || $ageNum > 80) {
+                    $_SESSION['flash_error'] = 'Recipient age must be between 18 and 80.';
+                    break;
+                }
+                if (!in_array($bloodGroup, $allowedBloodGroups, true)) {
+                    $_SESSION['flash_error'] = 'Please select a valid blood group.';
+                    break;
+                }
+                if (!in_array($gender, $allowedGenders, true)) {
+                    $_SESSION['flash_error'] = 'Please select a valid gender.';
+                    break;
+                }
+                if ($transplantReason === '') {
+                    $_SESSION['flash_error'] = 'Reason for transplant is required.';
+                    break;
+                }
+
+                if ($editedReason === '') {
+                    $_SESSION['flash_error'] = 'Reason for change is required.';
+                    break;
+                }
+
                 $data = [
-                    'urgency' => $_POST['urgency'],
-                    'urgency_reason' => $_POST['urgency_reason'],
-                    'notes' => $_POST['notes']
+                    'urgency' => $_POST['urgency'] ?? '',
+                    // Persist edit reason (DB column is edited_reason in current schema)
+                    'edited_reason' => $editedReason,
+                    // Backwards compatibility
+                    'urgency_reason' => $editedReason,
+                    'recipient_age' => $ageNum,
+                    'blood_group' => $bloodGroup,
+                    'gender' => $gender,
+                    'hla_typing' => $hlaTyping,
+                    'transplant_reason' => $transplantReason
                 ];
                 if ($hospitalModel->updateOrganRequest($requestId, $data)) {
                     $_SESSION['flash_success'] = "Organ request updated successfully.";
@@ -206,6 +293,7 @@ class Hospital {
 
             case 'edit_lab_report':
                 $reportId = $_POST['report_id'];
+                $before = $hospitalModel->getLabReportById($reportId);
                 $data = [
                     'donor_id' => !empty($_POST['donor_id']) ? $_POST['donor_id'] : null,
                     'test_type' => $_POST['test_type'],
@@ -217,12 +305,41 @@ class Hospital {
                 ];
                 if ($hospitalModel->updateLabReport($reportId, $data)) {
                     $_SESSION['flash_success'] = "Lab report updated successfully.";
+
+                    // Notify donor when schedule is edited
+                    $donorIdForNotify = (int)($data['donor_id'] ?? 0);
+                    if ($donorIdForNotify <= 0 && $before && !empty($before->donor_id)) {
+                        $donorIdForNotify = (int)$before->donor_id;
+                    }
+
+                    if ($donorIdForNotify > 0) {
+                        $oldType = $before ? (string)($before->test_type ?? '') : '';
+                        $oldDate = $before ? (string)($before->test_date ?? '') : '';
+                        $newType = (string)($data['test_type'] ?? '');
+                        $newDate = (string)($data['test_date'] ?? '');
+
+                        $msg = "Your appointment schedule was updated by the hospital.";
+                        if ($oldType !== '' || $oldDate !== '') {
+                            $msg .= "\nPrevious: " . ($oldType !== '' ? $oldType : '—') . " on " . ($oldDate !== '' ? $oldDate : '—');
+                        }
+                        $msg .= "\nUpdated: " . ($newType !== '' ? $newType : '—') . " on " . ($newDate !== '' ? $newDate : '—');
+
+                        $hospitalModel->notifyDonor(
+                            $donorIdForNotify,
+                            'Appointment updated',
+                            $msg,
+                            'INFO'
+                        );
+                    }
                 }
                 break;
 
             case 'delete_lab_report':
-                if ($hospitalModel->deleteLabReport($_POST['report_id'])) {
-                    $_SESSION['flash_success'] = "Lab report deleted successfully.";
+                $rid = (int)($_POST['report_id'] ?? 0);
+                if ($rid > 0 && $hospitalModel->softDeleteLabReport($rid)) {
+                    $_SESSION['flash_success'] = "Schedule deleted successfully.";
+                } else {
+                    $_SESSION['flash_error'] = "Failed to delete schedule.";
                 }
                 break;
 
@@ -235,16 +352,105 @@ class Hospital {
                 break;
 
             case 'schedule_appointment':
-                $data = [
-                    'donor_id' => $_POST['donor_id'] ?? null,
-                    'hospital_registration_no' => $regNo,
-                    'test_type' => $_POST['test_type'],
-                    'test_date' => $_POST['test_date'],
-                    'result_status' => $_POST['status'] ?? 'Pending',
-                    'result_notes' => $_POST['notes'] ?? '',
-                ];
-                if ($hospitalModel->addLabReport($data)) {
-                    $_SESSION['flash_success'] = "Appointment scheduled successfully.";
+                $donorId = (int)($_POST['donor_id'] ?? 0);
+                $organId = (int)($_POST['organ_id'] ?? 0);
+                $tests = $_POST['tests'] ?? [];
+                if (!is_array($tests)) $tests = [];
+                $tests = array_values(array_filter(array_map('trim', $tests), fn($t) => $t !== ''));
+
+                $testDate = trim((string)($_POST['test_date'] ?? ''));
+                $notes = trim((string)($_POST['notes'] ?? ''));
+
+                if ($donorId <= 0 || $organId <= 0 || empty($tests) || $testDate === '') {
+                    $_SESSION['flash_error'] = 'Please select donor, organ, at least one test, and a date.';
+                    break;
+                }
+
+                $organName = $hospitalModel->getOrganNameById($organId) ?? 'Organ';
+                $scheduledCount = 0;
+                foreach ($tests as $t) {
+                    $data = [
+                        'donor_id' => $donorId,
+                        'hospital_registration_no' => $regNo,
+                        'test_type' => $organName . ' - ' . $t,
+                        'test_date' => $testDate,
+                        'result_status' => 'Pending',
+                        'result_notes' => $notes,
+                    ];
+                    if ($hospitalModel->addLabReport($data)) {
+                        $scheduledCount++;
+                    }
+                }
+
+                if ($scheduledCount > 0) {
+                    $hospitalModel->notifyDonor(
+                        $donorId,
+                        'Appointment scheduled',
+                        'Your hospital appointment for ' . $organName . ' tests has been scheduled on ' . $testDate . '. Please review and approve/reject in your Appointments page.',
+                        'INFO'
+                    );
+                    $_SESSION['flash_success'] = "Appointment scheduled successfully ($scheduledCount test(s)).";
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to schedule appointment.';
+                }
+                break;
+
+            case 'submit_test_result':
+                $donorId = (int)($_POST['donor_id'] ?? 0);
+                $testName = trim((string)($_POST['test_name'] ?? ''));
+                $testDate = trim((string)($_POST['test_date'] ?? ''));
+                $resultValue = trim((string)($_POST['result_value'] ?? ''));
+
+                if ($donorId <= 0 || $testName === '' || $testDate === '') {
+                    $_SESSION['flash_error'] = 'Please select donor, test name, and test date.';
+                    break;
+                }
+
+                $documentPath = null;
+                if (!empty($_FILES['document']) && isset($_FILES['document']['tmp_name']) && is_uploaded_file($_FILES['document']['tmp_name'])) {
+                    $uploadDir = __DIR__ . '/../../public/assets/uploads/test_results';
+                    if (!is_dir($uploadDir)) {
+                        @mkdir($uploadDir, 0775, true);
+                    }
+                    $originalName = (string)($_FILES['document']['name'] ?? '');
+                    $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+                    $allowed = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
+                    if ($ext && in_array($ext, $allowed, true)) {
+                        $safeBase = 'tr_' . $donorId . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+                        $fileName = $safeBase . '.' . $ext;
+                        $dest = $uploadDir . '/' . $fileName;
+                        if (move_uploaded_file($_FILES['document']['tmp_name'], $dest)) {
+                            // Public URL path (web root points at /public)
+                            $documentPath = '/assets/uploads/test_results/' . $fileName;
+                        }
+                    }
+                }
+
+                $hospitalIdForVerification = null;
+                if (!empty($_SESSION['user_id'])) {
+                    $h = $hospitalModel->getHospitalByUserId((int)$_SESSION['user_id']);
+                    if ($h && !empty($h->id)) {
+                        $hospitalIdForVerification = (int)$h->id;
+                    }
+                }
+
+                if ($hospitalModel->addTestResult([
+                    'donor_id' => $donorId,
+                    'test_name' => $testName,
+                    'result_value' => $resultValue,
+                    'document_path' => $documentPath,
+                    'test_date' => $testDate,
+                    'verified_by_hospital_id' => $hospitalIdForVerification,
+                ])) {
+                    $hospitalModel->notifyDonor(
+                        $donorId,
+                        'New test result available',
+                        'A new test result (' . $testName . ') was uploaded to your profile. You can view it under Test Results.',
+                        'INFO'
+                    );
+                    $_SESSION['flash_success'] = 'Test result uploaded successfully.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to upload test result.';
                 }
                 break;
 
@@ -286,6 +492,7 @@ class Hospital {
         }
 
         $organ_requests = $hospitalModel->getOrganRequests($hospital_registration) ?: [];
+        $organs = $hospitalModel->getAvailableOrgans() ?: [];
         $hospital_details = [
             'name' => $hospital->name,
             'registration' => $hospital->registration_number,
@@ -302,6 +509,7 @@ class Hospital {
             'hospital_registration' => $hospital_registration,
             'hospital_details' => $hospital_details,
             'organ_requests' => $organ_requests,
+            'organs' => $organs,
             'success_stories' => []
         ];
 
@@ -316,6 +524,7 @@ class Hospital {
         $hospitalModel = new HospitalModel();
         $userId = $_SESSION['user_id'];
         $hospital = $hospitalModel->getHospitalByUserId($userId);
+        $hospitalId = $hospital ? (int)$hospital->id : 0;
         $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -338,6 +547,8 @@ class Hospital {
             'hospital_registration' => $hospital_registration,
             'hospital_details' => $hospital_details
         ];
+
+        $data['eligibility_pledges'] = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
 
         $this->view('hospital/eligibility', $data);
     }
@@ -424,25 +635,74 @@ class Hospital {
         $hospital = $hospitalModel->getHospitalByUserId($userId);
         $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
 
+        $hospital_details = [
+            'name' => $hospital->name,
+            'registration' => $hospital->registration_number,
+            'role' => 'HOSPITAL',
+            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+        ];
+
+        $data = [
+            'hospital_name' => $hospital->name,
+            'hospital_details' => $hospital_details,
+            'hospital_registration' => $hospital_registration,
+        ];
+
+        $this->view('hospital/addpatient', $data);
+    }
+
+    public function addpatientRecipient()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $hospitalModel = new HospitalModel();
+        $userId = $_SESSION['user_id'];
+        $hospital = $hospitalModel->getHospitalByUserId($userId);
+        $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Handle create patient account logic locally or pass to handlePost
-            $action = $_POST['action'] ?? '';
-            if ($action === 'create_aftercare_account') {
-                $nic = $_POST['nic'];
-                $userId = 'PAT-' . date('Ym') . '-' . rand(1000, 9999);
-                $password = password_hash($nic, PASSWORD_DEFAULT); // Default password as NIC
-                
-                // Add to database directly using correct mapped columns (DONOR role used as PATIENT is not in schema ENUM)
-                $query = "INSERT INTO users (username, password_hash, email, role, status, created_at) VALUES (:username, :password, :email, 'DONOR', 'ACTIVE', NOW())";
-                $hospitalModel->query($query, [
-                    'username' => $userId,
-                    'email' => $userId . '@lifeconnect.lk', // Pseudo email as ID
-                    'password' => $password
-                ]);
-                
-                $_SESSION['flash_success'] = "Aftercare portal account created successfully! User ID: $userId";
-                redirect('hospital/addpatient');
+            $name = trim((string)($_POST['recipient_name'] ?? ''));
+            $nic = trim((string)($_POST['recipient_nic'] ?? ''));
+            $requestedReg = trim((string)($_POST['registration_number'] ?? ''));
+
+            if ($name === '' || $nic === '') {
+                $_SESSION['flash_error'] = 'Full name and NIC are required.';
+                redirect('hospital/addpatient/recipient');
             }
+
+            try {
+                $aftercarePatientModel = new AftercarePatientModel();
+
+                $registrationNumber = $aftercarePatientModel->createRecipientAccount([
+                    'full_name' => $name,
+                    'nic' => $nic,
+                    'hospital_registration_no' => $hospital_registration,
+                    'registration_number' => $requestedReg,
+                    'age' => !empty($_POST['recipient_age']) ? (int)$_POST['recipient_age'] : null,
+                    'gender' => !empty($_POST['recipient_gender']) ? trim((string)$_POST['recipient_gender']) : null,
+                    'blood_group' => !empty($_POST['recipient_blood_group']) ? trim((string)$_POST['recipient_blood_group']) : null,
+                    'contact_details' => !empty($_POST['recipient_contact']) ? trim((string)$_POST['recipient_contact']) : null,
+                    'medical_details' => !empty($_POST['recipient_medical']) ? trim((string)$_POST['recipient_medical']) : null,
+                ]);
+
+                $_SESSION['flash_success'] = 'Recipient aftercare account created successfully.';
+                $_SESSION['generated_aftercare_credentials'] = [
+                    'registration_number' => $registrationNumber,
+                    'password' => $nic,
+                ];
+            } catch (\Throwable $e) {
+                $msg = (string)($e->getMessage() ?? '');
+                if (stripos($msg, 'aftercare_patients') !== false && (stripos($msg, 'doesn\'t exist') !== false || stripos($msg, 'Base table or view not found') !== false)) {
+                    $_SESSION['flash_error'] = 'Aftercare tables not found. Run the migration once: /life-connect/migration_aftercare_patients.php';
+                } else {
+                    $_SESSION['flash_error'] = $msg ?: 'Failed to create aftercare account.';
+                }
+            }
+
+            redirect('hospital/addpatient/recipient');
         }
 
         $hospital_details = [
@@ -452,16 +712,106 @@ class Hospital {
             'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
         ];
 
-        // Fetch user accounts starting with 'PAT-' to show created patients
-        $patient_accounts = $hospitalModel->query("SELECT id, username as user_id, created_at FROM users WHERE role = 'DONOR' AND username LIKE 'PAT-%' ORDER BY created_at DESC", []) ?: [];
-
-        $data = [
+        $this->view('hospital/addpatient-recipient', [
             'hospital_name' => $hospital->name,
             'hospital_details' => $hospital_details,
-            'patient_accounts' => $patient_accounts
+            'hospital_registration' => $hospital_registration,
+        ]);
+    }
+
+    public function addpatientDonor()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $hospitalModel = new HospitalModel();
+        $userId = $_SESSION['user_id'];
+        $hospital = $hospitalModel->getHospitalByUserId($userId);
+        $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $nic = trim((string)($_POST['donor_nic'] ?? ''));
+            if ($nic === '') {
+                $_SESSION['flash_error'] = 'Donor NIC is required.';
+                redirect('hospital/addpatient/donor');
+            }
+
+            // Find donor in users table
+            $donorUser = $hospitalModel->query(
+                "SELECT u.id as user_id
+                 FROM users u
+                 JOIN donors d ON u.id = d.user_id
+                 WHERE d.nic_number = :nic
+                 LIMIT 1",
+                [':nic' => $nic]
+            );
+
+            if (!empty($donorUser)) {
+                $uid = (int)$donorUser[0]->user_id;
+                $hospitalModel->query(
+                    "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
+                    [':uid' => $uid]
+                );
+
+                // Also record donor patient details in aftercare_patients
+                try {
+                    $donorRow = $hospitalModel->query(
+                        "SELECT first_name, last_name, gender, blood_group, nic_number
+                         FROM donors
+                         WHERE nic_number = :nic
+                         LIMIT 1",
+                        [':nic' => $nic]
+                    );
+
+                    if (!empty($donorRow)) {
+                        $d = $donorRow[0];
+                        $fullName = trim((string)($d->first_name ?? '') . ' ' . (string)($d->last_name ?? ''));
+
+                        $aftercarePatientModel = new AftercarePatientModel();
+                        $aftercarePatientModel->upsertDonorPatient([
+                            'full_name' => $fullName !== '' ? $fullName : $nic,
+                            'nic' => (string)($d->nic_number ?? $nic),
+                            'hospital_registration_no' => (string)$hospital_registration,
+                            'gender' => $d->gender ?? null,
+                            'blood_group' => $d->blood_group ?? null,
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    // Don't block access grant if logging donor details fails
+                }
+
+                $_SESSION['flash_success'] = 'Aftercare access successfully granted to donor.';
+            } else {
+                $_SESSION['flash_error'] = "Donor not found with NIC {$nic}.";
+            }
+
+            redirect('hospital/addpatient/donor');
+        }
+
+        $hospital_details = [
+            'name' => $hospital->name,
+            'registration' => $hospital->registration_number,
+            'role' => 'HOSPITAL',
+            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
         ];
 
-        $this->view('hospital/addpatient', $data);
+        $donors = [];
+        try {
+            $hospitalId = !empty($hospital->id) ? (int)$hospital->id : 0;
+            if ($hospitalId > 0) {
+                $donors = $hospitalModel->searchDonorsForHospital($hospitalId, '') ?: [];
+            }
+        } catch (\Throwable $e) {
+            $donors = [];
+        }
+
+        $this->view('hospital/addpatient-donor', [
+            'hospital_name' => $hospital->name,
+            'hospital_details' => $hospital_details,
+            'donors' => $donors,
+        ]);
     }
 
     /**
@@ -528,7 +878,8 @@ class Hospital {
             $hospital_name = $hospital->name ?? 'Hospital';
 
             // Get format from request
-            $format = isset($_GET['format']) ? strtolower(trim($_GET['format'])) : 'pdf';
+            // NOTE: PDF export disabled (no external libraries allowed).
+            $format = isset($_GET['format']) ? strtolower(trim($_GET['format'])) : 'csv';
             
             // Get all recipients for this hospital
             $recipients = $hospitalModel->getRecipients($hospital_registration) ?: [];
@@ -537,15 +888,16 @@ class Hospital {
                 case 'csv':
                     $this->generateCSV($recipients, $hospital_name);
                     break;
-                case 'pdf':
-                    $this->generatePDF($recipients, $hospital_name);
-                    break;
                 case 'xlsx':
                 case 'excel':
                     $this->generateExcel($recipients, $hospital_name);
                     break;
                 case 'svg':
                     $this->generateSVG($recipients, $hospital_name);
+                    break;
+                case 'pdf':
+                    http_response_code(400);
+                    echo 'PDF export is disabled. Please use CSV or Excel.';
                     break;
                 default:
                     http_response_code(400);
@@ -604,103 +956,7 @@ class Hospital {
         exit;
     }
 
-    /**
-     * Generate PDF export
-     */
-    private function generatePDF($recipients, $hospital_name) {
-        // Include FPDF library
-        require_once __DIR__ . '/../Libraries/fpdf.php';
-        
-        $pdf = new \FPDF();
-        $pdf->AddPage();
-
-        $logoPath = __DIR__ . '/../../public/assets/images/logo.png';
-        $logoPath = file_exists($logoPath) ? $logoPath : null;
-
-        // Add watermark first (so content renders on top)
-        $this->addWatermark($pdf, $logoPath);
-
-        // Add logo at the top
-        if ($logoPath) {
-            $pdf->Image($logoPath, 10, 8, 18);
-        }
-        
-        // Use Helvetica core font (available without custom files)
-        $pdf->SetFont('Helvetica', 'B', 16);
-        
-        // Header with logo offset
-        $pdf->SetXY(35, 10);
-        $pdf->Cell(0, 10, 'Recipient Patient Report', 0, 1, 'C');
-        $pdf->SetFont('Helvetica', '', 10);
-        $pdf->Cell(0, 5, $hospital_name, 0, 1, 'C');
-        $pdf->Cell(0, 5, 'Generated: ' . date('Y-m-d H:i:s'), 0, 1, 'C');
-        $pdf->Ln(5);
-        
-        // Table Header
-        $pdf->SetFont('Helvetica', 'B', 10);
-        $pdf->SetFillColor(0, 91, 170);
-        $pdf->SetTextColor(255, 255, 255);
-        
-        $pdf->Cell(25, 8, 'NIC', 1, 0, 'C', true);
-        $pdf->Cell(40, 8, 'Name', 1, 0, 'L', true);
-        $pdf->Cell(30, 8, 'Organ', 1, 0, 'C', true);
-        $pdf->Cell(28, 8, 'Surgery Date', 1, 0, 'C', true);
-        $pdf->Cell(25, 8, 'Status', 1, 1, 'C', true);
-        
-        // Table Data
-        $pdf->SetFont('Helvetica', '', 9);
-        $pdf->SetTextColor(0, 0, 0);
-        
-        foreach($recipients as $recipient) {
-            $pdf->Cell(25, 8, substr($recipient->nic, -6), 1, 0, 'C');
-            $pdf->Cell(40, 8, substr($recipient->name, 0, 20), 1, 0, 'L');
-            $pdf->Cell(30, 8, substr($recipient->organ_received, 0, 10), 1, 0, 'C');
-            $pdf->Cell(28, 8, date('m/d/Y', strtotime($recipient->surgery_date)), 1, 0, 'C');
-            $pdf->Cell(25, 8, $recipient->status, 1, 1, 'C');
-        }
-        
-        // Footer
-        $pdf->Ln(5);
-        $pdf->SetFont('Helvetica', 'B', 8);
-        $pdf->Cell(0, 5, 'Total Recipients: ' . count($recipients), 0, 1);
-        
-        // Output
-        header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="Recipient_Report_' . date('Y-m-d_H-i-s') . '.pdf"');
-        $pdf->Output('D', 'Recipient_Report_' . date('Y-m-d_H-i-s') . '.pdf');
-        exit;
-    }
-
-    /**
-     * Add watermark to PDF
-     */
-    private function addWatermark($pdf, $logoPath = null) {
-        // FPDF doesn't support transparency; rely on light color + (optional) PNG alpha.
-        $pdf->SetTextColor(235, 235, 235);
-        $pdf->SetFont('Helvetica', 'B', 40);
-
-        // Tile logo (if present)
-        if ($logoPath) {
-            $logoPositions = [
-                [20, 70], [120, 110], [40, 180], [130, 240]
-            ];
-            foreach ($logoPositions as $pos) {
-                $pdf->Image($logoPath, $pos[0], $pos[1], 55);
-            }
-        }
-
-        // Tile text watermark
-        $textPositions = [
-            [15, 95], [15, 160], [15, 225], [15, 290]
-        ];
-        foreach ($textPositions as $pos) {
-            $pdf->SetXY($pos[0], $pos[1]);
-            $pdf->Cell(0, 18, 'LifeConnect Sri Lanka', 0, 0, 'L');
-        }
-
-        // Reset for normal rendering
-        $pdf->SetTextColor(0, 0, 0);
-    }
+    // PDF export removed (no external libraries allowed)
 
     /**
      * Generate Excel XML export
@@ -844,31 +1100,10 @@ class Hospital {
             $searchQuery = isset($_GET['q']) ? trim($_GET['q']) : '';
 
             $hospitalModel = new HospitalModel();
+            $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+            $hospitalId = $hospital ? (int)$hospital->id : 0;
             
-            if (empty($searchQuery)) {
-                // Return all approved donors when no search query
-                $query = "SELECT id, nic_number, first_name, last_name, blood_group 
-                          FROM donors 
-                          WHERE verification_status = 'APPROVED'
-                          ORDER BY first_name, last_name
-                          LIMIT 100";
-                
-                $results = $hospitalModel->query($query, []);
-                echo json_encode($results ?: []);
-                return;
-            }
-
-            // Search donors by NIC or name
-            $query = "SELECT id, nic_number, first_name, last_name, blood_group 
-                      FROM donors 
-                      WHERE verification_status = 'APPROVED' 
-                      AND (nic_number LIKE :search OR first_name LIKE :search OR last_name LIKE :search)
-                      ORDER BY first_name, last_name
-                      LIMIT 10";
-            
-            $searchParam = '%' . $searchQuery . '%';
-            $results = $hospitalModel->query($query, [':search' => $searchParam]);
-
+            $results = $hospitalModel->searchDonorsForHospital($hospitalId, $searchQuery);
             echo json_encode($results ?: []);
         } catch(\Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -966,6 +1201,45 @@ class Hospital {
         $svg .= '</svg>';
         
         echo $svg;
+        exit;
+    }
+
+    /**
+     * API endpoint to get donor details directly for the Add Patient form
+     */
+    public function fetchDonorDetails() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        header('Content-Type: application/json');
+
+        try {
+            $nic = isset($_GET['nic']) ? trim($_GET['nic']) : '';
+
+            if (empty($nic)) {
+                echo json_encode(['success' => false, 'message' => 'NIC is required']);
+                exit;
+            }
+
+            $hospitalModel = new HospitalModel();
+            // Fetch donor using query method
+            $donor = $hospitalModel->query("SELECT first_name, last_name, gender, blood_group FROM donors WHERE nic_number = :nic LIMIT 1", [':nic' => $nic]);
+
+            if (!empty($donor)) {
+                echo json_encode([
+                    'success' => true, 
+                    'donor' => $donor[0]
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Donor not found']);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
         exit;
     }
 }

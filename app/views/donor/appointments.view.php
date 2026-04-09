@@ -77,6 +77,12 @@ $curYear   = (int)date('Y');
     display:flex; align-items:center; gap:.35rem; transition:.2s;
 }
 .btn-reject:hover:not(:disabled)  { background:#fee2e2; }
+.btn-reschedule {
+    padding:.38rem .85rem; border-radius:7px; font-size:.8rem; font-weight:700;
+    border:1.5px solid var(--blue-600); cursor:pointer; background:#fff; color:var(--blue-700);
+    display:flex; align-items:center; gap:.35rem; transition:.2s;
+}
+.btn-reschedule:hover:not(:disabled) { background:var(--blue-50); }
 .btn-approve:disabled, .btn-reject:disabled { opacity:.45; cursor:not-allowed; }
 
 /* ── Status badges ─────────────────────────────── */
@@ -262,7 +268,7 @@ $curYear   = (int)date('Y');
 
                                 <?php if ($isPending): ?>
                                 <!-- Action buttons row — below, full width, side by side -->
-                                <div style="display:grid; grid-template-columns:1fr 1fr; gap:.65rem; padding-top:.6rem; border-top:1px solid #f1f5f9;">
+                                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.65rem; padding-top:.6rem; border-top:1px solid #f1f5f9;">
                                     <button class="btn-approve"
                                             onclick="openApprove(<?= $apt->id ?>, this)"
                                             data-apt='<?= htmlspecialchars($aptJson, ENT_QUOTES) ?>'
@@ -276,6 +282,13 @@ $curYear   = (int)date('Y');
                                             id="btn-reject-<?= $apt->id ?>"
                                             style="justify-content:center; padding:.55rem 0; border-radius:8px; font-size:.85rem;">
                                         <i class="fas fa-times"></i> Reject
+                                    </button>
+                                    <button class="btn-reschedule"
+                                            onclick="openReschedule(<?= $apt->id ?>, this)"
+                                            data-apt='<?= htmlspecialchars($aptJson, ENT_QUOTES) ?>'
+                                            id="btn-reschedule-<?= $apt->id ?>"
+                                            style="justify-content:center; padding:.55rem 0; border-radius:8px; font-size:.85rem;">
+                                        <i class="fas fa-calendar-alt"></i> Another date
                                     </button>
                                 </div>
                                 <?php else: ?>
@@ -463,6 +476,48 @@ $curYear   = (int)date('Y');
 </div>
 
 <!-- ════════════════════════════════════════════════════════
+     MODAL: Reschedule Request
+═════════════════════════════════════════════════════════ -->
+<div id="rescheduleModal" class="modal-overlay" onclick="closeOnBackdrop(event)">
+    <div class="modal-card">
+        <div class="modal-icon" style="background:var(--blue-50); color:var(--blue-700);">
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <h3 class="modal-title">Request Another Date</h3>
+        <p class="modal-sub">Suggest a new date and provide a brief reason. The hospital will review your request.</p>
+        <div class="modal-info">
+            <div class="modal-label">Appointment</div>
+            <strong id="res-title">—</strong>
+            <div style="margin-top:.4rem;">
+                <div class="modal-label">Current Date</div>
+                <span id="res-date" style="font-size:.88rem; font-weight:600; color:var(--blue-800);">—</span>
+            </div>
+        </div>
+
+        <div style="display:grid; gap:.65rem;">
+            <div>
+                <label class="modal-label" for="res-proposed-date">Proposed Date <span style="color:#dc2626;">*</span></label>
+                <input id="res-proposed-date" type="date" class="modal-textarea" style="min-height:auto; height:44px; padding:.55rem .75rem;" />
+            </div>
+            <div>
+                <label class="modal-label" for="res-reason">Reason <span style="color:#dc2626;">*</span></label>
+                <textarea id="res-reason" class="modal-textarea" placeholder="e.g., Scheduling conflict / travel / work commitments..."></textarea>
+                <div id="res-err" style="color:#dc2626; font-size:.8rem; margin-top:.3rem; display:none;">
+                    <i class="fas fa-exclamation-circle"></i> Please enter a proposed date and reason.
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="modal-actions button btn-cancel" onclick="closeModal('rescheduleModal')">Cancel</button>
+            <button class="modal-actions button" style="background:linear-gradient(135deg,#1d4ed8,#0b4a86); color:#fff; border:none;" onclick="submitReschedule()">
+                <i class="fas fa-paper-plane"></i> Send Request
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
      MODAL: Detail View (from calendar / history click)
 ═════════════════════════════════════════════════════════ -->
 <div id="detailModal" class="modal-overlay" onclick="closeOnBackdrop(event)">
@@ -605,6 +660,34 @@ function submitReject() {
     });
 }
 
+/* ─── Reschedule modal ───────────────────── */
+function openReschedule(id, btn) {
+    _activeId = id;
+    const data = JSON.parse(btn.dataset.apt);
+    document.getElementById('res-title').innerText = data.test_type;
+    document.getElementById('res-date').innerText  = data.date;
+    document.getElementById('res-proposed-date').value = '';
+    document.getElementById('res-reason').value = '';
+    document.getElementById('res-err').style.display = 'none';
+    document.getElementById('rescheduleModal').classList.add('active');
+}
+
+function submitReschedule() {
+    const proposed = document.getElementById('res-proposed-date').value;
+    const reason = document.getElementById('res-reason').value.trim();
+    if (!proposed || !reason) {
+        document.getElementById('res-err').style.display = 'block';
+        return;
+    }
+    document.getElementById('res-err').style.display = 'none';
+
+    sendAction('reschedule', _activeId, reason, function(ok, msg) {
+        closeModal('rescheduleModal');
+        showToast(ok, msg);
+        if (ok) setTimeout(() => location.reload(), 1200);
+    }, { proposed_date: proposed });
+}
+
 /* ─── Detail modal ───────────────────────── */
 function openDetail(data) {
     const badgeMap = {
@@ -641,16 +724,43 @@ function openCalDetail(entries) {
 }
 
 /* ─── AJAX action ────────────────────────── */
-function sendAction(action, id, reason, cb) {
+function sendAction(action, id, reason, cb, extra = null) {
     const fd = new FormData();
     fd.append('action', action);
     fd.append('id', id);
     if (reason) fd.append('reason', reason);
+    if (extra && typeof extra === 'object') {
+        Object.entries(extra).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && String(v) !== '') fd.append(k, v);
+        });
+    }
 
-    fetch(ROOT + '/donor/appointment-action', { method:'POST', body:fd })
-        .then(r => r.json())
-        .then(d => cb(d.success, d.message || (d.success ? 'Done' : 'Error')))
-        .catch(() => cb(false, 'Network error'));
+    fetch(ROOT + '/donor/appointment-action', {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+        .then(async (r) => {
+            const ct = (r.headers.get('content-type') || '').toLowerCase();
+            const text = await r.text();
+            if (!ct.includes('application/json')) {
+                console.error('Non-JSON response from appointment-action:', text);
+                return cb(false, 'Server returned an unexpected response.');
+            }
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse JSON:', text);
+                return cb(false, 'Server returned invalid JSON.');
+            }
+            cb(!!data.success, data.message || (data.success ? 'Done' : 'Error'));
+        })
+        .catch((e) => {
+            console.error('Network error:', e);
+            cb(false, 'Network error');
+        });
 }
 
 /* ─── Lock card UI after action ─────────── */

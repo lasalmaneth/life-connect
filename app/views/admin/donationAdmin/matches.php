@@ -242,7 +242,7 @@ function runMatchingAlgorithm($pdo) {
             // Update organ request status to 'matched'
             $updateRequestSql = "
                 UPDATE organ_request 
-                SET status = 'matched' 
+                SET status = 'MATCHED' 
                 WHERE request_id = ?
             ";
             $updateRequestStmt = $pdo->prepare($updateRequestSql);
@@ -251,7 +251,7 @@ function runMatchingAlgorithm($pdo) {
             // Update donor organ status to 'matched'
             $updateDonorSql = "
                 UPDATE donor_organ 
-                SET status = 'matched' 
+                SET status = 'MATCHED' 
                 WHERE donor_organ_id = ?
             ";
             $updateDonorStmt = $pdo->prepare($updateDonorSql);
@@ -302,7 +302,7 @@ function autoMatchNewDonor($pdo, $donorOrganId) {
     if ($matchesCreated > 0) {
         $updateRequestSql = "
             UPDATE organ_request 
-            SET status = 'matched' 
+            SET status = 'MATCHED' 
             WHERE request_id IN (
                 SELECT request_id FROM matching 
                 WHERE donor_organ_id = ?
@@ -313,7 +313,7 @@ function autoMatchNewDonor($pdo, $donorOrganId) {
         
         $updateDonorSql = "
             UPDATE donor_organ 
-            SET status = 'matched' 
+            SET status = 'MATCHED' 
             WHERE donor_organ_id = ?
         ";
         $updateDonorStmt = $pdo->prepare($updateDonorSql);
@@ -353,7 +353,7 @@ function autoMatchNewRequest($pdo, $requestId) {
     if ($matchesCreated > 0) {
         $updateRequestSql = "
             UPDATE organ_request 
-            SET status = 'matched' 
+            SET status = 'MATCHED' 
             WHERE request_id = ?
         ";
         $updateRequestStmt = $pdo->prepare($updateRequestSql);
@@ -361,7 +361,7 @@ function autoMatchNewRequest($pdo, $requestId) {
         
         $updateDonorSql = "
             UPDATE donor_organ 
-            SET status = 'matched' 
+            SET status = 'MATCHED' 
             WHERE donor_organ_id IN (
                 SELECT donor_organ_id FROM matching 
                 WHERE request_id = ?
