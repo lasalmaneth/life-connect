@@ -217,6 +217,18 @@ class DonorModel {
     }
 
     /**
+     * Get all completed withdrawals for a specific donor
+     */
+    public function getWithdrawalsByDonor($donorId)
+    {
+        $query = "SELECT * FROM consent_withdrawals 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'COMPLETED' 
+                  ORDER BY created_at DESC";
+        return $this->query($query, [':donor_id' => $donorId]);
+    }
+
+    /**
      * Deactivate a SPECIFIC organ/full body pledge after formal withdrawal
      */
     public function deactivateSpecificPledge($donorId, $organId)

@@ -1031,12 +1031,23 @@ class Donor {
 
         $organModel = new \App\Models\OrganModel();
         $bodyModel = new \App\Models\BodyDonationModel();
+        $donorModel = new \App\Models\DonorModel();
         
         // Fetch organ pledges history
         $organ_history = $organModel->getPledgeHistory($donorId);
 
         // Fetch body donation history
         $body_history = $bodyModel->getConsentHistoryByDonorId($donorId);
+
+        // Fetch all completed withdrawals for mapping
+        $withdrawals = $donorModel->getWithdrawalsByDonor($donorId);
+        $withdrawalsByOrgan = [];
+        if ($withdrawals) {
+            foreach ($withdrawals as $w) {
+                // Map by organ_id to catch the specific withdrawal form
+                $withdrawalsByOrgan[$w->organ_id] = $w->signed_form_path;
+            }
+        }
 
         // Combine and format
         $combined = [];
@@ -1048,7 +1059,8 @@ class Donor {
                     'name'    => $o->organ_name,
                     'details' => $o->status === 'WITHDRAWN' ? 'Pledge Withdrawn' : 'Organ Pledged',
                     'status'  => $o->status,
-                    'signed_form_path' => $o->signed_form_path ?? null
+                    'signed_form_path' => $o->signed_form_path ?? null,
+                    'withdrawal_form_path' => ($o->status === 'WITHDRAWN') ? ($withdrawalsByOrgan[$o->organ_id] ?? null) : null
                 ];
             }
         }
@@ -1060,7 +1072,8 @@ class Donor {
                     'name'    => 'Full Body Donation',
                     'details' => $b->status === 'WITHDRAWN' ? 'Consent Withdrawn' : 'Consent Given',
                     'status'  => $b->status,
-                    'signed_form_path' => null
+                    'signed_form_path' => null,
+                    'withdrawal_form_path' => ($b->status === 'WITHDRAWN') ? ($withdrawalsByOrgan[9] ?? null) : null
                 ];
             }
         }
@@ -1421,10 +1434,10 @@ class Donor {
 
             $donationModel = new FinancialDonationModel();
             $success = $donationModel->createDonation([
-                'user_id' => $userId,
-                'amount'  => $amount,
-                'note'    => $_POST['message'] ?? '',
-                'status'  => 'SUCCESS',
+                'donor_id' => $userId,
+                'amount'   => $amount,
+                'note'     => $_POST['message'] ?? '',
+                'status'   => 'SUCCESS',
             ]);
 
             if ($success) {
