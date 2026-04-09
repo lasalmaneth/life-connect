@@ -80,6 +80,15 @@ class Donor {
         // Fetch counts for role switching logic
         $stats = $donorModel->getPledgeSummary($donorId);
 
+        // Fetch unread notification count and recent list
+        $notificationModel = new \App\Models\NotificationModel();
+        $uid = $donorData['user_id'] ?? 0;
+        $unreadCount = $notificationModel->getUnreadCount($uid);
+        $notifications = $notificationModel->getNotificationsForUser($uid, 5);
+        
+        // Harmonize data format to associative arrays for view compatibility
+        $notifications = json_decode(json_encode($notifications), true) ?: [];
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -89,7 +98,10 @@ class Donor {
             'activeRoles' => $activeRoles,
             'currentMode' => $currentMode ?: 'mode-organ-donation',
             'withdrawal' => $withdrawal,
-            'stats' => $stats
+            'stats' => $stats,
+            'unreadCount' => $unreadCount,
+            'unread_count' => $unreadCount, // Added for dual-naming compatibility
+            'notifications' => $notifications
         ];
     }
 
@@ -124,7 +136,8 @@ class Donor {
         }
         unset($organ);
 
-        $notifications = $donorModel->getNotifications($donorId);
+        $notificationModel = new \App\Models\NotificationModel();
+        $notifications = $notificationModel->getNotificationsForUser($donorData['user_id'], 5);
         
         // NEW: Fetch medical investigations for dashboard
         $investigationModel = new \App\Models\UpcomingAppointmentModel();
@@ -146,6 +159,7 @@ class Donor {
             'donor_stats' => $donorStats,
             'pledged_organs' => $pledgedOrgans,
             'notifications' => $notifications,
+            'unread_count' => $common['unreadCount'],
             'upcoming_appointments' => $upcoming_appointments,
             'latest_health' => $latest_health,
             'districts' => $districts,
@@ -1687,4 +1701,81 @@ class Donor {
         }
     }
 
+    /**
+     * Notifications Page
+     */
+    public function notifications()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $common = $this->getCommonData();
+        $donorData = $common['donorData'];
+        $uid = $donorData['user_id'] ?? 0;
+
+        $notificationModel = new \App\Models\NotificationModel();
+        
+        // Handle Mark All as Read
+        if (isset($_GET['mark_all_read'])) {
+            $notificationModel->markAllAsRead($uid);
+            redirect('donor/notifications');
+        }
+
+        $notifications = $notificationModel->getNotificationsForUser($uid);
+        $notifications = json_decode(json_encode($notifications), true) ?: [];
+
+        $data = array_merge($common, [
+            'donor_data' => $donorData,
+            'donor_full_name' => $common['donorFullName'],
+            'donor_id_display' => $common['donorIdDisplay'],
+            'notifications' => $notifications,
+            'unread_count' => $common['unreadCount'],
+            'active_roles' => $common['activeRoles'],
+            'current_mode' => $common['currentMode'],
+            'withdrawal' => $common['withdrawal'],
+            'active_page' => 'notifications',
+            'page_title' => 'Notifications',
+            'ROOT' => ROOT
+        ]);
+
+        $this->view('donor/notifications', $data);
+    }
+
+    /**
+     * AJAX Action: Mark Notification as Read
+     */
+    public function markNotificationRead()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        $id = $_POST['id'] ?? null;
+        if ($id) {
+            $notificationModel = new \App\Models\NotificationModel();
+            $notificationModel->markAsRead($id);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX Action: Delete Notification
+     */
+    public function deleteNotification()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        $id = $_POST['id'] ?? null;
+        if ($id) {
+            $notificationModel = new \App\Models\NotificationModel();
+            $notificationModel->deleteNotification($id);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
 }

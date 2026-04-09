@@ -10,6 +10,9 @@
       <a class="d-menu-item <?= ($active_page ?? '') === 'overview' ? 'active' : '' ?>" href="<?= ROOT ?>/donor">
         <span class="d-menu-item__icon"><i class="fas fa-chart-line"></i></span> Overview
       </a>
+      <a class="d-menu-item <?= ($active_page ?? '') === 'notifications' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/notifications">
+        <span class="d-menu-item__icon"><i class="fas fa-bell"></i></span> Notifications
+      </a>
     </div>
 
     <!-- Organ Donation Specific -->

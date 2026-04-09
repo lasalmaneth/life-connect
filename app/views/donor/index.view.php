@@ -170,7 +170,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <ul class="d-timeline">
                             <?php foreach (array_slice($notifications, 0, 4) as $notif): ?>
                                 <li>
-                                    <div class="d-timeline__date"><?= date('M d, Y', strtotime($notif['date_sent'])) ?></div>
+                                    <div class="d-timeline__date"><?= date('M d, Y', strtotime($notif['created_at'])) ?></div>
                                     <div class="d-timeline__content"><?= htmlspecialchars($notif['message']) ?></div>
                                 </li>
                             <?php endforeach; ?>

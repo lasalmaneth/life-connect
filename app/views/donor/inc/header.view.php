@@ -70,9 +70,44 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
           <a href="<?= ROOT ?>" class="nav-link"><i class="fas fa-home"></i> Home</a>
       </nav>
       
-      <button class="notification-bell" onclick="toggleNotifications()">
-        <i class="fas fa-bell"></i>
-      </button>
+      <div class="notification-container">
+        <button class="notification-bell" id="notificationBell">
+          <i class="fas fa-bell"></i>
+          <?php if(isset($unread_count) && $unread_count > 0): ?>
+            <span class="notification-badge"><?= $unread_count ?></span>
+          <?php endif; ?>
+        </button>
+        
+        <div class="notification-dropdown" id="notificationDropdown">
+          <div class="dropdown-header">
+            <span>Recent Notifications</span>
+            <a href="<?= ROOT ?>/donor/notifications?mark_all_read=1">Mark all read</a>
+          </div>
+          <div class="dropdown-body">
+            <?php if(isset($notifications) && !empty($notifications)): ?>
+              <?php foreach($notifications as $n): ?>
+                <a href="<?= !empty($n['action_url']) ? ROOT . '/' . $n['action_url'] : ROOT . '/donor/notifications' ?>" class="notification-item <?= !$n['is_read'] ? 'unread' : '' ?>">
+                  <div class="notification-icon">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </div>
+                  <div class="notification-content">
+                    <p class="notification-title"><?= htmlspecialchars($n['title']) ?></p>
+                    <p class="notification-time"><?= date('M d, H:i', strtotime($n['created_at'])) ?></p>
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="no-notifications">
+                <i class="fas fa-bell-slash"></i>
+                <p>No new notifications</p>
+              </div>
+            <?php endif; ?>
+          </div>
+          <div class="dropdown-footer">
+            <a href="<?= ROOT ?>/donor/notifications">View All Notifications</a>
+          </div>
+        </div>
+      </div>
 
       <div class="user-info" onclick="toggleSettingsModal()">
         <div class="user-avatar"><?= strtoupper(substr($donor_data['first_name'] ?? 'D', 0, 1)) ?></div>
@@ -489,6 +524,25 @@ document.addEventListener('DOMContentLoaded', () => {
       // Use UI-only update for initialization to avoid infinite redirect loop
       updatePortalUI(targetTab.dataset.mode, targetTab);
     }, 50);
+  }
+
+  // Notification Dropdown Toggle
+  const bell = document.getElementById('notificationBell');
+  const dropdown = document.getElementById('notificationDropdown');
+  
+  if (bell && dropdown) {
+    bell.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => {
+      dropdown.classList.remove('active');
+    });
+
+    dropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
   }
 });
 </script>

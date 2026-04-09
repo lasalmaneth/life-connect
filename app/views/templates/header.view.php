@@ -38,6 +38,46 @@
         </nav>
 
         <div class="header-actions">
+            <?php if(isset($_SESSION['role']) && $_SESSION['role'] == 'DONOR'): ?>
+                <div class="notification-container" id="notificationContainer">
+                    <button class="notification-bell" id="notificationBell">
+                        <i class="fa-solid fa-bell"></i>
+                        <?php if(isset($unread_count) && $unread_count > 0): ?>
+                            <span class="notification-badge"><?= $unread_count ?></span>
+                        <?php endif; ?>
+                    </button>
+                    
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="dropdown-header">
+                            <span>Notifications</span>
+                            <a href="<?= ROOT ?>/donor/notifications?mark_all_read=1">Mark all read</a>
+                        </div>
+                        <div class="dropdown-body">
+                            <?php if(isset($notifications) && !empty($notifications)): ?>
+                                <?php foreach($notifications as $n): ?>
+                                    <a href="<?= !empty($n->action_url) ? ROOT . '/' . $n->action_url : ROOT . '/donor/notifications' ?>" class="notification-item <?= !$n->is_read ? 'unread' : '' ?>">
+                                        <div class="notification-icon">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </div>
+                                        <div class="notification-content">
+                                            <p class="notification-title"><?= esc($n->title) ?></p>
+                                            <p class="notification-time"><?= date('M d, H:i', strtotime($n->created_at)) ?></p>
+                                        </div>
+                                    </a>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="no-notifications">
+                                    <p>No new notifications</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="dropdown-footer">
+                            <a href="<?= ROOT ?>/donor/notifications">View All Notifications</a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="search-bar glass">
                 <input type="text" placeholder="Search..." id="searchInput">
                 <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
@@ -222,5 +262,24 @@ mark.search-highlight.active {
             clearHighlights();
         }
     });
+
+    // Notification Dropdown Toggle
+    const notifBell = document.getElementById('notificationBell');
+    const notifDropdown = document.getElementById('notificationDropdown');
+    const notifContainer = document.getElementById('notificationContainer');
+
+    if (notifBell && notifDropdown) {
+        notifBell.addEventListener('click', function(e) {
+            e.stopPropagation();
+            notifDropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (notifDropdown.classList.contains('active') && !notifContainer.contains(e.target)) {
+                notifDropdown.classList.remove('active');
+            }
+        });
+    }
 })();
 </script>
