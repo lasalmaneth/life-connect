@@ -273,7 +273,8 @@ class DonorModel {
                    ORDER BY created_at DESC LIMIT 1) as withdrawal_status
                   FROM donor_pledges p 
                   JOIN organs o ON p.organ_id = o.id 
-                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'";
+                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'
+                  GROUP BY p.organ_id";
         
         $results = $this->query($query, [':donor_id' => $donorId]);
         
