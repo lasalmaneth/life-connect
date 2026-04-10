@@ -72,7 +72,7 @@ class UserModel {
                      LEFT JOIN donors d ON u.id = d.user_id 
                      LEFT JOIN hospitals h ON u.id = h.user_id
                      LEFT JOIN medical_schools m ON u.id = m.user_id
-                     WHERE d.nic = :nic 
+                     WHERE d.nic_number = :nic 
                         OR h.registration_number = :nic 
                         OR m.ugc_number = :nic 
                      LIMIT 1";

@@ -8,10 +8,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import 'layout.css';
 @import 'components.css';
-@import 'cards.css';
+@import 'cards.css?v=639113924466335664';
 @import 'forms.css';
 @import 'badges.css';
 @import 'tables.css';
 @import 'timeline.css';
 @import 'cadaver-data-sheet.css';
+@import 'ms-bridge.css';
 @import 'responsive.css';
