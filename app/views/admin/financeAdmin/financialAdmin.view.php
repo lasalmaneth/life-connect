@@ -286,18 +286,28 @@ $admin_status = 'Active';
 <!-- Header Section -->
 <div class="header">
     <div class="header-content">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-        <!-- In the header section, find the logo link and change it to: -->
-        <a href="javascript:void(0);" onclick="logoLogout()" style="text-decoration: none; display: flex; align-items: center; cursor: pointer;">   <div style="background: white; border-radius: 50%; padding: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
-        <img src="/life-connect/public/assets/images/logo.png" alt="Life Connect Logo" style="height: 50px; width: auto;">
-    </div>
-        </a>
-            <div>
-                <h1>Financial Admin Dashboard</h1>
-                <p>Healthcare Management System - Financial Administration</p>
-            </div>
+        <div class="header-left">
+            <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
+                <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
+                <div>
+                    <strong style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
+                    <p style="margin:0; font-size:.68rem; color:#6b7280;">Financial Administration</p>
+                </div>
+            </a>
         </div>
-        <div class="user-info" onclick="toggleUserDropdown()">
+        
+        <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+            <nav style="display: flex; align-items: center; gap: 1rem;">
+                <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
+                    <i class="fa-solid fa-house"></i>
+                </a>
+                <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
+                    <i class="fa-solid fa-bell"></i>
+                    <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
+                </a>
+            </nav>
+
+            <div class="user-info" onclick="toggleUserDropdown()">
             <div class="user-avatar"><?php echo strtoupper(substr($admin_full_name, 0, 1)); ?></div>
             <div class="user-details">
                 <div style="font-weight: 600; font-size: 0.9rem;"><?php echo $admin_full_name; ?></div>
@@ -335,6 +345,7 @@ $admin_status = 'Active';
                         <span class="detail-value status-active"><?php echo $admin_status; ?></span>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

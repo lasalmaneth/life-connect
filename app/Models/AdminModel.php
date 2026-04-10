@@ -71,11 +71,17 @@ class AdminModel {
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'PENDING' OR status = 'pending') AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['pendingThisMonth'] = $res[0]->count ?? 0;
         
+        $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'SUSPENDED' OR status = 'suspended') AND created_at >= NOW() - INTERVAL 1 MONTH");
+        $stats['suspendedThisMonth'] = $res[0]->count ?? 0;
+        
         $res = $this->query("SELECT COUNT(*) as count FROM donors WHERE created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['donorsThisMonth'] = $res[0]->count ?? 0;
 
         $res = $this->query("SELECT COUNT(*) as count FROM donors WHERE category_id = 3 AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['liveDonorsThisMonth'] = $res[0]->count ?? 0;
+
+        $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'ACTIVE' OR status = 'active') AND created_at >= NOW() - INTERVAL 1 MONTH");
+        $stats['activeThisMonth'] = $res[0]->count ?? 0;
 
         try {
             $res = $this->query("SELECT COUNT(*) as count FROM patients WHERE created_at >= NOW() - INTERVAL 1 MONTH");
@@ -134,7 +140,104 @@ class AdminModel {
             $stats['weekly_growth'] = $currentWeeklyTotal > 0 ? 100 : 0;
         }
 
+        $stats['activities'] = $this->getActivityLogs(3);
+
         return $stats;
+    }
+
+    public function getActivityLogs($limit = 3) {
+        $activities = [];
+        
+        // 1. Fetch Latest Registrations (User activity)
+        $registrations = $this->query("SELECT 'USER' as category, username as title, role as detail, status, created_at as date 
+                                     FROM users 
+                                     ORDER BY created_at DESC LIMIT 5");
+        
+        if ($registrations) {
+            foreach ($registrations as $reg) {
+                $status = strtoupper($reg->status);
+                $icon = ($status === 'ACTIVE') ? 'circle-check' : 'circle-plus';
+                
+                $activities[] = [
+                    'type' => $icon,
+                    'category' => 'success',
+                    'title' => 'New User Registered',
+                    'detail' => $reg->title . ' joined as ' . strtolower($reg->detail),
+                    'status' => $status,
+                    'date' => $reg->date
+                ];
+            }
+        }
+
+        // 2. Fetch Latest Notifications (Admin activity)
+        $logs = $this->query("SELECT 'ADMIN' as category, n.type, u.username as recipient, n.title, n.created_at as date 
+                             FROM notifications n 
+                             JOIN users u ON n.user_id = u.id 
+                             ORDER BY n.created_at DESC LIMIT 5");
+        
+        if ($logs) {
+            foreach ($logs as $log) {
+                $category = 'info';
+                $icon = 'bell';
+                $title = $log->title;
+                $detail = 'Sent to ' . $log->recipient;
+
+                if (str_contains($title, '[ADMIN_ACTION]')) {
+                    $title = str_replace('[ADMIN_ACTION] ', '', $title);
+                    
+                    // Default Info
+                    $icon = 'circle-info';
+                    $category = 'info';
+                    $detail = 'Administrative Review: Profile record updated';
+
+                    if (stripos($title, 'ACTIVE') !== false || stripos($title, 'Approved') !== false || stripos($title, 'Activated') !== false) {
+                        $category = 'success';
+                        $icon = 'circle-check';
+                        $detail = 'Administrative Audit: Account status promoted to ACTIVE';
+                    } elseif (stripos($title, 'Rejected') !== false || stripos($title, 'Denied') !== false) {
+                        $category = 'error';
+                        $icon = 'circle-xmark';
+                        $detail = 'Administrative Audit: Account registration REJECTED';
+                    } elseif (stripos($title, 'Suspended') !== false) {
+                        $category = 'error';
+                        $icon = 'circle-xmark';
+                        $detail = 'Administrative Audit: Account access SUSPENDED';
+                    } elseif (stripos($title, 'PENDING') !== false) {
+                        $category = 'info';
+                        $icon = 'circle-info';
+                        $detail = 'Administrative Review: Account returned to PENDING';
+                    }
+                } elseif (stripos($title, 'Approved') !== false || stripos($title, 'ACTIVE') !== false) {
+                    $category = 'success';
+                    $icon = 'circle-check';
+                } elseif (stripos($title, 'Rejected') !== false || stripos($title, 'Denied') !== false) {
+                    $category = 'error';
+                    $icon = 'circle-xmark';
+                } elseif (stripos($title, 'Suspended') !== false) {
+                    $category = 'error';
+                    $icon = 'circle-xmark';
+                } else {
+                    $category = 'info';
+                    $icon = 'circle-info';
+                }
+
+                $activities[] = [
+                    'type' => $icon,
+                    'category' => $category,
+                    'title' => $title,
+                    'detail' => $detail,
+                    'date' => $log->date
+                ];
+            }
+        }
+
+        // Sort by date DESC
+        usort($activities, function($a, $b) {
+            return strtotime($b['date']) - strtotime($a['date']);
+        });
+
+        // Slice to limit
+        return array_slice($activities, 0, $limit);
     }
 
     public function getUsers($searchTerm = '', $role = '', $status = '') {
@@ -163,56 +266,14 @@ class AdminModel {
         return $this->query($query, $params);
     }
 
-    public function updateUserStatus($userId, $status) {
-        $query = "UPDATE users SET status = :status WHERE id = :id";
-        return $this->query($query, ['status' => $status, 'id' => $userId]);
+    public function updateUserStatus($userId, $status, $message = null) {
+        $query = "UPDATE users SET status = :status, review_message = :message WHERE id = :id";
+        return $this->query($query, ['status' => $status, 'id' => $userId, 'message' => $message]);
     }
 
-    public function getPendingDocuments() {
-        $docs = [];
-        
-        // Donors
-        $res = $this->query("SELECT 'DONOR' as entity_type, d.id, d.user_id, d.first_name, d.last_name, d.nic_number as doc_id, 'NIC' as type, d.verification_status as status, d.created_at as date 
-                             FROM donors d WHERE d.verification_status = 'PENDING'");
-        
-        if ($res) {
-            foreach ($res as $row) {
-                if ($row->entity_type === 'DONOR' && !empty($row->doc_id)) {
-                    $decrypted = decrypt($row->doc_id);
-                    if ($decrypted !== false) {
-                        $row->doc_id = $decrypted;
-                    }
-                }
-            }
-            $docs = array_merge($docs, $res);
-        }
 
-        // Hospitals
-        $res = $this->query("SELECT 'HOSPITAL' as entity_type, h.id, h.user_id, h.name as first_name, '' as last_name, h.registration_number as doc_id, 'LICENSE' as type, h.verification_status as status, NOW() as date 
-                             FROM hospitals h WHERE h.verification_status = 'PENDING'");
-        if ($res) $docs = array_merge($docs, $res);
 
-        // Medical Schools
-        $res = $this->query("SELECT 'MEDICAL_SCHOOL' as entity_type, m.id, m.user_id, m.school_name as first_name, '' as last_name, m.ugc_accreditation_number as doc_id, 'UGC' as type, m.verification_status as status, NOW() as date 
-                             FROM medical_schools m WHERE m.verification_status = 'PENDING'");
-        if ($res) $docs = array_merge($docs, $res);
 
-        return $docs;
-    }
-
-    public function updateEntityVerification($entityType, $id, $status) {
-        $table = match($entityType) {
-            'DONOR' => 'donors',
-            'HOSPITAL' => 'hospitals',
-            'MEDICAL_SCHOOL' => 'medical_schools',
-            default => null
-        };
-
-        if (!$table) return false;
-
-        $query = "UPDATE $table SET verification_status = :status WHERE id = :id";
-        return $this->query($query, ['status' => $status, 'id' => $id]);
-    }
 
     public function sendNotification($userId, $title, $message, $type = 'GENERAL') {
         $query = "INSERT INTO notifications (user_id, title, message, type) VALUES (:user_id, :title, :message, :type)";
@@ -236,13 +297,13 @@ class AdminModel {
         $role = strtoupper($role);
 
         if ($role === 'DONOR') {
-            $donor = $this->query("SELECT first_name, last_name, nic_number as nic, gender, date_of_birth as dob FROM donors WHERE user_id = :id", ['id' => $id]);
+            $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
             if (!empty($donor)) $details = (array) $donor[0];
         } elseif ($role === 'FINANCIAL_DONOR') {
-            $donor = $this->query("SELECT first_name, last_name, nic_number as nic, gender, date_of_birth as dob FROM donors WHERE user_id = :id", ['id' => $id]);
+            $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
             if (!empty($donor)) $details = (array) $donor[0];
         } elseif ($role === 'HOSPITAL') {
-            $hosp = $this->query("SELECT name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
+            $hosp = $this->query("SELECT *, name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
             if (!empty($hosp)) $details = (array) $hosp[0];
         } elseif ($role === 'MEDICAL_SCHOOL') {
             $med = $this->query("SELECT name as first_name, '' as last_name, ugc_number as nic FROM medical_schools WHERE user_id = :id", ['id' => $id]);
@@ -254,13 +315,34 @@ class AdminModel {
             } catch (Exception $e) {
                 // Ignore if patient table schema is incomplete
             }
+        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'])) {
+            $admin = $this->query("SELECT * FROM admins WHERE user_id = :id", ['id' => $id]);
+            if (!empty($admin)) $details = (array) $admin[0];
         }
 
         $user->first_name = $details['first_name'] ?? '';
         $user->last_name = $details['last_name'] ?? '';
-        $user->nic = $details['nic'] ?? '';
+        $user->nic = $details['nic'] ?? $details['nic_number'] ?? '';
         $user->gender = $details['gender'] ?? '';
-        $user->dob = $details['dob'] ?? '';
+        $user->dob = $details['dob'] ?? $details['date_of_birth'] ?? '';
+        $user->active_roles = $details['active_roles'] ?? $details['active_role'] ?? '[]';
+        $user->address = $details['address'] ?? '';
+        $user->district = $details['district'] ?? '';
+        $user->ds_division = $details['ds_division'] ?? $details['divisional_secretariat'] ?? '';
+        $user->gn_division = $details['gn_division'] ?? $details['grama_niladhari_division'] ?? '';
+        
+        // Hospital Specific Fields
+        $user->transplant_id = $details['transplant_id'] ?? '';
+        $user->facility_type = $details['facility_type'] ?? '';
+        $user->cmo_name = $details['cmo_name'] ?? '';
+        $user->cmo_nic = $details['cmo_nic'] ?? '';
+        $user->medical_license_number = $details['medical_license_number'] ?? '';
+        $user->hospital_contact_number = $details['contact_number'] ?? '';
+
+        // Admin Specific Fields
+        $user->staff_id = $details['staff_id'] ?? '';
+        $user->designation = $details['designation'] ?? '';
+        $user->admin_contact = $details['contact_number'] ?? '';
 
         return $user;
     }
@@ -301,6 +383,15 @@ class AdminModel {
                 'ln' => $data['last_name'] ?? '',
                 'id' => $id
             ]);
+        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'])) {
+            $this->query("UPDATE admins SET first_name = :fn, last_name = :ln, staff_id = :sid, designation = :des, contact_number = :con WHERE user_id = :id", [
+                'fn' => $data['first_name'] ?? '',
+                'ln' => $data['last_name'] ?? '',
+                'sid' => $data['staff_id'] ?? '',
+                'des' => $data['designation'] ?? '',
+                'con' => $data['contact_number'] ?? '',
+                'id' => $id
+            ]);
         }
 
         return true;
@@ -321,43 +412,20 @@ class AdminModel {
         return $this->query($query, $params);
     }
 
-    public function bulkUpdateUserStatus($userIds, $status) {
+    public function bulkUpdateUserStatus($userIds, $status, $message = null) {
         if (empty($userIds)) return false;
         
-        // PDO doesn't handle array binding in IN clause easily, so we build it manually
+        $status = strtoupper($status);
+        if (!$message) {
+            $message = ($status === 'ACTIVE') 
+                ? "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved." 
+                : "Account suspended for administrative review.";
+        }
+
         $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $query = "UPDATE users SET status = ? WHERE id IN ($placeholders)";
+        $query = "UPDATE users SET status = ?, review_message = ? WHERE id IN ($placeholders)";
         
-        $params = array_merge([$status], $userIds);
+        $params = array_merge([$status, $message], $userIds);
         return $this->query($query, $params);
-    }
-    public function bulkUpdateEntityVerification($entities, $status) {
-        if (empty($entities)) return false;
-        
-        // Group IDs by entity type to minimize queries
-        $grouped = [];
-        foreach ($entities as $entity) {
-            $type = $entity['entity_type'];
-            $id = $entity['id'];
-            if (!isset($grouped[$type])) $grouped[$type] = [];
-            $grouped[$type][] = $id;
-        }
-
-        foreach ($grouped as $type => $ids) {
-            $table = match($type) {
-                'DONOR' => 'donors',
-                'HOSPITAL' => 'hospitals',
-                'MEDICAL_SCHOOL' => 'medical_schools',
-                default => null
-            };
-
-            if ($table) {
-                $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $query = "UPDATE $table SET verification_status = ? WHERE id IN ($placeholders)";
-                $params = array_merge([$status], $ids);
-                $this->query($query, $params);
-            }
-        }
-        return true;
     }
 }

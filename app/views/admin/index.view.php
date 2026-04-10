@@ -62,13 +62,18 @@
 }
 
 /* ====== General Section ====== */
-.summary-section, .activity-feed {
+.summary-section {
   margin: 25px 0;
   background: #ffffff;
   padding: 25px;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.activity-feed {
+  margin: 25px 0;
+  padding: 0;
 }
 
 /* Two chart cards side by side — no outer wrapper box */
@@ -99,6 +104,7 @@
 
 .chart-card--distribution .chart-body {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 24px;
   flex: 1;
@@ -116,15 +122,18 @@
 }
 
 .chart-card--distribution .chart-legend {
-  flex: 1;
+  width: 100%;
   margin-top: 0;
-  border-top: none;
-  border-left: 1px solid #e1edff;
-  padding-top: 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  border-top: 1px solid #e1edff;
+  border-left: none;
+  padding-top: 20px;
+  padding-left: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+.chart-card--distribution .chart-legend .legend-item {
+  margin: 0;
 }
 
 .chart-title {
@@ -170,6 +179,51 @@
 .legend-count {
   font-weight: 600;
   color: #1d4ed8;
+}
+
+/* ====== Pure CSS Doughnut Chart ====== */
+.css-doughnut {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: conic-gradient(#3b82f6 0% 0%, #10b981 0% 0%, #8b5cf6 0% 0%, #f59e0b 0% 0%, #ef4444 0% 100%);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  transition: background 0.4s ease-out;
+}
+
+.css-doughnut-inner {
+  width: 100px;
+  height: 100px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  box-shadow: inset 0px 0px 8px rgba(0,0,0,0.05);
+  pointer-events: none;
+}
+
+.chart-tooltip {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 100;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
 }
 
 /* ====== Bar Chart Section ====== */
@@ -226,7 +280,7 @@
 .chart-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  margin-top: 15px;
+  margin-top: 35px;
   background: #f8fafc;
   border-radius: 10px;
   padding: 10px;
@@ -292,9 +346,21 @@
 /* ====== Activity Feed ====== */
 .activity-title {
   color: #1e56a0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 15px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.activity-title::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 18px;
+  background: #005baa;
+  border-radius: 2px;
 }
 
 .activity-item {
@@ -320,10 +386,10 @@
   flex-shrink: 0;
 }
 
-.activity-icon.success { background: #dbeafe; color: #1e40af; }
-.activity-icon.info { background: #e0f2fe; color: #0369a1; }
-.activity-icon.warning { background: #fef9c3; color: #a16207; }
-.activity-icon.error { background: #fee2e2; color: #991b1b; }
+.activity-icon.success { background: #ecfdf5; color: #059669; }
+.activity-icon.info { background: #eff6ff; color: #3b82f6; }
+.activity-icon.warning { background: #fffbeb; color: #d97706; }
+.activity-icon.error { background: #fee2e2; color: #dc2626; }
 
 .activity-content {
   display: flex;
@@ -394,11 +460,11 @@ body {
     <div class="header">
         <div class="header-content">
             <div class="header-left">
-                <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:12px;">
-                    <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:38px;">
+                <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
+                    <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
-                        <strong style="display:block; font-size:1.15rem; color:#005baa; line-height:1; letter-spacing: -0.02em;">LifeConnect</strong>
-                        <p style="margin:0; font-size:.65rem; color:#94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">User Administration</p>
+                        <strong style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
+                        <p style="margin:0; font-size:.68rem; color:#6b7280;">User Administration</p>
                     </div>
                 </a>
             </div>
@@ -418,7 +484,7 @@ body {
                     <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;"><?= substr($adminName, 0, 1) ?></div>
                     <div class="user-details">
                         <span class="user-name"><?= htmlspecialchars($adminName) ?></span>
-                        <span class="user-role"><?= $_SESSION['role'] === 'AC_ADMIN' ? 'Aftercare Admin' : 'System Admin' ?></span>
+                        <span class="user-role"><?= isset($_SESSION['role']) && $_SESSION['role'] === 'U_ADMIN' ? 'User Admin' : 'System Admin' ?></span>
                     </div>
                     <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
                 </div>
@@ -457,10 +523,7 @@ body {
                         <span id="nav-pending-users-badge" class="badge" style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
                     </a>
                     
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('documents')">
-                        <span class="icon"><i class="fa-solid fa-file-shield"></i></span>
-                        <span>Verifications</span>
-                    </a>
+
                 </div>
 
                 <div class="menu-section">
@@ -491,37 +554,45 @@ body {
         <div class="content-body" style="padding-top: 0;">
             <div class="stats-grid dashboard-metrics">
                 <div class="stat-card glass-card">
-                    <div class="stat-number quick-stat-number" id="stat-total-users">0</div>
+                    <div class="stat-number quick-stat-number" id="stat-total-users" >0</div>
                     <div class="stat-label">Total Users</div>
                     <div class="stat-change positive" id="change-total-users"></div>
                 </div>
                 <div class="stat-card glass-card">
-                    <div class="stat-number quick-stat-number" id="stat-pending-docs">0</div>
+                    <div class="stat-number quick-stat-number" id="stat-pending-docs" style="color: #dc2626;">0</div>
                     <div class="stat-label">Pending Verifications</div>
                     <div class="stat-change positive" id="change-pending-docs"></div>
                 </div>
                 <div class="stat-card glass-card">
-                    <div class="stat-number quick-stat-number" id="stat-active-donors">0</div>
-                    <div class="stat-label">Active Donors</div>
-                    <div class="stat-change positive" id="change-active-donors"></div>
+                    <div class="stat-number quick-stat-number" id="stat-suspended-users" style="color: #dc2626;">0</div>
+                    <div class="stat-label">Suspended Accounts</div>
+                    <div class="stat-change negative" id="change-suspended-users" style="color: #dc2626;"></div>
                 </div>
                 <div class="stat-card glass-card">
-                    <div class="stat-number" id="stat-live-donors">0</div>
-                    <div class="stat-label">Live Organ Donors</div>
-                    <div class="stat-change positive" id="change-live-donors"></div>
+                    <div class="stat-number" id="stat-active-users" style="color: #059669;">0</div>
+                    <div class="stat-label">Total Active Users</div>
+                    <div class="stat-change positive" id="change-active-users" style="color: #059669;"></div>
                 </div>
             </div>
             <div class="charts-section">
                 <div class="chart-card chart-card--distribution">
                     <h3 class="chart-title">User Distribution</h3>
                     <div class="chart-body">
-                        <div class="doughnut-container"><canvas id="userChart" style="max-width:180px; max-height:180px;"></canvas></div>
+                        <div class="doughnut-container" style="position: relative; display: flex; justify-content: center;">
+                            <div id="css-user-chart" class="css-doughnut">
+                                <div class="css-doughnut-inner">
+                                    <div id="css-doughnut-total" style="color: #005baa; font-size: 20px; font-weight: bold;">0</div>
+                                    <div style="color: #718096; font-size: 12px;">Total Users</div>
+                                </div>
+                            </div>
+                            <div id="chart-tooltip" class="chart-tooltip"></div>
+                        </div>
                         <div class="chart-legend">
                             <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#005baa"></div>Donors</div><div class="legend-count">0</div></div>
                             <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#a4c8e1"></div>Patients</div><div class="legend-count">0</div></div>
-                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#74b9ff"></div>Financial Donors</div><div class="legend-count">0</div></div>
-                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#e8f5e8"></div>Hospitals</div><div class="legend-count">0</div></div>
-                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#dbeafe"></div>Medical Schools</div><div class="legend-count">0</div></div>
+                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#059669"></div>Custodians</div><div class="legend-count">0</div></div>
+                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#74b9ff"></div>Hospitals</div><div class="legend-count">0</div></div>
+                            <div class="legend-item"><div class="legend-left"><div class="legend-color" style="background:#e8f5e8"></div>Medical Schools</div><div class="legend-count">0</div></div>
                         </div>
                     </div>
                 </div>
@@ -556,48 +627,7 @@ body {
             </div>
             <div class="activity-feed">
                 <h3 class="activity-title">Recent System Activity</h3>
-                <div class="activity-item">
-                    <div class="activity-icon success"><i class="fa-solid fa-check"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">5 new donor registrations approved</div>
-                        <div class="activity-time">2 minutes ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon info"><i class="fa-solid fa-file-invoice"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">12 documents submitted for verification</div>
-                        <div class="activity-time">15 minutes ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">3 accounts suspended for incomplete documentation</div>
-                        <div class="activity-time">1 hour ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon success"><i class="fa-solid fa-rotate"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Election Commission API sync completed</div>
-                        <div class="activity-time">2 hours ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon info"><i class="fa-solid fa-envelope"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">89 approval notifications sent to users</div>
-                        <div class="activity-time">3 hours ago</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon error"><i class="fa-solid fa-xmark"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">2 registrations rejected - invalid NIC details</div>
-                        <div class="activity-time">4 hours ago</div>
-                    </div>
-                </div>
+                <div style="padding: 20px; text-align: center; color: #64748b;">Loading recent activity...</div>
             </div>
         </div>
     </div>
@@ -637,80 +667,24 @@ body {
                                 <h4>User Accounts</h4>
                                 <div class="action-buttons" style="margin-top: 0; display: flex; gap: 0.5rem;">
                                     <button class="btn btn-success" id="bulk-activate" onclick="bulkActivate()" disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Bulk Activate</button>
-                                    <button class="btn btn-secondary" id="bulk-deactivate" onclick="bulkDeactivate()" disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Bulk Deactivate</button>
                                     <button class="btn btn-danger" id="bulk-suspend" onclick="bulkSuspend()" disabled style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Bulk Suspend</button>
                                 </div>
                             </div>
                             <div class="table-content" id="users-table">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                    <div class="table-cell">
+                                    <div class="table-cell name">
                                         <input type="checkbox" id="select-all" onchange="toggleSelectAll()"> User Details
                                     </div>
                                     <div class="table-cell">Role</div>
                                     <div class="table-cell">Status</div>
                                     <div class="table-cell">Registration Date</div>
-                                    <div class="table-cell">Actions</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Document Verification -->
-                <div id="documents" class="content-section" style="display: none;">
-                    <div class="content-header">
-                        <h2>Document Verification</h2>
-                        <p>Review and verify submitted donor documents</p>
-                    </div>
-                    <div class="content-body">
-                        <div class="search-bar">
-                            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-                            <input type="text" class="search-input" placeholder="Search by document ID, user name, or type...">
-                        </div>
 
-                        <div class="filter-section">
-                            <select class="filter-select" id="doc-type-filter">
-                                <option value="">All Document Types</option>
-                                <option value="nic">Guardian Documents</option>
-                                <option value="medical">Medical Certificates</option>
-                                <option value="address">Address Proof</option>
-                                <option value="guardian">Guardian Documents</option>
-                            </select>
-                            <select class="filter-select" id="doc-status-filter">
-                                <option value="">All Statuses</option>
-                                <option value="pending">Pending Review</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-
-                        <div class="action-section">
-                            <h3>Document Actions</h3>
-                            <div class="action-buttons">
-                                <button class="btn btn-success" id="bulk-approve-docs" onclick="bulkApproveDocuments()" disabled>Bulk Approve</button>
-                                <button class="btn btn-danger" id="bulk-reject-docs" onclick="bulkRejectDocuments()" disabled>Bulk Reject</button>
-                                <button class="btn btn-secondary" onclick="exportDocumentReport()">Export Report</button>
-                            </div>
-                        </div>
-
-                        <div class="data-table">
-                            <div class="table-header">
-                                <h4>Document Verification Queue</h4>
-                            </div>
-                            <div class="table-content" id="documents-table">
-                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                    <div class="table-cell">
-                                        <input type="checkbox" id="select-all-docs" onchange="toggleSelectAllDocs()"> Document Details
-                                    </div>
-                                    <div class="table-cell">Type</div>
-                                    <div class="table-cell">Status</div>
-                                    <div class="table-cell">Submission Date</div>
-                                    <div class="table-cell">Actions</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- User Notifications -->
                 <div id="notifications" class="content-section" style="display: none;">
@@ -878,95 +852,211 @@ body {
         </div>
     </div>
 
-    <!-- Review User Modal (Detailed View) -->
+    <!-- Review User Modal (Detailed Premium View) -->
     <div id="review-user-modal" class="modal">
-        <div class="modal-content" style="padding: 0; overflow-y: auto; overflow-x: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); padding: 1.5rem 2rem; margin-bottom: 0;">
-                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> User Profile</h3>
-                <button class="modal-close" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0,91,170,0.1);" onclick="closeModal('review-user-modal')">&times;</button>
-            </div>
-            <div id="review-user-body" style="padding: 2rem;">
-                <input type="hidden" id="review-user-id">
-                <input type="hidden" id="review-user-role">
-                <input type="hidden" id="review-user-status">
-
-                <div class="form-group">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-input" id="review-username" readonly style="background: var(--gray-bg-color);">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-input" id="review-email" readonly style="background: var(--gray-bg-color);">
-                </div>
+        <div class="modal-content" style="padding: 2.5rem; border-radius: 24px; max-width: 500px;">
+            <!-- Modal Header with Icon (Simplified Horizontal Layout) -->
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('review-user-modal')">&times;</button>
                 
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1;">
-                        <label class="form-label">First Name / Name</label>
-                        <input type="text" class="form-input" id="review-firstname">
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <!-- Status Icon -->
+                    <div id="review-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                        <i id="review-status-icon" class="fa-solid fa-circle-xmark" style="font-size: 20px; color: #dc2626;"></i>
                     </div>
-                    <div style="flex:1;" id="review-lastname-group">
-                        <label class="form-label">Last Name</label>
-                        <input type="text" class="form-input" id="review-lastname">
+
+                    <!-- Title -->
+                    <div>
+                        <h2 id="review-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Review Account</h2>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Phone</label>
-                    <input type="text" class="form-input" id="review-phone">
-                </div>
+                <p style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Please review the information below and update the account status. This will be saved permanently.</p>
 
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1;" id="review-role-group">
-                        <label class="form-label">Role</label>
-                        <input type="text" class="form-input" id="review-role-text" readonly style="background: var(--gray-bg-color);">
+                <!-- Core Details Card (2-Column Grid) -->
+                <div id="modal-summary-card" style="background: #f0f7ff; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <!-- Standard Fields -->
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Username</span>
+                        <div id="review-username-text" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
                     </div>
-                    <div style="flex:1;" id="review-regdate-group">
-                        <label class="form-label">Registration Date</label>
-                        <input type="text" class="form-input" id="review-regdate" readonly style="background: var(--gray-bg-color);">
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Role/Reg Date</span>
+                        <div id="review-user-role-display" style="font-size: 0.95rem; font-weight: 600; color: #334155;">-</div>
+                        <div id="review-regdate-text" style="font-size: 0.8rem; color: #64748b;">-</div>
                     </div>
-                </div>
+                    
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Email Address</span>
+                        <div id="review-email-text" style="font-size: 0.9rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
+                    </div>
+                    <div id="review-summary-phone">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Phone Number</span>
+                        <div id="review-phone-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                    </div>
 
-                <hr style="margin: 15px 0; border: none; border-top: 1px solid var(--gray-bg-color);">
+                    <!-- Donor Identity Section (Conditional Grid Row) -->
+                    <div id="donor-identity-section" style="display: contents;">
+                        <div>
+                            <span id="label-fullname" style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Full Name</span>
+                            <div id="review-fullname-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span id="label-nic" style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">NIC Number</span>
+                            <div id="review-nic-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div id="review-gender-group">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Gender</span>
+                            <div id="review-gender-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div id="review-dob-group">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Date of Birth</span>
+                            <div id="review-dob-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                    </div>
 
-                <!-- Extra Role specific fields -->
-                <div class="form-group" style="display:flex; gap:10px;">
-                    <div style="flex:1;" id="review-nic-group">
-                        <label class="form-label">NIC / Ref No</label>
-                        <input type="text" class="form-input" id="review-nic" readonly style="background: var(--gray-bg-color);">
+                    <!-- Hospital Identity Section (Conditional Grid Row) -->
+                    <div id="hospital-identity-section" style="display: none; contents;">
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Hospital Official Name</span>
+                            <div id="review-hosp-name" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Registration Number</span>
+                            <div id="review-hosp-reg" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Transplant ID</span>
+                            <div id="review-hosp-transplant" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Facility Type</span>
+                            <div id="review-hosp-type" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Medical License Number</span>
+                            <div id="review-hosp-license" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Chief Medical Officer (CMO)</span>
+                            <div id="review-hosp-cmo-name" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">CMO NIC Number</span>
+                            <div id="review-hosp-cmo-nic" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">District</span>
+                            <div id="review-hosp-district" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Clinical Contact Number</span>
+                            <div id="review-hosp-phone" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Hospital Address</span>
+                            <div id="review-hosp-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
                     </div>
-                    <div style="flex:1;" id="review-dob-group">
-                        <label class="form-label">Date of Birth</label>
-                        <input type="date" class="form-input" id="review-dob" readonly style="background: var(--gray-bg-color);">
+
+                    <!-- Admin Identity Section -->
+                    <div id="admin-identity-section" style="display: none; contents;">
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Staff ID</span>
+                            <div id="review-admin-staff-id" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Designation</span>
+                            <div id="review-admin-designation" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Internal Contact Number</span>
+                            <div id="review-admin-contact" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group" id="review-gender-group">
-                    <label class="form-label">Gender</label>
-                    <input type="text" class="form-input" id="review-gender" readonly style="background: var(--gray-bg-color);">
-                </div>
-                
-                <!-- Manual Verification: only shown for PENDING (see viewDetailedUser) -->
-                <div id="verification-section" style="display:none; background: #fff8e1; border-left: 4px solid #ffb300; padding: 15px; margin-bottom: 20px;">
-                    <h4 style="margin-top:0; margin-bottom: 10px; color:#b27d00;">Manual Verification</h4>
-                    <label style="display:flex; align-items:center; gap:8px; margin-bottom: 10px; cursor: pointer;">
-                        <input type="checkbox" id="verify-genuine" onchange="checkVerificationStatus()">
-                        Name looks genuine
-                    </label>
-                    <div style="display:flex; align-items:flex-start; gap:8px;">
-                        <input type="checkbox" id="verify-registry" onchange="checkVerificationStatus()" style="margin-top:3px;">
-                        <div style="line-height:1.45;">
-                            <span>Checked with official registry — </span>
-                            <a href="https://eservices.elections.gov.lk/pages/myVoterRegistrationSearch.aspx" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:#005baa; font-weight:600;">Voter registration search</a>
-                            <span style="color:#64748b; font-size:0.85rem;"> · Election Commission</span>
+
+                    <!-- Organ Donor Administrative Section (Conditional Grid Row) -->
+                    <div id="organ-donor-section" style="display: contents;">
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">District / DS Division</span>
+                            <div id="review-location-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">GN Division</span>
+                            <div id="review-gn-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Residential Address</span>
+                            <div id="review-address-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Admin Action buttons -->
-                <div class="action-buttons" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(0, 91, 170, 0.1); justify-content: flex-end;" id="admin-decision-section">
-                    <button type="button" class="btn btn-success" id="btn-approve" onclick="submitUserReview('APPROVE')" style="display:none;">Approve</button>
-                    <button type="button" class="btn btn-danger" id="btn-reject" onclick="submitUserReview('REJECT')" style="display:none;">Reject</button>
-                    <button type="button" class="btn btn-primary" id="btn-save-details" onclick="submitUserReview('UPDATE')">Save Details</button>
-                    <button type="button" class="btn btn-secondary" id="btn-close-modal" onclick="closeModal('review-user-modal')">Close</button>
+                <!-- Hidden Controls -->
+                <input type="hidden" id="review-user-id">
+                <input type="hidden" id="review-user-role">
+                <input type="hidden" id="review-user-status">
+                <!-- Data storage for other fields -->
+                <input type="hidden" id="review-firstname">
+                <input type="hidden" id="review-lastname">
+                <input type="hidden" id="review-phone">
+
+                <!-- Action Section -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    
+                    <!-- Verification Options -->
+                    <div id="verification-section" style="display:none; background: #fffcf0; border-left: 4px solid #fbbf24; padding: 1rem; border-radius: 12px;">
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Manual Verification</span>
+                        
+                        <!-- Common Check (Top) -->
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #1e293b; cursor: pointer; font-weight: 600;">
+                                <input type="checkbox" id="verify-genuine" onchange="checkVerificationStatus(); generateReviewMessage()" style="width: 18px; height: 18px; cursor: pointer;">
+                                Profile Information & Data Authenticity
+                            </label>
+                        </div>
+
+                        <!-- Donor Specific (NIC) -->
+                        <div id="donor-verification-controls" style="display: none;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #1e293b; cursor: pointer; font-weight: 600;">
+                                <input type="checkbox" id="verify-registry" onchange="checkVerificationStatus(); generateReviewMessage()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Verified NIC via Election Commission Registry <a href="https://eservices.elections.gov.lk/pages/myVoterRegistrationSearch.aspx" target="_blank" style="color: #3b82f6; text-decoration: underline; font-size: 0.75rem; margin-left: 4px; font-weight: 700;"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem;"></i></a></span>
+                            </label>
+                        </div>
+
+                        <!-- Hospital Specific (PHSRC) -->
+                        <div id="hospital-verification-controls" style="display: none;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #1e293b; cursor: pointer; font-weight: 600;">
+                                <input type="checkbox" id="verify-hospital-registry" onchange="checkVerificationStatus(); generateReviewMessage()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Verified via Private Health Services (PHSRC) <a href="https://www.phsrc.lk/" target="_blank" style="color: #3b82f6; text-decoration: underline; font-size: 0.75rem; margin-left: 4px; font-weight: 700;"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem;"></i></a></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Status Dropdown -->
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Update Account Status *</span>
+                        <select class="form-select" id="review-status-dropdown" onchange="generateReviewMessage(); checkVerificationStatus()" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-weight: 600; color: #0f172a; outline: none; transition: border-color 0.2s;">
+                            <option value="PENDING">Pending</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="SUSPENDED">Suspended</option>
+                        </select>
+                    </div>
+
+                    <!-- Review Notes -->
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Review Notes / Reason *</span>
+                        <textarea id="review-message" rows="3" placeholder="Provide a reason for the update..." style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none;"></textarea>
+                    </div>
+
+                    <!-- Footer Buttons (Right Aligned) -->
+                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button type="button" onclick="closeModal('review-user-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Cancel</button>
+                        <button type="button" id="btn-save-details" onclick="submitUserReview('UPDATE')" style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                            <i id="btn-save-icon" class="fa-solid fa-circle-xmark"></i>
+                            <span id="btn-save-text">Confirm Rejection</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1104,6 +1194,47 @@ body {
     </div>
 </div>
 
+    <!-- Bulk Action Authorization Modal -->
+    <div id="bulk-action-modal" class="modal">
+        <div class="modal-content" style="padding: 2.5rem; border-radius: 24px; max-width: 500px;">
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('bulk-action-modal')">&times;</button>
+                
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <div id="bulk-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i id="bulk-status-icon" class="fa-solid fa-circle-check" style="font-size: 20px; color: #059669;"></i>
+                    </div>
+                    <div>
+                        <h2 id="bulk-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Authorize Bulk Action</h2>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 10px;">
+                    <span id="bulk-user-count-badge" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">0 Users</span>
+                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Selected for status update</span>
+                </div>
+
+                <p id="bulk-modal-desc" style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Authorize the following status transition and customize the review notification message below.</p>
+
+                <!-- Editable Message Section -->
+                <div>
+                    <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Review Message (Editable)</span>
+                    <textarea id="bulk-review-message" rows="4" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none; font-weight: 500; line-height: 1.4;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="closeModal('bulk-action-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer;">Cancel</button>
+                    <button type="button" id="btn-confirm-bulk" onclick="executeBulkUpdate()" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                        <i id="bulk-confirm-icon" class="fa-solid fa-circle-check"></i>
+                        <span id="bulk-confirm-text">Confirm Activation</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Hidden context for the update -->
+            <input type="hidden" id="bulk-target-status">
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="notification">
         <div id="toast-message">Operation completed successfully.</div>
@@ -1172,9 +1303,7 @@ body {
                 case 'accounts':
                     fetchUsers();
                     break;
-                case 'documents':
-                    fetchPendingDocuments();
-                    break;
+
                 case 'notifications':
                     fetchNotifications();
                     break;
@@ -1208,8 +1337,8 @@ function updateDashboardUI(stats) {
     // 7 cards (all derived from DB via /user-admin/getDashboardStats)
     setText('stat-total-users', stats.totalUsers ?? 0);
     setText('stat-pending-docs', (Number(stats.status_PENDING || stats.status_pending || 0)));
-    setText('stat-active-donors', stats.role_DONOR ?? 0);
-    setText('stat-live-donors', stats.pledge_LIVE_ORGAN ?? stats.pledge_LIVE ?? stats.pledge_ORGAN ?? 0);
+    setText('stat-suspended-users', (Number(stats.status_SUSPENDED || stats.status_suspended || 0)));
+    setText('stat-active-users', (Number(stats.status_ACTIVE || stats.status_active || 0)));
     setText('stat-patients', stats.role_PATIENT ?? 0);
     setText('stat-hospitals', stats.role_HOSPITAL ?? 0);
     
@@ -1228,8 +1357,8 @@ function updateDashboardUI(stats) {
     
     setChange('change-total-users', stats.usersThisMonth ?? 0);
     setChange('change-pending-docs', stats.pendingThisMonth ?? 0);
-    setChange('change-active-donors', stats.donorsThisMonth ?? 0);
-    setChange('change-live-donors', stats.liveDonorsThisMonth ?? 0);
+    setChange('change-suspended-users', stats.suspendedThisMonth ?? 0);
+    setChange('change-active-users', stats.activeThisMonth ?? 0);
     setChange('change-patients', stats.patientsThisMonth ?? 0);
     setChange('change-hospitals', stats.hospitalsThisMonth ?? 0);
 
@@ -1250,6 +1379,11 @@ function updateDashboardUI(stats) {
 
     // Update Weekly Registration Activity with real values
     updateWeeklyActivityChart(stats);
+
+    // Update Activity Feed
+    if (stats.activities) {
+        renderActivityFeed(stats.activities);
+    }
 }
 
 function updateWeeklyActivityChart(stats) {
@@ -1280,7 +1414,7 @@ function updateWeeklyActivityChart(stats) {
     const barColors = ['#005baa', '#1e40af', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
 
     stats.weekly_chart_data.forEach((data, index) => {
-        const heightPercent = (data.count / maxVal) * 90; // scale to 90% max height
+        const heightPercent = (data.count / maxVal) * 80; // scale to 80% max height
         const barDiv = document.createElement('div');
         barDiv.className = 'bar';
         barDiv.style.height = '0%'; // Start at 0 for animation
@@ -1305,9 +1439,9 @@ function updateUserChart(stats) {
     const data = [
         { label: "Donors", value: Number(stats.role_DONOR || 0), color: "#005baa" },
         { label: "Patients", value: Number(stats.role_PATIENT || 0), color: "#a4c8e1" },
-        { label: "Financial Donors", value: Number(stats.role_FINANCIAL_DONOR || 0), color: "#74b9ff" },
-        { label: "Hospitals", value: Number(stats.role_HOSPITAL || 0), color: "#e8f5e8" },
-        { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#dbeafe" }
+        { label: "Custodians", value: Number(stats.role_CUSTODIAN || 0), color: "#059669" },
+        { label: "Hospitals", value: Number(stats.role_HOSPITAL || 0), color: "#74b9ff" },
+        { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#e8f5e8" }
     ];
     
     // Update HTML legend counts
@@ -1315,107 +1449,90 @@ function updateUserChart(stats) {
     if (legendCounts.length >= 5) {
         legendCounts[0].textContent = stats.role_DONOR || 0;
         legendCounts[1].textContent = stats.role_PATIENT || 0;
-        legendCounts[2].textContent = stats.role_FINANCIAL_DONOR || 0;
+        legendCounts[2].textContent = stats.role_CUSTODIAN || 0;
         legendCounts[3].textContent = stats.role_HOSPITAL || 0;
         legendCounts[4].textContent = stats.role_MEDICAL_SCHOOL || 0;
     }
 
-    drawDoughnutChart(data);
+    drawCssDoughnutChart(data);
 }
 
-function drawDoughnutChart(chartData) {
-  const canvas = document.getElementById('userChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  canvas.width = 250;
-  canvas.height = 250;
+function drawCssDoughnutChart(data) {
+    const chart = document.getElementById('css-user-chart');
+    const totalEl = document.getElementById('css-doughnut-total');
+    const tooltip = document.getElementById('chart-tooltip');
+    if (!chart || !totalEl || !tooltip) return;
 
-  const data = chartData || [
-    { label: "Donors", value: 287, color: "#005baa" },
-    { label: "Financial Donors", value: 178, color: "#74b9ff" },
-    { label: "Patients", value: 421, color: "#a4c8e1" },
-    { label: "Hospitals", value: 23, color: "#e8f5e8" },
-    { label: "Medical Schools", value: 47, color: "#dbeafe" }
-  ];
+    const total = data.reduce((sum, d) => sum + d.value, 0);
+    totalEl.textContent = total.toLocaleString();
 
-  const total = data.reduce((sum, d) => sum + Number(d.value), 0);
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const outerRadius = 100;
-  const innerRadius = 50;
+    if (total === 0) {
+        chart.style.background = 'conic-gradient(#e2e8f0 0% 100%)';
+        chart.onmousemove = null;
+        chart.onmouseleave = null;
+        return;
+    }
 
-  let startAngle = -0.5 * Math.PI;
-  data.forEach(d => {
-    d.start = startAngle;
-    const sliceAngle = total > 0 ? (Number(d.value) / total) * 2 * Math.PI : 0;
-    d.end = startAngle + sliceAngle;
-    startAngle = d.end;
-  });
+    let gradientParts = [];
+    let currentAngle = 0;
+    const slices = [];
 
-  function renderChart(highlightIndex = -1) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    data.forEach((d, i) => {
-      if (Number(d.value) === 0) return;
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, outerRadius, d.start, d.end);
-      ctx.closePath();
-      ctx.fillStyle = d.color;
-      ctx.fill();
-
-      if (i === highlightIndex) {
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.arc(centerX, centerY, outerRadius, d.start, d.end);
-        ctx.closePath();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#1e56a0';
-        ctx.shadowColor = d.color + "33";
-        ctx.shadowBlur = 12;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
+    data.forEach(d => {
+        if (d.value === 0) return;
+        const percentage = (d.value / total) * 100;
+        const nextAngle = currentAngle + percentage;
+        
+        gradientParts.push(`${d.color} ${currentAngle}% ${nextAngle}%`);
+        
+        slices.push({
+            label: d.label,
+            value: d.value,
+            percent: percentage.toFixed(1),
+            start: currentAngle,
+            end: nextAngle
+        });
+        
+        currentAngle = nextAngle;
     });
 
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, innerRadius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-
-    ctx.fillStyle = '#005baa';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(total.toLocaleString(), centerX, centerY - 6);
-
-    ctx.fillStyle = '#718096';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Total Users', centerX, centerY + 12);
-  }
-
-  renderChart();
-
-  // Restore Interactivity
-  canvas.onmousemove = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left - centerX;
-    const y = e.clientY - rect.top - centerY;
-    const distance = Math.sqrt(x*x + y*y);
-    const angle = Math.atan2(y, x);
+    chart.style.background = `conic-gradient(${gradientParts.join(', ')})`;
     
-    let foundIndex = -1;
-    if (distance >= innerRadius && distance <= outerRadius) {
-      let adjAngle = angle;
-      if (adjAngle < -0.5 * Math.PI) adjAngle += 2 * Math.PI;
-      data.forEach((d, i) => {
-        if (adjAngle >= d.start && adjAngle <= d.end) foundIndex = i;
-      });
-    }
-    renderChart(foundIndex);
-  };
+    // Add Tooltip Hover Logic
+    chart.onmousemove = (e) => {
+        const rect = chart.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const x = e.clientX - rect.left - centerX;
+        const y = e.clientY - rect.top - centerY;
+        const distance = Math.sqrt(x*x + y*y);
+        
+        // Only trigger if mouse is between the inner circle (hole, radius 50) and outer edge (radius 90)
+        if (distance < 50 || distance > 90) {
+            tooltip.style.opacity = 0;
+            return;
+        }
 
-  canvas.onmouseleave = () => renderChart();
+        // Calculate angle (Top is 0 degrees, clockwise)
+        let angleDeg = Math.atan2(y, x) * (180 / Math.PI) + 90;
+        if (angleDeg < 0) angleDeg += 360;
+        
+        const anglePercent = (angleDeg / 360) * 100;
+        const found = slices.find(s => anglePercent >= s.start && anglePercent <= s.end);
+        
+        if (found) {
+            tooltip.innerHTML = `<div style="font-weight: 700; margin-bottom: 2px;">${found.label}</div>
+                                 <div style="font-size: 0.8rem; color: #cbd5e1;">${found.value.toLocaleString()} users (${found.percent}%)</div>`;
+            
+            tooltip.style.left = (e.clientX - rect.left + chart.offsetLeft) + 'px';
+            tooltip.style.top = (e.clientY - rect.top + chart.offsetTop) + 'px';
+            tooltip.style.opacity = 1;
+        } else {
+            tooltip.style.opacity = 0;
+        }
+    };
+    
+    chart.onmouseleave = () => tooltip.style.opacity = 0;
 }
 
 // Initialize dashboard
@@ -1426,7 +1543,62 @@ function initDashboard() {
 window.onload = initDashboard;
 
 // Update activity feed every 30 seconds
-setInterval(updateActivityFeed, 30000);
+async function updateActivityFeedServer() {
+    try {
+        const response = await fetch(`${ROOT}/user-admin/getDashboardStats`);
+        const data = await response.json();
+        if (data.success && data.stats.activities) {
+            renderActivityFeed(data.stats.activities);
+        }
+    } catch (error) {
+        console.error('Error auto-updating activity feed:', error);
+    }
+}
+
+function renderActivityFeed(activities) {
+    const feed = document.querySelector('.activity-feed');
+    if (!feed) return;
+    
+    // Clear existing items but keep title
+    const title = feed.querySelector('.activity-title');
+    feed.innerHTML = '';
+    if (title) feed.appendChild(title);
+    
+    if (!activities || activities.length === 0) {
+        feed.insertAdjacentHTML('beforeend', '<div style="padding: 20px; text-align: center; color: #64748b;">No recent activity</div>');
+        return;
+    }
+
+    activities.forEach(activity => {
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+        
+        // Format time
+        const date = new Date(activity.date);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 1000); // seconds
+        
+        let timeStr = 'Just now';
+        if (diff < 60) timeStr = diff + 's ago';
+        else if (diff < 3600) timeStr = Math.floor(diff / 60) + 'm ago';
+        else if (diff < 86400) timeStr = Math.floor(diff / 3600) + 'h ago';
+        else timeStr = date.toLocaleDateString();
+
+        item.innerHTML = `
+            <div class="activity-icon ${activity.category}">
+                <i class="fa-solid fa-${activity.type}"></i>
+            </div>
+            <div class="activity-content">
+                <div class="activity-text">${activity.title}</div>
+                <div class="activity-detail" style="font-size: 0.85rem; color: #64748b;">${activity.detail}</div>
+                <div class="activity-time">${timeStr}</div>
+            </div>
+        `;
+        feed.appendChild(item);
+    });
+}
+
+setInterval(updateActivityFeedServer, 30000);
 
         // User Account Management Functions
 async function fetchUsers() {
@@ -1442,7 +1614,7 @@ async function fetchUsers() {
             appState.selectedUsers = [];
             const selectAll = document.getElementById('select-all');
             if (selectAll) selectAll.checked = false;
-            updateBulkButtons(['bulk-activate', 'bulk-deactivate', 'bulk-suspend']);
+            updateBulkButtons();
             renderUsersTable();
         }
     } catch (error) {
@@ -1475,13 +1647,6 @@ function renderUsersTable() {
                 <span class="status-badge status-${user.status.toLowerCase()}">${formatStatus(user.status)}</span>
             </div>
             <div class="table-cell" data-label="Registration">${new Date(user.created_at).toLocaleDateString()}</div>
-            <div class="table-cell action-cell" data-label="Actions">
-                ${user.status.toUpperCase() === 'ACTIVE' ? 
-                    `<button class="btn btn-danger btn-small suspend-btn">Suspend</button>` :
-                    user.status.toUpperCase() === 'PENDING' ?
-                    `<button class="btn btn-success btn-small activate-btn">Activate</button>` : ''
-                }
-            </div>
         `;
 
         tableContent.appendChild(row);
@@ -1494,21 +1659,6 @@ function renderUsersTable() {
             }
         });
 
-        const suspendBtn = row.querySelector('.suspend-btn');
-        if (suspendBtn) {
-            suspendBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                updateUserStatus(user.id, 'SUSPENDED');
-            });
-        }
-
-        const activateBtn = row.querySelector('.activate-btn');
-        if (activateBtn) {
-            activateBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                updateUserStatus(user.id, 'ACTIVE');
-            });
-        }
     });
 
     document.querySelectorAll('.user-checkbox').forEach(checkbox => {
@@ -1551,133 +1701,382 @@ async function updateUserStatus(userId, status) {
                 
                 if (data.success) {
                     const user = data.user;
-                    document.getElementById('review-user-id').value = user.id;
-                    document.getElementById('review-user-role').value = user.role;
-                    document.getElementById('review-user-status').value = user.status;
-
-                    document.getElementById('review-username').value = user.username || '';
-                    document.getElementById('review-email').value = user.email || '';
-                    document.getElementById('review-firstname').value = user.first_name || '';
-                    document.getElementById('review-phone').value = user.phone || '';
-                    document.getElementById('review-role-text').value = user.role;
-                    document.getElementById('review-regdate').value = new Date(user.created_at).toLocaleDateString();
-
-                    // Show/hide based on role
-                    if (user.role === 'FINANCIAL_DONOR' || user.role === 'HOSPITAL' || user.role === 'MEDICAL_SCHOOL') {
-                        document.getElementById('review-lastname-group').style.display = 'none';
-                        document.getElementById('review-dob-group').style.display = 'none';
-                        document.getElementById('review-gender-group').style.display = 'none';
-                    } else {
-                        document.getElementById('review-lastname-group').style.display = 'block';
-                        document.getElementById('review-lastname').value = user.last_name || '';
-                        
-                        document.getElementById('review-dob-group').style.display = 'block';
-                        document.getElementById('review-dob').value = user.dob || '';
-                        
-                        document.getElementById('review-gender-group').style.display = 'block';
-                        document.getElementById('review-gender').value = user.gender || '';
-                    }
-
-                    if (user.nic) {
-                        document.getElementById('review-nic-group').style.display = 'block';
-                        document.getElementById('review-nic').value = user.nic;
-                    } else {
-                        document.getElementById('review-nic-group').style.display = 'none';
-                    }
-
-                    const isPending = user.status.toUpperCase() === 'PENDING';
-                    const isActive = user.status.toUpperCase() === 'ACTIVE';
+                    console.log("Detailed User Data Received:", user);
                     
-                    const verifSection = document.getElementById('verification-section');
-                    const btnApprove = document.getElementById('btn-approve');
-                    const btnReject = document.getElementById('btn-reject');
-                    const btnSave = document.getElementById('btn-save-details');
-                    const btnClose = document.getElementById('btn-close-modal');
+                    try {
+                        // Hidden storage for form submission details
+                        document.getElementById('review-user-id').value = user.id;
+                        document.getElementById('review-user-role').value = user.role || '';
+                        document.getElementById('review-user-status').value = user.status || '';
 
-                    // Reset buttons
-                    btnSave.className = 'btn btn-primary';
-                    if (btnClose) {
-                        btnClose.className = 'btn btn-secondary';
-                        btnClose.classList.remove('btn-close-modal-active');
-                    }
-
-                    if (isPending) {
-                        verifSection.style.display = 'block';
-                        document.getElementById('verify-genuine').checked = false;
-                        document.getElementById('verify-registry').checked = false;
-
-                        btnApprove.style.display = 'inline-block';
-                        btnReject.style.display = 'inline-block';
-                        btnSave.style.display = 'none';
-
-                        btnApprove.disabled = true;
-                    } else {
-                        verifSection.style.display = 'none';
-                        btnApprove.style.display = 'none';
-                        btnReject.style.display = 'none';
-                        btnSave.style.display = 'inline-block';
+                        // Populate Card View
+                        document.getElementById('review-username-text').innerText = user.username || '-';
+                        document.getElementById('review-email-text').innerText = user.email || 'N/A';
+                        document.getElementById('review-phone-text').innerText = user.phone || 'No phone';
+                        document.getElementById('review-regdate-text').innerText = user.created_at ? "Member since " + new Date(user.created_at).toLocaleDateString() : 'N/A';
+                        document.getElementById('review-user-role-display').innerText = (user.role || 'USER').replace('_', ' ');
                         
-                        if (isActive) {
-                            btnSave.className = 'btn btn-success';
-                            if (btnClose) {
-                                btnClose.className = 'btn btn-secondary btn-close-modal-active';
+                        const donorIdentity = document.getElementById('donor-identity-section');
+                        const hospitalIdentity = document.getElementById('hospital-identity-section');
+                        const summaryPhoneGroup = document.getElementById('review-summary-phone');
+                        const organDonorSection = document.getElementById('organ-donor-section');
+                        const deepDetails = document.getElementById('deep-details-section');
+
+                        const isHospital = (user.role && user.role.toUpperCase() === 'HOSPITAL');
+                        const isDonor = (user.role && user.role.toUpperCase() === 'DONOR');
+                        const isAdmin = (user.role && ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'].includes(user.role.toUpperCase()));
+
+                        // Reset display
+                        if (donorIdentity) donorIdentity.style.display = 'none';
+                        if (hospitalIdentity) hospitalIdentity.style.display = 'none';
+                        const adminIdentity = document.getElementById('admin-identity-section');
+                        if (adminIdentity) adminIdentity.style.display = 'none';
+                        
+                        if (summaryPhoneGroup) summaryPhoneGroup.style.display = 'block'; 
+                        if (organDonorSection) organDonorSection.style.display = 'none';
+                        if (deepDetails) deepDetails.style.display = 'none';
+
+                        if (isDonor) {
+                            if (donorIdentity) donorIdentity.style.display = 'contents';
+                            if (organDonorSection) organDonorSection.style.display = 'contents';
+                            if (deepDetails) deepDetails.style.display = 'grid';
+
+                            const fullNameText = document.getElementById('review-fullname-text');
+                            if (fullNameText) fullNameText.innerText = (user.first_name || '') + ' ' + (user.last_name || '');
+                            
+                            const nicText = document.getElementById('review-nic-text');
+                            if (nicText) nicText.innerText = user.nic || 'N/A';
+
+                            const genderText = document.getElementById('review-gender-text');
+                            if (genderText) genderText.innerText = user.gender || 'N/A';
+                            
+                            const dobText = document.getElementById('review-dob-text');
+                            if (dobText) dobText.innerText = user.dob || 'N/A';
+
+                            const locText = document.getElementById('review-location-text');
+                            if (locText) locText.innerText = (user.district || 'Unspecified') + ' • ' + (user.ds_division || 'N/A');
+                            
+                            const gnText = document.getElementById('review-gn-text');
+                            if (gnText) gnText.innerText = user.gn_division || 'N/A';
+
+                            const addrText = document.getElementById('review-address-text');
+                            if (addrText) addrText.innerText = user.address || 'No address provided';
+
+                        } else if (isHospital) {
+                            if (hospitalIdentity) hospitalIdentity.style.display = 'contents';
+                            if (summaryPhoneGroup) summaryPhoneGroup.style.display = 'none'; // Hide generic phone
+                            
+                            // Populate Hospital Fields
+                            const hName = document.getElementById('review-hosp-name');
+                            if (hName) hName.innerText = user.first_name || '-';
+
+                            const hReg = document.getElementById('review-hosp-reg');
+                            if (hReg) hReg.innerText = user.nic || '-';
+
+                            const hTrans = document.getElementById('review-hosp-transplant');
+                            if (hTrans) hTrans.innerText = user.transplant_id || 'N/A';
+
+                            const hType = document.getElementById('review-hosp-type');
+                            if (hType) hType.innerText = user.facility_type || 'N/A';
+
+                            const hLicense = document.getElementById('review-hosp-license');
+                            if (hLicense) hLicense.innerText = user.medical_license_number || 'N/A';
+
+                            const hCmoName = document.getElementById('review-hosp-cmo-name');
+                            if (hCmoName) hCmoName.innerText = user.cmo_name || '-';
+
+                            const hCmoNic = document.getElementById('review-hosp-cmo-nic');
+                            if (hCmoNic) hCmoNic.innerText = user.cmo_nic || '-';
+
+                            const hDistrict = document.getElementById('review-hosp-district');
+                            if (hDistrict) hDistrict.innerText = user.district || 'N/A';
+
+                            const hPhone = document.getElementById('review-hosp-phone');
+                            if (hPhone) hPhone.innerText = user.hospital_contact_number || 'N/A';
+
+                            const hAddress = document.getElementById('review-hosp-address');
+                            if (hAddress) hAddress.innerText = user.address || 'No address provided';
+                        } else if (isAdmin) {
+                            if (adminIdentity) adminIdentity.style.display = 'contents';
+                            
+                            const adminStaffID = document.getElementById('review-admin-staff-id');
+                            if (adminStaffID) adminStaffID.innerText = user.staff_id || 'N/A';
+
+                            const adminDesignation = document.getElementById('review-admin-designation');
+                            if (adminDesignation) adminDesignation.innerText = user.designation || 'N/A';
+
+                            const adminContact = document.getElementById('review-admin-contact');
+                            if (adminContact) adminContact.innerText = user.admin_contact || 'N/A';
+                        }
+
+                        document.getElementById('review-firstname').value = user.first_name || user.school_name || user.name || '';
+                        document.getElementById('review-lastname').value = user.last_name || '';
+                        document.getElementById('review-phone').value = user.phone || '';
+                        
+                        document.getElementById('review-status-dropdown').value = (user.status || 'PENDING').toUpperCase();
+                        document.getElementById('review-message').value = user.review_message || '';
+                        
+                        const verifSection = document.getElementById('verification-section');
+                        const statusUpper = (user.status || '').toUpperCase();
+                        if (verifSection) {
+                            if (statusUpper === 'PENDING') {
+                                verifSection.style.display = 'block';
+                                document.getElementById('verify-genuine').checked = false;
+                                document.getElementById('verify-registry').checked = false;
+                                                  // Show role-specific verifications
+                            const donorControls = document.getElementById('donor-verification-controls');
+                            const hospitalControls = document.getElementById('hospital-verification-controls');
+                            
+                            if (user.role && user.role.toLowerCase() === 'donor') {
+                                if (donorControls) donorControls.style.display = 'block';
+                                if (hospitalControls) hospitalControls.style.display = 'none';
+                            } else if (user.role && user.role.toLowerCase() === 'hospital') {
+                                if (donorControls) donorControls.style.display = 'none';
+                                if (hospitalControls) hospitalControls.style.display = 'block';
+                                if (document.getElementById('hosp-reg-num-text')) {
+                                    document.getElementById('hosp-reg-num-text').innerText = user.registration_number || 'N/A';
+                                }
+                            } else {
+                                if (donorControls) donorControls.style.display = 'none';
+                                if (hospitalControls) hospitalControls.style.display = 'none';
+                            }
+                        } else {
+                                verifSection.style.display = 'none';
+                                document.getElementById('verify-genuine').checked = (statusUpper === 'ACTIVE');
+                                document.getElementById('verify-registry').checked = (statusUpper === 'ACTIVE');
                             }
                         }
-                    }
 
-                    document.getElementById('review-user-modal').classList.add('show');
-                } else {
-                    showToast('error', data.message);
+                        checkVerificationStatus();
+                        document.getElementById('review-user-modal').classList.add('show');
+                    } catch (uiErr) {
+                        console.error("UI Population Error:", uiErr);
+                        showToast('error', 'Critical UI error. Check console.');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching user details:', error);
-                showToast('error', 'Network error. Could not fetch details.');
+                showToast('error', 'Failed to load user records.');
             }
         }
 
         function checkVerificationStatus() {
-            const isGenuineChecked = document.getElementById('verify-genuine').checked;
-            const isRegistryChecked = document.getElementById('verify-registry').checked;
-            const btnApprove = document.getElementById('btn-approve');
-            if (btnApprove) {
-                btnApprove.disabled = !(isGenuineChecked && isRegistryChecked);
+            const genuine = document.getElementById('verify-genuine').checked;
+            const donorRegistry = document.getElementById('verify-registry').checked;
+            const hospitalRegistry = document.getElementById('verify-hospital-registry').checked;
+            
+            const status = document.getElementById('review-status-dropdown').value;
+            const originalStatus = document.getElementById('review-user-status').value;
+            const userRoleElement = document.getElementById('review-user-role-display'); // We can parse role from here or appState
+            const currentRole = userRoleElement ? userRoleElement.innerText.split('|')[0].trim().toLowerCase() : '';
+
+            let canSave = false;
+            if (status === 'ACTIVE') {
+                if (originalStatus === 'PENDING') {
+                    // Force verification for donors/hospitals
+                    if (currentRole === 'donor') {
+                        canSave = genuine && donorRegistry;
+                    } else if (currentRole === 'hospital') {
+                        canSave = genuine && hospitalRegistry;
+                    } else {
+                        canSave = true; // Other roles
+                    }
+                } else {
+                    canSave = true;
+                }
+            } else if (status === 'SUSPENDED') {
+                canSave = true;
+            } else if (status === 'PENDING') {
+                canSave = (originalStatus !== 'PENDING');
+            }
+
+            // Reversion UI logic
+            const verifSection = document.getElementById('verification-section');
+            if (verifSection) {
+                if (status === 'PENDING') {
+                    verifSection.style.display = 'block';
+                    if (originalStatus !== 'PENDING') {
+                        document.getElementById('verify-genuine').checked = false;
+                        document.getElementById('verify-registry').checked = false;
+                        document.getElementById('verify-hospital-registry').checked = false;
+                    }
+
+                    // Ensure correct role controls are shown on reversion select
+                    const donorControls = document.getElementById('donor-verification-controls');
+                    const hospitalControls = document.getElementById('hospital-verification-controls');
+                    if (currentRole === 'donor') {
+                        if (donorControls) donorControls.style.display = 'block';
+                        if (hospitalControls) hospitalControls.style.display = 'none';
+                    } else if (currentRole === 'hospital') {
+                        if (donorControls) donorControls.style.display = 'none';
+                        if (hospitalControls) hospitalControls.style.display = 'block';
+                    }
+                } else if (originalStatus !== 'PENDING') {
+                    verifSection.style.display = 'none';
+                }
+            }
+
+            const btnSave = document.getElementById('btn-save-details');
+            const btnText = document.getElementById('btn-save-text');
+            const btnIcon = document.getElementById('btn-save-icon');
+            const iconBox = document.getElementById('review-status-icon-box');
+            const icon = document.getElementById('review-status-icon');
+
+            if (canSave) {
+                btnSave.disabled = false;
+                btnSave.style.opacity = '1';
+                btnSave.style.cursor = 'pointer';
+            } else {
+                btnSave.disabled = true;
+                btnSave.style.opacity = '0.5';
+                btnSave.style.cursor = 'not-allowed';
+            }
+
+            // Dynamic Styling based on Status
+            if (status === 'ACTIVE') {
+                btnSave.style.background = '#059669'; // Emerald-600
+                btnText.innerText = 'Confirm Approval';
+                btnIcon.className = 'fa-solid fa-circle-check';
+                iconBox.style.background = '#ecfdf5'; // Emerald-50
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = '#059669';
+            } else if (status === 'SUSPENDED') {
+                btnSave.style.background = '#dc2626'; // Red-600
+                btnText.innerText = 'Confirm Removal';
+                btnIcon.className = 'fa-solid fa-circle-xmark';
+                iconBox.style.background = '#fee2e2'; // Red-50
+                icon.className = 'fa-solid fa-circle-xmark';
+                icon.style.color = '#dc2626';
+            } else {
+                btnSave.style.background = '#3b82f6'; // Blue-600
+                btnText.innerText = 'Update Record';
+                btnIcon.className = 'fa-solid fa-circle-info';
+                iconBox.style.background = '#eff6ff'; // Blue-50
+                icon.className = 'fa-solid fa-circle-info';
+                icon.style.color = '#3b82f6';
+            }
+        }
+
+        function generateReviewMessage() {
+            const genuine = document.getElementById('verify-genuine').checked;
+            const registry = document.getElementById('verify-registry').checked;
+            const status = document.getElementById('review-status-dropdown').value;
+            const msgBox = document.getElementById('review-message');
+            
+            // Don't overwrite if the admin has already typed something custom 
+            // (Only auto-generate if message is empty or matches standard patterns)
+            const currentMsg = msgBox.value.trim();
+            const standardPatterns = [
+                "", 
+                "Account verified successfully. All documentation matches official records.",
+                "Verification failed: Profile information and submitted details could not be validated for authenticity.",
+                "Verification failed: NIC record could not be verified via the official Election Commission registry.",
+                "Verification failed: Profile data authenticity concerns and NIC record could not be verified.",
+                "Verification reset: This account has been returned to pending status for details re-evaluation.",
+                "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.",
+                "Account suspended for administrative review."
+            ];
+            
+            if (currentMsg !== "" && !standardPatterns.includes(currentMsg)) return;
+
+            if (status === 'ACTIVE') {
+                 const originalStatus = document.getElementById('review-user-status').value;
+                 if (originalStatus === 'SUSPENDED') {
+                     msgBox.value = "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.";
+                 } else {
+                     msgBox.value = "Account verified successfully. All documentation matches official records.";
+                 }
+            } else if (status === 'SUSPENDED') {
+                 const donorRegistry = document.getElementById('verify-registry').checked;
+                 const hospitalRegistry = document.getElementById('verify-hospital-registry').checked;
+                 const userRoleElement = document.getElementById('review-user-role-display');
+                 const currentRole = userRoleElement ? userRoleElement.innerText.split('|')[0].trim().toLowerCase() : '';
+                 
+                 const registry = (currentRole === 'hospital') ? hospitalRegistry : donorRegistry;
+                 const registryName = (currentRole === 'hospital') ? "Hospital PHSRC registry" : "official Election Commission registry";
+
+                 if (!genuine && !registry) {
+                     msgBox.value = `Verification failed: Profile data authenticity concerns and ${currentRole === 'hospital' ? 'Hospital license' : 'NIC record'} could not be verified.`;
+                 } else if (!genuine) {
+                     msgBox.value = "Verification failed: Profile information and submitted details could not be validated for authenticity.";
+                 } else if (!registry) {
+                     msgBox.value = `Verification failed: ${currentRole === 'hospital' ? 'Hospital registration' : 'NIC record'} could not be verified via the ${registryName}.`;
+                 } else {
+                     msgBox.value = "Account suspended for administrative review.";
+                 }
+            } else if (status === 'PENDING') {
+                const originalStatus = document.getElementById('review-user-status').value;
+                if (originalStatus !== 'PENDING') {
+                    msgBox.value = "Verification reset: This account has been returned to pending status for details re-evaluation.";
+                } else {
+                    msgBox.value = "";
+                }
+            } else {
+                 msgBox.value = "";
             }
         }
 
         async function submitUserReview(action) {
             const userId = document.getElementById('review-user-id').value;
             const role = document.getElementById('review-user-role').value;
+            const newStatus = document.getElementById('review-status-dropdown').value;
+            
             const data = {
-                first_name: document.getElementById('review-firstname').value,
-                last_name: document.getElementById('review-lastname') ? document.getElementById('review-lastname').value : '',
-                phone: document.getElementById('review-phone').value
+                first_name: document.getElementById('review-firstname')?.value || '',
+                last_name: document.getElementById('review-lastname')?.value || '',
+                phone: document.getElementById('review-phone')?.value || ''
             };
 
             try {
-                const payload = {
-                    id: userId,
-                    role: role,
-                    action: action,
-                    data: data
-                };
+                // If the dropdown status was changed, we map it back to APPROVE/REJECT for the existing controller logic
+                // or we just send the NEW status.
+                // Let's refine the controller to accept 'UPDATE' action with 'new_status' parameter.
+                
+                let submitAction = action;
+                if (action === 'UPDATE') {
+                   // Determine if it looks like an approval or rejection for the activity log trigger
+                   const currentStatus = document.getElementById('review-user-status').value;
+                   if (newStatus !== currentStatus) {
+                       submitAction = (newStatus === 'ACTIVE') ? 'APPROVE' : (newStatus === 'SUSPENDED' ? 'REJECT' : 'UPDATE');
+                   }
+                }
 
                 const response = await fetch(`${ROOT}/user-admin/reviewUser`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ 
+                        user_id: userId, 
+                        role: role, 
+                        action: submitAction, 
+                        data: data,
+                        new_status: newStatus,
+                        review_message: document.getElementById('review-message').value
+                    })
                 });
-                const respData = await response.json();
                 
-                if (respData.success) {
-                    showToast('success', respData.message);
+                const text = await response.text();
+                // console.log('RAW SERVER RESPONSE:', text); 
+                
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.error('SERVER SENT MALFORMED DATA:', text);
+                    showToast('error', 'Server error: Malformed data received. Check console.');
+                    return;
+                }
+
+                if (result.success) {
+                    showToast('success', result.message || 'Updated successfully');
                     closeModal('review-user-modal');
                     fetchUsers();
                     fetchDashboardStats();
                 } else {
-                    showToast('error', respData.message);
+                    showToast('error', result.message || 'Failed to update record');
                 }
             } catch (error) {
-                console.error('Error saving user review:', error);
+                console.error('Error submitting review:', error);
+                showToast('error', 'Update failed: Check your connection or administrative permissions.');
             }
         }
 
@@ -1736,7 +2135,6 @@ async function updateUserStatus(userId, status) {
         function toggleSelectAll() {
             const selectAll = document.getElementById('select-all');
             const checkboxes = document.querySelectorAll('.user-checkbox');
-            
             checkboxes.forEach(checkbox => {
                 checkbox.checked = selectAll.checked;
             });
@@ -1747,241 +2145,108 @@ async function updateUserStatus(userId, status) {
         function updateSelectedUsers() {
             const checkboxes = document.querySelectorAll('.user-checkbox:checked');
             appState.selectedUsers = Array.from(checkboxes).map(cb => parseInt(cb.dataset.userId));
-            updateBulkButtons(['bulk-activate', 'bulk-deactivate', 'bulk-suspend']);
+            updateBulkButtons();
         }
 
-        function updateBulkButtons(buttonIds) {
-            buttonIds.forEach(id => {
-                const button = document.getElementById(id);
-                if (button) {
-                    button.disabled = appState.selectedUsers.length === 0;
-                }
-            });
+        function updateBulkButtons() {
+            const activateBtn = document.getElementById('bulk-activate');
+            const suspendBtn = document.getElementById('bulk-suspend');
+            
+            if (!activateBtn && !suspendBtn) return;
+
+            if (appState.selectedUsers.length === 0) {
+                if (activateBtn) activateBtn.disabled = true;
+                if (suspendBtn) suspendBtn.disabled = true;
+                return;
+            }
+
+            const selectedUserData = appState.users.filter(u => appState.selectedUsers.includes(parseInt(u.id)));
+            
+            if (activateBtn) {
+                activateBtn.disabled = !selectedUserData.every(u => (u.status || '').toUpperCase() === 'SUSPENDED');
+            }
+            
+            if (suspendBtn) {
+                suspendBtn.disabled = !selectedUserData.every(u => (u.status || '').toUpperCase() === 'ACTIVE');
+            }
         }
 
 
-        async function bulkUpdateStatus(status) {
+        function bulkUpdateStatus(status) {
             if (appState.selectedUsers.length === 0) return;
-            
-            if (confirm(`Update status to ${status} for ${appState.selectedUsers.length} user(s)?`)) {
-                try {
-                    const response = await fetch(`${ROOT}/user-admin/bulkUpdateUserStatus`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_ids: appState.selectedUsers, status: status })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showToast('success', data.message);
-                        appState.selectedUsers = [];
-                        document.getElementById('select-all').checked = false;
-                        fetchUsers();
-                        fetchDashboardStats();
-                    } else {
-                        showToast('error', data.message);
-                    }
-                } catch (error) {
-                    console.error('Error in bulk update:', error);
-                }
+
+            const modal = document.getElementById('bulk-action-modal');
+            const iconBox = document.getElementById('bulk-status-icon-box');
+            const icon = document.getElementById('bulk-status-icon');
+            const title = document.getElementById('bulk-modal-title');
+            const confirmBtn = document.getElementById('btn-confirm-bulk');
+            const confirmIcon = document.getElementById('bulk-confirm-icon');
+            const confirmText = document.getElementById('bulk-confirm-text');
+            const countBadge = document.getElementById('bulk-user-count-badge');
+            const messageArea = document.getElementById('bulk-review-message');
+            const targetStatusInput = document.getElementById('bulk-target-status');
+
+            targetStatusInput.value = status;
+            countBadge.innerText = `${appState.selectedUsers.length} Users`;
+
+            if (status === 'ACTIVE') {
+                iconBox.style.background = '#ecfdf5';
+                icon.className = 'fa-solid fa-circle-check';
+                icon.style.color = '#059669';
+                title.innerText = 'Authorize Bulk Activation';
+                confirmBtn.style.background = '#059669';
+                confirmIcon.className = 'fa-solid fa-circle-check';
+                confirmText.innerText = 'Confirm Activation';
+                messageArea.value = "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.";
+            } else {
+                iconBox.style.background = '#fee2e2';
+                icon.className = 'fa-solid fa-circle-xmark';
+                icon.style.color = '#dc2626';
+                title.innerText = 'Authorize Bulk Suspension';
+                confirmBtn.style.background = '#dc2626';
+                confirmIcon.className = 'fa-solid fa-circle-xmark';
+                confirmText.innerText = 'Confirm Suspension';
+                messageArea.value = "Account suspended for administrative review.";
             }
+
+            modal.classList.add('show');
         }
 
-        function bulkActivate() { bulkUpdateStatus('ACTIVE'); }
-        function bulkDeactivate() { bulkUpdateStatus('PENDING'); }
-        function bulkSuspend() { bulkUpdateStatus('SUSPENDED'); }
+        async function executeBulkUpdate() {
+            const status = document.getElementById('bulk-target-status').value;
+            const message = document.getElementById('bulk-review-message').value;
 
-        // Document Verification Functions
-        async function fetchPendingDocuments() {
             try {
-                const response = await fetch(`${ROOT}/user-admin/getPendingDocuments`);
-                const data = await response.json();
-                if (data.success) {
-                    appState.documents = data.documents;
-                    appState.selectedDocuments = [];
-                    const selectAll = document.getElementById('select-all-docs');
-                    if (selectAll) selectAll.checked = false;
-                    updateDocumentBulkButtons(['bulk-approve-docs', 'bulk-reject-docs']);
-                    renderDocumentsTable();
-                }
-            } catch (error) {
-                console.error('Error fetching documents:', error);
-            }
-        }
-
-        function renderDocumentsTable() {
-            const tableContent = document.getElementById('documents-table');
-            const headerRow = tableContent.querySelector('.table-row');
-            
-            tableContent.innerHTML = '';
-            tableContent.appendChild(headerRow);
-
-            appState.documents.forEach(doc => {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-                    <div class="table-cell name" data-label="Document">
-                        <input type="checkbox" class="doc-checkbox" data-doc-id="${doc.id}" data-entity-type="${doc.entity_type}">
-                        <span style="margin-left: 0.5rem;">
-                            <strong>${doc.doc_id}</strong><br>
-                            <small>${doc.first_name} ${doc.last_name} - ${doc.entity_type}</small>
-                        </span>
-                    </div>
-                    <div class="table-cell" data-label="Type">${doc.type}</div>
-                    <div class="table-cell status" data-label="Status">
-                        <span class="status-badge status-${doc.status.toLowerCase()}">${doc.status}</span>
-                    </div>
-                    <div class="table-cell" data-label="Submitted">${new Date(doc.date).toLocaleDateString()}</div>
-                    <div class="table-cell" data-label="Actions">
-                        ${doc.status === 'PENDING' ? `
-                            <button class="btn btn-success btn-small" onclick="approveDocument('${doc.entity_type}', ${doc.id})">Approve</button>
-                            <button class="btn btn-danger btn-small" onclick="rejectDocument('${doc.entity_type}', ${doc.id})">Reject</button>
-                        ` : `
-                            <button class="btn btn-secondary btn-small" onclick="viewDocument('${doc.id}')">View</button>
-                        `}
-                    </div>
-                `;
-                tableContent.appendChild(row);
-            });
-
-            document.querySelectorAll('.doc-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedDocuments);
-            });
-        }
-
-        async function approveDocument(entityType, id) {
-            try {
-                const response = await fetch(`${ROOT}/user-admin/updateEntityVerification`, {
+                const response = await fetch(`${ROOT}/user-admin/bulkUpdateUserStatus`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ entity_type: entityType, id: id, status: 'APPROVED' })
+                    body: JSON.stringify({ 
+                        user_ids: appState.selectedUsers, 
+                        status: status,
+                        message: message 
+                    })
                 });
                 const data = await response.json();
                 if (data.success) {
                     showToast('success', data.message);
-                    fetchPendingDocuments();
+                    closeModal('bulk-action-modal');
+                    appState.selectedUsers = [];
+                    document.getElementById('select-all').checked = false;
+                    fetchUsers();
                     fetchDashboardStats();
+                } else {
+                    showToast('error', data.message);
                 }
             } catch (error) {
-                console.error('Error approving document:', error);
+                console.error('Error in bulk update:', error);
+                showToast('error', 'Failed to perform mass update. Check connection.');
             }
         }
 
-        async function rejectDocument(entityType, id) {
-            const reason = prompt('Please provide reason for rejection:');
-            if (reason) {
-                try {
-                    const response = await fetch(`${ROOT}/user-admin/updateEntityVerification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entity_type: entityType, id: id, status: 'REJECTED' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showToast('warning', data.message);
-                        fetchPendingDocuments();
-                        fetchDashboardStats();
-                    }
-                } catch (error) {
-                    console.error('Error rejecting document:', error);
-                }
-            }
-        }
+        function bulkActivate() { bulkUpdateStatus('ACTIVE'); }
+        function bulkSuspend() { bulkUpdateStatus('SUSPENDED'); }
 
-        async function bulkApproveDocuments() {
-            if (appState.selectedDocuments.length === 0) return;
-            
-            if (confirm(`Approve ${appState.selectedDocuments.length} document(s)?`)) {
-                try {
-                    const entities = appState.selectedDocuments.map(docId => {
-                        const doc = appState.documents.find(d => d.id === docId);
-                        return { id: doc.id, entity_type: doc.entity_type };
-                    });
 
-                    const response = await fetch(`${ROOT}/user-admin/bulkUpdateEntityVerification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entities: entities, status: 'APPROVED' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showToast('success', data.message);
-                        appState.selectedDocuments = [];
-                        const selectAll = document.getElementById('select-all-docs');
-                        if (selectAll) selectAll.checked = false;
-                        fetchPendingDocuments();
-                        fetchDashboardStats();
-                    } else {
-                        showToast('error', data.message);
-                    }
-                } catch (error) {
-                    console.error('Error in bulk approve:', error);
-                }
-            }
-        }
-
-        async function bulkRejectDocuments() {
-            if (appState.selectedDocuments.length === 0) return;
-            
-            const reason = prompt('Please provide reason for rejection:');
-            if (reason) {
-                try {
-                    const entities = appState.selectedDocuments.map(docId => {
-                        const doc = appState.documents.find(d => d.id === docId);
-                        return { id: doc.id, entity_type: doc.entity_type };
-                    });
-
-                    const response = await fetch(`${ROOT}/user-admin/bulkUpdateEntityVerification`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ entities: entities, status: 'REJECTED' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showToast('warning', data.message);
-                        appState.selectedDocuments = [];
-                        const selectAll = document.getElementById('select-all-docs');
-                        if (selectAll) selectAll.checked = false;
-                        fetchPendingDocuments();
-                        fetchDashboardStats();
-                    } else {
-                        showToast('error', data.message);
-                    }
-                } catch (error) {
-                    console.error('Error in bulk reject:', error);
-                }
-            }
-        }
-
-        function updateSelectedDocuments() {
-            const checkboxes = document.querySelectorAll('.doc-checkbox:checked');
-            appState.selectedDocuments = Array.from(checkboxes).map(cb => parseInt(cb.dataset.docId));
-            updateDocumentBulkButtons(['bulk-approve-docs', 'bulk-reject-docs']);
-        }
-
-        function updateDocumentBulkButtons(buttonIds) {
-            buttonIds.forEach(id => {
-                const button = document.getElementById(id);
-                if (button) {
-                    button.disabled = appState.selectedDocuments.length === 0;
-                }
-            });
-        }
-
-        function toggleSelectAllDocs() {
-            const selectAll = document.getElementById('select-all-docs');
-            if (!selectAll) return;
-            const checkboxes = document.querySelectorAll('.doc-checkbox');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            updateSelectedDocuments();
-        }
-
-        function viewDocument(docId) {
-            showToast('info', `Opening document ${docId} for review...`);
-        }
-
-        function exportDocumentReport() {
-            showToast('info', 'Document verification report is being prepared.');
-        }
 
         // Notification Functions
         function showNotificationModal(action) {
@@ -2338,12 +2603,17 @@ async function updateUserStatus(userId, status) {
             const toast = document.getElementById('toast');
             const messageEl = document.getElementById('toast-message');
             
+            // Fallback for empty messages
+            if (!message) {
+                message = type === 'success' ? 'Action completed successfully' : 'An error occurred. Please try again.';
+            }
+
             messageEl.textContent = message;
             toast.className = `notification ${type} show`;
             
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 4000);
+            }, 5000);
         }
 
         // Removed user-form event listener
