@@ -28,7 +28,7 @@ class Hospital {
             $hospital_details = [
                 'name' => $hospital_name,
                 'registration' => $hospital_registration,
-                'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+                'email' => $_SESSION['email'] ?? 'Not specified',
                 'role' => $_SESSION['role'] ?? 'Hospital',
                 'last_login' => date('Y-m-d H:i:s'),
                 'status' => 'Active'
@@ -39,7 +39,7 @@ class Hospital {
             $hospital_details = [
                 'name' => $hospital->name,
                 'registration' => $hospital->registration_number,
-                'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+                'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
                 'role' => $_SESSION['role'] ?? 'Medical Coordinator',
                 'address' => $hospital->address,
                 'phone' => $hospital->contact_number ?? 'Not specified',
@@ -498,7 +498,7 @@ class Hospital {
             'registration' => $hospital->registration_number,
             'registration_number' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
             'address' => $hospital->address ?? 'Not specified',
             'status' => $hospital->verification_status ?? 'Active',
             'last_login' => date('Y-m-d H:i:s')
@@ -536,7 +536,7 @@ class Hospital {
             'registration' => $hospital->registration_number,
             'registration_number' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
             'address' => $hospital->address ?? 'Not specified',
             'status' => $hospital->verification_status ?? 'Active',
             'last_login' => date('Y-m-d H:i:s')
@@ -573,7 +573,7 @@ class Hospital {
             'registration' => $hospital->registration_number,
             'registration_number' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
             'address' => $hospital->address ?? 'Not specified',
             'status' => $hospital->verification_status ?? 'Active',
             'last_login' => date('Y-m-d H:i:s')
@@ -609,7 +609,7 @@ class Hospital {
             'registration' => $hospital->registration_number,
             'registration_number' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
             'address' => $hospital->address ?? 'Not specified',
             'status' => $hospital->verification_status ?? 'Active',
             'last_login' => date('Y-m-d H:i:s')
@@ -639,7 +639,7 @@ class Hospital {
             'name' => $hospital->name,
             'registration' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
         ];
 
         $data = [
@@ -696,7 +696,7 @@ class Hospital {
             } catch (\Throwable $e) {
                 $msg = (string)($e->getMessage() ?? '');
                 if (stripos($msg, 'aftercare_patients') !== false && (stripos($msg, 'doesn\'t exist') !== false || stripos($msg, 'Base table or view not found') !== false)) {
-                    $_SESSION['flash_error'] = 'Aftercare tables not found. Run the migration once: /life-connect/migration_aftercare_patients.php';
+                    $_SESSION['flash_error'] = 'Aftercare tables not found. Please import/apply the latest database schema (main.sql) and try again.';
                 } else {
                     $_SESSION['flash_error'] = $msg ?: 'Failed to create aftercare account.';
                 }
@@ -709,7 +709,7 @@ class Hospital {
             'name' => $hospital->name,
             'registration' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
         ];
 
         $this->view('hospital/addpatient-recipient', [
@@ -750,10 +750,17 @@ class Hospital {
 
             if (!empty($donorUser)) {
                 $uid = (int)$donorUser[0]->user_id;
-                $hospitalModel->query(
-                    "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
-                    [':uid' => $uid]
-                );
+                try {
+                    $hasCol = $hospitalModel->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
+                    if (!empty($hasCol)) {
+                        $hospitalModel->query(
+                            "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
+                            [':uid' => $uid]
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    // Column may not exist in older schemas; ignore.
+                }
 
                 // Also record donor patient details in aftercare_patients
                 try {
@@ -794,7 +801,7 @@ class Hospital {
             'name' => $hospital->name,
             'registration' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
         ];
 
         $donors = [];
@@ -1067,7 +1074,7 @@ class Hospital {
             'registration' => $hospital->registration_number,
             'registration_number' => $hospital->registration_number,
             'role' => 'HOSPITAL',
-            'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
             'address' => $hospital->address ?? 'Not specified',
             'status' => $hospital->verification_status ?? 'Active',
             'last_login' => date('Y-m-d H:i:s')

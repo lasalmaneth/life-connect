@@ -52,7 +52,11 @@ class HospitalModel {
 
     public function getHospitalByUserId($userId)
     {
-        $query = "SELECT * FROM hospitals WHERE user_id = :user_id LIMIT 1";
+        $query = "SELECT h.*, u.email AS user_email, u.phone AS user_phone
+                  FROM hospitals h
+                  LEFT JOIN users u ON u.id = h.user_id
+                  WHERE h.user_id = :user_id
+                  LIMIT 1";
         $results = $this->query($query, [':user_id' => $userId]);
         return $results ? $results[0] : false;
     }

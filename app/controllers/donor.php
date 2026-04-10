@@ -9,6 +9,21 @@ use App\Models\FinancialDonationModel;
 class Donor {
     use Controller, Database;
 
+    private function usersHasAftercareAccessColumn(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) return $cached;
+
+        try {
+            $res = $this->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
+            $cached = !empty($res);
+        } catch (\Throwable $e) {
+            $cached = false;
+        }
+
+        return $cached;
+    }
+
     /**
      * Map organ names to specific image assets or FontAwesome icons
      */
@@ -44,9 +59,15 @@ class Donor {
         $donorData = $donorModel->getDonorById($donorId);
         $donorData = json_decode(json_encode($donorData), true);
 
-        // Fetch aftercare_access from users table
-        $userRow = $this->query("SELECT aftercare_access FROM users WHERE id = :uid", [':uid' => $_SESSION['user_id']]);
-        $donorData['aftercare_access'] = !empty($userRow) ? (int)$userRow[0]->aftercare_access : 0;
+        // Fetch aftercare_access from users table (optional column)
+        $donorData['aftercare_access'] = 0;
+        if ($this->usersHasAftercareAccessColumn() && !empty($_SESSION['user_id'])) {
+            $userRow = $this->query(
+                "SELECT aftercare_access FROM users WHERE id = :uid LIMIT 1",
+                [':uid' => (int)$_SESSION['user_id']]
+            );
+            $donorData['aftercare_access'] = !empty($userRow) ? (int)($userRow[0]->aftercare_access ?? 0) : 0;
+        }
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
         $donorIdDisplay = 'D_' . str_pad($donorData['id'] ?? 0, 5, '0', STR_PAD_LEFT);
