@@ -24,20 +24,26 @@ class BodyDonationModel {
             ':w2_nic'   => $data['witness2_nic'] ?? '',
             ':w2_phone' => $data['witness2_phone'] ?? '',
             ':w2_address'=> $data['witness2_address'] ?? '',
-            ':school_id'=> !empty($data['medical_school_id']) ? $data['medical_school_id'] : null
+            ':school_id'=> !empty($data['medical_school_id']) ? $data['medical_school_id'] : null,
+            ':religion' => $data['religion'] ?? null,
+            ':requests' => $data['special_requests'] ?? null,
+            ':resp_p'   => $data['responsible_person'] ?? null,
+            ':resp_c'   => $data['responsible_contact'] ?? null,
+            ':transport'=> $data['transport_arrangement'] ?? null
         ];
 
-        // We always insert a new record to maintain history
         $query = "INSERT INTO body_donation_consents (
                   donor_id, status,
                   witness1_name, witness1_nic, witness1_phone, witness1_address,
                   witness2_name, witness2_nic, witness2_phone, witness2_address,
-                  medical_school_id
+                  medical_school_id, religion, special_requests, 
+                  responsible_person, responsible_contact, transport_arrangement
                   ) VALUES (
                   :donor_id, :status,
                   :w1_name, :w1_nic, :w1_phone, :w1_address,
                   :w2_name, :w2_nic, :w2_phone, :w2_address,
-                  :school_id
+                  :school_id, :religion, :requests, 
+                  :resp_p, :resp_c, :transport
                   )";
         return $this->insert($query, $params);
     }

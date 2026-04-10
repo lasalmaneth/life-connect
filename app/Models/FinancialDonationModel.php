@@ -161,11 +161,13 @@ class FinancialDonationModel {
         $query = "INSERT INTO donations (user_id, amount, note, status, created_at)
                   VALUES (:donor_id, :amount, :note, :status, NOW())";
 
-        return $this->query($query, [
+        $this->query($query, [
             ':donor_id' => $data['donor_id'],
             ':amount'   => $data['amount'],
             ':note'     => $data['note'] ?? null,
-            ':status'   => $data['status'] ?? 'COMPLETED'
+            ':status'   => $data['status'] ?? 'SUCCESS'
         ]);
+        
+        return true;
     }
 }

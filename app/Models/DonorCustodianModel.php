@@ -18,11 +18,12 @@ class DonorCustodianModel {
      */
     public function getCustodiansByDonorId($donorId)
     {
-        $query = "SELECT c.*, o.name as organ_name 
+        $query = "SELECT c.*, o.name as organ_name, u.status as user_status, u.review_message 
                   FROM custodians c 
                   LEFT JOIN organs o ON c.organ_id = o.id 
+                  JOIN users u ON c.user_id = u.id
                   WHERE c.donor_id = :donor_id 
-                  ORDER BY (c.organ_id IS NULL) DESC, c.organ_id ASC, c.custodian_number ASC";
+                  ORDER BY (c.organ_id IS NULL) DESC, c.organ_id ASC, c.created_at ASC";
         return $this->query($query, [':donor_id' => $donorId]) ?: [];
     }
 
@@ -57,10 +58,10 @@ class DonorCustodianModel {
             if (!$userId) continue;
 
             $query = "INSERT INTO custodians (
-                        user_id, donor_id, organ_id, relationship, custodian_number,
+                        user_id, donor_id, organ_id, relationship, status,
                         name, nic_number, phone, email, address
                       ) VALUES (
-                        :user_id, :donor_id, :organ_id, :relationship, :custodian_number,
+                        :user_id, :donor_id, :organ_id, :relationship, 'PENDING',
                         :name, :nic, :phone, :email, :address
                       )";
             $result = $this->insert($query, [
@@ -68,12 +69,11 @@ class DonorCustodianModel {
                 ':donor_id'         => $donorId,
                 ':organ_id'         => $organId,
                 ':relationship'     => $data['relationship'] ?? '',
-                ':custodian_number' => $index + 1,
                 ':name'             => $data['name'] ?? '',
                 ':nic'              => $data['nic'] ?? '',
-                ':phone'            => $data['phone'] ?? null,
-                ':email'            => $data['email'] ?? null,
-                ':address'          => $data['address'] ?? null,
+                ':phone'            => !empty($data['phone']) ? $data['phone'] : null,
+                ':email'            => !empty($data['email']) ? $data['email'] : null,
+                ':address'          => !empty($data['address']) ? $data['address'] : null,
             ]);
             if ($result) $saved++;
         }
@@ -86,7 +86,7 @@ class DonorCustodianModel {
     public function getCustodiansByOrgan($donorId, $organId)
     {
         return $this->query(
-            "SELECT * FROM custodians WHERE donor_id = :did AND organ_id = :oid ORDER BY custodian_number ASC",
+            "SELECT * FROM custodians WHERE donor_id = :did AND organ_id = :oid ORDER BY created_at ASC",
             [':did' => $donorId, ':oid' => $organId]
         ) ?: [];
     }
@@ -96,31 +96,26 @@ class DonorCustodianModel {
      */
     public function addCustodian($donorId, $data)
     {
-        $count = $this->countByDonorId($donorId);
-
-        $custodianNumber = $count + 1;
-
         // Check if a user account exists for this NIC, or create one
         $userId = $this->findOrCreateCustodianUser($data);
         if (!$userId) return false;
 
         $query = "INSERT INTO custodians (
-                    user_id, donor_id, relationship, custodian_number,
+                    user_id, donor_id, relationship, status,
                     name, nic_number, phone, email, address
                   ) VALUES (
-                    :user_id, :donor_id, :relationship, :custodian_number,
+                    :user_id, :donor_id, :relationship, 'PENDING',
                     :name, :nic, :phone, :email, :address
                   )";
         return $this->insert($query, [
             ':user_id' => $userId,
             ':donor_id' => $donorId,
             ':relationship' => $data['relationship'] ?? '',
-            ':custodian_number' => $custodianNumber,
             ':name' => $data['name'] ?? '',
             ':nic' => $data['nic'] ?? '',
-            ':phone' => $data['phone'] ?? null,
-            ':email' => $data['email'] ?? null,
-            ':address' => $data['address'] ?? null
+            ':phone' => !empty($data['phone']) ? $data['phone'] : null,
+            ':email' => !empty($data['email']) ? $data['email'] : null,
+            ':address' => !empty($data['address']) ? $data['address'] : null
         ]);
     }
 
@@ -129,24 +124,44 @@ class DonorCustodianModel {
      */
     public function updateCustodian($id, $donorId, $data)
     {
-        $query = "UPDATE custodians SET
-                    name = :name,
-                    relationship = :relationship,
-                    nic_number = :nic,
-                    phone = :phone,
-                    email = :email,
-                    address = :address
-                  WHERE id = :id AND donor_id = :donor_id";
-        return $this->query($query, [
+        // 1. Fetch current details to check status
+        $current = $this->query("SELECT c.*, u.status as user_status FROM custodians c 
+                                JOIN users u ON c.user_id = u.id 
+                                WHERE c.id = :id AND c.donor_id = :donor_id", 
+                                [':id' => $id, ':donor_id' => $donorId]);
+        if (!$current) return false;
+        $current = $current[0];
+
+        // 2. Prepare update fields
+        $params = [
             ':id' => $id,
             ':donor_id' => $donorId,
-            ':name' => $data['name'] ?? '',
-            ':relationship' => $data['relationship'] ?? '',
-            ':nic' => $data['nic'] ?? '',
-            ':phone' => $data['phone'] ?? null,
-            ':email' => $data['email'] ?? null,
-            ':address' => $data['address'] ?? null
-        ]);
+            ':relationship' => $data['relationship'] ?? $current->relationship,
+            ':phone' => !empty($data['phone']) ? $data['phone'] : $current->phone,
+            ':email' => !empty($data['email']) ? $data['email'] : $current->email,
+            ':address' => !empty($data['address']) ? $data['address'] : $current->address
+        ];
+
+        $updateFields = "relationship = :relationship, phone = :phone, email = :email, address = :address";
+
+        // Only allow Name and NIC updates if NOT ACTIVE in custodians table
+        if ($current->status !== 'ACTIVE') {
+            $updateFields .= ", name = :name, nic_number = :nic";
+            $params[':name'] = $data['name'] ?? $current->name;
+            $params[':nic'] = $data['nic'] ?? $current->nic_number;
+        }
+
+        $query = "UPDATE custodians SET $updateFields WHERE id = :id AND donor_id = :donor_id";
+        $result = $this->query($query, $params);
+
+        // 3. Handle status sync and suspension recovery
+        // If they were SUSPENDED, set to PENDING and clear message
+        if ($current->user_status === 'SUSPENDED') {
+            $this->query("UPDATE users SET status = 'PENDING', review_message = NULL WHERE id = :user_id", [':user_id' => $current->user_id]);
+            $this->query("UPDATE custodians SET status = 'PENDING' WHERE id = :id", [':id' => $id]);
+        }
+
+        return $result;
     }
 
     /**
@@ -154,21 +169,14 @@ class DonorCustodianModel {
      */
     public function deleteCustodian($id, $donorId)
     {
-        $query = "DELETE FROM custodians WHERE id = :id AND donor_id = :donor_id";
-        $this->query($query, [':id' => $id, ':donor_id' => $donorId]);
-
-        // Re-number remaining custodians
-        $remaining = $this->getCustodiansByDonorId($donorId);
-        foreach ($remaining as $index => $c) {
-            $newNumber = $index + 1;
-            if ($c->custodian_number != $newNumber) {
-                $this->query(
-                    "UPDATE custodians SET custodian_number = :num WHERE id = :id",
-                    [':num' => $newNumber, ':id' => $c->id]
-                );
-            }
+        // Require at least 2 custodians at all times
+        $count = $this->countByDonorId($donorId);
+        if ($count <= 2) {
+            return false; // Constraint: Minimum 2 custodians
         }
-        return true;
+
+        $query = "DELETE FROM custodians WHERE id = :id AND donor_id = :donor_id";
+        return $this->query($query, [':id' => $id, ':donor_id' => $donorId]);
     }
 
     /**
@@ -192,12 +200,12 @@ class DonorCustodianModel {
         $defaultPassword = password_hash($nic, PASSWORD_DEFAULT);
 
         $insertQuery = "INSERT INTO users (username, password_hash, email, phone, role, status)
-                        VALUES (:username, :password, :email, :phone, 'CUSTODIAN', 'ACTIVE')";
+                        VALUES (:username, :password, :email, :phone, 'CUSTODIAN', 'PENDING')";
         return $this->insert($insertQuery, [
             ':username' => $nic,
             ':password' => $defaultPassword,
-            ':email' => $data['email'] ?? null,
-            ':phone' => $data['phone'] ?? null
+            ':email'    => !empty($data['email']) ? $data['email'] : null,
+            ':phone'    => !empty($data['phone']) ? $data['phone'] : null
         ]);
     }
 }

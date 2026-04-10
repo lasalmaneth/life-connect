@@ -13,11 +13,11 @@ class DonorModel {
     {
         $query = "INSERT INTO donors (
             user_id, category_id, pledge_type, first_name, last_name, gender, date_of_birth, 
-            blood_group, nic_number, address, district, divisional_secretariat, 
+            blood_group, nic_number, nationality, address, district, divisional_secretariat, 
             grama_niladhari_division, verification_status, consent_status, consent_date
         ) VALUES (
             :user_id, :category_id, :pledge_type, :first_name, :last_name, :gender, :dob,
-            :blood_group, :nic, :address, :district, :div_sec,
+            :blood_group, :nic, :nationality, :address, :district, :div_sec,
             :gn_div, 'PENDING', 'PENDING', NULL
         )";
         
@@ -31,6 +31,7 @@ class DonorModel {
             ':dob' => $personalData['dob'],
             ':blood_group' => $personalData['blood_group'] ?? null,
             ':nic' => $personalData['nic'],
+            ':nationality' => $personalData['nationality'] ?? 'Sri Lankan',
             ':address' => $personalData['address'] ?? '',
             ':district' => $personalData['district'] ?? '',
             ':div_sec' => $personalData['divisional_secretariat'] ?? '',
@@ -105,17 +106,178 @@ class DonorModel {
         ];
     }
 
+    /**
+     * Get a summary of pledges categorized by their legal finalization status across ALL systems
+     */
+    public function getPledgeSummary($donorId)
+    {
+        // 1. Organ Pledges (Most common)
+        $organQuery = "SELECT * FROM donor_pledges WHERE donor_id = :donor_id AND status != 'WITHDRAWN'";
+        $organPledges = $this->query($organQuery, [':donor_id' => $donorId]);
+        
+        // 2. Body Donation
+        $bodyQuery = "SELECT * FROM body_donation_consents WHERE donor_id = :donor_id AND status != 'WITHDRAWN'";
+        $bodyPledges = $this->query($bodyQuery, [':donor_id' => $donorId]);
+
+        $finalized = 0;
+        $pending = 0;
+
+        if ($organPledges) {
+            foreach ($organPledges as $pledge) {
+                $status = strtoupper($pledge->status ?? '');
+                if (in_array($status, ['APPROVED', 'UPLOADED', 'COMPLETED']) || !empty($pledge->signed_form_path)) {
+                    $finalized++;
+                } else if ($status === 'PENDING') {
+                    $pending++;
+                }
+            }
+        }
+
+        if ($bodyPledges) {
+            foreach ($bodyPledges as $pledge) {
+                $status = strtoupper($pledge->status ?? '');
+                // Body donation status ACTIVE is prioritized as finalized
+                if ($status === 'ACTIVE') {
+                    $finalized++;
+                } else {
+                    $pending++;
+                }
+            }
+        }
+
+        return [
+            'finalized' => $finalized,
+            'pending' => $pending,
+            'total' => (is_array($organPledges) ? count($organPledges) : 0) + (is_array($bodyPledges) ? count($bodyPledges) : 0)
+        ];
+    }
+
+    /**
+     * Withdraw all non-finalized pledges for a donor across ALL systems (Internal quick-withdraw)
+     */
+    public function withdrawPendingPledges($donorId)
+    {
+        // 1. Withdraw Organ Pledges
+        $query1 = "UPDATE donor_pledges 
+                  SET status = 'WITHDRAWN' 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'PENDING' 
+                  AND (signed_form_path IS NULL OR signed_form_path = '')";
+        $this->query($query1, [':donor_id' => $donorId]);
+
+        // 2. Withdraw Body Donations
+        $query2 = "UPDATE body_donation_consents 
+                  SET status = 'WITHDRAWN' 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'PENDING'";
+        return $this->query($query2, [':donor_id' => $donorId]);
+    }
+
+    public function createWithdrawal($data)
+    {
+        $query = "INSERT INTO consent_withdrawals (
+                    donor_id, organ_id, full_name, nic_number, dob, address, 
+                    contact_number, prev_consent_date, organization, 
+                    witness1_name, witness1_nic, witness2_name, witness2_nic
+                  ) VALUES (
+                    :donor_id, :organ_id, :full_name, :nic_number, :dob, :address, 
+                    :contact_number, :prev_consent_date, :organization, 
+                    :witness1_name, :witness1_nic, :witness2_name, :witness2_nic
+                  )";
+        return $this->insert($query, $data);
+    }
+
+    public function getWithdrawalByDonorId($donorId)
+    {
+        $query = "SELECT * FROM consent_withdrawals WHERE donor_id = :donor_id ORDER BY created_at DESC LIMIT 1";
+        $res = $this->query($query, [':donor_id' => $donorId]);
+        return $res ? $res[0] : null;
+    }
+
+    /**
+     * Get pending withdrawal for a specific organ
+     */
+    public function getPendingWithdrawalByOrgan($donorId, $organId)
+    {
+        $query = "SELECT * FROM consent_withdrawals 
+                  WHERE donor_id = :donor_id 
+                  AND organ_id = :organ_id 
+                  AND status = 'PENDING_UPLOAD' 
+                  ORDER BY created_at DESC LIMIT 1";
+        $res = $this->query($query, [':donor_id' => $donorId, ':organ_id' => $organId]);
+        return $res ? $res[0] : null;
+    }
+
+    public function updateWithdrawalPath($id, $path)
+    {
+        $query = "UPDATE consent_withdrawals SET signed_form_path = :path, status = 'COMPLETED' WHERE id = :id";
+        $con = $this->connect();
+        $stm = $con->prepare($query);
+        return $stm->execute([':path' => $path, ':id' => $id]);
+    }
+
+    /**
+     * Delete a pending withdrawal record
+     */
+    public function deleteWithdrawal($id)
+    {
+        $query = "DELETE FROM consent_withdrawals WHERE id = :id AND status = 'PENDING_UPLOAD'";
+        return $this->query($query, [':id' => $id]);
+    }
+
+    /**
+     * Get all completed withdrawals for a specific donor
+     */
+    public function getWithdrawalsByDonor($donorId)
+    {
+        $query = "SELECT * FROM consent_withdrawals 
+                  WHERE donor_id = :donor_id 
+                  AND status = 'COMPLETED' 
+                  ORDER BY created_at DESC";
+        return $this->query($query, [':donor_id' => $donorId]);
+    }
+
+    /**
+     * Deactivate a SPECIFIC organ/full body pledge after formal withdrawal
+     */
+    public function deactivateSpecificPledge($donorId, $organId)
+    {
+        $organId = (int)$organId;
+        if ($organId === 9) {
+            // Full Body Donation
+            $this->query("UPDATE body_donation_consents SET status = 'WITHDRAWN' WHERE donor_id = :donor_id AND (status = 'ACTIVE' OR status = 'PENDING')", [':donor_id' => $donorId]);
+        }
+        
+        // Also update donor_pledges (covers all types)
+        $this->query("UPDATE donor_pledges SET status = 'WITHDRAWN' WHERE donor_id = :donor_id AND organ_id = :organ_id", [':donor_id' => $donorId, ':organ_id' => $organId]);
+        
+        return true;
+    }
+
+    /**
+     * Mass deactivate ALL active intents after formal withdrawal (Legacy)
+     */
+    public function deactivateAllPledges($donorId)
+    {
+        $this->query("UPDATE donor_pledges SET status = 'WITHDRAWN' WHERE donor_id = :donor_id", [':donor_id' => $donorId]);
+        $this->query("UPDATE body_donation_consents SET status = 'WITHDRAWN' WHERE donor_id = :donor_id", [':donor_id' => $donorId]);
+        return true;
+    }
+
     public function getPledgedOrgans($donorId)
     {
-        $query = "SELECT p.*, o.name as organ_name, o.description 
+        $query = "SELECT p.*, o.name as organ_name, o.description,
+                  (SELECT status FROM consent_withdrawals 
+                   WHERE donor_id = p.donor_id AND organ_id = p.organ_id 
+                   AND status = 'PENDING_UPLOAD' 
+                   ORDER BY created_at DESC LIMIT 1) as withdrawal_status
                   FROM donor_pledges p 
                   JOIN organs o ON p.organ_id = o.id 
-                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'";
+                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'
+                  GROUP BY p.organ_id";
         
         $results = $this->query($query, [':donor_id' => $donorId]);
         
-        // Add icons manually for now as they aren't in the DB
-        // In a real app, these could be in the organs table
         if ($results) {
             foreach ($results as $key => $organ) {
                 $icon = '❓';
@@ -124,7 +286,7 @@ class DonorModel {
                     case 'liver': $icon = '🥃'; break;
                     case 'heart': $icon = '❤️'; break;
                     case 'lung': $icon = '🫁'; break;
-                    case 'pancreas': $icon = '🍬'; break; // Abstract representation
+                    case 'pancreas': $icon = '🍬'; break;
                     case 'intestine': $icon = '🧶'; break;
                     case 'cornea': $icon = '👁️'; break;
                     case 'bone marrow': $icon = '🦴'; break;
@@ -133,7 +295,6 @@ class DonorModel {
             }
         }
         
-        // Convert objects to arrays for view compatibility if needed, but objects are standard in this app
         return $results ? json_decode(json_encode($results), true) : []; 
     }
 
@@ -214,6 +375,7 @@ class DonorModel {
         // Update donors table
         $donorQuery = "UPDATE donors SET 
                        address = :address,
+                       nationality = :nationality,
                        grama_niladhari_division = :gn_div,
                        district = :district,
                        divisional_secretariat = :div_sec
@@ -221,6 +383,7 @@ class DonorModel {
         
         $donorParams = [
             ':address' => $address,
+            ':nationality' => $updateData['nationality'] ?? 'Sri Lankan',
             ':gn_div' => $gnDiv,
             ':district' => $district,
             ':div_sec' => $divSec,
@@ -257,5 +420,29 @@ class DonorModel {
             'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 
             'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
         ];
+    }
+
+    /**
+     * Update active roles for a donor
+     */
+    public function updateActiveRoles($donorId, array $roles)
+    {
+        // Map the first role to a primary category_id for legacy support
+        $categoryId = 1; // Default to NON
+        if (in_array('organ', $roles)) $categoryId = 3;
+        else if (in_array('financial', $roles)) $categoryId = 2;
+        else if (in_array('non', $roles)) $categoryId = 1;
+
+        $rolesJson = json_encode($roles);
+        $query = "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id";
+        
+        // Use direct PDO execution via the trait's connection logic for non-SELECT queries
+        $con = $this->connect();
+        $stm = $con->prepare($query);
+        return $stm->execute([
+            ':roles' => $rolesJson,
+            ':cat_id' => $categoryId,
+            ':id' => $donorId
+        ]);
     }
 }

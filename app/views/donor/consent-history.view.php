@@ -60,7 +60,17 @@ include __DIR__ . '/inc/sidebar.view.php';
                                             if ($status === 'APPROVED' || $status === 'ACTIVE' || $status === 'UPLOADED') $class = 'd-status--success';
                                             elseif ($status === 'WITHDRAWN' || $status === 'REJECTED') $class = 'd-status--danger';
                                             ?>
-                                            <span class="d-status <?= $class ?>"><?= $status ?></span>
+                                            <span class="d-status <?= $class ?>" 
+                                                  <?php if ($status === 'WITHDRAWN' && !empty($item['withdrawal_form_path'])): ?>
+                                                    onclick="viewWithdrawalPdf('<?= ROOT ?>/<?= $item['withdrawal_form_path'] ?>')" 
+                                                    style="cursor: pointer;" 
+                                                    title="Click to view signed withdrawal document"
+                                                  <?php endif; ?>>
+                                                <?= $status ?>
+                                                <?php if ($status === 'WITHDRAWN' && !empty($item['withdrawal_form_path'])): ?>
+                                                    <i class="fas fa-file-pdf" style="margin-left: 5px;"></i>
+                                                <?php endif; ?>
+                                            </span>
                                         </td>
                                         <td>
                                             <?php if (!empty($item['signed_form_path'])): ?>
@@ -79,3 +89,87 @@ include __DIR__ . '/inc/sidebar.view.php';
 </main>
 
 <?php include __DIR__ . '/inc/footer.view.php'; ?>
+
+<!-- PDF Viewer Modal -->
+<div id="pdfViewerModal" class="d-modal">
+    <div class="d-modal__body" style="max-width: 90%; width: 1000px; height: 90vh; padding: 0; display: flex; flex-direction: column;">
+        <div class="d-modal__header" style="background: var(--slate); color: white; padding: 15px 25px;">
+            <h3 style="margin:0; font-size: 1.1rem;"><i class="fas fa-file-pdf"></i> Signed Withdrawal Document</h3>
+            <button class="d-modal__close" onclick="closePdfModal()" style="color: white; font-size: 1.5rem;">&times;</button>
+        </div>
+        <div class="d-modal__content" style="flex: 1; padding: 0; overflow: hidden; background: #525659;">
+            <iframe id="pdfFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+        <div class="d-modal__footer" style="padding: 10px 25px; background: var(--g50); display: flex; justify-content: flex-end;">
+            <button class="d-btn d-btn--outline" onclick="closePdfModal()">Close Preview</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewWithdrawalPdf(path) {
+    const frame = document.getElementById('pdfFrame');
+    const modal = document.getElementById('pdfViewerModal');
+    
+    frame.src = path;
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePdfModal() {
+    const modal = document.getElementById('pdfViewerModal');
+    const frame = document.getElementById('pdfFrame');
+    
+    modal.classList.remove('active');
+    frame.src = "";
+    document.body.style.overflow = 'auto';
+}
+
+// Close on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('pdfViewerModal');
+    if (event.target == modal) {
+        closePdfModal();
+    }
+}
+</script>
+
+<style>
+.d-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+.d-modal.active {
+    display: flex;
+}
+.d-modal__body {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: modalSpring 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+@keyframes modalSpring {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.d-modal__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.d-modal__close {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+</style>
