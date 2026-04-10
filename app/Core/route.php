@@ -138,6 +138,7 @@ route('donation-admin/getOrganDetails', 'DonationAdminController@getOrganDetails
 route('donation-admin/updateOrganStatus', 'DonationAdminController@updateOrganStatus');
 route('donation-admin/getPledges', 'DonationAdminController@getPledges');
 route('donation-admin/getHospitalRequests', 'DonationAdminController@getHospitalRequests');
+route('donation-admin/runAlgorithm', 'DonationAdminController@runAlgorithm');
 
 // Tributes Admin Routes
 route('tributes-admin/getHospitals', 'TributesAdminController@getHospitals');

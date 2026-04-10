@@ -81,13 +81,14 @@ $admin_status = 'Active';
                 </a>
             </div>
             
-            <div class="header-right">
-                <nav class="header-nav">
-                    <a href="<?= ROOT ?>" class="nav-link">
-                        <i class="fa-solid fa-house"></i> <span>Home</span>
+            <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                <nav style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
+                        <i class="fa-solid fa-house"></i>
                     </a>
-                    <a href="javascript:void(0)" onclick="logout()" class="nav-link" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
-                        <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
+                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
+                        <i class="fa-solid fa-bell"></i>
+                        <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
                     </a>
                 </nav>
                 <div class="user-info">
