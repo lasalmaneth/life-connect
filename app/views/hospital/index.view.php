@@ -230,38 +230,45 @@
                 <div class="menu-section">
                     <div class="menu-section-title">SECTION</div>
                     <div class="menu-item active" onclick="showContent('overview', this)" style="text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-chart-line"></i></span>
                         <span>Main Dashboard</span>
                     </div>
                     <div class="menu-item" onclick="showContent('organ-requests', this)" style="text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-heart"></i></span>
                         <span>Organ Requests</span>
                     </div>
                     <div class="menu-item" onclick="showContent('eligibility', this)" style="text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-check-circle"></i></span>
                         <span>Update Eligibility</span>
                     </div>
                     <div class="menu-item" onclick="showContent('recipients', this)" style="text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-user"></i></span>
                         <span>Recipient Patients</span>
                     </div>
                     <div class="menu-item" onclick="showContent('stories', this)" style="text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-star"></i></span>
                         <span>Success Stories</span>
                     </div>
                     <div class="menu-item" onclick="showContent('lab-reports', this)" style="text-align: left; white-space: nowrap;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
                         <span>Upcoming Appointments</span>
                     </div>
                     <div class="menu-item" onclick="showContent('test-results', this)" style="text-align: left; white-space: nowrap;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-vial"></i></span>
                         <span>Test Results</span>
                     </div>
                     
                     <div class="menu-section-title" style="margin-top: 1.5rem;">AFTERCARE</div>
                     <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item" style="text-decoration: none; color: inherit; display: block; text-align: left;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
                         <span>Add Aftercare Patient</span>
+                    </a>
+                </div>
+
+                <div class="menu-section menu-section--footer">
+                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration: none; display: block; text-align: left;">
+                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
+                        <span>Logout</span>
                     </a>
                 </div>
             </div>

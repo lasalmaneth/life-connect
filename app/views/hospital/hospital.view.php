@@ -1053,6 +1053,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
     <title>Hospital Management - LifeConnect</title>
 </head>
@@ -1145,25 +1146,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="menu-section">
                     <div class="menu-section-title">Sections</div>
                     <div class="menu-item active" onclick="showContent('overview')">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-chart-line"></i></span>
                         <span>Overview</span>
                     </div>
                     <div class="menu-item" onclick="showContent('organ-requests')">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-heart"></i></span>
                         <span>Organ Requests</span>
                     </div>
                     <div class="menu-item" onclick="showContent('eligibility')">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-check-circle"></i></span>
                         <span>Update Eligibility</span>
                     </div>
                     <div class="menu-item" onclick="showContent('recipients')">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-user"></i></span>
                         <span>Recipient Patients</span>
                     </div>
                     <div class="menu-item" onclick="showContent('stories')">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-star"></i></span>
                         <span>Success Stories</span>
                     </div>
+                </div>
+
+                <div class="menu-section menu-section--footer">
+                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration: none; display: block;">
+                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
+                        <span>Logout</span>
+                    </a>
                 </div>
             </div>
 
