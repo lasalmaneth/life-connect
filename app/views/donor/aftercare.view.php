@@ -174,6 +174,16 @@ include __DIR__ . '/inc/sidebar.view.php';
             </div>
             
             <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Hospital <span style="color: #ef4444;">*</span></label>
+                <select id="appointmentHospitalInput" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                    <option value="">Select Hospital</option>
+                    <?php if (!empty($hospitals)): foreach ($hospitals as $hosp): ?>
+                        <option value="<?= htmlspecialchars($hosp->registration_number ?? $hosp->id) ?>"><?= htmlspecialchars($hosp->name) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Appointment Type <span style="color: #ef4444;">*</span></label>
                 <select id="appointmentTypeInput" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
                     <option value="">Select Type</option>
@@ -211,6 +221,16 @@ include __DIR__ . '/inc/sidebar.view.php';
         </div>
         
         <form id="supportRequestForm" onsubmit="submitSupportRequest(event)">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Hospital <span style="color: #ef4444;">*</span></label>
+                <select id="supportHospitalInput" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                    <option value="">Select Hospital</option>
+                    <?php if (!empty($hospitals)): foreach ($hospitals as $hosp): ?>
+                        <option value="<?= htmlspecialchars($hosp->registration_number ?? $hosp->id) ?>"><?= htmlspecialchars($hosp->name) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+            </div>
+
             <div style="margin-bottom: 1.5rem;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Type of Support Required <span style="color: #ef4444;">*</span></label>
                 <select id="supportReasonInput" required style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
@@ -424,8 +444,9 @@ function submitAppointment(e) {
     const appointmentDate = document.getElementById('appointmentDateInput').value;
     const appointmentType = document.getElementById('appointmentTypeInput').value;
     const description = document.getElementById('appointmentReasonInput').value;
+    const hospitalRegistrationNo = document.getElementById('appointmentHospitalInput').value;
     
-    if (!appointmentDate || !appointmentType) {
+    if (!appointmentDate || !appointmentType || !hospitalRegistrationNo) {
         alert('Please fill in all required fields');
         return;
     }
@@ -434,6 +455,7 @@ function submitAppointment(e) {
     formData.append('appointment_date', appointmentDate);
     formData.append('appointment_type', appointmentType);
     formData.append('description', description);
+    formData.append('hospital_registration_no', hospitalRegistrationNo);
     
     fetch('<?php echo ROOT; ?>/donor/create-appointment', {
         method: 'POST',
@@ -480,15 +502,17 @@ function submitSupportRequest(e) {
     
     const reason = document.getElementById('supportReasonInput').value;
     const description = document.getElementById('supportDescriptionInput').value;
+    const hospitalRegistrationNo = document.getElementById('supportHospitalInput').value;
     
-    if (!reason) {
-        alert('Please select a reason');
+    if (!reason || !hospitalRegistrationNo) {
+        alert('Please fill in all required fields');
         return;
     }
     
     const formData = new FormData();
     formData.append('reason', reason);
     formData.append('description', description);
+    formData.append('hospital_registration_no', hospitalRegistrationNo);
     
     fetch('<?php echo ROOT; ?>/donor/submit-support-request', {
         method: 'POST',

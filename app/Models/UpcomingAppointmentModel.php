@@ -77,4 +77,36 @@ class UpcomingAppointmentModel
         $res = $this->query($query, [':id' => $id]);
         return $res ? $res[0] : null;
     }
+
+    /**
+     * Request another date for an appointment.
+     * Stored in notes to keep compatibility with older DB schemas.
+     */
+    public function requestReschedule($id, $proposedDate, $reason)
+    {
+        $id = (int)$id;
+        $proposedDate = trim((string)$proposedDate);
+        $reason = trim((string)$reason);
+
+        if ($id <= 0 || $proposedDate === '' || $reason === '') return false;
+
+        $apt = $this->getAppointmentById($id);
+        if (!$apt) return false;
+
+        $existing = (string)($apt->notes ?? '');
+        $stamp = date('Y-m-d H:i');
+        $line = "[Reschedule Request] Proposed date: {$proposedDate} | Reason: {$reason} | Requested at: {$stamp}";
+        $newNotes = $existing ? ($existing . "\n" . $line) : $line;
+
+        // Keep status Pending for compatibility (some DBs use enum).
+        $query = "UPDATE {$this->table} SET notes = :notes WHERE id = :id AND status = 'Pending'";
+        return $this->execUpdate($query, [':notes' => $newNotes, ':id' => $id]);
+    }
+
+    private function execUpdate($query, $data = [])
+    {
+        $con = $this->connect();
+        $stm = $con->prepare($query);
+        return (bool)$stm->execute($data);
+    }
 }

@@ -835,6 +835,29 @@ main.screen {
     color: var(--primary-text-color);
 }
 
+/* Success Stories table tweaks */
+#stories .table-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+@media (min-width: 769px) {
+    #stories .table-row {
+        grid-template-columns: 1.4fr 2.4fr 0.9fr 0.9fr 200px;
+    }
+
+    /* Date + Status centered, Actions right */
+    #stories .table-row .table-cell:nth-child(3),
+    #stories .table-row .table-cell:nth-child(4) {
+        text-align: center;
+    }
+    #stories .table-row .table-cell:nth-child(5) {
+        text-align: right;
+    }
+}
+
 .status-badge {
     padding: 0.25rem 0.75rem;
     border-radius: 20px;

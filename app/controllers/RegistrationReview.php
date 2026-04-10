@@ -176,6 +176,11 @@ class RegistrationReview {
             $type = !empty($state['institution']['type']) ? $state['institution']['type'] : ($sessionData['type'] ?? 'hospital');
             $address = !empty($state['institution']['address']) ? $state['institution']['address'] : ($sessionData['address'] ?? '');
             $regNo = !empty($state['institution']['reg']) ? $state['institution']['reg'] : ($sessionData['reg_no'] ?? '');
+            $transplantId = !empty($state['institution']['transplant_id'])
+                ? $state['institution']['transplant_id']
+                : (!empty($state['institution']['transplant'])
+                    ? $state['institution']['transplant']
+                    : ($sessionData['transplant_id'] ?? ''));
 
             // Diagnostic: Log what we are checking
             error_log("OTP Gate Check (Inst): Email=" . $email);
@@ -216,8 +221,10 @@ class RegistrationReview {
                 $hospitalModel = new HospitalModel();
                 $success = $hospitalModel->registerHospital($userId, [
                     'registration_number' => $regNo,
+                    'transplant_id' => $transplantId,
                     'name' => $name,
                     'address' => $address,
+                    'contact_number' => $phone,
                     'district' => '',
                     'type' => 'General' 
                 ], [

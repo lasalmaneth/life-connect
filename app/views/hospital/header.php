@@ -134,11 +134,24 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php
 if (!isset($hospital_details)) {
+    $emailFromDb = null;
+    if (!empty($_SESSION['user_id'])) {
+        try {
+            $hospitalModel = new \App\Models\HospitalModel();
+            $h = $hospitalModel->getHospitalByUserId((int)$_SESSION['user_id']);
+            if ($h && !empty($h->user_email)) {
+                $emailFromDb = (string)$h->user_email;
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+    }
+
     $hospital_details = [
         'name' => $hospital_name ?? 'Hospital',
         'registration' => $_SESSION['hospital_registration'] ?? 'HOSP001',
         'role' => $_SESSION['role'] ?? 'Hospital Admin',
-        'email' => $_SESSION['email'] ?? 'admin@lifeconnect.lk',
+        'email' => $emailFromDb ?? ($_SESSION['email'] ?? 'Not specified'),
         'status' => 'Active',
         'last_login' => date('Y-m-d H:i:s')
     ];

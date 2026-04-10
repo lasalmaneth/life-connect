@@ -45,7 +45,15 @@ include __DIR__ . '/inc/sidebar.view.php';
                             </div>
                             <div>
                                 <?php if (!empty($test->document_path)): ?>
-                                    <a href="<?= ROOT ?>/donor/downloadPdf?type=lab_report&id=<?= $test->id ?>" class="d-btn d-btn--sm d-btn--outline"><i class="fas fa-download"></i> PDF Report</a>
+                                    <?php
+                                        $doc = (string)$test->document_path;
+                                        $href = (strpos($doc, 'http://') === 0 || strpos($doc, 'https://') === 0 || strpos($doc, ROOT) === 0)
+                                            ? $doc
+                                            : (ROOT . '/' . ltrim($doc, '/'));
+                                    ?>
+                                    <a href="<?= htmlspecialchars($href) ?>" class="d-btn d-btn--sm d-btn--outline" target="_blank" rel="noopener">
+                                        <i class="fas fa-download"></i> View Report
+                                    </a>
                                 <?php endif; ?>
                             </div>
                         </div>

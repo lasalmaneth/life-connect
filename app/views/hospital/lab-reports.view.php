@@ -384,7 +384,7 @@ require_once __DIR__ . '/header.php';
         appointments.forEach(apt => {
             const row = document.createElement('div');
             row.className = 'table-row';
-            const dateText = apt.test_date ? new Date(apt.test_date).toLocaleDateString() : '';
+            const dateText = apt.test_date ? new Date(apt.test_date).toLocaleDateString('en-GB') : '';
             row.innerHTML = `
                 <div class="table-cell" data-label="Appointment ID">${apt.appointment_id ?? ''}</div>
                 <div class="table-cell name" data-label="Donor NIC">${apt.donor_nic ?? ''}</div>
