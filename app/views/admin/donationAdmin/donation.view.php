@@ -220,10 +220,14 @@
                     </div>
                 </a>
             </div>
-            <div class="header-right">
-                <nav class="header-nav">
-                    <a href="<?= ROOT ?>" class="nav-link">
-                        <i class="fa-solid fa-house"></i> <span>Home</span>
+            <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                <nav style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
+                        <i class="fa-solid fa-house"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
+                        <i class="fa-solid fa-bell"></i>
+                        <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
                     </a>
                 </nav>
                 <div class="user-info">
@@ -485,19 +489,9 @@
                             </div>
                         </div>
 
-                        <div class="data-table">
-                            <div class="table-content" id="matching-table" style="width: 100%;">
-                                <div class="table-row" style="font-weight: 600; color: #64748b; font-size: 0.85rem; text-transform: uppercase; background: #f8fafc; display: grid; grid-template-columns: 1.5fr 1.2fr 1.5fr 1.2fr 120px 100px; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;">
-                                    <div class="table-cell">Donor Name</div>
-                                    <div class="table-cell">Request ID</div>
-                                    <div class="table-cell">Hospital</div>
-                                    <div class="table-cell">Match Date</div>
-                                    <div class="table-cell" style="text-align: center;">Status</div>
-                                    <div class="table-cell" style="text-align: right;">Actions</div>
-                                </div>
-                                <!-- Data will be loaded via PHP -->
-                                <?php include 'matches.view.php'; ?>
-                            </div>
+                        <div id="matching-table" style="width: 100%;">
+                            <!-- Data will be loaded via PHP -->
+                            <?php include 'matches.view.php'; ?>
                         </div>
                     </div>
                 </div>
