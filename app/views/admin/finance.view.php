@@ -77,24 +77,28 @@
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
                         <strong style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
-                        <p style="margin:0; font-size:.68rem; color:#6b7280;">Finance Administration</p>
+                        <p style="margin:0; font-size:.68rem; color:#6b7280;">Financial Administration</p>
                     </div>
                 </a>
             </div>
             
-            <div class="header-right">
-                <nav class="header-nav" style="display: flex; gap: 1.5rem; align-items: center; margin-right: 1.5rem;">
-                    <a href="<?= ROOT ?>" class="nav-link" style="color: white; text-decoration: none; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; padding: 0.5rem 0.75rem; border-radius: 6px; gap: 0.5rem; transition: all 0.3s ease; background: rgba(255, 255, 255, 0.1);">
-                        <i class="fa-solid fa-house"></i> <span>Home</span>
+            <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+                <nav style="display: flex; align-items: center; gap: 1rem;">
+                    <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
+                        <i class="fa-solid fa-house"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
+                        <i class="fa-solid fa-bell"></i>
+                        <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
                     </a>
                 </nav>
                 <div class="user-info">
-                    <div class="user-avatar">A</div>
+                    <div class="user-avatar"><?= substr($adminName, 0, 1) ?></div>
                     <div class="user-details">
-                        <span class="user-name"><?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></span>
-                        <span class="user-role">Finance Administrator</span>
+                        <span class="user-name"><?= htmlspecialchars($adminName) ?></span>
+                        <span class="user-role">Financial Administrator</span>
                     </div>
-                    <i class="fa-solid fa-chevron-down ms-2 opacity-50"></i>
+                    <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
                 </div>
             </div>
         </div>
@@ -108,7 +112,7 @@
                     <div class="sidebar-user-info">
                         <span class="sidebar-user-name">admin_4</span>
                         <span class="sidebar-user-id">ID-00004</span>
-                        <span class="sidebar-user-role">System Admin</span>
+                        <span class="sidebar-user-role">Finance Admin</span>
                     </div>
                 </div>
                 

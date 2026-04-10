@@ -17,15 +17,16 @@
 }
 
 .cp-table thead th {
-  background: linear-gradient(135deg, var(--blue-600), var(--blue-800));
-  color: var(--white);
-  padding: 0.9rem 1rem;
+  background: var(--blue-50);
+  color: var(--g600);
+  padding: 1rem;
   text-align: left;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  border-bottom: 2px solid var(--g200);
 }
 
 .cp-table thead th:first-child {
@@ -80,4 +81,31 @@
   font-size: 0.75rem;
   color: var(--g500);
   margin-top: 0.1rem;
+}
+
+/* Empty cell */
+.cp-table__empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--g500);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* Action buttons row in a cell */
+.cp-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* Clickable rows */
+.cp-table tbody tr[onclick] {
+  cursor: pointer;
+}
+
+.cp-table tbody tr.selected {
+  background: var(--blue-100);
+  border-left: 3px solid var(--blue-600);
 }

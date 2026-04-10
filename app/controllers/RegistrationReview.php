@@ -237,12 +237,13 @@ class RegistrationReview {
                  $medModel = new MedicalSchoolModel();
                  $success = $medModel->registerMedicalSchool($userId, [
                     'name' => $name,
-                    'university' => '',
+                    'university' => 'Pending',
                     'ugc_number' => $regNo,
                     'address' => $address,
                     'district' => ''
                  ], [
                     'name' => 'Pending',
+                    'email'=> $email,
                     'phone' => $phone
                  ]);
                  if (!$success) throw new \Exception("Failed to register medical school profile.");

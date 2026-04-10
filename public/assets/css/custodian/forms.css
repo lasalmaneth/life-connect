@@ -160,3 +160,44 @@ select.cp-form-control {
   margin-top: 1rem;
   flex-wrap: wrap;
 }
+
+/* =============================================================================
+   §7  SHORTHAND ALIASES (for medical school / shared views)
+   ============================================================================= */
+.cp-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--g300);
+  border-radius: 8px;
+  font-family: var(--cp-font);
+  font-size: 0.88rem;
+  color: var(--slate);
+  background: var(--white);
+  transition: all var(--cp-tr);
+}
+
+.cp-input:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(0, 91, 170, 0.1);
+}
+
+.cp-input::placeholder {
+  color: var(--g300);
+}
+
+textarea.cp-input {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+select.cp-input {
+  appearance: auto;
+}
+
+.cp-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate);
+}
