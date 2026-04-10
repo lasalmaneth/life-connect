@@ -265,7 +265,7 @@
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Story Title">${story.title}</div>
                     <div class="table-cell" data-label="Description">"${story.description.substring(0, 55)}${story.description.length > 55 ? '...' : ''}"</div>
-                    <div class="table-cell" data-label="Date">${new Date(story.success_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                    <div class="table-cell" data-label="Date">${new Date(story.success_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span style="background: ${statusColor}; color: white; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
                             ${story.status}

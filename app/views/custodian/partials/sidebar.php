@@ -1,13 +1,7 @@
 <?php
 /**
  * Custodian Portal — Sidebar Partial
- * Requires: $active_page (string key matching each nav item's 'key')
- *           $custodian_name, $custodian_id_display (injected by layout)
- *
- * Active page keys:
- *   dashboard | consent | donor-profile | co-custodian | report-death
- *   legal-response | cadaver-data-sheet | documents | coordination
- *   timeline | certificates | authority-limits
+ * Cleaned up to explicitly follow the post-death workflow scenario without clutter.
  */
 
 $nav_items = [
@@ -15,44 +9,30 @@ $nav_items = [
         'title' => 'Overview',
         'items' => [
             ['href' => ROOT . '/custodian/dashboard',   'icon' => 'fa-chart-line',    'label' => 'Dashboard',   'key' => 'dashboard'],
-        ],
-    ],
-    'donor' => [
-        'title' => 'Donor',
-        'items' => [
             ['href' => ROOT . '/custodian/donor-profile',   'icon' => 'fa-id-card',         'label' => 'Donor Profile',      'key' => 'donor-profile'],
-            ['href' => ROOT . '/custodian/consent',          'icon' => 'fa-file-signature',  'label' => 'Registered Consent', 'key' => 'consent'],
-            ['href' => ROOT . '/custodian/co-custodian',     'icon' => 'fa-user-shield',     'label' => 'Co-Custodian',       'key' => 'co-custodian'],
+            ['href' => ROOT . '/custodian/profile',        'icon' => 'fa-users-line',      'label' => 'Custodians',        'key' => 'profile'],
+            ['href' => ROOT . '/custodian/report-death',    'icon' => 'fa-heart-crack',     'label' => 'Report Death',       'key' => 'report-death'],
+            ['href' => ROOT . '/custodian/consent',          'icon' => 'fa-file-signature',  'label' => 'Registered Consents','key' => 'consent'],
         ],
     ],
     'case' => [
-        'title' => 'Case Actions',
+        'title' => 'Case Operations',
         'items' => [
-            ['href' => ROOT . '/custodian/report-death',       'icon' => 'fa-heart-pulse',     'label' => 'Report Death',       'key' => 'report-death'],
-            ['href' => ROOT . '/custodian/legal-response',     'icon' => 'fa-gavel',           'label' => 'Legal Response',     'key' => 'legal-response'],
-            ['href' => ROOT . '/custodian/cadaver-data-sheet', 'icon' => 'fa-notes-medical',   'label' => 'Cadaver Data Sheet', 'key' => 'cadaver-data-sheet'],
+            ['href' => ROOT . '/custodian/institution-requests', 'icon' => 'fa-network-wired',   'label' => 'Institution Requests', 'key' => 'institution-requests'],
+            ['href' => ROOT . '/custodian/documents',       'icon' => 'fa-folder-open',     'label' => 'Documents',          'key' => 'documents'],
+            ['href' => ROOT . '/custodian/certificates',    'icon' => 'fa-certificate',     'label' => 'Certificates',       'key' => 'certificates'],
         ],
     ],
-    'records' => [
-        'title' => 'Records',
+    'history' => [
+        'title' => 'History',
         'items' => [
-            ['href' => ROOT . '/custodian/documents',    'icon' => 'fa-folder-open',     'label' => 'Documents',         'key' => 'documents'],
-            ['href' => ROOT . '/custodian/coordination', 'icon' => 'fa-network-wired',   'label' => 'Coordination',      'key' => 'coordination'],
-            ['href' => ROOT . '/custodian/timeline',     'icon' => 'fa-stream',          'label' => 'Timeline',          'key' => 'timeline'],
-        ],
-    ],
-    'official' => [
-        'title' => 'Official',
-        'items' => [
-            ['href' => ROOT . '/custodian/certificates',    'icon' => 'fa-certificate',     'label' => 'Certificates',      'key' => 'certificates'],
-            ['href' => ROOT . '/custodian/authority-limits','icon' => 'fa-shield-halved',   'label' => 'Authority Limits',  'key' => 'authority-limits'],
+            ['href' => ROOT . '/custodian/archive',    'icon' => 'fa-box-archive',     'label' => 'Archive',       'key' => 'archive'],
         ],
     ],
 ];
 ?>
 <aside class="cp-sidebar" id="cp-sidebar">
 
-    <!-- Sidebar Header -->
     <div class="cp-sidebar__header">
         <div class="cp-sidebar__avatar">
             <?= strtoupper(substr($custodian_name ?? 'C', 0, 1)) ?>

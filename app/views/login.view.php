@@ -108,6 +108,9 @@
                     const baseUrl = '<?= ROOT ?>/';
                     const userRole = (data.role || '').trim().toUpperCase();
                     switch (userRole) {
+                        case 'AFTERCARE_PATIENT':
+                            window.location.href = baseUrl + 'aftercare';
+                            break;
                         case 'U_ADMIN':
                             window.location.href = baseUrl + 'user-admin';
                             break;

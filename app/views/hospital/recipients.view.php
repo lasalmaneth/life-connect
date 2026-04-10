@@ -387,7 +387,7 @@
                     <div class="table-cell name" data-label="NIC">${recipient.nic}</div>
                     <div class="table-cell" data-label="Name">${recipient.name}</div>
                     <div class="table-cell" data-label="Organ">${recipient.organ_received}</div>
-                    <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString()}</div>
+                    <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span class="status-badge ${recipient.status === 'Active' ? 'status-active' : recipient.status === 'Discharged' ? 'status-success' : 'status-pending'}">${recipient.status}</span>
                     </div>

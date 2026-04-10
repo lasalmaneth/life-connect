@@ -164,47 +164,35 @@ class UserAdmin {
                 return;
             }
 
-            $adminModel = new AdminModel();
-            $adminModel->updateUserStatus($userId, $status);
+            // Role restriction: Only User Management Admins (U_ADMIN) can update status
+            $currentRole = strtoupper($_SESSION['role'] ?? 'NONE');
+            if ($currentRole !== 'U_ADMIN' && $currentRole !== 'ADMIN') {
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => "Unauthorized: Role '$currentRole' is not permitted to change user status"]);
+                return;
+            }
 
+            $adminModel = new AdminModel();
+            
+            // Get user info for logging
+            $user = $adminModel->getUserById($userId);
+            $message = $input['review_message'] ?? null;
+            $adminModel->updateUserStatus($userId, $status, $message);
+
+            // Log activity via notification
+            $userName = is_object($user) ? ($user->username ?? 'User') : 'User';
+            $adminModel->sendNotification($userId, "[ADMIN_ACTION] Status changed for " . $userName . " to " . strtoupper($status), "Your account status has been updated to " . strtoupper($status), 'SYSTEM');
+
+            ob_clean();
             echo json_encode(['success' => true, 'message' => 'User status updated']);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
-    public function getPendingDocuments() {
-        header('Content-Type: application/json');
-        try {
-            $adminModel = new AdminModel();
-            $docs = $adminModel->getPendingDocuments();
-            echo json_encode(['success' => true, 'documents' => $docs]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
 
-    public function updateEntityVerification() {
-        header('Content-Type: application/json');
-        try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            $type = $input['entity_type'] ?? null;
-            $id = $input['id'] ?? null;
-            $status = $input['status'] ?? null;
 
-            if (!$type || !$id || !$status) {
-                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
-                return;
-            }
 
-            $adminModel = new AdminModel();
-            $adminModel->updateEntityVerification($type, $id, $status);
-
-            echo json_encode(['success' => true, 'message' => "Verification status updated for $type"]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
 
     public function getNotifications() {
         header('Content-Type: application/json');
@@ -246,6 +234,7 @@ class UserAdmin {
             $input = json_decode(file_get_contents('php://input'), true);
             $userIds = $input['user_ids'] ?? [];
             $status = $input['status'] ?? null;
+            $message = $input['message'] ?? null;
 
             if (empty($userIds) || !$status) {
                 echo json_encode(['success' => false, 'message' => 'Missing parameters']);
@@ -253,7 +242,7 @@ class UserAdmin {
             }
 
             $adminModel = new AdminModel();
-            $adminModel->bulkUpdateUserStatus($userIds, $status);
+            $adminModel->bulkUpdateUserStatus($userIds, $status, $message);
 
             echo json_encode(['success' => true, 'message' => count($userIds) . ' users updated']);
         } catch (Exception $e) {
@@ -330,56 +319,61 @@ class UserAdmin {
         header('Content-Type: application/json');
         try {
             $input = json_decode(file_get_contents('php://input'), true);
-            $userId = $input['id'] ?? null;
             $role = $input['role'] ?? null;
-            $action = $input['action'] ?? null; // 'APPROVE' or 'REJECT'
             $data = $input['data'] ?? []; // first_name, last_name, phone
-
-            if (!$userId || !$role || !$action) {
-                echo json_encode(['success' => false, 'message' => 'Missing required parameters']);
-                return;
-            }
 
             $adminModel = new AdminModel();
             
-            // Update the user details
-            if (!empty($data)) {
-                $adminModel->updateUserDetails($userId, $role, $data);
-            }
-
-            $newStatus = 'UNCHANGED';
-            if ($action === 'APPROVE') {
-                $newStatus = 'ACTIVE';
-                $adminModel->updateUserStatus($userId, $newStatus);
-            } elseif ($action === 'REJECT') {
-                $newStatus = 'SUSPENDED';
-                $adminModel->updateUserStatus($userId, $newStatus);
-            }
-
-            echo json_encode(['success' => true, 'message' => 'User details saved successfully', 'status' => $newStatus]);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
-    public function bulkUpdateEntityVerification() {
-        header('Content-Type: application/json');
-        try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            $entities = $input['entities'] ?? [];
-            $status = $input['status'] ?? null;
-
-            if (empty($entities) || !$status) {
-                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+            // Role restriction: Only User Management Admins (U_ADMIN) can perform reviews
+            $currentRole = strtoupper($_SESSION['role'] ?? 'NONE');
+            if ($currentRole !== 'U_ADMIN' && $currentRole !== 'ADMIN') {
+                ob_clean();
+                echo json_encode(['success' => false, 'message' => "Unauthorized: Role '$currentRole' is not permitted to perform reviews"]);
                 return;
             }
 
-            $adminModel = new AdminModel();
-            $adminModel->bulkUpdateEntityVerification($entities, $status);
+            $userId = $input['user_id'] ?? $input['id'] ?? null;
+            if (!$userId) {
+                echo json_encode(['success' => false, 'message' => 'Missing User ID for review (checked user_id and id keys)']);
+                return;
+            }
+            $action = $input['action'] ?? null;
+            $newStatus = $input['new_status'] ?? 'UNCHANGED';
+            $reviewMessage = $input['review_message'] ?? null;
+            
+            // Standardize actions to statuses
+            if ($newStatus === 'UNCHANGED') {
+                if ($action === 'APPROVE') {
+                    $newStatus = 'ACTIVE';
+                } elseif ($action === 'REJECT') {
+                    $newStatus = 'SUSPENDED';
+                }
+            }
 
-            echo json_encode(['success' => true, 'message' => count($entities) . ' documents updated']);
+            if ($newStatus !== 'UNCHANGED') {
+                // Ensure the status matches the DB enum case (all caps)
+                $newStatus = strtoupper($newStatus);
+                
+                $updateResult = $adminModel->updateUserStatus($userId, $newStatus, $reviewMessage);
+                
+                // Get user info for logging and notifications
+                $user = $adminModel->getUserById($userId);
+                if ($user) {
+                    $userName = $user->username ?? 'User';
+                    $adminModel->sendNotification($userId, "[ADMIN_ACTION] Status changed for " . $userName . " to " . $newStatus, "Your account review is complete. Status: " . $newStatus, 'SYSTEM');
+                    
+                    echo json_encode(['success' => true, 'message' => "User account set to $newStatus and details saved."]);
+                } else {
+                    // This happens if the user_id didn't exist in the users table
+                    echo json_encode(['success' => false, 'message' => "Update failed: User ID $userId not found in database."]);
+                }
+            } else {
+                echo json_encode(['success' => true, 'message' => 'User details updated (no status change)']);
+            }
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Controller error: ' . $e->getMessage()]);
         }
     }
+
 }
+

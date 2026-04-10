@@ -1,22 +1,16 @@
 <?php
-
-// Add this to the VERY TOP of your match.php
-ob_start(); // Start output buffering
+ob_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once __DIR__ . '/../../../core/Database.php';
+require_once __DIR__ . '/../../../core/config.php';
 
-// Include database connection
-require_once __DIR__ . '/../../core/Database.php';
-require_once __DIR__ . '/../../core/config.php';
-
-// Simple database connection
 $pdo = new PDO("mysql:host=".DBHOST.";dbname=".DBNAME, DBUSER, DBPASS);
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
-    
     switch ($_POST['action']) {
         case 'get_matches':
             getMatches($pdo);
@@ -38,340 +32,115 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 function getMatches($pdo) {
-    // Get filters from request
-    $search = isset($_POST['search']) ? $_POST['search'] : '';
-    $status = isset($_POST['status']) ? $_POST['status'] : '';
-    $organ = isset($_POST['organ']) ? $_POST['organ'] : '';
-    $urgency = isset($_POST['urgency']) ? $_POST['urgency'] : '';
-    
-    // Build query with filters
-    $sql = "SELECT 
-                m.match_id,
-                m.match_date,
-                m.request_id,
-                m.donor_organ_id,
-                d.donor_id,
-                CONCAT(d.first_name, ' ', d.last_name) as donor_name,
-                d.blood_group as donor_blood_group,
-                d.contact_number as donor_contact,
-                d.email as donor_email,
-                orq.request_id,
-                orq.blood_group as required_blood_group,
-                orq.urgency_level,
-                orq.status,
-                org.organ_name,
-                h.registration_no,
-                h.h_name as hospital_name,
-                h.h_location as hospital_location,
-                h.district as hospital_district
-            FROM matching m
-            LEFT JOIN donors d ON m.donor_id = d.donor_id
-            LEFT JOIN organ_request orq ON m.request_id = orq.request_id
-            LEFT JOIN organ org ON orq.organ_id = org.organ_id
-            LEFT JOIN hospital h ON orq.registration_no = h.registration_no
-            WHERE 1=1";
-    
-    $params = array();
-    
-    if (!empty($search)) {
-        $sql .= " AND (d.first_name LIKE ? OR d.last_name LIKE ? OR h.h_name LIKE ? OR m.match_id LIKE ?)";
-        $searchTerm = "%$search%";
-        array_push($params, $searchTerm, $searchTerm, $searchTerm, $searchTerm);
-    }
-    
-    if (!empty($status)) {
-        $sql .= " AND orq.status = ?";
-        $params[] = $status;
-    }
-    
-    if (!empty($organ)) {
-        $sql .= " AND org.organ_name = ?";
-        $params[] = $organ;
-    }
-    
-    if (!empty($urgency)) {
-        $sql .= " AND orq.urgency_level = ?";
-        $params[] = $urgency;
-    }
-    
-    $sql .= " ORDER BY m.match_date DESC";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    echo json_encode(array('success' => true, 'matches' => $matches));
-}
-
-function updateMatchStatus($pdo) {
-    if (!isset($_POST['match_id']) || !isset($_POST['status'])) {
-        echo json_encode(array('error' => 'Missing required fields'));
-        return;
-    }
-    
-    $match_id = $_POST['match_id'];
-    $status = $_POST['status'];
-    $notes = isset($_POST['notes']) ? $_POST['notes'] : '';
-    
     try {
-        // Since there's no status column in matching table, update organ_request status
-        // First get the request_id from the match
-        $getRequestSql = "SELECT request_id FROM matching WHERE match_id = ?";
-        $getRequestStmt = $pdo->prepare($getRequestSql);
-        $getRequestStmt->execute(array($match_id));
-        $request = $getRequestStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($request) {
-            $sql = "UPDATE organ_request SET status = ? WHERE request_id = ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(array($status, $request['request_id']));
-            
-            echo json_encode(array('success' => true, 'message' => 'Status updated successfully'));
-        } else {
-            echo json_encode(array('error' => 'Match not found'));
-        }
+        $sql = "SELECT m.match_id, m.match_date, m.status as match_status, m.warning_details,
+                       dp.id as pledge_id, d.first_name as donor_name, d.last_name, d.blood_group as donor_blood_group,
+                       orq.id as request_id, orq.blood_group as required_blood_group, orq.priority_level,
+                       org.name as organ_name, h.name as hospital_name
+                FROM donor_patient_match m
+                JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
+                JOIN donors d ON dp.donor_id = d.id
+                JOIN organ_requests orq ON m.request_id = orq.id
+                JOIN organs org ON orq.organ_id = org.id
+                JOIN hospitals h ON orq.hospital_id = h.id
+                ORDER BY m.match_date DESC";
+        $matches = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(array('success' => true, 'matches' => $matches));
     } catch (PDOException $e) {
         echo json_encode(array('error' => 'Database error: ' . $e->getMessage()));
     }
 }
 
-function getMatchDetails($pdo) {
-    if (!isset($_POST['match_id'])) {
-        echo json_encode(array('error' => 'Match ID required'));
-        return;
-    }
-    
-    $match_id = $_POST['match_id'];
-    
-    $sql = "SELECT 
-                m.match_id,
-                m.match_date,
-                m.request_id,
-                m.donor_organ_id,
-                d.donor_id,
-                CONCAT(d.first_name, ' ', d.last_name) as donor_name,
-                d.gender as donor_gender,
-                d.date_of_birth as donor_dob,
-                d.blood_group as donor_blood_group,
-                d.contact_number as donor_contact,
-                d.email as donor_email,
-                d.address as donor_address,
-                d.district as donor_district,
-                d.grama_niladhari_division,
-                d.divisional_secretariat,
-                orq.request_id,
-                orq.blood_group as required_blood_group,
-                orq.urgency_level,
-                orq.gender as recipient_gender,
-                orq.date_of_birth as recipient_dob,
-                orq.district as recipient_district,
-                orq.status,
-                orq.request_date,
-                org.organ_name,
-                h.registration_no,
-                h.h_name as hospital_name,
-                h.h_location as hospital_location,
-                h.district as hospital_district,
-                h.contact_number as hospital_contact,
-                h.h_email as hospital_email,
-                h.cmo_name,
-                h.cmo_nic
-            FROM matching m
-            LEFT JOIN donors d ON m.donor_id = d.donor_id
-            LEFT JOIN organ_request orq ON m.request_id = orq.request_id
-            LEFT JOIN organ org ON orq.organ_id = org.organ_id
-            LEFT JOIN hospital h ON orq.registration_no = h.registration_no
-            WHERE m.match_id = ?";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($match_id));
-    $match = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($match) {
-        echo json_encode(array('success' => true, 'match' => $match));
-    } else {
-        echo json_encode(array('error' => 'Match not found'));
-    }
-}
-
-// Matching Algorithm Functions
 function runMatchingAlgorithm($pdo) {
     try {
         $pdo->beginTransaction();
         
-        // Find potential matches
-        $sql = "
-            SELECT DISTINCT
-                do.donor_organ_id,
-                orq.request_id,
-                do.donor_id
-            FROM donor_organ do
-            INNER JOIN organ_request orq ON do.organ_id = orq.organ_id 
-                AND do.blood_group = orq.blood_group
-                AND do.status = 'available'
-            WHERE orq.status IN ('pending', 'active')
-            AND NOT EXISTS (
-                SELECT 1 FROM matching m 
-                WHERE m.donor_organ_id = do.donor_organ_id 
-                AND m.request_id = orq.request_id
-            )
-        ";
+        $sqlReq = "SELECT r.id as request_id, r.organ_id, r.blood_group, r.priority_level 
+                   FROM organ_requests r 
+                   WHERE r.status != 'CLOSED'";
+        $requests = $pdo->query($sqlReq)->fetchAll(PDO::FETCH_ASSOC);
         
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();
-        $potentialMatches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sqlDonors = "SELECT dp.id as pledge_id, dp.organ_id, dp.allergies, dp.donor_id, d.blood_group 
+                      FROM donor_pledges dp 
+                      JOIN donors d ON dp.donor_id = d.id 
+                      WHERE dp.status = 'APPROVED'";
+        $donors = $pdo->query($sqlDonors)->fetchAll(PDO::FETCH_ASSOC);
         
         $matchesCreated = 0;
         
-        // Create matches
-        foreach ($potentialMatches as $match) {
-            $insertSql = "
-                INSERT INTO matching (donor_organ_id, request_id, donor_id, match_date)
-                VALUES (?, ?, ?, NOW())
-            ";
-            
-            $insertStmt = $pdo->prepare($insertSql);
-            $insertStmt->execute(array(
-                $match['donor_organ_id'],
-                $match['request_id'],
-                $match['donor_id']
-            ));
-            
-            $matchesCreated++;
-            
-            // Update organ request status to 'matched'
-            $updateRequestSql = "
-                UPDATE organ_request 
-                SET status = 'matched' 
-                WHERE request_id = ?
-            ";
-            $updateRequestStmt = $pdo->prepare($updateRequestSql);
-            $updateRequestStmt->execute(array($match['request_id']));
-            
-            // Update donor organ status to 'matched'
-            $updateDonorSql = "
-                UPDATE donor_organ 
-                SET status = 'matched' 
-                WHERE donor_organ_id = ?
-            ";
-            $updateDonorStmt = $pdo->prepare($updateDonorSql);
-            $updateDonorStmt->execute(array($match['donor_organ_id']));
+        foreach ($requests as $req) {
+            foreach ($donors as $donor) {
+                if ($req['organ_id'] != $donor['organ_id']) continue;
+                
+                $isMatch = false;
+                $organId = $req['organ_id'];
+                $rBlood = str_replace(' ', '', strtoupper($req['blood_group'] ?? ''));
+                $dBlood = str_replace(' ', '', strtoupper($donor['blood_group'] ?? ''));
+                
+                // For Rh factor simplicity in comparison
+                $isDonorO = strpos($dBlood, 'O') !== false;
+                $isDonorA = strpos($dBlood, 'A') !== false && strpos($dBlood, 'B') === false;
+                $isDonorB = strpos($dBlood, 'B') !== false && strpos($dBlood, 'A') === false;
+                $isDonorAB = strpos($dBlood, 'AB') !== false;
+
+                if ($organId == 1 || $organId == 2) { // Kidney or Liver
+                    if (empty($rBlood) || empty($dBlood)) {
+                        // Skip if blood group not proper yet
+                        continue; 
+                    }
+                    if ($isDonorO) { // Universal
+                        $isMatch = true;
+                    } else if ($isDonorA && (strpos($rBlood, 'A') !== false)) {
+                        $isMatch = true;
+                    } else if ($isDonorB && (strpos($rBlood, 'B') !== false)) {
+                        $isMatch = true;
+                    } else if ($isDonorAB && strpos($rBlood, 'AB') !== false) {
+                        $isMatch = true;
+                    }
+                } else if ($organId == 3) { // Bone Marrow
+                    // HLA is more important. For logic simulation -> match.
+                    $isMatch = true;
+                } else {
+                    if ($dBlood == $rBlood) $isMatch = true;
+                }
+                
+                if ($isMatch) {
+                    $status = 'MATCH';
+                    $warning = null;
+                    if (!empty($donor['allergies']) && strtoupper($donor['allergies']) !== 'NONE') {
+                        $status = 'MATCH WITH WARNING';
+                        $warning = 'Medical Warning: Allergies - ' . $donor['allergies'];
+                    }
+                    
+                    $chk = $pdo->prepare("SELECT 1 FROM donor_patient_match WHERE donor_pledge_id = ? AND request_id = ?");
+                    $chk->execute(array($donor['pledge_id'], $req['request_id']));
+                    
+                    if ($chk->rowCount() == 0) {
+                        $ins = $pdo->prepare("INSERT INTO donor_patient_match (donor_pledge_id, request_id, status, warning_details) VALUES (?, ?, ?, ?)");
+                        $ins->execute(array($donor['pledge_id'], $req['request_id'], $status, $warning));
+                        
+                        // Update request to MATCHED
+                        $pdo->prepare("UPDATE organ_requests SET status = 'MATCHED' WHERE id = ?")->execute(array($req['request_id']));
+                        $matchesCreated++;
+                    }
+                }
+            }
         }
         
         $pdo->commit();
-        
         echo json_encode(array(
             'success' => true, 
             'message' => 'Matching algorithm completed successfully',
             'matches_created' => $matchesCreated
         ));
-        
     } catch (Exception $e) {
         $pdo->rollBack();
         echo json_encode(array('error' => 'Database error: ' . $e->getMessage()));
     }
 }
 
-function autoMatchNewDonor($pdo, $donorOrganId) {
-    $sql = "
-        INSERT INTO matching (donor_organ_id, request_id, donor_id, match_date)
-        SELECT 
-            do.donor_organ_id,
-            orq.request_id,
-            do.donor_id,
-            NOW()
-        FROM donor_organ do
-        INNER JOIN organ_request orq ON do.organ_id = orq.organ_id 
-            AND do.blood_group = orq.blood_group
-            AND do.status = 'available'
-        WHERE do.donor_organ_id = ?
-        AND orq.status IN ('pending', 'active')
-        AND NOT EXISTS (
-            SELECT 1 FROM matching m 
-            WHERE m.donor_organ_id = do.donor_organ_id 
-            AND m.request_id = orq.request_id
-        )
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($donorOrganId));
-    
-    $matchesCreated = $stmt->rowCount();
-    
-    // Update status for matched records
-    if ($matchesCreated > 0) {
-        $updateRequestSql = "
-            UPDATE organ_request 
-            SET status = 'matched' 
-            WHERE request_id IN (
-                SELECT request_id FROM matching 
-                WHERE donor_organ_id = ?
-            )
-        ";
-        $updateRequestStmt = $pdo->prepare($updateRequestSql);
-        $updateRequestStmt->execute(array($donorOrganId));
-        
-        $updateDonorSql = "
-            UPDATE donor_organ 
-            SET status = 'matched' 
-            WHERE donor_organ_id = ?
-        ";
-        $updateDonorStmt = $pdo->prepare($updateDonorSql);
-        $updateDonorStmt->execute(array($donorOrganId));
-    }
-    
-    return $matchesCreated;
-}
+function updateMatchStatus($pdo) {} // Placeholder
+function getMatchDetails($pdo) {} // Placeholder
 
-function autoMatchNewRequest($pdo, $requestId) {
-    $sql = "
-        INSERT INTO matching (donor_organ_id, request_id, donor_id, match_date)
-        SELECT 
-            do.donor_organ_id,
-            orq.request_id,
-            do.donor_id,
-            NOW()
-        FROM organ_request orq
-        INNER JOIN donor_organ do ON do.organ_id = orq.organ_id 
-            AND do.blood_group = orq.blood_group
-            AND do.status = 'available'
-        WHERE orq.request_id = ?
-        AND orq.status IN ('pending', 'active')
-        AND NOT EXISTS (
-            SELECT 1 FROM matching m 
-            WHERE m.donor_organ_id = do.donor_organ_id 
-            AND m.request_id = orq.request_id
-        )
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(array($requestId));
-    
-    $matchesCreated = $stmt->rowCount();
-    
-    // Update status for matched records
-    if ($matchesCreated > 0) {
-        $updateRequestSql = "
-            UPDATE organ_request 
-            SET status = 'matched' 
-            WHERE request_id = ?
-        ";
-        $updateRequestStmt = $pdo->prepare($updateRequestSql);
-        $updateRequestStmt->execute(array($requestId));
-        
-        $updateDonorSql = "
-            UPDATE donor_organ 
-            SET status = 'matched' 
-            WHERE donor_organ_id IN (
-                SELECT donor_organ_id FROM matching 
-                WHERE request_id = ?
-            )
-        ";
-        $updateDonorStmt = $pdo->prepare($updateDonorSql);
-        $updateDonorStmt->execute(array($requestId));
-    }
-    
-    return $matchesCreated;
-}
-ob_end_flush(); // Send the output at the end
+ob_end_flush();
 ?>

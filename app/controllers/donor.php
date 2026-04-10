@@ -9,6 +9,21 @@ use App\Models\FinancialDonationModel;
 class Donor {
     use Controller, Database;
 
+    private function usersHasAftercareAccessColumn(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) return $cached;
+
+        try {
+            $res = $this->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
+            $cached = !empty($res);
+        } catch (\Throwable $e) {
+            $cached = false;
+        }
+
+        return $cached;
+    }
+
     /**
      * Map organ names to specific image assets or FontAwesome icons
      */
@@ -44,6 +59,16 @@ class Donor {
         
         $donorData = $donorModel->getDonorById($donorId);
         $donorData = json_decode(json_encode($donorData), true);
+
+        // Fetch aftercare_access from users table (optional column)
+        $donorData['aftercare_access'] = 0;
+        if ($this->usersHasAftercareAccessColumn() && !empty($_SESSION['user_id'])) {
+            $userRow = $this->query(
+                "SELECT aftercare_access FROM users WHERE id = :uid LIMIT 1",
+                [':uid' => (int)$_SESSION['user_id']]
+            );
+            $donorData['aftercare_access'] = !empty($userRow) ? (int)($userRow[0]->aftercare_access ?? 0) : 0;
+        }
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
         
@@ -758,6 +783,20 @@ class Donor {
         $bodyConsent = $bodyDonationModel->getConsentByDonorId($donorId);
         $medicalSchools = $medicalSchoolModel->getAllApprovedMedicalSchools();
 
+        // Fallback list of all approved hospitals (used when no active requests exist for a given organ)
+        $hospitalModel = new \App\Models\HospitalModel();
+        $approvedHospitalsRaw = $hospitalModel->getAllHospitals() ?: [];
+        $approvedHospitals = [];
+        foreach ($approvedHospitalsRaw as $h) {
+            $approvedHospitals[] = [
+                'hospital_id'   => $h->id,
+                'hospital_name' => $h->name,
+                'address'       => $h->address ?? '',
+                'district'      => $h->district ?? '',
+                'facility_type' => $h->facility_type ?? '',
+            ];
+        }
+
         // Fetch hospital requests grouped by organ_id (for consent hospital selection)
         $organRequests = $this->query(
             "SELECT orq.organ_id, orq.priority_level, h.id AS hospital_id, h.name AS hospital_name, 
@@ -795,6 +834,7 @@ class Donor {
             'selected_after_death'=> $selectedAfterDeath,
             'selected_full_body'  => $selectedFullBody,
             'hospitals_by_organ'  => $hospitalsByOrgan,
+            'approved_hospitals'  => $approvedHospitals,
             'medical_schools'     => $medicalSchools,
             'body_consent'        => $bodyConsent,
             'districts'           => $districts,
@@ -859,46 +899,81 @@ class Donor {
     {
         header('Content-Type: application/json');
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-            exit;
-        }
 
-        $donorId = $this->getDonorId();
-        $id      = (int)($_POST['id'] ?? 0);
-        $action  = $_POST['action'] ?? '';
-        $reason  = trim($_POST['reason'] ?? '');
-
-        if (!$id || !in_array($action, ['approve', 'reject'])) {
-            echo json_encode(['success' => false, 'message' => 'Invalid request']);
-            exit;
-        }
-
-        $model = new \App\Models\UpcomingAppointmentModel();
-        $apt   = $model->getAppointmentById($id);
-
-        // Verify ownership and that it is still Pending
-        if (!$apt || $apt->donor_id != $donorId) {
-            echo json_encode(['success' => false, 'message' => 'Appointment not found']);
-            exit;
-        }
-        if ($apt->status !== 'Pending') {
-            echo json_encode(['success' => false, 'message' => 'This appointment has already been ' . $apt->status]);
-            exit;
-        }
-
-        if ($action === 'approve') {
-            $model->approveAppointment($id);
-            echo json_encode(['success' => true, 'message' => 'Appointment approved successfully']);
-        } else {
-            if (empty($reason)) {
-                echo json_encode(['success' => false, 'message' => 'Rejection reason is required']);
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit;
             }
-            $model->rejectAppointment($id, $reason);
-            echo json_encode(['success' => true, 'message' => 'Appointment rejected']);
+
+            // IMPORTANT: avoid redirects for AJAX (redirect output breaks JSON parsing)
+            $donorModel = new \App\Models\DonorModel();
+            $donor = $donorModel->getDonorByUserId($_SESSION['user_id']);
+            $donorId = $donor ? ($donor->id ?? $donor->donor_id) : null;
+            $donorId = (int)($donorId ?? 0);
+            if ($donorId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Donor account not found']);
+                exit;
+            }
+
+            $id      = (int)($_POST['id'] ?? 0);
+            $action  = $_POST['action'] ?? '';
+            $reason  = trim($_POST['reason'] ?? '');
+            $proposedDate = trim($_POST['proposed_date'] ?? '');
+
+            if (!$id || !in_array($action, ['approve', 'reject', 'reschedule'], true)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid request']);
+                exit;
+            }
+
+            $model = new \App\Models\UpcomingAppointmentModel();
+            $apt   = $model->getAppointmentById($id);
+
+            // Verify ownership and that it is still Pending
+            if (!$apt || (int)$apt->donor_id !== $donorId) {
+                echo json_encode(['success' => false, 'message' => 'Appointment not found']);
+                exit;
+            }
+            if (($apt->status ?? '') !== 'Pending') {
+                $st = (string)($apt->status ?? '');
+                echo json_encode(['success' => false, 'message' => 'This appointment has already been ' . ($st ?: 'updated')]);
+                exit;
+            }
+
+            if ($action === 'approve') {
+                $model->approveAppointment($id);
+                echo json_encode(['success' => true, 'message' => 'Appointment approved successfully']);
+                exit;
+            }
+
+            if ($action === 'reject') {
+                if ($reason === '') {
+                    echo json_encode(['success' => false, 'message' => 'Rejection reason is required']);
+                    exit;
+                }
+                $model->rejectAppointment($id, $reason);
+                echo json_encode(['success' => true, 'message' => 'Appointment rejected']);
+                exit;
+            }
+
+            // reschedule
+            if ($proposedDate === '' || $reason === '') {
+                echo json_encode(['success' => false, 'message' => 'Proposed date and reason are required']);
+                exit;
+            }
+
+            $ok = $model->requestReschedule($id, $proposedDate, $reason);
+            if ($ok) {
+                echo json_encode(['success' => true, 'message' => 'Reschedule request sent to hospital']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to send reschedule request']);
+            }
+            exit;
+        } catch (\Throwable $e) {
+            // Ensure caller always gets JSON (prevents frontend "Network error" due to JSON parse failure)
+            echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+            exit;
         }
-        exit;
     }
 
     /**
@@ -1273,6 +1348,8 @@ class Donor {
         $type = $_GET['type'] ?? '';
         
         if ($type === 'body_donation_consent') {
+            // PDF generation disabled (no external libraries allowed).
+            // Render a printable HTML version instead.
             $this->downloadConsentPDF($donorId);
         } else if ($type === 'donor_card') {
             $this->viewDigitalCard();
@@ -1300,6 +1377,20 @@ class Donor {
         $activeRoles = $common['activeRoles'];
         $currentMode = $common['currentMode'];
 
+        if (empty($donorData['aftercare_access'])) {
+            $this->view('donor/aftercare-disabled', [
+                'donor_data' => $donorData,
+                'donor_full_name' => $donorFullName,
+                'donor_id_display' => $donorIdDisplay,
+                'donor_role' => $donorRole,
+                'active_page' => 'aftercare',
+                'page_title' => 'Aftercare Support',
+                'page_css' => [],
+                'ROOT' => ROOT
+            ]);
+            return;
+        }
+
         // Fetch Aftercare Appointments for this donor
         $nic = $donorData['nic_number'] ?? '';
         $appointments = [];
@@ -1319,6 +1410,9 @@ class Donor {
             }
         }
 
+        $hospitalModel = new \App\Models\HospitalModel();
+        $approvedHospitals = $hospitalModel->getAllHospitals() ?: [];
+
         $this->view('donor/aftercare', [
             'donor_data' => $donorData,
             'donor_full_name' => $donorFullName,
@@ -1334,6 +1428,92 @@ class Donor {
             'page_css' => ['../aftercare/aftercare.css'],
             'ROOT' => ROOT
         ]);
+    }
+
+    public function createAppointment()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        try {
+            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $nic = $donorData['nic_number'] ?? '';
+
+            $date = $_POST['appointment_date'] ?? '';
+            $type = $_POST['appointment_type'] ?? '';
+            $desc = $_POST['description'] ?? '';
+            $hospitalRegistrationNo = $_POST['hospital_registration_no'] ?? '';
+
+            if (empty($date) || empty($type) || empty($hospitalRegistrationNo)) {
+                echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+                exit;
+            }
+
+            $this->query(
+                "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status) 
+                 VALUES (:nic, :name, :host, :date, :type, :desc, 'Scheduled')",
+                [
+                    ':nic' => $nic,
+                    ':name' => $donorFullName,
+                    ':host' => $hospitalRegistrationNo,
+                    ':date' => $date,
+                    ':type' => $type,
+                    ':desc' => $desc
+                ]
+            );
+
+            echo json_encode(['success' => true]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
+        exit;
+    }
+
+    public function submitSupportRequest()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        try {
+            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $nic = $donorData['nic_number'] ?? '';
+
+            $reason = $_POST['reason'] ?? '';
+            $desc = $_POST['description'] ?? '';
+            $hospitalRegistrationNo = $_POST['hospital_registration_no'] ?? '';
+            $today = date('Y-m-d');
+
+            if (empty($reason) || empty($hospitalRegistrationNo)) {
+                echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+                exit;
+            }
+
+            $this->query(
+                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, description, status, submitted_date) 
+                 VALUES (:nic, :name, 'DONOR', :host, :reason, :desc, 'PENDING', :today)",
+                [
+                    ':nic' => $nic,
+                    ':name' => $donorFullName,
+                    ':host' => $hospitalRegistrationNo,
+                    ':reason' => $reason,
+                    ':desc' => $desc,
+                    ':today' => $today
+                ]
+            );
+
+            echo json_encode(['success' => true]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
+        exit;
     }
 
     /**
@@ -1365,12 +1545,11 @@ class Donor {
             $_SESSION['donor_id'] = $id;
             return $id;
         }
-        redirect('register/donor');
+        redirect('registration/donor');
     }
 
     private function downloadConsentPDF($donorId)
     {
-        require_once '../app/Libraries/fpdf.php';
         $donorModel = new \App\Models\DonorModel();
         $bodyDonationModel = new \App\Models\BodyDonationModel();
         $donor = $donorModel->getDonorById($donorId);
@@ -1384,36 +1563,49 @@ class Donor {
             if ($schoolRes) $schoolName = $schoolRes[0]->school_name;
         }
 
-        $pdf = new \FPDF();
-        $pdf->AddPage();
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, 'FULL BODY DONATION CONSENT FORM', 0, 1, 'C');
-        $pdf->SetFont('Arial', '', 12);
-        $pdf->Cell(0, 10, 'LifeConnect Sri Lanka', 0, 1, 'C');
-        $pdf->Line(10, 30, 200, 30);
-        $pdf->Ln(10);
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(0, 10, 'I. DONOR DECLARATION', 0, 1, 'L');
-        $pdf->SetFont('Arial', '', 11);
-        $text = "I, " . strtoupper($donor->first_name . ' ' . $donor->last_name) . " (NIC: " . $donor->nic_number . "), resident of " . $donor->address . ", hereby voluntarily donate my body after death to " . strtoupper($schoolName) . " for the purpose of medical education and research.";
-        $pdf->MultiCell(0, 7, $text);
-        $pdf->Ln(5);
-        $pdf->Cell(50, 8, 'Full Name:', 0, 0); $pdf->Cell(0, 8, $donor->first_name . ' ' . $donor->last_name, 0, 1);
-        $pdf->Cell(50, 8, 'NIC Number:', 0, 0); $pdf->Cell(0, 8, $donor->nic_number, 0, 1);
-        $pdf->Cell(50, 8, 'Date of Birth:', 0, 0); $pdf->Cell(0, 8, $donor->date_of_birth, 0, 1);
-        $pdf->Cell(50, 8, 'Address:', 0, 0); $pdf->Cell(0, 8, $donor->address, 0, 1);
-        $pdf->Ln(5);
-        $pdf->SetFont('Arial', 'B', 12); $pdf->Cell(0, 10, 'II. WITNESSES', 0, 1, 'L');
-        $pdf->SetFont('Arial', '', 11); $pdf->MultiCell(0, 7, "We confirm that the donor signed in our presence.");
-        $pdf->Ln(3);
-        $pdf->SetFont('Arial', 'B', 11); $pdf->Cell(0, 8, 'Witness 1: ' . $consent->witness1_name . ' (NIC: ' . $consent->witness1_nic . ')', 0, 1);
-        $pdf->Cell(0, 8, 'Witness 2: ' . $consent->witness2_name . ' (NIC: ' . $consent->witness2_nic . ')', 0, 1);
-        $pdf->Ln(10);
-        $pdf->SetFont('Arial', 'B', 12); $pdf->Cell(0, 10, 'III. SIGNATURES', 0, 1, 'L');
-        $pdf->Ln(5);
-        $pdf->Cell(60, 5, '...............................', 0, 0, 'C'); $pdf->Cell(60, 5, '...............................', 0, 0, 'C'); $pdf->Cell(60, 5, '...............................', 0, 1, 'C');
-        $pdf->Cell(60, 5, 'Donor', 0, 0, 'C'); $pdf->Cell(60, 5, 'Witness 1', 0, 0, 'C'); $pdf->Cell(60, 5, 'Witness 2', 0, 1, 'C');
-        $pdf->Output('I', 'Body_Donation_Consent.pdf');
+        header('Content-Type: text/html; charset=utf-8');
+
+        $donorName = trim(($donor->first_name ?? '') . ' ' . ($donor->last_name ?? ''));
+        $donorNic = $donor->nic_number ?? '';
+        $donorDob = $donor->date_of_birth ?? '';
+        $donorAddress = $donor->address ?? '';
+
+        $declText = "I, " . strtoupper($donorName) . " (NIC: " . $donorNic . "), resident of " . $donorAddress . ", hereby voluntarily donate my body after death to " . strtoupper($schoolName) . " for the purpose of medical education and research.";
+
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<title>Full Body Donation Consent Form</title>';
+        echo '<style>body{font-family:Arial,Helvetica,sans-serif;line-height:1.4;margin:24px;color:#111}h1,h2{margin:0 0 8px 0}hr{margin:12px 0}table{width:100%;border-collapse:collapse;margin:8px 0}td{padding:6px 8px;vertical-align:top} .box{border:1px solid #ddd;padding:16px;border-radius:8px} .muted{color:#555} .sig{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px} .line{border-top:1px solid #111;padding-top:6px;text-align:center} @media print{button{display:none}}</style>';
+        echo '</head><body>';
+        echo '<button onclick="window.print()">Print</button>';
+        echo '<div class="box">';
+        echo '<h1 style="text-align:center">FULL BODY DONATION CONSENT FORM</h1>';
+        echo '<div class="muted" style="text-align:center">LifeConnect Sri Lanka</div>';
+        echo '<hr>';
+
+        echo '<h2>I. DONOR DECLARATION</h2>';
+        echo '<p>' . htmlspecialchars($declText) . '</p>';
+
+        echo '<table>'; 
+        echo '<tr><td style="width:180px"><strong>Full Name:</strong></td><td>' . htmlspecialchars($donorName) . '</td></tr>';
+        echo '<tr><td><strong>NIC Number:</strong></td><td>' . htmlspecialchars($donorNic) . '</td></tr>';
+        echo '<tr><td><strong>Date of Birth:</strong></td><td>' . htmlspecialchars($donorDob) . '</td></tr>';
+        echo '<tr><td><strong>Address:</strong></td><td>' . htmlspecialchars($donorAddress) . '</td></tr>';
+        echo '</table>';
+
+        echo '<h2>II. WITNESSES</h2>';
+        echo '<p>We confirm that the donor signed in our presence.</p>';
+        echo '<p><strong>Witness 1:</strong> ' . htmlspecialchars($consent->witness1_name ?? '') . ' (NIC: ' . htmlspecialchars($consent->witness1_nic ?? '') . ')</p>';
+        echo '<p><strong>Witness 2:</strong> ' . htmlspecialchars($consent->witness2_name ?? '') . ' (NIC: ' . htmlspecialchars($consent->witness2_nic ?? '') . ')</p>';
+
+        echo '<h2>III. SIGNATURES</h2>';
+        echo '<div class="sig">';
+        echo '<div class="line">Donor</div>';
+        echo '<div class="line">Witness 1</div>';
+        echo '<div class="line">Witness 2</div>';
+        echo '</div>';
+
+        echo '<p class="muted" style="margin-top:18px">Generated: ' . htmlspecialchars(date('Y-m-d H:i:s')) . '</p>';
+        echo '</div></body></html>';
     }
     /**
      * Redirect old financial-donor routes to unified donor portal

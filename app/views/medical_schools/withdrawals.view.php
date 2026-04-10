@@ -1,124 +1,132 @@
 <?php
-  $pageTitle = 'Withdrawn Consents';
-  $activePage = 'withdrawals';
-  $pageIcon = 'fas fa-user-times';
-  $pageHeading = 'Withdrawn Consents';
-  $pageDesc = 'Donors who cancelled their donation willingness';
+/**
+ * Medical School Portal — Withdrawal Notices (Stage B)
+ * Route: GET /medical-school/withdrawals
+ * Read-only. No actions permitted — withdrawal is a legal record.
+ */
+
+$page_title  = 'Withdrawal Notices';
+$active_page = 'withdrawals';
+
+ob_start();
 ?>
 
-<?php include 'inc/header.view.php'; ?>
-<?php include 'inc/sidebar.view.php'; ?>
+<div class="cp-content-header">
+    <div class="cp-content-header__content">
+        <h1 class="cp-content-header__title">
+            <i class="fas fa-user-times"></i> Withdrawal Notices
+        </h1>
+        <p class="cp-content-header__subtitle">
+            Legal archive of donors who formally rescinded their body donation intent. These records are read-only.
+        </p>
+    </div>
+    <div class="cp-content-header__actions">
+        <span class="cp-badge cp-badge--danger cp-badge--lg">
+            <i class="fas fa-lock"></i> Read-Only Archive
+        </span>
+    </div>
+</div>
 
-<main class="d-content">
-  <div class="d-content__header">
-    <h2><i class="<?= $pageIcon ?>"></i> <?= $pageHeading ?></h2>
-    <p><?= $pageDesc ?></p>
-  </div>
-  <div class="d-content__body">
-    <div class="d-card">
-      <div class="d-search-bar">
-        <div class="d-search">
-          <i class="fas fa-search d-search__icon"></i>
-          <input type="text" class="d-search__input" placeholder="Search by Donor ID, Name...">
-        </div>
-        <button class="d-btn d-btn--primary d-btn--sm">Search</button>
-      </div>
-
-      <div class="d-filters">
-        <button class="d-filter active">All (2)</button>
-        <button class="d-filter">Pending Acknowledgment (1)</button>
-        <button class="d-filter">Confirmed (1)</button>
-      </div>
-
-      <div class="d-table-wrapper">
-        <table class="d-table">
-          <thead>
-            <tr>
-              <th>Donor ID</th>
-              <th>Donor Name</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-          <?php if (empty($donors)): ?>
-            <tr>
-              <td colspan="4" style="text-align:center; padding: 2rem; color: var(--text-secondary);">
-                No withdrawn consents found.
-              </td>
-            </tr>
-          <?php else: ?>
-            <?php foreach ($donors as $donor): ?>
-              <tr onclick="viewDonorDetails(<?= $donor->id ?>, 'withdrawn')">
-                <td><strong><?= htmlspecialchars($donor->id) ?></strong></td>
-                <td><?= htmlspecialchars($donor->first_name . ' ' . $donor->last_name) ?></td>
-                <td><span class="d-status d-status--neutral"><span class="d-status__dot"></span>Withdrawn</span></td>
-                <td>
-                  <div class="d-actions">
-                    <button class="d-btn d-btn--outline d-btn--sm" onclick="event.stopPropagation();viewLetter('withdrawal')">View Letter</button>
-                  </div>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
-          </tbody>
+<div class="cp-content-body">
+    <div class="cp-table-container">
+        <table class="cp-table">
+            <thead>
+                <tr>
+                    <th>Donor</th>
+                    <th>NIC Number</th>
+                    <th>Original Consent</th>
+                    <th>Withdrawal Date</th>
+                    <th>Reason Summary</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($donors)): ?>
+                    <tr>
+                        <td colspan="6">
+                            <div class="cp-empty-state">
+                                <i class="fas fa-history cp-empty-state__icon"></i>
+                                <div class="cp-empty-state__msg">No Withdrawal Notices</div>
+                                <div class="cp-empty-state__sub">No donors have rescinded their donation intent with your institution.</div>
+                            </div>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($donors as $donor): ?>
+                        <tr>
+                            <td>
+                                <div class="cp-table__icon-cell">
+                                    <div class="cp-table__file-icon">
+                                        <i class="fas fa-user-slash"></i>
+                                    </div>
+                                    <div>
+                                        <div class="cp-table__filename">
+                                            <?= htmlspecialchars($donor->first_name . ' ' . $donor->last_name) ?>
+                                        </div>
+                                        <div class="cp-table__subtext">ID #<?= $donor->id ?></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><?= htmlspecialchars($donor->nic_number) ?></td>
+                            <td>
+                                <div class="cp-table__filename"><?= date('d M Y', strtotime($donor->consent_date)) ?></div>
+                                <div class="cp-table__subtext">Original Consent</div>
+                            </td>
+                            <td>
+                                <?php if (!empty($donor->withdrawal_date)): ?>
+                                    <div class="cp-table__filename"><?= date('d M Y', strtotime($donor->withdrawal_date)) ?></div>
+                                    <div class="cp-table__subtext"><?= date('H:i', strtotime($donor->withdrawal_date)) ?></div>
+                                <?php else: ?>
+                                    <span class="cp-badge cp-badge--neutral">Date not recorded</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php
+                                $reason = $donor->withdrawal_reason ?? $donor->opt_out_reason ?? null;
+                                if ($reason):
+                                    $short = mb_strlen($reason) > 55 ? mb_substr($reason, 0, 55) . '…' : $reason;
+                                ?>
+                                    <div class="cp-table__filename"><?= htmlspecialchars($short) ?></div>
+                                    <div class="cp-table__subtext">View full notice for details</div>
+                                <?php else: ?>
+                                    <span class="cp-badge cp-badge--neutral">No reason recorded</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div class="cp-table__actions">
+                                    <button class="cp-btn cp-btn--secondary cp-btn--sm"
+                                            onclick="openWithdrawalDrawer(<?= $donor->id ?>)">
+                                        <i class="fas fa-file-alt"></i> View Notice
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
         </table>
-      </div>
     </div>
-  </div>
-</main>
-
-<!-- Modals -->
-<div id="approveWithdrawalModal" class="d-modal">
-  <div class="d-modal__body">
-    <div class="d-modal__header">
-      <h3 class="d-modal__title"><i class="fas fa-check-circle"></i> Approve Withdrawal Request</h3>
-      <button onclick="closeModal('approveWithdrawalModal')" class="d-modal__close"><i class="fas fa-times"></i></button>
-    </div>
-    <p class="d-modal__text">You are approving this donor's withdrawal request. A withdrawal confirmation letter will be sent.</p>
-    <div class="d-form-group">
-      <label class="d-label">Approval Date</label>
-      <input type="date" class="d-input" id="withdrawalApprovalDate" required>
-    </div>
-    <div class="d-form-group">
-      <label class="d-label">Notes (Optional)</label>
-      <textarea class="d-input" rows="3" id="withdrawalNotes" placeholder="Any additional notes about this withdrawal..."></textarea>
-    </div>
-    <div class="d-callout">
-      <strong>What happens next:</strong>
-      <ul style="margin-top:0.5rem; padding-left:1.2rem;">
-        <li>Withdrawal confirmation letter will be generated</li>
-        <li>Donor/Custodian will receive email notification</li>
-        <li>Pre-death consent becomes invalid</li>
-      </ul>
-    </div>
-    <div class="d-modal__actions">
-      <button class="d-btn d-btn--outline" onclick="closeModal('approveWithdrawalModal')">Cancel</button>
-      <button class="d-btn d-btn--success" onclick="confirmApproveWithdrawal()">Approve Withdrawal</button>
-    </div>
-  </div>
 </div>
 
-<div id="rejectWithdrawalModal" class="d-modal">
-  <div class="d-modal__body">
-    <div class="d-modal__header">
-      <h3 class="d-modal__title"><i class="fas fa-times-circle"></i> Reject Withdrawal Request</h3>
-      <button onclick="closeModal('rejectWithdrawalModal')" class="d-modal__close"><i class="fas fa-times"></i></button>
-    </div>
-    <p class="d-modal__text">You are rejecting this donor's withdrawal request. Please provide a clear reason.</p>
-    <div class="d-form-group">
-      <label class="d-label">Reason for Rejection</label>
-      <textarea class="d-input" rows="4" id="withdrawalRejectionReason" placeholder="Please provide detailed reason why withdrawal cannot be approved..." required></textarea>
-    </div>
-    <div class="d-callout d-callout--danger">
-      <strong>Note:</strong> Donor/Custodian will receive email with rejection reason.
-    </div>
-    <div class="d-modal__actions">
-      <button class="d-btn d-btn--outline" onclick="closeModal('rejectWithdrawalModal')">Cancel</button>
-      <button class="d-btn d-btn--danger" onclick="confirmRejectWithdrawal()">Reject Withdrawal Request</button>
-    </div>
-  </div>
-</div>
+<script>
+function openWithdrawalDrawer(id) {
+    const titleEl = document.getElementById('drawerTitle');
+    const bodyEl  = document.getElementById('drawerBody');
+    if (!titleEl || !bodyEl) { alert('Drawer not initialised.'); return; }
 
-<script src="<?= ROOT ?>/public/assets/js/medicalschools/withdrawals.js" defer></script>
-<?php include 'inc/footer.view.php'; ?>
+    titleEl.innerText = 'Withdrawal Notice — Legal Archive';
+    bodyEl.innerHTML  = '<div style="padding:2rem; text-align:center;"><i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem; color:var(--blue-400);"></i></div>';
+
+    if (window.CaseDrawer) window.CaseDrawer.open();
+
+    fetch('<?= ROOT ?>/medical-school/withdrawals/view?id=' + id)
+        .then(r => r.text())
+        .then(html => { bodyEl.innerHTML = html; })
+        .catch(() => { bodyEl.innerHTML = '<div class="cp-alert cp-alert--danger">Failed to load. Please try again.</div>'; });
+}
+</script>
+
+<?php
+$page_content = ob_get_clean();
+require dirname(__DIR__) . '/layouts/medical_schools.layout.php';
+?>

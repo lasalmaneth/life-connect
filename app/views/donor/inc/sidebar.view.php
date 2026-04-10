@@ -40,9 +40,15 @@
       <a class="d-menu-item <?= ($active_page ?? '') === 'labs' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/approved-labs">
         <span class="d-menu-item__icon"><i class="fas fa-microscope"></i></span> Approved Labs
       </a>
+      <?php if (!empty($donor_data['aftercare_access'])): ?>
       <a class="d-menu-item <?= ($active_page ?? '') === 'aftercare' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/aftercare">
         <span class="d-menu-item__icon"><i class="fas fa-hand-holding-medical"></i></span> Aftercare Support
       </a>
+      <?php else: ?>
+      <a class="d-menu-item" href="javascript:void(0)" onclick="alert('Aftercare access will be available once approved by the hospital.')" style="opacity: 0.6; cursor: not-allowed;">
+        <span class="d-menu-item__icon"><i class="fas fa-lock"></i></span> Aftercare Support
+      </a>
+      <?php endif; ?>
     </div>
     <div class="d-menu-section section-organ">
       <div class="d-menu-section__title">Documentation</div>

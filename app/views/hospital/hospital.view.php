@@ -1502,17 +1502,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="table-content">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
                                     <div class="table-cell">Story Title</div>
+                                    <div class="table-cell">Description</div>
                                     <div class="table-cell">Date</div>
                                     <div class="table-cell">Status</div>
-                                    <div class="table-cell">Media</div>
                                     <div class="table-cell">Actions</div>
                                 </div>
 
                                 <div class="table-row">
                                     <div class="table-cell name" data-label="Story Title">A Life Saved - Kidney Transplant Success</div>
+                                    <div class="table-cell" data-label="Description">Kidney transplant is successful</div>
                                     <div class="table-cell" data-label="Date">2025-09-15</div>
                                     <div class="table-cell" data-label="Status"><span class="status-badge status-pending">Pending Review</span></div>
-                                    <div class="table-cell" data-label="Media">2 images</div>
                                     <div class="table-cell" data-label="Actions">
                                         <button class="btn btn-secondary btn-small" onclick="editStory()">Edit</button>
                                         <button class="btn btn-danger btn-small" onclick="deleteStory()">Delete</button>
@@ -1904,7 +1904,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     (request.urgency === 'high' ? 'status-active' : 'status-pending');
                 const urgencyText = request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1);
                 const organType = request.organ_type.charAt(0).toUpperCase() + request.organ_type.slice(1);
-                const requestDate = new Date(request.request_date || request.created_at).toLocaleDateString();
+                const requestDate = new Date(request.request_date || request.created_at).toLocaleDateString('en-GB');
                 
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Organ Type">${organType}</div>
@@ -2392,15 +2392,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const row = document.createElement('div');
                 row.className = 'table-row';
                 row.innerHTML = `
-                    <div class="table-cell name" data-label="Title">${story.title}</div>
+                    <div class="table-cell name" data-label="Story Title">${story.title}</div>
                     <div class="table-cell" data-label="Description">${story.description.substring(0, 100)}${story.description.length > 100 ? '...' : ''}</div>
-                    <div class="table-cell" data-label="Success Date">${new Date(story.success_date).toLocaleDateString()}</div>
-                    <div class="table-cell" data-label="Status">
+                    <div class="table-cell" data-label="Date">${new Date(story.success_date).toLocaleDateString('en-GB')}</div>
+                    <div class="table-cell" data-label="Status" style="text-align:center;">
                         <span class="status-badge ${story.status === 'Approved' ? 'status-success' : story.status === 'Pending' ? 'status-pending' : 'status-danger'}">${story.status}</span>
                     </div>
                     <div class="table-cell" data-label="Actions">
-                        <button class="btn btn-secondary btn-small" onclick="editStory(${story.story_id})">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteStory(${story.story_id})">Delete</button>
+                        <div class="table-actions">
+                            <button class="btn btn-secondary btn-small" onclick="editStory(${story.story_id})">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="deleteStory(${story.story_id})">Delete</button>
+                        </div>
                     </div>
                 `;
                 tableContent.appendChild(row);

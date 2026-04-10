@@ -5,6 +5,16 @@ route('login', 'Login@index');
 route('login/verify', 'Login@verify');
 route('logout', 'Login@logout');
 
+// Aftercare Patient Portal
+route('aftercare', 'Aftercare@index');
+route('aftercare/login', 'Aftercare@login');
+route('aftercare/verify', 'Aftercare@verify');
+route('aftercare/change-password', 'Aftercare@changePassword');
+route('aftercare/update-password', 'Aftercare@updatePassword');
+route('aftercare/logout', 'Aftercare@logout');
+route('aftercare/create-appointment', 'Aftercare@createAppointment');
+route('aftercare/submit-support-request', 'Aftercare@submitSupportRequest');
+
 route('forgot-password', 'ForgotPassword@index');
 route('forgot-password/sendOtp', 'ForgotPassword@sendOtp');
 route('forgot-password/verifyOtp', 'ForgotPassword@verifyOtp');
@@ -54,38 +64,39 @@ route('custodian/cadaver-sheet-data', 'Custodian@getCadaverSheet');
 route('custodian/coordination', 'Custodian@getCoordination');
 route('custodian/timeline', 'Custodian@getTimeline');
 // ─── Custodian Portal — Page Routes ────────────────────────────────────────
-// /custodian hard-redirects to /custodian/dashboard (no inline render)
 route('custodian',                      'Custodian@index');
 route('custodian/dashboard',            'Custodian@dashboard');
-route('custodian/consent',              'Custodian@consent');
 route('custodian/donor-profile',        'Custodian@donorProfile');
-route('custodian/co-custodian',         'Custodian@coCustodian');
+route('custodian/profile',              'Custodian@profile');
 route('custodian/report-death',         'Custodian@reportDeath');
+route('custodian/consent',              'Custodian@consent');
+route('custodian/institution-requests', 'Custodian@institutionRequests');
+route('custodian/co-custodian',         'Custodian@coCustodian');
 route('custodian/legal-response',       'Custodian@legalResponse');
 route('custodian/cadaver-data-sheet',   'Custodian@cadaverDataSheet');
-route('custodian/documents',            'Custodian@documentsPage');
 route('custodian/coordination',         'Custodian@coordinationPage');
 route('custodian/timeline',             'Custodian@timelinePage');
-route('custodian/certificates',         'Custodian@certificates');
 route('custodian/authority-limits',     'Custodian@authorityLimits');
+route('custodian/documents',            'Custodian@documentsPage');
+route('custodian/document-form',        'Custodian@documentForm');
+route('custodian/save-document-form',   'Custodian@saveDocumentForm');
+route('custodian/print-document',       'Custodian@printDocument');
+route('custodian/submit-bundle',        'Custodian@submitBundle');
+route('custodian/certificates',         'Custodian@certificates');
+route('custodian/archive',              'Custodian@archive');
 
 // ─── Custodian Portal — JSON API Routes (/api/custodian/*) ─────────────────
 route('api/custodian/dashboard-data',       'Custodian@getDashboardData');
 route('api/custodian/declare-death',        'Custodian@declareDeath');
-route('api/custodian/consent',              'Custodian@getConsent');
-route('api/custodian/profile',              'Custodian@getProfile');
-route('api/custodian/custodians',           'Custodian@getCustodians');
 route('api/custodian/update-contact',       'Custodian@updateContact');
-route('api/custodian/legal-action',         'Custodian@submitLegalAction');
+route('api/custodian/submit-action',        'Custodian@submitLegalAction');
+route('api/custodian/submit-approval',      'Custodian@submitCustodianApproval');
 route('api/custodian/available-institutions','Custodian@getAvailableInstitutions');
 route('api/custodian/select-institution',   'Custodian@selectInstitution');
 route('api/custodian/upload-document',      'Custodian@uploadDocument');
-route('api/custodian/documents',            'Custodian@getDocuments');
 route('api/custodian/submit-institution',   'Custodian@submitToInstitution');
-route('api/custodian/cadaver-sheet',        'Custodian@saveCadaverSheet');
-route('api/custodian/cadaver-sheet-data',   'Custodian@getCadaverSheet');
-route('api/custodian/coordination',         'Custodian@getCoordination');
-route('api/custodian/timeline',             'Custodian@getTimeline');
+
+
 route('hospital', 'Hospital@index');
 route('hospital/organ-requests', 'Hospital@organRequests');
 route('hospital/eligibility', 'Hospital@eligibility');
@@ -96,18 +107,65 @@ route('hospital/export-recipients', 'Hospital@exportRecipients');
 route('hospital/lab-reports', 'Hospital@labReports');
 route('hospital/search-donors', 'Hospital@searchDonors');
 route('hospital/addpatient', 'Hospital@addpatient');
+route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
+route('hospital/addpatient/donor', 'Hospital@addpatientDonor');
+route('hospital/fetch-donor-details', 'Hospital@fetchDonorDetails');
 route('medical-school', 'MedicalSchool@index');
+route('medical-school', 'MedicalSchool@dashboard');
+route('medical-school/dashboard', 'MedicalSchool@dashboard');
+
+// Stage A: Consents
 route('medical-school/consents', 'MedicalSchool@consents');
+route('medical-school/consents/view', 'MedicalSchool@viewConsent');
+route('medical-school/consents/flag', 'MedicalSchool@flagConsent');
+
+// Stage B: Withdrawals
 route('medical-school/withdrawals', 'MedicalSchool@withdrawals');
+route('medical-school/withdrawals/view', 'MedicalSchool@viewWithdrawal');
+
+// Stage C: Body Submission Requests
+route('medical-school/submission-requests', 'MedicalSchool@submissionRequests');
+route('medical-school/submission-requests/view', 'MedicalSchool@viewSubmissionRequest');
+route('medical-school/submission-requests/accept', 'MedicalSchool@acceptSubmissionRequest');
+route('medical-school/submission-requests/reject', 'MedicalSchool@rejectSubmissionRequest');
+
+// Stage D: Custodian Declines
+route('medical-school/custodian-declines', 'MedicalSchool@custodianDeclines');
+route('medical-school/custodian-declines/view', 'MedicalSchool@viewCustodianDecline');
+
+// Stages E & F: Body Submissions
 route('medical-school/submissions', 'MedicalSchool@submissions');
-route('medical-school/body-acceptance', 'MedicalSchool@bodyAcceptance');
-route('medical-school/usage-logs', 'MedicalSchool@usageLogs');
+route('medical-school/submissions/view', 'MedicalSchool@viewSubmission');
+route('medical-school/submissions/accept', 'MedicalSchool@acceptSubmission');
+route('medical-school/submissions/reject', 'MedicalSchool@rejectSubmission');
+route('medical-school/submissions/request-documents', 'MedicalSchool@requestAdditionalDocuments');
+
+// Stage G: Final Body Examination
+route('medical-school/final-examinations', 'MedicalSchool@finalExaminations');
+route('medical-school/final-examinations/view', 'MedicalSchool@viewFinalExamination');
+route('medical-school/final-examinations/accept', 'MedicalSchool@acceptFinalBody');
+route('medical-school/final-examinations/reject', 'MedicalSchool@rejectFinalBody');
+
+// Extended Modules
+route('medical-school/appreciation', 'MedicalSchool@appreciation');
+route('medical-school/appreciation/generate', 'MedicalSchool@generateAppreciationLetter');
+route('medical-school/appreciation/view', 'MedicalSchool@viewAppreciationLetter');
+
 route('medical-school/certificates', 'MedicalSchool@certificates');
+route('medical-school/certificates/generate', 'MedicalSchool@generateDonationCertificate');
+route('medical-school/certificates/view', 'MedicalSchool@viewCertificate');
+
+route('medical-school/stories', 'MedicalSchool@stories');
+route('medical-school/stories/create', 'MedicalSchool@createStory');
+route('medical-school/stories/edit', 'MedicalSchool@editStory');
+
 route('medical-school/archived', 'MedicalSchool@archived');
+route('medical-school/archived/view', 'MedicalSchool@viewArchivedRecord');
+
+route('medical-school/usage-logs', 'MedicalSchool@usageLogs');
+route('medical-school/usage-logs/view', 'MedicalSchool@viewUsageLog');
+
 route('medical-school/reports', 'MedicalSchool@reports');
-route('medical-school/get-donor-details', 'MedicalSchool@getDonorDetails');
-route('medical-school/save-usage-log', 'MedicalSchool@saveUsageLog');
-route('medical-school/get-usage-history', 'MedicalSchool@getUsageHistory');
 
 // New Registration Flow
 route('signup', 'RegistrationNew@index');
@@ -146,6 +204,7 @@ route('donation-admin/getOrganDetails', 'DonationAdminController@getOrganDetails
 route('donation-admin/updateOrganStatus', 'DonationAdminController@updateOrganStatus');
 route('donation-admin/getPledges', 'DonationAdminController@getPledges');
 route('donation-admin/getHospitalRequests', 'DonationAdminController@getHospitalRequests');
+route('donation-admin/runAlgorithm', 'DonationAdminController@runAlgorithm');
 
 // Tributes Admin Routes
 route('tributes-admin/getHospitals', 'TributesAdminController@getHospitals');
