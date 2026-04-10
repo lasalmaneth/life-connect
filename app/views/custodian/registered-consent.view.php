@@ -1,100 +1,64 @@
 <?php
 /**
- * Custodian Portal — Registered Consent View
- * Route: GET /custodian/consent
- * Active page key: consent
+ * Custodian Portal — Registered Consents View
  */
-
 $page_icon     = 'fa-file-signature';
-$page_heading  = 'Registered Consent';
-$page_subtitle = 'The donor\'s legally registered consent record. This is read-only.';
+$page_heading  = 'Registered Consents';
+$page_subtitle = 'Historical and active consent records for the donor.';
 
 ob_start();
 ?>
 
-<!-- Page Header -->
 <?php include __DIR__ . '/partials/page-header.php'; ?>
 
 <div class="cp-content__body">
 
-    <div class="cp-notice cp-notice--info">
-        <i class="fas fa-circle-info"></i>
-        <div>
-            <strong>Consent is legally binding</strong>
-            <p>This record reflects the donor's last registered and verified consent. Any changes must be made through the Administration team.</p>
+    <div class="cp-section-card">
+        <div class="cp-section-card__header">
+            <div class="cp-section-card__title"><i class="fas fa-history"></i> Consent History Timeline</div>
+        </div>
+        <div class="cp-section-card__body p-0">
+            <?php if (empty($timeline)): ?>
+                <div class="p-5 text-center cp-text-g500">No consent records found.</div>
+            <?php else: ?>
+                <table class="cp-table w-100 text-left">
+                    <thead>
+                        <tr class="cp-bg-g50 border-bottom">
+                            <th class="p-3">Type</th>
+                            <th class="p-3">Date Registered</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($timeline as $t): ?>
+                            <tr class="border-bottom">
+                                <td class="p-4 cp-font-semibold"><?= str_replace('_', ' ', $t->type) ?></td>
+                                <td class="p-4"><?= date('M j, Y', strtotime($t->date)) ?></td>
+                                <td class="p-4">
+                                    <?php 
+                                    $statusClass = 'ba'; // active
+                                    if ($t->status === 'SUPERSEDED') $statusClass = 'bd';
+                                    if ($t->status === 'WITHDRAWN') $statusClass = 'bw';
+                                    ?>
+                                    <span class="badge <?= $statusClass ?>"><?= $t->status ?></span>
+                                </td>
+                                <td class="p-4">
+                                    <button class="cp-btn cp-btn--sm cp-btn--outline">View Details</button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
     </div>
 
-    <!-- ── Consent Summary ────────────────────────────────────────────── -->
-    <?php
-    $card_title = 'Consent Summary';
-    $card_icon  = 'fa-file-contract';
-    $card_rows  = [
-        ['label' => 'Consent Type',     'value' => null],
-        ['label' => 'Donation Track',   'value' => null],
-        ['label' => 'Consent Date',     'value' => null],
-        ['label' => 'Last Updated',     'value' => null],
-        ['label' => 'Verification',     'value' => null],
-        ['label' => 'Consent Status',   'value' => null],
-    ];
-    $card_action = null;
-    include __DIR__ . '/partials/info-card.php';
-    ?>
+    <p class="cp-text-xs cp-text-g500 mt-4 px-2">
+        <i class="fas fa-info-circle"></i> Note: Only the most recent 'Active' consent is legally binding for the donation process.
+    </p>
 
-    <!-- ── Pledged Body / Organs ──────────────────────────────────────── -->
-    <?php
-    $section_title = 'Pledged Items';
-    $section_icon  = 'fa-hand-holding-heart';
-    ob_start();
-    ?>
-    <?php
-    $empty_icon = 'fa-hand-holding-heart';
-    $empty_msg  = 'No pledges on record';
-    $empty_sub  = 'Backend integration pending';
-    include __DIR__ . '/partials/empty-state.php';
-    ?>
-    <?php
-    $section_content = ob_get_clean();
-    include __DIR__ . '/partials/section-card.php';
-    ?>
-
-    <!-- ── Consent Specific Organ Exclusions ─────────────────────────── -->
-    <?php
-    $section_title = 'Exclusions / Restrictions';
-    $section_icon  = 'fa-ban';
-    ob_start();
-    ?>
-    <?php
-    $empty_icon = 'fa-ban';
-    $empty_msg  = 'No exclusions recorded';
-    $empty_sub  = 'Backend integration pending';
-    include __DIR__ . '/partials/empty-state.php';
-    ?>
-    <?php
-    $section_content = ob_get_clean();
-    $section_action  = null;
-    include __DIR__ . '/partials/section-card.php';
-    ?>
-
-    <!-- ── Consent History ────────────────────────────────────────────── -->
-    <?php
-    $section_title = 'Consent History';
-    $section_icon  = 'fa-clock-rotate-left';
-    ob_start();
-    ?>
-    <?php
-    $empty_icon = 'fa-clock-rotate-left';
-    $empty_msg  = 'No history available';
-    $empty_sub  = 'Consent version history will appear here';
-    include __DIR__ . '/partials/empty-state.php';
-    ?>
-    <?php
-    $section_content = ob_get_clean();
-    $section_action  = null;
-    include __DIR__ . '/partials/section-card.php';
-    ?>
-
-</div><!-- /.cp-content__body -->
+</div>
 
 <?php
 $page_content = ob_get_clean();

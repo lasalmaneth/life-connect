@@ -1,6 +1,6 @@
 <?php
 /**
- * Custodian Portal — Donor Profile View
+ * Custodian Portal � Donor Profile View
  * Route: GET /custodian/donor-profile
  * Active page key: donor-profile
  */
@@ -17,7 +17,7 @@ ob_start();
 
 <div class="cp-content__body">
 
-    <div class="cp-notice cp-notice--info">
+    <div class="cp-notice cp-notice--info mb-4">
         <i class="fas fa-circle-info"></i>
         <div>
             <strong>Read-Only View</strong>
@@ -25,88 +25,78 @@ ob_start();
         </div>
     </div>
 
-    <!-- ── Personal Information ───────────────────────────────────────── -->
-    <?php
-    $card_title = 'Personal Information';
-    $card_icon  = 'fa-user';
-    $card_rows  = [
-        ['label' => 'Full Name',       'value' => null],
-        ['label' => 'Date of Birth',   'value' => null],
-        ['label' => 'Age',             'value' => null],
-        ['label' => 'Gender',          'value' => null],
-        ['label' => 'NIC Number',      'value' => null],
-        ['label' => 'Nationality',     'value' => null],
-    ];
-    include __DIR__ . '/partials/info-card.php';
-    ?>
+    <!-- -- Personal Information ---------------------------------------------- -->
+    <div class="cp-section-card mb-4">
+        <div class="cp-section-card__header">
+            <div class="cp-section-card__title"><i class="fas fa-user-tag"></i> Personal Details</div>
+        </div>
+        <div class="cp-section-card__body">
+            <div class="cp-profile-grid">
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Full Name</label>
+                    <input type="text" class="cp-profile-input cp-font-bold" value="<?= htmlspecialchars($donor->first_name . ' ' . $donor->last_name) ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">NIC Number</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->nic_number) ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Gender</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->gender) ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Date of Birth</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->date_of_birth ?? '') ?>" disabled />
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="cp-grid-2">
 
-        <!-- ── Medical Information ────────────────────────────────────── -->
-        <?php
-        $card_title = 'Medical Information';
-        $card_icon  = 'fa-heart-pulse';
-        $card_rows  = [
-            ['label' => 'Blood Group',     'value' => null],
-            ['label' => 'Donation Type',   'value' => null],
-            ['label' => 'Health Status',   'value' => null],
-            ['label' => 'Registered Date', 'value' => null],
-        ];
-        $card_action = null;
-        include __DIR__ . '/partials/info-card.php';
-        ?>
-
-        <!-- ── Contact Details ────────────────────────────────────────── -->
-        <?php
-        $card_title = 'Contact Details';
-        $card_icon  = 'fa-phone';
-        $card_rows  = [
-            ['label' => 'Phone',   'value' => null],
-            ['label' => 'Email',   'value' => null],
-            ['label' => 'Address', 'value' => null],
-            ['label' => 'City',    'value' => null],
-        ];
-        $card_action = null;
-        include __DIR__ . '/partials/info-card.php';
-        ?>
-
-    </div>
-
-    <!-- ── Next of Kin ────────────────────────────────────────────────── -->
-    <?php
-    $section_title = 'Next of Kin';
-    $section_icon  = 'fa-people-group';
-    ob_start();
-    ?>
-    <div class="cp-notice cp-notice--warning" style="margin-bottom:0;">
-        <i class="fas fa-triangle-exclamation"></i>
-        <div>
-            <strong>No Data Available</strong>
-            <p>Next of kin information will be displayed here once backend is connected.</p>
+        <!-- -- Contact Information ------------------------------------------- -->
+        <div class="cp-section-card h-100">
+            <div class="cp-section-card__header">
+                <div class="cp-section-card__title"><i class="fas fa-phone"></i> Contact Details</div>
+            </div>
+            <div class="cp-section-card__body">
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Phone</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->user_phone ?? 'N/A') ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Email Address</label>
+                    <input type="email" class="cp-profile-input" value="<?= htmlspecialchars($donor->user_email ?? 'N/A') ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Address</label>
+                    <textarea class="cp-profile-input" style="min-height:80px; resize:none;" rows="3" disabled><?= htmlspecialchars($donor->address ?? '') ?></textarea>
+                </div>
+            </div>
         </div>
-    </div>
-    <?php
-    $section_content = ob_get_clean();
-    include __DIR__ . '/partials/section-card.php';
-    ?>
 
-    <!-- ── Pledged Organs / Body ──────────────────────────────────────── -->
-    <?php
-    $section_title = 'Pledged Donations';
-    $section_icon  = 'fa-hand-holding-heart';
-    $section_action = ['label' => 'View Consent', 'href' => ROOT . '/custodian/consent'];
-    ob_start();
-    ?>
-    <?php
-    $empty_icon = 'fa-hand-holding-heart';
-    $empty_msg  = 'No pledges on record';
-    $empty_sub  = 'Backend integration pending';
-    include __DIR__ . '/partials/empty-state.php';
-    ?>
-    <?php
-    $section_content = ob_get_clean();
-    include __DIR__ . '/partials/section-card.php';
-    ?>
+        <!-- -- Registration Info --------------------------------------------- -->
+        <div class="cp-section-card h-100">
+            <div class="cp-section-card__header">
+                <div class="cp-section-card__title"><i class="fas fa-file-invoice"></i> Registration Details</div>
+            </div>
+            <div class="cp-section-card__body">
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Registration ID</label>
+                    <input type="text" class="cp-profile-input" value="D-<?= str_pad($donor->id, 5, '0', STR_PAD_LEFT) ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Initial Pledge Type</label>
+                    <input type="text" class="cp-profile-input" value="<?= str_replace('_', ' ', $donor->pledge_type ?? '') ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Registered Date</label>
+                    <input type="text" class="cp-profile-input" value="<?= !empty($donor->created_at) ? date('M j, Y', strtotime($donor->created_at)) : 'N/A' ?>" disabled />
+                </div>
+            </div>
+        </div>
+
+    </div>
 
 </div><!-- /.cp-content__body -->
 

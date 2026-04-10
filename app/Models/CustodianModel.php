@@ -35,7 +35,7 @@ class CustodianModel {
         $query = "SELECT d.*, u.email AS user_email, u.phone AS user_phone
                   FROM custodians c
                   JOIN donors d ON c.donor_id = d.id
-                  JOIN users u ON d.user_id = u.id
+                  LEFT JOIN users u ON d.user_id = u.id
                   WHERE c.id = :custodian_id";
         $result = $this->query($query, [':custodian_id' => $custodianId]);
         return $result ? $result[0] : null;
@@ -72,15 +72,19 @@ class CustodianModel {
     public function updateCustodianContact($custodianId, $data)
     {
         $query = "UPDATE custodians SET
+                  name = :name,
+                  relationship = :relationship,
                   phone = :phone,
                   email = :email,
                   address = :address
                   WHERE id = :id";
         return $this->query($query, [
-            ':phone' => $data['phone'] ?? null,
-            ':email' => $data['email'] ?? null,
-            ':address' => $data['address'] ?? null,
-            ':id' => $custodianId
+            ':name'         => $data['name'] ?? null,
+            ':relationship' => $data['relationship'] ?? null,
+            ':phone'        => $data['phone'] ?? null,
+            ':email'        => $data['email'] ?? null,
+            ':address'      => $data['address'] ?? null,
+            ':id'           => $custodianId
         ]);
     }
 
@@ -342,19 +346,19 @@ class CustodianModel {
         $attemptedIds = array_map(fn($r) => $r->institution_id, $attempted);
 
         if ($track === 'BODY' || $track === 'CORNEA') {
-            // Get from body_donation_consents → medical_schools
-            $query = "SELECT ms.id, ms.school_name, ms.university_affiliation, ms.address
-                      FROM body_donation_consents bdc
-                      JOIN medical_schools ms ON bdc.medical_school_id = ms.id
-                      JOIN donation_cases dc ON dc.donor_id = bdc.donor_id
-                      WHERE dc.id = :case_id";
-            $institutions = $this->query($query, [':case_id' => $caseId]) ?: [];
+              // Strict Rule: ONLY fetch medical schools that the donor explicitly consented to
+              $query = "SELECT ms.id, ms.school_name, ms.university_affiliation, ms.address
+                        FROM body_donation_consents bdc
+                        JOIN medical_schools ms ON bdc.medical_school_id = ms.id
+                        JOIN donation_cases dc ON dc.donor_id = bdc.donor_id
+                        WHERE dc.id = :case_id";
+              $institutions = $this->query($query, [':case_id' => $caseId]) ?: [];
         } else {
-            // ORGAN: get from donor_pledges → hospitals (via organ_requests or direct mapping)
+            // ORGAN: get from donor_pledges -> hospitals (via organ_requests or direct mapping)
             // For now, get all active hospitals since donor_pledges don't link to specific hospitals
-            $query = "SELECT h.id, h.name AS school_name, h.registration_no, h.address
+            $query = "SELECT h.id, h.name AS school_name, h.registration_number, h.address
                       FROM hospitals h
-                      WHERE h.status = 'ACTIVE'";
+                      WHERE h.verification_status = 'APPROVED'";
             $institutions = $this->query($query) ?: [];
         }
 
@@ -373,6 +377,20 @@ class CustodianModel {
      */
     public function selectInstitution($caseId, $institutionId, $institutionType, $track)
     {
+        // STRICT BACKEND LOGIC: Only allow universities the donor explicitly consented to
+        $availableInstitutions = $this->getAvailableInstitutions($caseId, $track);
+        $isConsented = false;
+        foreach ($availableInstitutions as $inst) {
+            if ($inst->id == $institutionId) {
+                $isConsented = true;
+                break;
+            }
+        }
+
+        if (!$isConsented) {
+            return false; // The user maliciously tried to bypass the dropdown to an un-consented uni
+        }
+
         // Check if there's already a current institution being reviewed
         $checkQuery = "SELECT id FROM case_institution_status
                        WHERE donation_case_id = :case_id
@@ -402,6 +420,11 @@ class CustodianModel {
                        WHERE donation_case_id = :case_id AND track = :track";
         $orderResult = $this->query($orderQuery, [':case_id' => $caseId, ':track' => $track]);
         $nextOrder = $orderResult ? $orderResult[0]->next_order : 1;
+
+        // Clear previous active claims
+        $this->query("UPDATE case_institution_status SET is_current = 0 
+                      WHERE donation_case_id = :case_id AND track = :track", 
+                     [':case_id' => $caseId, ':track' => $track]);
 
         $query = "INSERT INTO case_institution_status (
                     donation_case_id, institution_type, institution_id, track,
@@ -707,4 +730,47 @@ class CustodianModel {
 
         return $events;
     }
+    // --- DOCUMENT BUNDLE METHODS ---------------------------------------
+
+    public function getSwornStatement($caseId) {
+        $query = "SELECT * FROM sworn_statements WHERE donation_case_id = :id LIMIT 1";
+        $res = $this->query($query, [':id' => $caseId]);
+        return $res ? $res[0] : null;
+    }
+
+    public function saveSwornStatement($caseId, $formData) {
+        $existing = $this->getSwornStatement($caseId);
+        $json = json_encode($formData);
+        if ($existing) {
+            $this->query("UPDATE sworn_statements SET form_data = :data WHERE donation_case_id = :id", [':data' => $json, ':id' => $caseId]);
+        } else {
+            $this->query("INSERT INTO sworn_statements (donation_case_id, form_data) VALUES (:id, :data)", [':id' => $caseId, ':data' => $json]);
+        }
+    }
+
+    public function getCadaverDataSheet($caseId) {
+        $query = "SELECT * FROM cadaver_data_sheets WHERE donation_case_id = :id LIMIT 1";
+        $res = $this->query($query, [':id' => $caseId]);
+        return $res ? $res[0] : null;
+    }
+
+    public function saveCadaverDataSheet($caseId, $formData) {
+        $existing = $this->getCadaverDataSheet($caseId);
+        $json = json_encode($formData);
+        
+        if ($existing) {
+            $this->query("UPDATE cadaver_data_sheets SET form_data = :data WHERE donation_case_id = :id", [':data' => $json, ':id' => $caseId]);
+        } else {
+            $cisRes = $this->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id ORDER BY is_current DESC, id DESC LIMIT 1", [':id' => $caseId]);
+            $cisId = $cisRes ? $cisRes[0]->id : 0;
+            $this->query("INSERT INTO cadaver_data_sheets (donation_case_id, case_institution_status_id, form_data) VALUES (:id, :cisId, :data)", [':id' => $caseId, ':cisId' => $cisId, ':data' => $json]);
+        }
+    }
+
+    public function submitBundle($caseId) {
+        $this->query("UPDATE donation_cases SET bundle_status = 'SUBMITTED' WHERE id = :id", [':id' => $caseId]);
+        $this->query("UPDATE case_institution_status SET document_status = 'PENDING_REVIEW', document_action_at = NOW() WHERE donation_case_id = :id AND is_current = 1 AND institution_status = 'ACCEPTED'", [':id' => $caseId]);
+    }
 }
+
+

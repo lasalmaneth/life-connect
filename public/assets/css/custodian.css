@@ -1,4 +1,4 @@
-﻿/* =============================================================================
+/* =============================================================================
    LIFE-CONNECT — CUSTODIAN PORTAL CSS
    Follows DESIGN_SYSTEM.md tokens exclusively (§1 + §6)
    ============================================================================= */
@@ -414,7 +414,7 @@ textarea.fc { resize: vertical; min-height: 85px }
 .req { color: var(--g400); font-weight: 400 }
 
 /* ============================================================
-   MISC HELPERS
+   ANIMATIONS
    ============================================================ */
 .ir { display: flex; justify-content: space-between; align-items: center; padding: .55rem .75rem; border-radius: 8px; gap: .75rem }
 .ir:nth-child(odd) { background: var(--g50) }
