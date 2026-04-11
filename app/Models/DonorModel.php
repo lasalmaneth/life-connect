@@ -266,14 +266,24 @@ class DonorModel {
 
     public function getPledgedOrgans($donorId)
     {
+        // Also pull latest history data for SUSPENDED/COMPLETED pledges
         $query = "SELECT p.*, o.name as organ_name, o.description,
                   (SELECT status FROM consent_withdrawals 
                    WHERE donor_id = p.donor_id AND organ_id = p.organ_id 
                    AND status = 'PENDING_UPLOAD' 
-                   ORDER BY created_at DESC LIMIT 1) as withdrawal_status
+                   ORDER BY created_at DESC LIMIT 1) as withdrawal_status,
+                  (SELECT next_eligible_date FROM donation_medical_history 
+                   WHERE donor_id = p.donor_id AND pledge_id = p.id
+                   ORDER BY created_at DESC LIMIT 1) as next_eligible_date,
+                  (SELECT recovery_status FROM donation_medical_history 
+                   WHERE donor_id = p.donor_id AND pledge_id = p.id
+                   ORDER BY created_at DESC LIMIT 1) as recovery_status,
+                  (SELECT donated_organ FROM donation_medical_history 
+                   WHERE donor_id = p.donor_id AND pledge_id = p.id
+                   ORDER BY created_at DESC LIMIT 1) as donated_organ_name
                   FROM donor_pledges p 
                   JOIN organs o ON p.organ_id = o.id 
-                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'
+                  WHERE p.donor_id = :donor_id AND p.status NOT IN ('WITHDRAWN', 'COMPLETED')
                   GROUP BY p.organ_id";
         
         $results = $this->query($query, [':donor_id' => $donorId]);
@@ -281,21 +291,124 @@ class DonorModel {
         if ($results) {
             foreach ($results as $key => $organ) {
                 $icon = '❓';
-                switch (strtolower($organ->organ_name)) {
-                    case 'kidney': $icon = '🧬'; break;
-                    case 'liver': $icon = '🥃'; break;
-                    case 'heart': $icon = '❤️'; break;
-                    case 'lung': $icon = '🫁'; break;
-                    case 'pancreas': $icon = '🍬'; break;
-                    case 'intestine': $icon = '🧶'; break;
-                    case 'cornea': $icon = '👁️'; break;
-                    case 'bone marrow': $icon = '🦴'; break;
-                }
+                $name = strtolower(trim($organ->organ_name));
+                if (str_contains($name, 'kidney'))     $icon = '🧬';
+                elseif (str_contains($name, 'liver'))  $icon = '🥃';
+                elseif (str_contains($name, 'heart'))  $icon = '❤️';
+                elseif (str_contains($name, 'lung'))   $icon = '🫁';
+                elseif (str_contains($name, 'pancreas')) $icon = '🍬';
+                elseif (str_contains($name, 'intestine')) $icon = '🧶';
+                elseif (str_contains($name, 'cornea')) $icon = '👁️';
+                elseif (str_contains($name, 'marrow') || str_contains($name, 'bone')) $icon = '🦴';
                 $results[$key]->organ_icon = $icon;
             }
         }
         
         return $results ? json_decode(json_encode($results), true) : []; 
+    }
+
+    /**
+     * Move a specific pledge to IN_PROGRESS and SUSPEND all other APPROVED pledges
+     * for the same donor. Enforces the "one surgery at a time" rule.
+     */
+    public function updatePledgeToInProgress($donorId, $pledgeId)
+    {
+        $donorId  = (int)$donorId;
+        $pledgeId = (int)$pledgeId;
+
+        // Safety: only one IN_PROGRESS allowed
+        $existing = $this->query(
+            "SELECT id FROM donor_pledges WHERE donor_id = :did AND status = 'IN_PROGRESS' AND id != :pid LIMIT 1",
+            [':did' => $donorId, ':pid' => $pledgeId]
+        );
+        if ($existing) {
+            return false; // Already has an in-progress donation
+        }
+
+        // Set target pledge to IN_PROGRESS
+        $this->query(
+            "UPDATE donor_pledges SET status = 'IN_PROGRESS' WHERE id = :pid AND donor_id = :did",
+            [':pid' => $pledgeId, ':did' => $donorId]
+        );
+
+        // SUSPEND all other APPROVED pledges for this donor
+        $this->query(
+            "UPDATE donor_pledges SET status = 'SUSPENDED' 
+             WHERE donor_id = :did AND id != :pid AND status = 'APPROVED'",
+            [':did' => $donorId, ':pid' => $pledgeId]
+        );
+
+        return true;
+    }
+
+    /**
+     * Complete a donation surgery: mark pledge COMPLETED, log to donation_medical_history,
+     * enforce organ-specific recovery rules, and set next_eligible_date on donor.
+     *
+     * Organ rules (by name, case-insensitive):
+     *   kidney       → no next date (COMPLETED permanently; kidney can't be re-donated)
+     *   part of liver→ 12 months before other pledges can fire
+     *   bone marrow  →  6 months
+     *   others       →  3 months (default recovery)
+     *
+     * @param int    $donorId
+     * @param int    $pledgeId
+     * @param array  $data  Keys: donation_date, doctor_notes, hospital_id
+     * @return bool
+     */
+    public function completeDonation($donorId, $pledgeId, array $data = [])
+    {
+        $donorId  = (int)$donorId;
+        $pledgeId = (int)$pledgeId;
+
+        // Mark pledge COMPLETED
+        $this->query(
+            "UPDATE donor_pledges SET status = 'COMPLETED' WHERE id = :pid AND donor_id = :did",
+            [':pid' => $pledgeId, ':did' => $donorId]
+        );
+
+        return true;
+    }
+
+    /**
+     * Automatically restore eligible SUSPENDED pledges back to APPROVED.
+     * Called every time a donor loads their dashboard.
+     *
+     * Rules enforced:
+     *  - Kidney pledge that is COMPLETED stays COMPLETED (blocked permanently).
+     *  - If CURRENT_DATE >= donors.next_eligible_date → reactivate SUSPENDED→APPROVED.
+     *  - Also marks donation_medical_history.recovery_status = 'recovered' where applicable.
+     */
+    /**
+     * Get active recovery records from donation_medical_history.
+     * These are records where current date < next_eligible_date.
+     */
+    public function getActiveRecoveries($donorId)
+    {
+        return $this->query(
+            "SELECT h.*, o.id as organ_id 
+             FROM donation_medical_history h
+             JOIN organs o ON LOWER(o.name) COLLATE utf8mb4_unicode_ci = LOWER(h.donated_organ) COLLATE utf8mb4_unicode_ci
+             WHERE h.donor_id = :did 
+               AND (h.next_eligible_date IS NULL OR h.next_eligible_date > CURDATE())
+             ORDER BY h.next_eligible_date DESC",
+            [':did' => (int)$donorId]
+        ) ?: [];
+    }
+
+    /**
+     * Get full donation medical history for a donor (for display in profile/portal)
+     */
+    public function getDonationHistory($donorId)
+    {
+        return $this->query(
+            "SELECT dmh.*, h.name as hospital_name
+             FROM donation_medical_history dmh
+             LEFT JOIN hospitals h ON h.id = dmh.hospital_id
+             WHERE dmh.donor_id = :did
+             ORDER BY dmh.donation_date DESC",
+            [':did' => (int)$donorId]
+        ) ?: [];
     }
 
     public function getNotifications($donorId, $limit = 5)

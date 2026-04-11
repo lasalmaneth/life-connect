@@ -57,6 +57,7 @@ class Donor {
         $donorId = $this->getDonorId();
         $donorModel = new \App\Models\DonorModel();
         
+
         $donorData = $donorModel->getDonorById($donorId);
         $donorData = json_decode(json_encode($donorData), true);
 
@@ -727,14 +728,27 @@ class Donor {
         $existingPledges = $donorModel->getPledgedOrgans($donorId);
         $pledgedOrganIds = array_column($existingPledges, 'organ_id');
         
-        // Filter out organs that are already pledged and not withdrawn
-        $filteredOrgans = array_filter($allOrgansRaw, function($o) use ($pledgedOrganIds) {
-            return !in_array($o->id, $pledgedOrganIds);
-        });
+        // Build the list of organ IDs already pledged and still "occupied"
         
-        $allOrgans = json_decode(json_encode($filteredOrgans), true);
-        $pledgedOrgans = $donorModel->getPledgedOrgans($donorId);
-        $pledgedIds = array_column($pledgedOrgans, 'organ_id');
+        // Get recovery data from medical history (manually entered)
+        $activeRecoveries = $donorModel->getActiveRecoveries($donorId);
+        $recoveryMap = [];
+        foreach ($activeRecoveries as $rec) {
+            $recoveryMap[$rec->organ_id] = $rec->next_eligible_date;
+        }
+
+        // Identify organs occupied by ACTIVE pledges (not Completed/Withdrawn)
+        // Note: getPledgedOrgans already filters out COMPLETED now.
+        $pledgedOrgansRaw = $donorModel->getPledgedOrgans($donorId);
+        $pledgedOrgans = json_decode(json_encode($pledgedOrgansRaw), true);
+        $activePledges = array_column($pledgedOrgans, 'organ_id');
+
+        // Build the filtered list of available organs (not occupied by active pledges)
+        $availableOrgansRaw = array_filter($allOrgansRaw, function($o) use ($activePledges) {
+            return !in_array($o->id, $activePledges);
+        });
+        $allOrgans = json_decode(json_encode($availableOrgansRaw), true);
+
 
         $availableLiving     = [];
         $availableAfterDeath = [];
@@ -746,15 +760,16 @@ class Donor {
 
         foreach ($allOrgans as $organ) {
             $icon = $this->getOrganIcon($organ['name']);
+            $isSuspended = isset($recoveryMap[$organ['id']]);
             $item = [
-                'organ_id'      => $organ['id'],
-                'organ_name'    => $organ['name'],
-                'organ_icon'    => $icon,
-                'description'   => $organ['description'] ?? '',
+                'organ_id'           => $organ['id'],
+                'organ_name'         => $organ['name'],
+                'organ_icon'         => $icon,
+                'description'        => $organ['description'] ?? '',
+                'is_suspended'       => $isSuspended,
+                'next_eligible_date' => $recoveryMap[$organ['id']] ?? null,
             ];
 
-            if (in_array($organ['id'], $pledgedIds)) continue;
-            
             if (stripos($item['description'], 'living donor') !== false) {
                 $availableLiving[] = $item;
             } elseif (stripos($item['description'], 'educational') !== false) {

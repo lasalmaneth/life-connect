@@ -670,7 +670,7 @@ CREATE TABLE `donor_pledges` (
   `donor_id` int(11) NOT NULL,
   `organ_id` int(11) NOT NULL,
   `pledge_date` timestamp NULL DEFAULT current_timestamp(),
-  `status` enum('PENDING','UPLOADED','APPROVED','IN_PROGRESS','COMPLETED','WITHDRAWN') DEFAULT 'PENDING',
+  `status` enum('PENDING','UPLOADED','APPROVED','IN_PROGRESS','COMPLETED','SUSPENDED','WITHDRAWN') DEFAULT 'PENDING',
   `conditions` text DEFAULT NULL,
   `medications` text DEFAULT NULL,
   `allergies` text DEFAULT NULL,
@@ -710,6 +710,25 @@ INSERT INTO `donor_pledges` (`id`, `donor_id`, `organ_id`, `pledge_date`, `statu
 (69, 8043, 2, '2026-04-09 17:26:27', 'UPLOADED', '', NULL, '', NULL, 'uploads/pledges/pledge_8043_2_1775755596.pdf'),
 (70, 8043, 1, '2026-04-09 17:43:51', 'UPLOADED', '', NULL, '', NULL, 'uploads/pledges/pledge_8043_1_1775756641.pdf'),
 (71, 9021, 1, '2026-04-10 11:55:51', '', NULL, NULL, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `donation_medical_history`
+--
+
+CREATE TABLE `donation_medical_history` (
+  `history_id` int(11) NOT NULL,
+  `donor_id` int(11) NOT NULL,
+  `pledge_id` int(11) NOT NULL,
+  `donated_organ` varchar(100) NOT NULL,
+  `donation_date` date NOT NULL,
+  `recovery_status` enum('recovering','recovered') NOT NULL DEFAULT 'recovering',
+  `next_eligible_date` date DEFAULT NULL,
+  `doctor_notes` text DEFAULT NULL,
+  `hospital_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1715,6 +1734,20 @@ ALTER TABLE `donation_certificates`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `donation_medical_history`
+--
+ALTER TABLE `donation_medical_history`
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Indexes for table `donation_medical_history`
+--
+ALTER TABLE `donation_medical_history`
+  ADD PRIMARY KEY (`history_id`),
+  ADD KEY `idx_dmh_donor_id` (`donor_id`),
+  ADD KEY `idx_dmh_pledge_id` (`pledge_id`);
+
+--
 -- AUTO_INCREMENT for table `donors`
 --
 ALTER TABLE `donors`
@@ -1900,6 +1933,14 @@ ALTER TABLE `body_donation_consents`
 ALTER TABLE `body_usage_logs`
   ADD CONSTRAINT `fk_usage_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_usage_school` FOREIGN KEY (`medical_school_id`) REFERENCES `medical_schools` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `donation_medical_history`
+--
+ALTER TABLE `donation_medical_history`
+  ADD CONSTRAINT `fk_dmh_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_dmh_pledge` FOREIGN KEY (`pledge_id`) REFERENCES `donor_pledges` (`id`) ON DELETE CASCADE;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
