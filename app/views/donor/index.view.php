@@ -102,11 +102,13 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($donor_data['district'] ?? 'Sri Lanka') ?>, Sri Lanka</p>
                     </div>
                     
+                    <?php if (($stats['total'] ?? 0) > 0): ?>
                     <div style="margin: 0.5rem 0 1rem; padding: 0 1.5rem;">
                         <button class="d-btn d-btn--primary d-btn--sm" style="width:100%; border-radius:10px;" onclick="window.location.href='<?=ROOT?>/donor/documents'">
                             <i class="fas fa-id-card"></i> Digital ID Card
                         </button>
                     </div>
+                    <?php endif; ?>
 
                     <div class="d-stats-mini-grid" style="grid-template-columns: 1fr;">
                         <div class="d-stat-mini-card">

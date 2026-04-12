@@ -297,44 +297,52 @@ class Donor {
             exit;
         }
 
-        $roles = $_POST['roles'] ?? [];
-        if (!is_array($roles)) $roles = [$roles];
+        try {
+            $roles = $_POST['roles'] ?? [];
+            if (!is_array($roles)) $roles = [$roles];
 
-        $donorId = $this->getDonorId();
-        $donorModel = new \App\Models\DonorModel();
+            $donorId = $this->getDonorId();
+            $donorModel = new \App\Models\DonorModel();
 
-        // Enforce role exclusivity and consent requirements
-        $isNonDonorRequested = in_array('non', $roles);
-        $isOrganDonorRequested = in_array('organ', $roles);
+            // Enforce role exclusivity and consent requirements
+            $isNonDonorRequested = in_array('non', $roles);
+            $isOrganDonorRequested = in_array('organ', $roles);
 
-        if ($isNonDonorRequested && !$isOrganDonorRequested) {
-            // If switching to Non-Donor, ensure Organ role is removed
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
-        }
-
-        // Check if Organ Donor role is being removed
-        $currentRoles = $donorModel->getActiveRoles($donorId);
-        $wasOrganDonor = in_array('organ', $currentRoles);
-        $isOrganDonorNow = in_array('organ', $roles);
-
-        if ($wasOrganDonor && !$isOrganDonorNow) {
-            $summary = $donorModel->getPledgeSummary($donorId);
-            if ($summary['total'] > 0) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
-                ]);
-                exit;
+            if ($isNonDonorRequested && !$isOrganDonorRequested) {
+                // If switching to Non-Donor, ensure Organ role is removed
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
             }
-        } else if ($isOrganDonorRequested) {
-            // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
-        }
-        
-        if ($donorModel->updateActiveRoles($donorId, $roles)) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update roles']);
+
+            // Check if Organ Donor role is being removed
+            $currentRoles = $donorModel->getActiveRoles($donorId);
+            $wasOrganDonor = in_array('organ', $currentRoles);
+            $isOrganDonorNow = in_array('organ', $roles);
+
+            if ($wasOrganDonor && !$isOrganDonorNow) {
+                $summary = $donorModel->getPledgeSummary($donorId);
+                if ($summary['total'] > 0) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
+                    ]);
+                    exit;
+                }
+            } else if ($isOrganDonorRequested) {
+                // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
+            }
+            
+            if ($donorModel->updateActiveRoles($donorId, $roles)) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update roles in database']);
+            }
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'A system error occurred while updating roles.',
+                'debug' => $e->getMessage() // Helpful for developers, can be removed in production
+            ]);
         }
         exit;
     }
@@ -1347,6 +1355,7 @@ class Donor {
             'uploaded_pledges' => $uploadedPledges,
             'districts' => $districts,
             'withdrawal' => $common['withdrawal'],
+            'stats'      => $common['stats'],
             'active_page' => 'documents',
             'page_title' => 'Documents',
             'page_css' => ['document.css'],
@@ -1363,13 +1372,18 @@ class Donor {
         $type = $_GET['type'] ?? '';
         
         if ($type === 'body_donation_consent') {
-            // PDF generation disabled (no external libraries allowed).
             // Render a printable HTML version instead.
             $this->downloadConsentPDF($donorId);
         } else if ($type === 'donor_card') {
+            // Restrict download to active pledgers
+            $donorModel = new \App\Models\DonorModel();
+            $stats = $donorModel->getPledgeSummary($donorId);
+            if (($stats['total'] ?? 0) <= 0) {
+                $_SESSION['error_message'] = "Access Denied: You must have at least one active pledge to download the Digital ID Card.";
+                redirect('donor/donations');
+            }
             $this->viewDigitalCard();
         } else if ($type === 'lab_report') {
-            // Lab report download logic if implemented
             $this->redirect('donor/test-results');
         }
         exit;
@@ -1766,6 +1780,13 @@ class Donor {
 
         $common = $this->getCommonData();
         $donorId = $common['donorId'];
+        
+        // Final backend security check: restrict to active pledgers
+        if (($common['stats']['total'] ?? 0) <= 0) {
+            $_SESSION['error_message'] = "Access Denied: You must have at least one active pledge to view the Digital ID Card.";
+            redirect('donor/donations');
+        }
+
         $donorData = $common['donorData'];
         $donorFullName = $common['donorFullName'];
         $donorIdDisplay = $common['donorIdDisplay'];

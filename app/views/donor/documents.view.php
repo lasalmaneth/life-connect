@@ -23,27 +23,37 @@ include __DIR__ . '/inc/sidebar.view.php';
                     <div class="d-widget__title"><i class="fas fa-id-badge text-accent"></i> Donor ID Card</div>
                 </div>
                 <div class="d-widget__body" style="display: flex; flex-direction: column;">
-                    
-                    <div style="flex: 1; padding: 1.5rem; background: linear-gradient(135deg, var(--blue-900), var(--blue-700)); border-radius: 12px; color: white; box-shadow: 0 10px 25px rgba(10, 22, 40, 0.2); margin-bottom: 1.5rem; position: relative; overflow: hidden;">
-                        <div style="position: absolute; right: -20px; top: -20px; font-size: 8rem; opacity: 0.1; transform: rotate(-15deg);"><i class="fas fa-heartbeat"></i></div>
-                        
-                        <div style="font-size: 0.75rem; letter-spacing: 2px; color: var(--blue-200); margin-bottom: 1rem; font-weight: 600;">LIFECONNECT ORGAN DONOR</div>
-                        <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;"><?= $donor_full_name ?></div>
-                        <div style="font-size: 0.85rem; color: var(--blue-100); margin-bottom: 1.5rem; font-family: monospace;">ID: <?= $donor_id_display ?></div>
-                        
-                        <div style="display: flex; gap: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                            <div>
-                                <div style="font-size: 0.65rem; color: var(--blue-200); margin-bottom: 0.2rem;">BLOOD TYPE</div>
-                                <div style="font-weight: 700; font-size: 1rem; color: #fca5a5;"><?= htmlspecialchars($donor_data['blood_group'] ?? 'N/A') ?></div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.65rem; color: var(--blue-200); margin-bottom: 0.2rem;">STATUS</div>
-                                <div style="font-weight: 700; font-size: 1rem; color: #86efac;">VERIFIED <i class="fas fa-check-circle" style="font-size: 0.8rem;"></i></div>
+                    <?php if (($stats['total'] ?? 0) > 0): ?>
+                        <div style="flex: 1; padding: 1.5rem; background: linear-gradient(135deg, var(--blue-900), var(--blue-700)); border-radius: 12px; color: white; box-shadow: 0 10px 25px rgba(10, 22, 40, 0.2); margin-bottom: 1.5rem; position: relative; overflow: hidden;">
+                            <div style="position: absolute; right: -20px; top: -20px; font-size: 8rem; opacity: 0.1; transform: rotate(-15deg);"><i class="fas fa-heartbeat"></i></div>
+                            
+                            <div style="font-size: 0.75rem; letter-spacing: 2px; color: var(--blue-200); margin-bottom: 1rem; font-weight: 600;">LIFECONNECT ORGAN DONOR</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem;"><?= $donor_full_name ?></div>
+                            <div style="font-size: 0.85rem; color: var(--blue-100); margin-bottom: 1.5rem; font-family: monospace;">ID: <?= $donor_id_display ?></div>
+                            
+                            <div style="display: flex; gap: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                                <div>
+                                    <div style="font-size: 0.65rem; color: var(--blue-200); margin-bottom: 0.2rem;">BLOOD TYPE</div>
+                                    <div style="font-weight: 700; font-size: 1rem; color: #fca5a5;"><?= htmlspecialchars($donor_data['blood_group'] ?? 'N/A') ?></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.65rem; color: var(--blue-200); margin-bottom: 0.2rem;">STATUS</div>
+                                    <div style="font-weight: 700; font-size: 1rem; color: #86efac;">VERIFIED <i class="fas fa-check-circle" style="font-size: 0.8rem;"></i></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                
-                    <a href="<?= ROOT ?>/donor/download-donor-card" target="_blank" class="d-btn d-btn--primary" style="justify-content: center; width: 100%;"><i class="fas fa-id-badge"></i> Download Official Digital Card</a>
+                    
+                        <a href="<?= ROOT ?>/donor/downloadPdf?type=donor_card" target="_blank" class="d-btn d-btn--primary" style="justify-content: center; width: 100%;"><i class="fas fa-id-badge"></i> Download Official Digital Card</a>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 2rem 1rem;">
+                            <div style="width: 64px; height: 64px; background: var(--g50); color: var(--g300); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 1.75rem;">
+                                <i class="fas fa-id-card"></i>
+                            </div>
+                            <h4 style="color: var(--slate); font-size: 1rem; margin-bottom: 0.75rem;">ID Card Not Available</h4>
+                            <p style="font-size: 0.85rem; color: var(--g500); line-height: 1.5; margin-bottom: 1.5rem;">The Digital Donor ID Card is exclusively for donors with active pledges. This card serves as your official identification during medical procedures.</p>
+                            <a href="<?= ROOT ?>/donor/donations" class="d-btn d-btn--outline d-btn--sm" style="justify-content: center; width: 100%;">Pledge Now to Unlock Card</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 

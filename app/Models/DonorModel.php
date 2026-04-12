@@ -536,6 +536,21 @@ class DonorModel {
     }
 
     /**
+     * Get currently active roles for a donor
+     */
+    public function getActiveRoles($donorId)
+    {
+        $query = "SELECT active_roles FROM donors WHERE id = :id";
+        $result = $this->query($query, [':id' => $donorId]);
+        
+        if ($result && !empty($result[0]->active_roles)) {
+            return json_decode($result[0]->active_roles, true) ?: [];
+        }
+        
+        return [];
+    }
+
+    /**
      * Update active roles for a donor
      */
     public function updateActiveRoles($donorId, array $roles)
