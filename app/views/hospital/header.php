@@ -156,6 +156,25 @@ if (!isset($hospital_details)) {
         'last_login' => date('Y-m-d H:i:s')
     ];
 }
+
+// Notifications (donor-style dropdown)
+if (!isset($notifications) || !isset($unread_count)) {
+    $notifications = [];
+    $unread_count = 0;
+
+    if (!empty($_SESSION['user_id'])) {
+        try {
+            $notificationModel = new \App\Models\NotificationModel();
+            $uid = (int)$_SESSION['user_id'];
+            $unread_count = (int)$notificationModel->getUnreadCount($uid);
+            $recent = $notificationModel->getNotificationsForUser($uid, 5);
+            $notifications = json_decode(json_encode($recent), true) ?: [];
+        } catch (\Throwable $e) {
+            $notifications = [];
+            $unread_count = 0;
+        }
+    }
+}
 ?>
 
 <div class="header">
@@ -174,10 +193,45 @@ if (!isset($hospital_details)) {
                 <i class="fa-solid fa-house"></i>
                 <span>Home</span>
             </a>
-            
-            <button class="notification-bell" type="button" title="Notifications">
-                <i class="fa-solid fa-bell"></i>
-            </button>
+
+            <div class="notification-container">
+                <button class="notification-bell" id="notificationBell" type="button" title="Notifications">
+                    <i class="fa-solid fa-bell"></i>
+                    <?php if (!empty($unread_count)): ?>
+                        <span class="notification-badge"><?php echo (int)$unread_count; ?></span>
+                    <?php endif; ?>
+                </button>
+
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="dropdown-header">
+                        <span>Recent Notifications</span>
+                        <a href="<?php echo ROOT; ?>/hospital/notifications?mark_all_read=1">Mark all read</a>
+                    </div>
+                    <div class="dropdown-body">
+                        <?php if (!empty($notifications)): ?>
+                            <?php foreach ($notifications as $n): ?>
+                                <a href="<?php echo !empty($n['action_url']) ? (ROOT . '/' . ltrim((string)$n['action_url'], '/')) : (ROOT . '/hospital/notifications'); ?>" class="notification-item <?php echo empty($n['is_read']) ? 'unread' : ''; ?>">
+                                    <div class="notification-icon">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                    </div>
+                                    <div class="notification-content">
+                                        <p class="notification-title"><?php echo htmlspecialchars((string)($n['title'] ?? 'Notification')); ?></p>
+                                        <p class="notification-time"><?php echo !empty($n['created_at']) ? date('M d, H:i', strtotime((string)$n['created_at'])) : ''; ?></p>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="no-notifications">
+                                <i class="fa-solid fa-bell-slash"></i>
+                                <p>No new notifications</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="dropdown-footer">
+                        <a href="<?php echo ROOT; ?>/hospital/notifications">View All Notifications</a>
+                    </div>
+                </div>
+            </div>
 
             <div class="user-info" onclick="toggleUserDropdown()">
             <div class="user-avatar"><?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?></div>
@@ -228,6 +282,27 @@ if (!isset($hospital_details)) {
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const bell = document.getElementById('notificationBell');
+    const dropdown = document.getElementById('notificationDropdown');
+    if (!bell || !dropdown) return;
+
+    bell.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('show');
+    });
+
+    dropdown.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+    document.addEventListener('click', function () {
+        dropdown.classList.remove('show');
+    });
+});
+</script>
 
 
 <div class="modal" id="edit-profile-modal">

@@ -98,6 +98,8 @@ route('api/custodian/submit-institution',   'Custodian@submitToInstitution');
 
 
 route('hospital', 'Hospital@index');
+route('hospital/notifications', 'Hospital@notifications');
+route('hospital/markAllNotificationsRead', 'Hospital@markAllNotificationsRead');
 route('hospital/organ-requests', 'Hospital@organRequests');
 route('hospital/eligibility', 'Hospital@eligibility');
 route('hospital/recipients', 'Hospital@recipients');

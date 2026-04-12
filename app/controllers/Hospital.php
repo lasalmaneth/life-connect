@@ -59,6 +59,7 @@ class Hospital {
         $recipients = $hospitalModel->getRecipients($hospital_registration) ?: [];
         $success_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: [];
         $aftercare_appointments = $hospitalModel->getAftercareAppointments($hospital_registration) ?: [];
+        $aftercare_support_requests = $hospitalModel->getAftercareSupportRequests($hospital_registration) ?: [];
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
         $eligibility_pledges = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
         $test_results = $hospitalModel->getTestResultsByHospitalId($hospitalId) ?: [];
@@ -94,6 +95,7 @@ class Hospital {
             'recipients' => $recipients,
             'success_stories' => $success_stories,
             'aftercare_appointments' => $aftercare_appointments,
+            'aftercare_support_requests' => $aftercare_support_requests,
             'lab_reports' => $lab_reports,
             'test_results' => $test_results,
             'eligibility_pledges' => $eligibility_pledges,
@@ -101,6 +103,72 @@ class Hospital {
         ];
 
         $this->view('hospital/index', $data);
+    }
+
+    public function notifications()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $hospitalModel = new HospitalModel();
+        $userId = (int)$_SESSION['user_id'];
+        $hospital = $hospitalModel->getHospitalByUserId($userId);
+
+        $hospital_registration = $hospital->registration_number ?? ($_SESSION['hospital_registration'] ?? 'HOSP001');
+        $hospital_name = $hospital->name ?? ($_SESSION['hospital_name'] ?? 'Hospital');
+        $hospital_details = [
+            'name' => $hospital_name,
+            'registration' => $hospital_registration,
+            'registration_number' => $hospital_registration,
+            'role' => $_SESSION['role'] ?? 'HOSPITAL',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
+            'address' => $hospital->address ?? 'Not specified',
+            'phone' => $hospital->contact_number ?? 'Not specified',
+            'status' => $hospital->verification_status ?? 'Active',
+            'last_login' => date('Y-m-d H:i:s')
+        ];
+
+        $notificationModel = new \App\Models\NotificationModel();
+
+        if (isset($_GET['mark_all_read'])) {
+            $notificationModel->markAllAsRead($userId);
+            redirect('hospital/notifications');
+        }
+
+        $notifications = $notificationModel->getNotificationsForUser($userId);
+        $notifications = json_decode(json_encode($notifications), true) ?: [];
+        $unread_count = (int)$notificationModel->getUnreadCount($userId);
+
+        $data = [
+            'hospital_name' => $hospital_name,
+            'hospital_registration' => $hospital_registration,
+            'hospital_details' => $hospital_details,
+            'notifications' => $notifications,
+            'unread_count' => $unread_count,
+            'active_page' => 'notifications'
+        ];
+
+        $this->view('hospital/notifications', $data);
+    }
+
+    public function markAllNotificationsRead()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $notificationModel = new \App\Models\NotificationModel();
+        $notificationModel->markAllAsRead($userId);
+
+        $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/hospital/notifications');
+        header('Location: ' . $back);
+        exit;
     }
 
     private function handlePost($regNo) {
@@ -111,6 +179,140 @@ class Hospital {
         $allowedGenders = ['Male', 'Female', 'Other'];
 
         switch ($action) {
+            case 'accept_aftercare_appointment':
+                $appointmentId = (int)($_POST['appointment_id'] ?? 0);
+                if ($appointmentId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid appointment.';
+                    break;
+                }
+
+                if ($hospitalModel->acceptAftercareAppointment($appointmentId, $regNo)) {
+                    $apt = $hospitalModel->query(
+                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        [':id' => $appointmentId, ':reg_no' => $regNo]
+                    );
+                    $patientNic = $apt ? (string)($apt[0]->patient_id ?? '') : '';
+                    $when = $apt ? (string)($apt[0]->appointment_date ?? '') : '';
+                    if ($patientNic !== '') {
+                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                        $hName = $hospital->name ?? 'Hospital';
+                        $msg = 'Your aftercare appointment request was accepted by ' . $hName . '.';
+                        if ($when) $msg .= ' Scheduled for: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
+                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment accepted', $msg, 'INFO');
+                    }
+                    $_SESSION['flash_success'] = 'Aftercare appointment accepted.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to accept aftercare appointment.';
+                }
+                break;
+
+            case 'reject_aftercare_appointment':
+                $appointmentId = (int)($_POST['appointment_id'] ?? 0);
+                $reason = trim((string)($_POST['reason'] ?? ''));
+                if ($appointmentId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid appointment.';
+                    break;
+                }
+                if ($reason === '') {
+                    $_SESSION['flash_error'] = 'Please provide a rejection reason.';
+                    break;
+                }
+
+                if ($hospitalModel->rejectAftercareAppointment($appointmentId, $regNo, $reason)) {
+                    $apt = $hospitalModel->query(
+                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        [':id' => $appointmentId, ':reg_no' => $regNo]
+                    );
+                    $patientNic = $apt ? (string)($apt[0]->patient_id ?? '') : '';
+                    $when = $apt ? (string)($apt[0]->appointment_date ?? '') : '';
+                    if ($patientNic !== '') {
+                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                        $hName = $hospital->name ?? 'Hospital';
+                        $phone = $hospital->contact_number ?? '';
+                        $msg = 'Your aftercare appointment request was rejected by ' . $hName . '.';
+                        if ($when) $msg .= ' Requested time: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
+                        $msg .= ' Reason: ' . $reason . '.';
+                        if ($phone) $msg .= ' Contact: ' . $phone . '.';
+                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment rejected', $msg, 'WARNING');
+                    }
+                    $_SESSION['flash_success'] = 'Aftercare appointment rejected.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to reject aftercare appointment.';
+                }
+                break;
+            case 'approve_eligibility':
+                $pledgeId = (int)($_POST['pledge_id'] ?? 0);
+                if ($pledgeId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid pledge.';
+                    break;
+                }
+
+                $hospitalId = (int)$hospitalModel->getHospitalIdByRegistrationNo($regNo);
+                if ($hospitalId <= 0) {
+                    $_SESSION['flash_error'] = 'Hospital account not found.';
+                    break;
+                }
+
+                if ($hospitalModel->approveEligibilityPledge($pledgeId, $hospitalId)) {
+                    $_SESSION['flash_success'] = 'Donor eligibility approved.';
+                } else {
+                    $_SESSION['flash_error'] = 'Unable to approve eligibility (already processed or not assigned to this hospital).';
+                }
+                break;
+
+            case 'reject_eligibility':
+                $pledgeId = (int)($_POST['pledge_id'] ?? 0);
+                if ($pledgeId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid pledge.';
+                    break;
+                }
+
+                $hospitalId = (int)$hospitalModel->getHospitalIdByRegistrationNo($regNo);
+                if ($hospitalId <= 0) {
+                    $_SESSION['flash_error'] = 'Hospital account not found.';
+                    break;
+                }
+
+                if ($hospitalModel->rejectEligibilityPledge($pledgeId, $hospitalId)) {
+                    $_SESSION['flash_success'] = 'Donor eligibility rejected.';
+                } else {
+                    $_SESSION['flash_error'] = 'Unable to reject eligibility (already processed or not assigned to this hospital).';
+                }
+                break;
+
+            case 'approve_support_request':
+                $requestId = (int)($_POST['support_request_id'] ?? 0);
+                if ($requestId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid support request.';
+                    break;
+                }
+
+                if ($hospitalModel->approveSupportRequest($requestId, $regNo, 'Hospital ' . (string)$regNo)) {
+                    $_SESSION['flash_success'] = 'Support request approved.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to approve support request.';
+                }
+                break;
+
+            case 'reject_support_request':
+                $requestId = (int)($_POST['support_request_id'] ?? 0);
+                $reason = trim((string)($_POST['reject_reason'] ?? ''));
+                if ($requestId <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid support request.';
+                    break;
+                }
+                if ($reason === '') {
+                    $_SESSION['flash_error'] = 'Please provide a rejection reason.';
+                    break;
+                }
+
+                if ($hospitalModel->rejectSupportRequest($requestId, $regNo, $reason, 'Hospital ' . (string)$regNo)) {
+                    $_SESSION['flash_success'] = 'Support request rejected.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to reject support request.';
+                }
+                break;
+
             case 'add_organ_request':
                 $recipientAge = $_POST['recipient_age'] ?? null;
                 $bloodGroup = trim((string)($_POST['blood_group'] ?? ''));
@@ -396,13 +598,30 @@ class Hospital {
                 break;
 
             case 'submit_test_result':
+                $patientType = strtoupper(trim((string)($_POST['patient_type'] ?? 'DONOR')));
                 $donorId = (int)($_POST['donor_id'] ?? 0);
+                $recipientId = (int)($_POST['recipient_id'] ?? 0);
                 $testName = trim((string)($_POST['test_name'] ?? ''));
                 $testDate = trim((string)($_POST['test_date'] ?? ''));
                 $resultValue = trim((string)($_POST['result_value'] ?? ''));
 
-                if ($donorId <= 0 || $testName === '' || $testDate === '') {
-                    $_SESSION['flash_error'] = 'Please select donor, test name, and test date.';
+                if (!in_array($patientType, ['DONOR', 'RECIPIENT'], true)) {
+                    $_SESSION['flash_error'] = 'Invalid patient type.';
+                    break;
+                }
+
+                if ($testName === '' || $testDate === '') {
+                    $_SESSION['flash_error'] = 'Please select patient, test name, and test date.';
+                    break;
+                }
+
+                if ($patientType === 'DONOR' && $donorId <= 0) {
+                    $_SESSION['flash_error'] = 'Please select a donor patient.';
+                    break;
+                }
+
+                if ($patientType === 'RECIPIENT' && $recipientId <= 0) {
+                    $_SESSION['flash_error'] = 'Please select a recipient patient.';
                     break;
                 }
 
@@ -434,29 +653,151 @@ class Hospital {
                     }
                 }
 
-                if ($hospitalModel->addTestResult([
-                    'donor_id' => $donorId,
+                $payload = [
+                    'patient_type' => $patientType,
+                    'donor_id' => $patientType === 'DONOR' ? $donorId : null,
+                    'recipient_id' => $patientType === 'RECIPIENT' ? $recipientId : null,
                     'test_name' => $testName,
                     'result_value' => $resultValue,
                     'document_path' => $documentPath,
                     'test_date' => $testDate,
                     'verified_by_hospital_id' => $hospitalIdForVerification,
-                ])) {
-                    $hospitalModel->notifyDonor(
-                        $donorId,
-                        'New test result available',
-                        'A new test result (' . $testName . ') was uploaded to your profile. You can view it under Test Results.',
-                        'INFO'
-                    );
+                ];
+
+                if ($hospitalModel->addTestResult($payload)) {
+                    if ($patientType === 'DONOR') {
+                        $hospitalModel->notifyDonor(
+                            $donorId,
+                            'New test result available',
+                            'A new test result (' . $testName . ') was uploaded to your profile. You can view it under Test Results.',
+                            'INFO'
+                        );
+                    }
                     $_SESSION['flash_success'] = 'Test result uploaded successfully.';
                 } else {
-                    $_SESSION['flash_error'] = 'Failed to upload test result.';
+                    if ($patientType === 'RECIPIENT') {
+                        $_SESSION['flash_error'] = 'Failed to upload recipient test result. Your database may need an update to support recipient test results.';
+                    } else {
+                        $_SESSION['flash_error'] = 'Failed to upload test result.';
+                    }
                 }
                 break;
 
             case 'delete_scheduled_appointment':
                 if ($hospitalModel->deleteLabReport($_POST['appointment_id'])) {
                     $_SESSION['flash_success'] = "Appointment deleted successfully.";
+                }
+                break;
+
+            case 'apply_reschedule_request':
+                $rid = (int)($_POST['report_id'] ?? 0);
+                if ($rid <= 0) {
+                    $_SESSION['flash_error'] = 'Invalid appointment.';
+                    break;
+                }
+
+                $apt = $hospitalModel->getLabReportById($rid);
+                if (!$apt || (string)($apt->hospital_registration_no ?? '') !== (string)$regNo) {
+                    $_SESSION['flash_error'] = 'Appointment not found.';
+                    break;
+                }
+
+                $notesText = (string)($apt->notes ?? '');
+                $proposed = null;
+                if (preg_match_all('/Proposed date:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notesText, $m) && !empty($m[1])) {
+                    $proposed = end($m[1]) ?: null;
+                }
+
+                if (!$proposed) {
+                    $_SESSION['flash_error'] = 'No reschedule request found for this appointment.';
+                    break;
+                }
+
+                $stamp = date('Y-m-d H:i');
+                $respLine = "[Hospital Response] Reschedule approved. New date: {$proposed} | Approved at: {$stamp}";
+                $newNotes = $notesText ? ($notesText . "\n" . $respLine) : $respLine;
+
+                $data = [
+                    'donor_id' => $apt->donor_id ?? null,
+                    'hospital_registration_no' => $regNo,
+                    'test_type' => $apt->test_type ?? '',
+                    'test_date' => $proposed,
+                    'result_status' => $apt->status ?? 'Pending',
+                    'result_notes' => $newNotes,
+                ];
+
+                if ($hospitalModel->updateLabReport($rid, $data)) {
+                    $hospitalModel->notifyDonor(
+                        (int)($apt->donor_id ?? 0),
+                        'Reschedule approved',
+                        'Your reschedule request was approved. New appointment date: ' . $proposed . '.',
+                        'INFO'
+                    );
+                    $_SESSION['flash_success'] = 'Reschedule applied and donor notified.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to apply reschedule.';
+                }
+                break;
+
+            case 'decline_reschedule_request':
+                $rid = (int)($_POST['report_id'] ?? 0);
+                $reason = trim((string)($_POST['reason'] ?? ''));
+                if ($rid <= 0 || $reason === '') {
+                    $_SESSION['flash_error'] = 'Please provide a reason to decline.';
+                    break;
+                }
+
+                $apt = $hospitalModel->getLabReportById($rid);
+                if (!$apt || (string)($apt->hospital_registration_no ?? '') !== (string)$regNo) {
+                    $_SESSION['flash_error'] = 'Appointment not found.';
+                    break;
+                }
+
+                // Fetch hospital contact number for donor instructions
+                $contact = '';
+                $h = null;
+                if (!empty($_SESSION['user_id'])) {
+                    $h = $hospitalModel->getHospitalByUserId((int)$_SESSION['user_id']);
+                    $contact = trim((string)($h->contact_number ?? ''));
+                }
+                $hospitalName = $h ? (string)($h->name ?? 'Hospital') : 'Hospital';
+
+                $stamp = date('Y-m-d H:i');
+                $respBlock = "[Hospital Response] Unable to reschedule. Reason: {$reason} | Responded at: {$stamp}";
+                if ($contact !== '') {
+                    $respBlock .= " | Please contact {$hospitalName} ({$regNo}) at {$contact}.";
+                } else {
+                    $respBlock .= " | Please contact {$hospitalName} ({$regNo}).";
+                }
+
+                $notesText = (string)($apt->notes ?? '');
+                $newNotes = $notesText ? ($notesText . "\n" . $respBlock) : $respBlock;
+
+                $data = [
+                    'donor_id' => $apt->donor_id ?? null,
+                    'hospital_registration_no' => $regNo,
+                    'test_type' => $apt->test_type ?? '',
+                    'test_date' => $apt->test_date ?? null,
+                    'result_status' => $apt->status ?? 'Pending',
+                    'result_notes' => $newNotes,
+                ];
+
+                if ($hospitalModel->updateLabReport($rid, $data)) {
+                    $msg = "Your reschedule request could not be approved.\nReason: {$reason}";
+                    if ($contact !== '') {
+                        $msg .= "\nPlease contact {$hospitalName} ({$regNo}) at {$contact}.";
+                    } else {
+                        $msg .= "\nPlease contact {$hospitalName} ({$regNo}).";
+                    }
+                    $hospitalModel->notifyDonor(
+                        (int)($apt->donor_id ?? 0),
+                        'Reschedule declined',
+                        $msg,
+                        'WARNING'
+                    );
+                    $_SESSION['flash_success'] = 'Decline sent to donor.';
+                } else {
+                    $_SESSION['flash_error'] = 'Failed to send decline.';
                 }
                 break;
 
@@ -529,6 +870,11 @@ class Hospital {
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->handlePost($hospital_registration);
+
+            $action = $_POST['action'] ?? '';
+            if (in_array($action, ['approve_eligibility', 'reject_eligibility'], true)) {
+                redirect('hospital/eligibility');
+            }
         }
 
         $hospital_details = [
@@ -1068,6 +1414,9 @@ class Hospital {
 
         // Get lab reports for this hospital
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
+
+        // Aftercare appointments (donor-initiated requests + accepted/rejected history)
+        $aftercare_appointments = $hospitalModel->getAftercareAppointments($hospital_registration) ?: [];
         
         $hospital_details = [
             'name' => $hospital->name,
@@ -1084,7 +1433,8 @@ class Hospital {
             'hospital_name' => $hospital->name,
             'hospital_registration' => $hospital_registration,
             'hospital_details' => $hospital_details,
-            'scheduled_appointments' => $lab_reports
+            'scheduled_appointments' => $lab_reports,
+            'aftercare_appointments' => $aftercare_appointments,
         ];
 
         $this->view('hospital/upcoming_appointments', $data);

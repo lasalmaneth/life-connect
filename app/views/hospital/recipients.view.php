@@ -78,15 +78,17 @@
                     <input type="text" class="form-input" id="recipient-name" placeholder="Full name">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Organ Received</label>
+                    <label class="form-label">Select Organ</label>
                     <select class="form-select" id="recipient-organ">
                         <option value="">Select Organ</option>
-                        <option value="kidney">Kidney</option>
-                        <option value="liver">Liver</option>
-                        <option value="heart">Heart</option>
-                        <option value="lung">Lung</option>
-                        <option value="skin">Skin Graft</option>
-                        <option value="eye">Eye</option>
+                        <option value="Kidney">Kidney</option>
+                        <option value="Part of Liver">Part of Liver</option>
+                        <option value="Bone Marrow">Bone Marrow</option>
+                        <option value="Cornea">Cornea</option>
+                        <option value="Skin">Skin</option>
+                        <option value="Bones">Bones</option>
+                        <option value="Heart Valves">Heart Valves</option>
+                        <option value="Tendons">Tendons</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -211,7 +213,7 @@
                 
                 document.getElementById('recipient-nic').value = recipient.nic;
                 document.getElementById('recipient-name').value = recipient.name;
-                document.getElementById('recipient-organ').value = recipient.organ_received;
+                document.getElementById('recipient-organ').value = normalizeOrganValue(recipient.organ_received);
                 document.getElementById('surgery-date').value = recipient.surgery_date;
                 document.getElementById('treatment-notes').value = recipient.treatment_notes;
                 
@@ -293,27 +295,28 @@
             form.submit();
         }
         
-        function deleteRecipient(recipientId) {
-            if (confirm('Are you sure you want to delete this recipient?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_recipient';
-                form.appendChild(actionInput);
-                
-                const recipientIdInput = document.createElement('input');
-                recipientIdInput.type = 'hidden';
-                recipientIdInput.name = 'recipient_id';
-                recipientIdInput.value = recipientId;
-                form.appendChild(recipientIdInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
+        async function deleteRecipient(recipientId) {
+            const ok = await hcConfirm('Are you sure you want to delete this recipient?', { danger: true });
+            if (!ok) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_recipient';
+            form.appendChild(actionInput);
+            
+            const recipientIdInput = document.createElement('input');
+            recipientIdInput.type = 'hidden';
+            recipientIdInput.name = 'recipient_id';
+            recipientIdInput.value = recipientId;
+            form.appendChild(recipientIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function exportRecipients() { 
@@ -386,7 +389,7 @@
                 row.innerHTML = `
                     <div class="table-cell name" data-label="NIC">${recipient.nic}</div>
                     <div class="table-cell" data-label="Name">${recipient.name}</div>
-                    <div class="table-cell" data-label="Organ">${recipient.organ_received}</div>
+                    <div class="table-cell" data-label="Organ">${formatOrganLabel(recipient.organ_received)}</div>
                     <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString('en-GB')}</div>
                     <div class="table-cell" data-label="Status">
                         <span class="status-badge ${recipient.status === 'Active' ? 'status-active' : recipient.status === 'Discharged' ? 'status-success' : 'status-pending'}">${recipient.status}</span>
@@ -400,6 +403,24 @@
                 `;
                 tableContent.appendChild(row);
             });
+        }
+
+        function normalizeOrganValue(val) {
+            const v = String(val || '').trim();
+            const lower = v.toLowerCase();
+            const map = {
+                'kidney': 'Kidney',
+                'skin': 'Skin',
+            };
+            // If an existing record contains a removed option, don't auto-select it.
+            if (['liver','heart','lung','eye'].includes(lower)) return '';
+            return map[lower] || v;
+        }
+
+        function formatOrganLabel(val) {
+            const v = String(val || '').trim();
+            if (!v) return '';
+            return normalizeOrganValue(v);
         }
 
                 document.addEventListener('DOMContentLoaded', function() {

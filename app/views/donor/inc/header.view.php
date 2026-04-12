@@ -9,6 +9,10 @@ if (!$user_id) {
 }
 
 // Try to build basic names if not injected
+if (isset($donor_data) && is_object($donor_data)) {
+  $donor_data = (array)$donor_data;
+}
+
 if (!isset($donor_full_name) && isset($donor_data)) {
     $donor_full_name = htmlspecialchars(($donor_data['first_name'] ?? '') . ' ' . ($donor_data['last_name'] ?? ''));
 }
@@ -17,12 +21,23 @@ if (!isset($donor_id_display) && isset($donor_data)) {
     $donor_id_display = 'D_' . str_pad($did, 5, '0', STR_PAD_LEFT);
 }
 
+$donor_avatar_initial = 'D';
+if (isset($donor_data) && is_array($donor_data)) {
+  $firstName = (string)($donor_data['first_name'] ?? '');
+  if ($firstName !== '') {
+    $donor_avatar_initial = strtoupper(substr($firstName, 0, 1));
+  }
+}
+
 // Handle notification messages
 $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
 $donorModelForHeader = new \App\Models\DonorModel();
-$targetDonorIdForPledges = $donor_data['id'] ?? $donor_data['donor_id'] ?? $user_id;
+$targetDonorIdForPledges = $user_id;
+if (isset($donor_data) && is_array($donor_data)) {
+  $targetDonorIdForPledges = $donor_data['id'] ?? $donor_data['donor_id'] ?? $user_id;
+}
 $pledgeSummary = $donorModelForHeader->getPledgeSummary($targetDonorIdForPledges);
 $activePledgeCount = $pledgeSummary['total'];
 $finalizedPledgeCount = $pledgeSummary['finalized'];
@@ -86,13 +101,19 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
           <div class="dropdown-body">
             <?php if(isset($notifications) && !empty($notifications)): ?>
               <?php foreach($notifications as $n): ?>
-                <a href="<?= !empty($n['action_url']) ? ROOT . '/' . $n['action_url'] : ROOT . '/donor/notifications' ?>" class="notification-item <?= !$n['is_read'] ? 'unread' : '' ?>">
+                <?php
+                  $nActionUrl = is_array($n) ? ($n['action_url'] ?? '') : (is_object($n) ? ($n->action_url ?? '') : '');
+                  $nIsRead = is_array($n) ? (bool)($n['is_read'] ?? false) : (is_object($n) ? (bool)($n->is_read ?? false) : false);
+                  $nTitle = is_array($n) ? ($n['title'] ?? '') : (is_object($n) ? ($n->title ?? '') : '');
+                  $nCreatedAt = is_array($n) ? ($n['created_at'] ?? '') : (is_object($n) ? ($n->created_at ?? '') : '');
+                ?>
+                <a href="<?= !empty($nActionUrl) ? ROOT . '/' . ltrim($nActionUrl, '/') : ROOT . '/donor/notifications' ?>" class="notification-item <?= !$nIsRead ? 'unread' : '' ?>">
                   <div class="notification-icon">
                     <i class="fa-solid fa-circle-info"></i>
                   </div>
                   <div class="notification-content">
-                    <p class="notification-title"><?= htmlspecialchars($n['title']) ?></p>
-                    <p class="notification-time"><?= date('M d, H:i', strtotime($n['created_at'])) ?></p>
+                    <p class="notification-title"><?= htmlspecialchars($nTitle) ?></p>
+                    <p class="notification-time"><?= !empty($nCreatedAt) ? date('M d, H:i', strtotime($nCreatedAt)) : '' ?></p>
                   </div>
                 </a>
               <?php endforeach; ?>
@@ -110,7 +131,7 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
       </div>
 
       <div class="user-info" onclick="toggleSettingsModal()">
-        <div class="user-avatar"><?= strtoupper(substr($donor_data['first_name'] ?? 'D', 0, 1)) ?></div>
+        <div class="user-avatar"><?= $donor_avatar_initial ?></div>
         <div style="display: flex; flex-direction: column; gap: 2px;">
           <div style="font-size: 0.9rem; font-weight: 600; color: var(--blue-900);"><?= htmlspecialchars($donor_full_name ?? 'Donor') ?></div>
           <div class="user-id-pill"><i class="fas fa-id-card"></i> <?= htmlspecialchars($donor_id_display ?? 'Donor') ?></div>

@@ -216,27 +216,28 @@
             form.submit();
         }
         
-        function deleteStory(storyId) {
-            if (confirm('Are you sure you want to delete this success story?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_success_story';
-                form.appendChild(actionInput);
-                
-                const storyIdInput = document.createElement('input');
-                storyIdInput.type = 'hidden';
-                storyIdInput.name = 'story_id';
-                storyIdInput.value = storyId;
-                form.appendChild(storyIdInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
+        async function deleteStory(storyId) {
+            const ok = await hcConfirm('Are you sure you want to delete this success story?', { danger: true });
+            if (!ok) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_success_story';
+            form.appendChild(actionInput);
+            
+            const storyIdInput = document.createElement('input');
+            storyIdInput.type = 'hidden';
+            storyIdInput.name = 'story_id';
+            storyIdInput.value = storyId;
+            form.appendChild(storyIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
         
         function loadStories() {

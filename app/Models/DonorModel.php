@@ -433,16 +433,81 @@ class DonorModel {
         else if (in_array('financial', $roles)) $categoryId = 2;
         else if (in_array('non', $roles)) $categoryId = 1;
 
-        $rolesJson = json_encode($roles);
-        $query = "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id";
-        
-        // Use direct PDO execution via the trait's connection logic for non-SELECT queries
+        $hasActiveRoles = $this->hasColumn('donors', 'active_roles');
+
+        $rolesJson = json_encode(array_values($roles));
+        if ($rolesJson === false) {
+            $rolesJson = '[]';
+        }
+
+        $query = $hasActiveRoles
+            ? "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id"
+            : "UPDATE donors SET category_id = :cat_id WHERE id = :id";
+
         $con = $this->connect();
         $stm = $con->prepare($query);
-        return $stm->execute([
-            ':roles' => $rolesJson,
+        $params = [
             ':cat_id' => $categoryId,
-            ':id' => $donorId
-        ]);
+            ':id' => $donorId,
+        ];
+        if ($hasActiveRoles) {
+            $params[':roles'] = $rolesJson;
+        }
+        return $stm->execute($params);
+    }
+
+    public function getActiveRoles($donorId): array
+    {
+        $donorId = (int)$donorId;
+        if ($donorId <= 0) return [];
+
+        if ($this->hasColumn('donors', 'active_roles')) {
+            $res = $this->query("SELECT active_roles FROM donors WHERE id = :id LIMIT 1", [':id' => $donorId]);
+            $raw = !empty($res) ? ($res[0]->active_roles ?? null) : null;
+            if (!is_string($raw) || trim($raw) === '') return [];
+
+            $decoded = json_decode($raw, true);
+            if (!is_array($decoded)) return [];
+
+            $roles = [];
+            foreach ($decoded as $role) {
+                if (!is_string($role)) continue;
+                $role = strtolower(trim($role));
+                if ($role === '') continue;
+                $roles[] = $role;
+            }
+            return array_values(array_unique($roles));
+        }
+
+        // Fallback for older schemas: infer a single role from category_id.
+        $res = $this->query("SELECT category_id FROM donors WHERE id = :id LIMIT 1", [':id' => $donorId]);
+        $cat = !empty($res) ? (int)($res[0]->category_id ?? 0) : 0;
+        if ($cat === 3) return ['organ'];
+        if ($cat === 2) return ['financial'];
+        if ($cat === 1) return ['non'];
+        return [];
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        static $cache = [];
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $cache)) {
+            return (bool)$cache[$key];
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            $cache[$key] = false;
+            return false;
+        }
+
+        try {
+            $res = $this->query("SHOW COLUMNS FROM {$table} LIKE '{$column}'");
+            $cache[$key] = !empty($res);
+        } catch (\Throwable $e) {
+            $cache[$key] = false;
+        }
+
+        return (bool)$cache[$key];
     }
 }

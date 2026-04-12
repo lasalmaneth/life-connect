@@ -7,6 +7,7 @@
 include __DIR__ . '/inc/header.view.php';
 include __DIR__ . '/inc/sidebar.view.php';
 $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
+$approvedHospitalsJson = json_encode($approved_hospitals ?? []);
 ?>
 <style>
 :root { --accent: #10b981; --accent-hover: #059669; }
@@ -335,7 +336,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
                 </div>
 
                 <div id="hospital_request_label" style="font-size:0.85rem; font-weight:700; color:var(--slate); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
-                    <span>Hospitals with active requests</span>
+                    <span>Registered hospitals (active requests first)</span>
                     <span style="font-size:0.7rem; color:var(--g500);">(Ordered by Priority)</span>
                 </div>
                 
@@ -927,6 +928,7 @@ $hospitalsByOrganJson = json_encode($hospitals_by_organ ?? []);
 
 <script>
 const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
+const approvedHospitals = <?= $approvedHospitalsJson ?>;
 let pendingOrganId=null, pendingOrganName=null, selectedHospitalId=null, selectedHospitalName='No Preference';
 
 function openLivingModal(id,name){ 
@@ -979,13 +981,31 @@ function updateHospitalList() {
     dropdown.appendChild(defaultOpt);
 
     const reqs = hospitalsByOrgan[pendingOrganId] || [];
-    if(reqs.length > 0) {
+    const requestedIds = new Set();
+
+    // 1) Hospitals with active requests for this organ (priority order)
+    if (Array.isArray(reqs) && reqs.length > 0) {
         reqs.forEach(h => {
+            requestedIds.add(String(h.hospital_id));
             const opt = document.createElement('option');
             opt.value = h.hospital_id;
             opt.textContent = `${h.hospital_name} (${h.district}) - ${h.priority} PRIORITY`;
             dropdown.appendChild(opt);
         });
+    }
+
+    // 2) All other approved/registered hospitals (so the list is never "missing" hospitals)
+    if (Array.isArray(approvedHospitals) && approvedHospitals.length > 0) {
+        approvedHospitals
+            .filter(h => !requestedIds.has(String(h.hospital_id)))
+            .sort((a, b) => String(a.hospital_name || '').localeCompare(String(b.hospital_name || '')))
+            .forEach(h => {
+                const opt = document.createElement('option');
+                opt.value = h.hospital_id;
+                const dist = h.district ? ` (${h.district})` : '';
+                opt.textContent = `${h.hospital_name}${dist}`;
+                dropdown.appendChild(opt);
+            });
     }
 
     // Reset selection state

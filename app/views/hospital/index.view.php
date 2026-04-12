@@ -1,6 +1,25 @@
 <?php
 // Hospital dashboard view
 // Data passed from controller: $hospital_name, $hospital_registration, $organ_requests, $recipients, $success_stories, $aftercare_appointments, $stats
+
+// Notifications (donor-style dropdown)
+if (!isset($notifications) || !isset($unread_count)) {
+    $notifications = [];
+    $unread_count = 0;
+
+    if (!empty($_SESSION['user_id'])) {
+        try {
+            $notificationModel = new \App\Models\NotificationModel();
+            $uid = (int)$_SESSION['user_id'];
+            $unread_count = (int)$notificationModel->getUnreadCount($uid);
+            $recent = $notificationModel->getNotificationsForUser($uid, 5);
+            $notifications = json_decode(json_encode($recent), true) ?: [];
+        } catch (\Throwable $e) {
+            $notifications = [];
+            $unread_count = 0;
+        }
+    }
+}
 ?>
 
 
@@ -128,9 +147,44 @@
                     <span>Home</span>
                 </a>
 
-                <button class="notification-bell" type="button" title="Notifications">
-                    <i class="fa-solid fa-bell"></i>
-                </button>
+                <div class="notification-container">
+                    <button class="notification-bell" id="notificationBell" type="button" title="Notifications">
+                        <i class="fa-solid fa-bell"></i>
+                        <?php if (!empty($unread_count)): ?>
+                            <span class="notification-badge"><?php echo (int)$unread_count; ?></span>
+                        <?php endif; ?>
+                    </button>
+
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="dropdown-header">
+                            <span>Recent Notifications</span>
+                            <a href="<?php echo ROOT; ?>/hospital/notifications?mark_all_read=1">Mark all read</a>
+                        </div>
+                        <div class="dropdown-body">
+                            <?php if (!empty($notifications)): ?>
+                                <?php foreach ($notifications as $n): ?>
+                                    <a href="<?php echo !empty($n['action_url']) ? (ROOT . '/' . ltrim((string)$n['action_url'], '/')) : (ROOT . '/hospital/notifications'); ?>" class="notification-item <?php echo empty($n['is_read']) ? 'unread' : ''; ?>">
+                                        <div class="notification-icon">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </div>
+                                        <div class="notification-content">
+                                            <p class="notification-title"><?php echo htmlspecialchars((string)($n['title'] ?? 'Notification')); ?></p>
+                                            <p class="notification-time"><?php echo !empty($n['created_at']) ? date('M d, H:i', strtotime((string)$n['created_at'])) : ''; ?></p>
+                                        </div>
+                                    </a>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="no-notifications">
+                                    <i class="fa-solid fa-bell-slash"></i>
+                                    <p>No new notifications</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="dropdown-footer">
+                            <a href="<?php echo ROOT; ?>/hospital/notifications">View All Notifications</a>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="user-info" onclick="toggleUserDropdown()">
                     <div class="user-avatar"><?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?></div>
@@ -233,6 +287,15 @@
                         <span class="icon"><i class="fas fa-chart-line"></i></span>
                         <span>Main Dashboard</span>
                     </div>
+                    <a href="<?php echo ROOT; ?>/hospital/notifications" class="menu-item" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+                        <span class="icon"><i class="fas fa-bell"></i></span>
+                        <span style="flex:1;">Notifications</span>
+                        <?php if (!empty($unread_count ?? 0)): ?>
+                            <span style="display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--danger-color); color:var(--white-color); font-size:.7rem; font-weight:900; margin-left:auto;">
+                                <?php echo (int)($unread_count ?? 0); ?>
+                            </span>
+                        <?php endif; ?>
+                    </a>
                     <div class="menu-item" onclick="showContent('organ-requests', this)" style="text-align: left;">
                         <span class="icon"><i class="fas fa-heart"></i></span>
                         <span>Organ Requests</span>
@@ -404,6 +467,59 @@
                                 <p>Upload and analyze biological screening and laboratory test documents.</p>
                             </div>
                         </div>
+
+                        <div class="data-table" style="margin-top: 1.5rem;">
+                            <div class="table-header">
+                                <h4>Aftercare Support Requests</h4>
+                            </div>
+                            <div class="table-content">
+                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                    <div class="table-cell">Date Submitted</div>
+                                    <div class="table-cell">Patient NIC</div>
+                                    <div class="table-cell">Patient Name</div>
+                                    <div class="table-cell">Reason</div>
+                                    <div class="table-cell">Status</div>
+                                    <div class="table-cell">Actions</div>
+                                </div>
+
+                                <?php if (!empty($aftercare_support_requests ?? [])): ?>
+                                    <?php foreach (($aftercare_support_requests ?? []) as $req): ?>
+                                        <?php
+                                            $status = strtoupper(trim((string)($req->status ?? 'PENDING')));
+                                            $badgeClass = 'status-pending';
+                                            if ($status === 'APPROVED') $badgeClass = 'status-success';
+                                            if ($status === 'REJECTED') $badgeClass = 'status-danger';
+                                            $submitted = $req->submitted_date ?? ($req->created_at ?? '');
+                                        ?>
+                                        <div class="table-row">
+                                            <div class="table-cell" data-label="Date Submitted"><?php echo htmlspecialchars($submitted ? date('d/m/Y', strtotime((string)$submitted)) : '—'); ?></div>
+                                            <div class="table-cell" data-label="Patient NIC"><?php echo htmlspecialchars((string)($req->patient_nic ?? '')); ?></div>
+                                            <div class="table-cell name" data-label="Patient Name"><?php echo htmlspecialchars((string)($req->patient_name ?? '')); ?></div>
+                                            <div class="table-cell" data-label="Reason"><?php echo htmlspecialchars((string)($req->reason ?? '')); ?></div>
+                                            <div class="table-cell" data-label="Status"><span class="status-badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($status); ?></span></div>
+                                            <div class="table-cell" data-label="Actions" style="display:flex; gap:.4rem; flex-wrap:wrap;">
+                                                <?php if ($status === 'PENDING'): ?>
+                                                    <button class="btn btn-success btn-small" type="button" onclick="approveSupportRequest(<?php echo (int)$req->id; ?>)">Approve</button>
+                                                    <button class="btn btn-danger btn-small" type="button" onclick="rejectSupportRequest(<?php echo (int)$req->id; ?>)">Reject</button>
+                                                <?php else: ?>
+                                                    <span style="color:#6b7280; font-size:.9rem;">—</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="table-row">
+                                        <div class="table-cell" style="grid-column:1/-1; text-align:center; padding:20px; color:#999;">No support requests found</div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <form id="supportRequestActionForm" method="POST" style="display:none;">
+                            <input type="hidden" name="action" id="supportRequestAction" value="">
+                            <input type="hidden" name="support_request_id" id="supportRequestId" value="">
+                            <input type="hidden" name="reject_reason" id="supportRequestRejectReason" value="">
+                        </form>
                     </div>
                 </div>
 
@@ -524,7 +640,7 @@
 
                         <div class="data-table">
                             <div class="table-header">
-                                <h4>Pending Eligibility Reviews</h4>
+                                <h4>Eligibility Reviews</h4>
                             </div>
                             <div class="table-content">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
@@ -537,6 +653,7 @@
 
                                 <?php if (!empty($eligibility_pledges ?? [])): ?>
                                     <?php foreach (($eligibility_pledges ?? []) as $p): ?>
+                                        <?php $pledgeStatus = strtoupper(trim((string)($p->status ?? ''))); ?>
                                         <div class="table-row">
                                             <div class="table-cell name" data-label="Donor Details">
                                                 NIC <?= htmlspecialchars($p->nic_number ?? 'N/A') ?> -
@@ -544,18 +661,34 @@
                                             </div>
                                             <div class="table-cell" data-label="Organ Type"><?= htmlspecialchars($p->organ_name ?? 'N/A') ?></div>
                                             <div class="table-cell" data-label="Test Date"><?= htmlspecialchars(isset($p->pledge_date) ? date('d/m/Y', strtotime($p->pledge_date)) : 'N/A') ?></div>
-                                            <div class="table-cell" data-label="Current Status"><span class="status-badge status-pending">Under Review</span></div>
+                                            <div class="table-cell" data-label="Current Status">
+                                                <?php if ($pledgeStatus === 'PENDING'): ?>
+                                                    <span class="status-badge status-pending">Pending Upload</span>
+                                                <?php elseif ($pledgeStatus === 'UPLOADED'): ?>
+                                                    <span class="status-badge status-pending">Under Review</span>
+                                                <?php elseif ($pledgeStatus === 'APPROVED'): ?>
+                                                    <span class="status-badge status-success">Approved</span>
+                                                <?php elseif ($pledgeStatus === 'IN_PROGRESS'): ?>
+                                                    <span class="status-badge status-active">In Progress</span>
+                                                <?php else: ?>
+                                                    <span class="status-badge status-pending"><?= htmlspecialchars($pledgeStatus ?: 'UNKNOWN') ?></span>
+                                                <?php endif; ?>
+                                            </div>
                                             <div class="table-cell" data-label="Actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                                 <button class="btn btn-secondary btn-small" onclick="viewDonorLabData('<?= htmlspecialchars($p->nic_number ?? '') ?>')">View Labs</button>
-                                                <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Approve</button>
-                                                <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Reject</button>
+                                                <?php if ($pledgeStatus === 'UPLOADED'): ?>
+                                                    <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Approve</button>
+                                                    <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')">Reject</button>
+                                                <?php else: ?>
+                                                    <span style="align-self:center; color:#64748b; font-weight:600;">No actions</span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <div class="table-row">
                                         <div class="table-cell" style="text-align:center; color:#999; grid-column: 1 / -1;">
-                                            No approved donor pledges assigned to this hospital.
+                                            No eligibility pledges found for this hospital.
                                         </div>
                                     </div>
                                 <?php endif; ?>
@@ -633,9 +766,11 @@
                         <div class="action-section">
                             <div class="action-buttons">
                                 <button class="btn btn-primary" onclick="openLabReportModal()">Schedule an Appointment</button>
+                                <button class="btn btn-secondary" type="button" id="lab-requested-tab" onclick="setLabAppointmentsView('requested')">Requested Appointments</button>
                             </div>
                         </div>
 
+                        <div id="lab-scheduled-wrap">
                         <div style="display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; margin-bottom: 1.5rem; align-items: start;">
                             <!-- Left: Donors Menu and Tests List -->
                             <div style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -680,6 +815,29 @@
                                     <div class="table-cell">Actions</div>
                                 </div>
                                 <!-- Content populated by JS -->
+                            </div>
+                        </div>
+                        </div>
+
+                        <div id="lab-requested-wrap" style="display: none;">
+                            <div class="data-table">
+                                <div class="table-header">
+                                    <h4>Requested Appointments</h4>
+                                </div>
+                                <div class="table-content" id="lab-requested-table">
+                                    <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                        <div class="table-cell">Patient ID</div>
+                                        <div class="table-cell">Donor NIC</div>
+                                        <div class="table-cell">Donor Name</div>
+                                        <div class="table-cell">Test Type</div>
+                                        <div class="table-cell">Current Date</div>
+                                        <div class="table-cell">Requested Date</div>
+                                        <div class="table-cell">Reason</div>
+                                        <div class="table-cell">Requested At</div>
+                                        <div class="table-cell">Actions</div>
+                                    </div>
+                                    <!-- Content populated by JS -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -886,7 +1044,94 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">HLA-typing</label>
-                    <input class="form-input" id="recipient-hla-typing" type="text" placeholder="e.g., HLA-A*02:01, HLA-B*07:02">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;">
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-A (A1)</div>
+                            <select class="form-select" id="recipient-hla-a1">
+                                <option value="">Select Allele</option>
+                                <option value="A*01">A*01</option>
+                                <option value="A*02">A*02</option>
+                                <option value="A*03">A*03</option>
+                                <option value="A*11">A*11</option>
+                                <option value="A*24">A*24</option>
+                                <option value="A*33">A*33</option>
+                                <option value="A*68">A*68</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-A (A2)</div>
+                            <select class="form-select" id="recipient-hla-a2">
+                                <option value="">Select Allele</option>
+                                <option value="A*01">A*01</option>
+                                <option value="A*02">A*02</option>
+                                <option value="A*03">A*03</option>
+                                <option value="A*11">A*11</option>
+                                <option value="A*24">A*24</option>
+                                <option value="A*33">A*33</option>
+                                <option value="A*68">A*68</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-B (B1)</div>
+                            <select class="form-select" id="recipient-hla-b1">
+                                <option value="">Select Allele</option>
+                                <option value="B*07">B*07</option>
+                                <option value="B*08">B*08</option>
+                                <option value="B*15">B*15</option>
+                                <option value="B*35">B*35</option>
+                                <option value="B*38">B*38</option>
+                                <option value="B*44">B*44</option>
+                                <option value="B*51">B*51</option>
+                                <option value="B*52">B*52</option>
+                                <option value="B*57">B*57</option>
+                                <option value="B*58">B*58</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-B (B2)</div>
+                            <select class="form-select" id="recipient-hla-b2">
+                                <option value="">Select Allele</option>
+                                <option value="B*07">B*07</option>
+                                <option value="B*08">B*08</option>
+                                <option value="B*15">B*15</option>
+                                <option value="B*35">B*35</option>
+                                <option value="B*38">B*38</option>
+                                <option value="B*44">B*44</option>
+                                <option value="B*51">B*51</option>
+                                <option value="B*52">B*52</option>
+                                <option value="B*57">B*57</option>
+                                <option value="B*58">B*58</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-DRB1 (DR1)</div>
+                            <select class="form-select" id="recipient-hla-dr1">
+                                <option value="">Select Allele</option>
+                                <option value="DRB1*01">DRB1*01</option>
+                                <option value="DRB1*03">DRB1*03</option>
+                                <option value="DRB1*04">DRB1*04</option>
+                                <option value="DRB1*07">DRB1*07</option>
+                                <option value="DRB1*11">DRB1*11</option>
+                                <option value="DRB1*13">DRB1*13</option>
+                                <option value="DRB1*14">DRB1*14</option>
+                                <option value="DRB1*15">DRB1*15</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-DRB1 (DR2)</div>
+                            <select class="form-select" id="recipient-hla-dr2">
+                                <option value="">Select Allele</option>
+                                <option value="DRB1*01">DRB1*01</option>
+                                <option value="DRB1*03">DRB1*03</option>
+                                <option value="DRB1*04">DRB1*04</option>
+                                <option value="DRB1*07">DRB1*07</option>
+                                <option value="DRB1*11">DRB1*11</option>
+                                <option value="DRB1*13">DRB1*13</option>
+                                <option value="DRB1*14">DRB1*14</option>
+                                <option value="DRB1*15">DRB1*15</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div id="urgency-reason-group" class="form-group" style="display: none;">
                     <label class="form-label">Reason for Change <span style="color:red">*</span></label>
@@ -942,12 +1187,17 @@
                     <input type="text" class="form-input" id="recipient-name" placeholder="Full name">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Organ Received</label>
+                    <label class="form-label">Select Organ</label>
                     <select class="form-select" id="recipient-organ">
                         <option value="">Select Organ</option>
-                        <option value="kidney">Kidney</option>
-                        <option value="liver">Liver</option>
-                        <option value="heart">Heart</option>
+                        <option value="Kidney">Kidney</option>
+                        <option value="Part of Liver">Part of Liver</option>
+                        <option value="Bone Marrow">Bone Marrow</option>
+                        <option value="Cornea">Cornea</option>
+                        <option value="Skin">Skin</option>
+                        <option value="Bones">Bones</option>
+                        <option value="Heart Valves">Heart Valves</option>
+                        <option value="Tendons">Tendons</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1066,9 +1316,22 @@
             </div>
             <div>
                 <div class="form-group">
+                    <label class="form-label">Patient Type <span style="color: #e74c3c;">*</span></label>
+                    <select class="form-select" id="tr-patient-type" onchange="toggleTestResultPatientType()">
+                        <option value="DONOR" selected>Donor</option>
+                        <option value="RECIPIENT">Recipient</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Select Donor <span style="color: #e74c3c;">*</span></label>
                     <select class="form-select" id="tr-donor-select">
                         <option value="">Select a Donor</option>
+                    </select>
+                </div>
+                <div class="form-group" id="tr-recipient-wrap" style="display:none;">
+                    <label class="form-label">Select Recipient <span style="color: #e74c3c;">*</span></label>
+                    <select class="form-select" id="tr-recipient-select">
+                        <option value="">Select a Recipient</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1176,8 +1439,65 @@
         });
 
         // Organ Request Functions
-        function openRequestModal() { document.getElementById('request-modal').classList.add('show'); }
+        function openRequestModal() {
+            document.getElementById('request-modal').classList.add('show');
+        }
         function closeRequestModal() { document.getElementById('request-modal').classList.remove('show'); }
+
+        function setHlaAllelesUiValue(hlaTyping) {
+            const a1 = document.getElementById('recipient-hla-a1');
+            const a2 = document.getElementById('recipient-hla-a2');
+            const b1 = document.getElementById('recipient-hla-b1');
+            const b2 = document.getElementById('recipient-hla-b2');
+            const dr1 = document.getElementById('recipient-hla-dr1');
+            const dr2 = document.getElementById('recipient-hla-dr2');
+            if (!a1 || !a2 || !b1 || !b2 || !dr1 || !dr2) return;
+
+            const text = String(hlaTyping || '');
+            const pick = (key) => {
+                const re = new RegExp('(?:^|[;\n,\s])' + key + '\\s*=\\s*([^;\n,]+)', 'i');
+                const m = text.match(re);
+                return m ? String(m[1] || '').trim() : '';
+            };
+
+            a1.value = pick('A1');
+            a2.value = pick('A2');
+            b1.value = pick('B1');
+            b2.value = pick('B2');
+            dr1.value = pick('DR1');
+            dr2.value = pick('DR2');
+        }
+
+        function clearHlaAllelesUi() {
+            ['recipient-hla-a1','recipient-hla-a2','recipient-hla-b1','recipient-hla-b2','recipient-hla-dr1','recipient-hla-dr2']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+        }
+
+        function getHlaAllelesUiValue() {
+            const a1 = document.getElementById('recipient-hla-a1');
+            const a2 = document.getElementById('recipient-hla-a2');
+            const b1 = document.getElementById('recipient-hla-b1');
+            const b2 = document.getElementById('recipient-hla-b2');
+            const dr1 = document.getElementById('recipient-hla-dr1');
+            const dr2 = document.getElementById('recipient-hla-dr2');
+            const v = (el) => String(el ? el.value : '').trim();
+
+            const parts = [
+                `A1=${v(a1)}`,
+                `A2=${v(a2)}`,
+                `B1=${v(b1)}`,
+                `B2=${v(b2)}`,
+                `DR1=${v(dr1)}`,
+                `DR2=${v(dr2)}`,
+            ];
+
+            // If all empty, store empty string
+            if (parts.every(p => p.endsWith('='))) return '';
+            return parts.join('; ');
+        }
 
         // Organ Type Selection Function
         function selectOrganType(organId, organName) {
@@ -1222,13 +1542,12 @@
             const ageEl = document.getElementById('recipient-age');
             const bgEl = document.getElementById('recipient-blood-group');
             const genderEl = document.getElementById('recipient-gender');
-            const hlaEl = document.getElementById('recipient-hla-typing');
             const transplantReasonEl = document.getElementById('transplant-reason');
 
             if (ageEl) ageEl.value = request.recipient_age ?? '';
             if (bgEl) bgEl.value = request.blood_group || '';
             if (genderEl) genderEl.value = request.gender || '';
-            if (hlaEl) hlaEl.value = request.hla_typing || '';
+            setHlaAllelesUiValue(request.hla_typing || '');
             if (transplantReasonEl) transplantReasonEl.value = request.transplant_reason || '';
 
             // Show reason field during edit
@@ -1247,12 +1566,11 @@
             const ageEl = document.getElementById('recipient-age');
             const bgEl = document.getElementById('recipient-blood-group');
             const genderEl = document.getElementById('recipient-gender');
-            const hlaEl = document.getElementById('recipient-hla-typing');
             const transplantReasonEl = document.getElementById('transplant-reason');
             if (ageEl) ageEl.value = '';
             if (bgEl) bgEl.value = '';
             if (genderEl) genderEl.value = '';
-            if (hlaEl) hlaEl.value = '';
+            clearHlaAllelesUi();
             if (transplantReasonEl) transplantReasonEl.value = '';
             document.getElementById('urgency-level').value = '';
             document.getElementById('organ-type').value = '';
@@ -1266,7 +1584,7 @@
             const age = document.getElementById('recipient-age') ? document.getElementById('recipient-age').value : '';
             const bloodGroup = document.getElementById('recipient-blood-group') ? document.getElementById('recipient-blood-group').value : '';
             const gender = document.getElementById('recipient-gender') ? document.getElementById('recipient-gender').value : '';
-            const hlaTyping = document.getElementById('recipient-hla-typing') ? document.getElementById('recipient-hla-typing').value : '';
+            const hlaTyping = getHlaAllelesUiValue();
             const transplantReason = document.getElementById('transplant-reason') ? document.getElementById('transplant-reason').value : '';
 
             if (!organId || !urgency) {
@@ -1370,28 +1688,29 @@
             document.body.appendChild(form);
             form.submit();
         }
-        function deleteRequest(requestId) {
-            if (confirm('Are you sure you want to delete this organ request?')) {
-                // Submit form to same page
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
+        async function deleteRequest(requestId) {
+            const ok = await hcConfirm('Are you sure you want to delete this organ request?', { danger: true });
+            if (!ok) return;
 
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_organ_request';
-                form.appendChild(actionInput);
+            // Submit form to same page
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
 
-                const requestIdInput = document.createElement('input');
-                requestIdInput.type = 'hidden';
-                requestIdInput.name = 'request_id';
-                requestIdInput.value = requestId;
-                form.appendChild(requestIdInput);
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_organ_request';
+            form.appendChild(actionInput);
 
-                document.body.appendChild(form);
-                form.submit();
-            }
+            const requestIdInput = document.createElement('input');
+            requestIdInput.type = 'hidden';
+            requestIdInput.name = 'request_id';
+            requestIdInput.value = requestId;
+            form.appendChild(requestIdInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function loadOrganRequests() {
@@ -1505,37 +1824,72 @@
 
 
         // Eligibility Functions
-        function viewDonorLabData(nic) {
+        async function viewDonorLabData(nic) {
             // Step 1: View Lab Data
             const message = `Medical Lab Profile for ${nic}\n\n- Blood Group: O+\n- HIV: Negative (Clear)\n- Hepatitis B: Negative (Clear)\n- Hepatitis C: Negative (Clear)\n- CBC: Normal Range\n\nOverall Screening: Medically Fit for Donation`;
-            alert(message);
+            await hcAlert(message, 'info');
         }
 
-        function approveEligibility(nic) {
-            // Step 3: Match Algorithm Trigger
-            showServerMessage(`Donor ${nic} approved! Transitioning to active donor pool...`, 'success');
+        function postEligibilityAction(action, pledgeId) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = window.location.href;
 
-            // Simulate automated matching lookup sequence
-            setTimeout(() => {
-                const matchFound = confirm(`AUTOMATED MATCH DETECTED!\n\nDonor ${nic} (Blood Type: O+, Organ: Kidney) perfectly matches an Urgent Organ Request.\n\nWould you like to initiate the transfer and notify the surgical team?`);
-                if (matchFound) {
-                    showServerMessage('Automated transplant protocol initiated!', 'info');
-                }
-            }, 1500);
+            const a = document.createElement('input');
+            a.type = 'hidden';
+            a.name = 'action';
+            a.value = String(action || '');
+            form.appendChild(a);
+
+            const p = document.createElement('input');
+            p.type = 'hidden';
+            p.name = 'pledge_id';
+            p.value = String(pledgeId || '');
+            form.appendChild(p);
+
+            document.body.appendChild(form);
+            showServerMessage('Updating eligibility...', 'info');
+            form.submit();
         }
 
-        function rejectEligibility(nic) {
-            // Step 2: Reason for Rejection Prompt
-            const reason = prompt(`IMPORTANT: You are rejecting donor ${nic}.\n\nPlease provide the medical reason for this rejection (e.g. "Positive for Hepatitis"):`);
-            if (reason) {
-                showServerMessage(`Donor disqualified. Reason securely logged: "${reason}"`, 'error');
-            } else {
-                showServerMessage('Action cancelled. You must provide a valid medical reason to reject a donor.', 'info');
-            }
+        async function approveEligibility(pledgeId) {
+            const id = parseInt(pledgeId, 10) || 0;
+            if (!id) return showServerMessage('Invalid pledge.', 'error');
+
+            const ok = await hcConfirm('Approve this donor eligibility?');
+            if (!ok) return;
+            postEligibilityAction('approve_eligibility', id);
+        }
+
+        async function rejectEligibility(pledgeId) {
+            const id = parseInt(pledgeId, 10) || 0;
+            if (!id) return showServerMessage('Invalid pledge.', 'error');
+
+            const ok = await hcConfirm('Reject this donor eligibility?', { danger: true });
+            if (!ok) return;
+            postEligibilityAction('reject_eligibility', id);
         }
 
         // Recipient Functions
         function openRecipientModal() { document.getElementById('recipient-modal').classList.add('show'); }
+
+        function normalizeOrganValue(val) {
+            const v = String(val || '').trim();
+            const lower = v.toLowerCase();
+            const map = {
+                'kidney': 'Kidney',
+                'bone marrow': 'Bone Marrow',
+                'bonemarrow': 'Bone Marrow',
+                'cornea': 'Cornea',
+                'skin': 'Skin',
+                'skin graft': 'Skin',
+                'bones': 'Bones',
+                'heart valves': 'Heart Valves',
+                'tendons': 'Tendons',
+            };
+            if (['liver','heart','lung','eye'].includes(lower)) return '';
+            return map[lower] || v;
+        }
         function closeRecipientModal() {
             document.getElementById('recipient-modal').classList.remove('show');
             // Reset modal to add mode
@@ -1621,7 +1975,7 @@
                 // Populate form fields
                 document.getElementById('recipient-nic').value = recipient.nic;
                 document.getElementById('recipient-name').value = recipient.name;
-                document.getElementById('recipient-organ').value = recipient.organ_received;
+                document.getElementById('recipient-organ').value = normalizeOrganValue(recipient.organ_received);
                 document.getElementById('surgery-date').value = recipient.surgery_date;
                 document.getElementById('treatment-notes').value = recipient.treatment_notes;
 
@@ -1705,28 +2059,28 @@
             form.submit();
         }
 
-        function deleteRecipient(recipientId) {
-            if (confirm('Are you sure you want to delete this recipient?')) {
-                // Submit form to same page
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
+        async function deleteRecipient(recipientId) {
+            const ok = await hcConfirm('Are you sure you want to delete this recipient?', { danger: true });
+            if (!ok) return;
 
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_recipient';
-                form.appendChild(actionInput);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
 
-                const recipientIdInput = document.createElement('input');
-                recipientIdInput.type = 'hidden';
-                recipientIdInput.name = 'recipient_id';
-                recipientIdInput.value = recipientId;
-                form.appendChild(recipientIdInput);
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_recipient';
+            form.appendChild(actionInput);
 
-                document.body.appendChild(form);
-                form.submit();
-            }
+            const recipientIdInput = document.createElement('input');
+            recipientIdInput.type = 'hidden';
+            recipientIdInput.name = 'recipient_id';
+            recipientIdInput.value = recipientId;
+            form.appendChild(recipientIdInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
         function viewTreatmentLog() { showServerMessage('localhost: Loading treatment log from database', 'success'); }
         function exportRecipients() { showServerMessage('localhost: Exporting recipient data to Excel file', 'success'); }
@@ -1907,28 +2261,28 @@
             form.submit();
         }
 
-        function deleteStory(storyId) {
-            if (confirm('Are you sure you want to delete this success story?')) {
-                // Submit form to same page
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
+        async function deleteStory(storyId) {
+            const ok = await hcConfirm('Are you sure you want to delete this success story?', { danger: true });
+            if (!ok) return;
 
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_success_story';
-                form.appendChild(actionInput);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
 
-                const storyIdInput = document.createElement('input');
-                storyIdInput.type = 'hidden';
-                storyIdInput.name = 'story_id';
-                storyIdInput.value = storyId;
-                form.appendChild(storyIdInput);
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_success_story';
+            form.appendChild(actionInput);
 
-                document.body.appendChild(form);
-                form.submit();
-            }
+            const storyIdInput = document.createElement('input');
+            storyIdInput.type = 'hidden';
+            storyIdInput.name = 'story_id';
+            storyIdInput.value = storyId;
+            form.appendChild(storyIdInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
 
         // Lab Report Functions
@@ -2353,18 +2707,55 @@
         }
 
         // Test Results Upload
+        const TR_RECIPIENTS = <?php echo json_encode($recipients ?? []); ?>;
+
+        function toggleTestResultPatientType() {
+            const typeEl = document.getElementById('tr-patient-type');
+            const type = String((typeEl && typeEl.value) ? typeEl.value : 'DONOR').toUpperCase();
+            const donorSelect = document.getElementById('tr-donor-select');
+            const donorWrap = donorSelect ? donorSelect.closest('.form-group') : null;
+            const recWrap = document.getElementById('tr-recipient-wrap');
+            if (type === 'RECIPIENT') {
+                if (donorWrap) donorWrap.style.display = 'none';
+                if (recWrap) recWrap.style.display = 'block';
+            } else {
+                if (donorWrap) donorWrap.style.display = 'block';
+                if (recWrap) recWrap.style.display = 'none';
+            }
+        }
+
         function openTestResultModal() {
             const modal = document.getElementById('test-result-modal');
             modal.classList.add('show');
 
+            // Default type
+            const typeSel = document.getElementById('tr-patient-type');
+            if (typeSel) typeSel.value = 'DONOR';
+
             document.getElementById('tr-donor-select').innerHTML = '<option value="">Select a Donor</option>';
+            document.getElementById('tr-recipient-select').innerHTML = '<option value="">Select a Recipient</option>';
             document.getElementById('tr-test-name').value = '';
             document.getElementById('tr-test-date').value = '';
             document.getElementById('tr-result-value').value = '';
             const file = document.getElementById('tr-document');
             if (file) file.value = '';
 
-            fetch('<?php echo ROOT; ?>/hospital/search-donors?q=')
+            // Populate recipients from server data (registered to this hospital)
+            const recSel = document.getElementById('tr-recipient-select');
+            if (recSel && Array.isArray(TR_RECIPIENTS) && TR_RECIPIENTS.length > 0) {
+                TR_RECIPIENTS.forEach(r => {
+                    const id = r.recipient_id ?? r.id;
+                    if (!id) return;
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.text = `${r.nic || ''} - ${r.name || r.full_name || ('Recipient ' + id)}`;
+                    recSel.appendChild(option);
+                });
+            }
+
+            toggleTestResultPatientType();
+
+            fetch('<?php echo ROOT; ?>/hospital/search-donors?q=', { credentials: 'include' })
                 .then(response => response.json())
                 .then(donors => {
                     const donorSelect = document.getElementById('tr-donor-select');
@@ -2386,20 +2777,45 @@
         }
 
         function submitTestResult() {
+            const ptEl = document.getElementById('tr-patient-type');
+            const patientType = String((ptEl && ptEl.value) ? ptEl.value : 'DONOR').toUpperCase();
             const donorId = document.getElementById('tr-donor-select').value;
+            const recipientId = document.getElementById('tr-recipient-select').value;
             const testName = document.getElementById('tr-test-name').value.trim();
             const testDate = document.getElementById('tr-test-date').value;
             const resultValue = document.getElementById('tr-result-value').value.trim();
             const documentFile = document.getElementById('tr-document').files[0] || null;
 
-            if (!donorId || !testName || !testDate) {
-                alert('Please select donor, test name, and test date.');
+            if (!testName || !testDate) {
+                hcAlert('Please enter test name and test date.', 'error');
+                return;
+            }
+
+            if (patientType === 'RECIPIENT') {
+                if (!recipientId) {
+                    hcAlert('Please select a recipient patient.', 'error');
+                    return;
+                }
+            } else {
+                if (!donorId) {
+                    hcAlert('Please select a donor patient.', 'error');
+                    return;
+                }
+            }
+
+            if (!patientType || !['DONOR','RECIPIENT'].includes(patientType)) {
+                hcAlert('Invalid patient type.', 'error');
                 return;
             }
 
             const fd = new FormData();
             fd.append('action', 'submit_test_result');
-            fd.append('donor_id', donorId);
+            fd.append('patient_type', patientType);
+            if (patientType === 'RECIPIENT') {
+                fd.append('recipient_id', recipientId);
+            } else {
+                fd.append('donor_id', donorId);
+            }
             fd.append('test_name', testName);
             fd.append('test_date', testDate);
             fd.append('result_value', resultValue);
@@ -2410,28 +2826,28 @@
                 .catch(() => window.location.reload());
         }
 
-        function deleteLabReport(reportId) {
-            if (confirm('Are you sure you want to delete this lab report?')) {
-                // Submit form to same page
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
+        async function deleteLabReport(reportId) {
+            const ok = await hcConfirm('Are you sure you want to delete this lab report?', { danger: true });
+            if (!ok) return;
 
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_lab_report';
-                form.appendChild(actionInput);
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
 
-                const reportIdInput = document.createElement('input');
-                reportIdInput.type = 'hidden';
-                reportIdInput.name = 'report_id';
-                reportIdInput.value = reportId;
-                form.appendChild(reportIdInput);
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_lab_report';
+            form.appendChild(actionInput);
 
-                document.body.appendChild(form);
-                form.submit();
-            }
+            const reportIdInput = document.createElement('input');
+            reportIdInput.type = 'hidden';
+            reportIdInput.name = 'report_id';
+            reportIdInput.value = reportId;
+            form.appendChild(reportIdInput);
+
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function loadLabReports() {
@@ -2448,8 +2864,69 @@
 
             // Keep visible list for filtering
             window.allVisibleLabReports = visible;
+
+            // Default view
+            if (!window.labAppointmentsView) window.labAppointmentsView = 'scheduled';
             initLabReportsFilters(visible);
             applyLabReportsFilters();
+        }
+
+        function setLabAppointmentsView(view) {
+            const v = (view === 'requested') ? 'requested' : 'scheduled';
+            window.labAppointmentsView = v;
+
+            const scheduledWrap = document.getElementById('lab-scheduled-wrap');
+            const requestedWrap = document.getElementById('lab-requested-wrap');
+            if (scheduledWrap) scheduledWrap.style.display = (v === 'scheduled') ? '' : 'none';
+            if (requestedWrap) requestedWrap.style.display = (v === 'requested') ? '' : 'none';
+
+            const requestedBtn = document.getElementById('lab-requested-tab');
+            if (requestedBtn) {
+                requestedBtn.classList.toggle('btn-primary', v === 'requested');
+                requestedBtn.classList.toggle('btn-secondary', v !== 'requested');
+            }
+
+            applyLabReportsFilters();
+        }
+
+        function updateRequestedAppointmentsTable(requestedReports) {
+            const tableContent = document.querySelector('#lab-requested-table');
+            if (!tableContent) return;
+
+            const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
+            existingRows.forEach(row => row.remove());
+
+            if (!requestedReports || requestedReports.length === 0) {
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                row.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">No requested appointments</div>';
+                tableContent.appendChild(row);
+                return;
+            }
+
+            requestedReports.forEach(report => {
+                const info = parseRescheduleInfo(report && (report.notes ?? report.result_notes));
+                if (!info || !info.proposedDate) return;
+
+                const row = document.createElement('div');
+                row.className = 'table-row';
+                const currentDate = report && report.test_date ? new Date(report.test_date).toLocaleDateString('en-GB') : '';
+                row.innerHTML = `
+                    <div class="table-cell" data-label="Patient ID">${escapeHtml(String(report.patient_id ?? report.donor_id ?? ''))}</div>
+                    <div class="table-cell" data-label="Donor NIC">${escapeHtml(String(report.donor_nic ?? ''))}</div>
+                    <div class="table-cell name" data-label="Donor Name">${escapeHtml(String(report.donor_name ?? ''))}</div>
+                    <div class="table-cell" data-label="Test Type">${escapeHtml(String(report.test_type ?? ''))}</div>
+                    <div class="table-cell" data-label="Current Date">${escapeHtml(String(currentDate))}</div>
+                    <div class="table-cell" data-label="Requested Date"><span style="color: var(--danger-color); font-weight: 900;">${escapeHtml(String(info.proposedDate || ''))}</span></div>
+                    <div class="table-cell" data-label="Reason">${escapeHtml(String(info.reason || ''))}</div>
+                    <div class="table-cell" data-label="Requested At">${escapeHtml(String(info.requestedAt || ''))}</div>
+                    <div class="table-cell" data-label="Actions" style="display: flex; flex-direction: column; gap: 0.35rem; align-items: stretch;">
+                        <button class="btn btn-primary btn-small" onclick="applyRescheduleRequest(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Apply request</button>
+                        <button class="btn btn-secondary btn-small" onclick="declineRescheduleRequest(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Decline</button>
+                    </div>
+                `;
+                tableContent.appendChild(row);
+            });
         }
 
         function initLabReportsFilters(labReports) {
@@ -2484,23 +2961,8 @@
                 };
             }
 
-            // Render donor tabs
+            // Do NOT render all donors by default (show search only)
             tabsWrap.innerHTML = '';
-            donors.forEach(d => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'lab-tab';
-                btn.dataset.donorId = d.id;
-                // Keep it simple: don't show full donor details in the tab
-                btn.textContent = d.name ? d.name : `Donor ${d.id}`;
-                btn.addEventListener('click', () => {
-                    window.labCalState.activeDonorId = d.id;
-                    window.labCalState.selectedDate = '';
-                    window.labCalState.touched = false;
-                    applyLabReportsFilters();
-                });
-                tabsWrap.appendChild(btn);
-            });
 
             // Require explicit selection; auto-select only when there is exactly one donor
             if (!window.labCalState.activeDonorId && donors.length === 1) {
@@ -2514,6 +2976,44 @@
             }
         }
 
+        function getLabDonorMatches(query) {
+            const q = String(query || '').trim().toLowerCase();
+            if (!q || q.length < 1) return [];
+            const donors = window.labDonors || [];
+            return donors.filter(d => {
+                const name = String(d.name || '').toLowerCase();
+                const nic = String(d.nic || '').toLowerCase();
+                const id = String(d.id || '').toLowerCase();
+                return name.includes(q) || nic.includes(q) || id.includes(q);
+            });
+        }
+
+        function renderLabDonorOptions(matches) {
+            const tabsWrap = document.getElementById('lab-donor-tabs');
+            if (!tabsWrap) return;
+
+            tabsWrap.innerHTML = '';
+            (matches || []).slice(0, 25).forEach(d => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'lab-tab';
+                btn.dataset.donorId = d.id;
+                const label = d.name ? String(d.name).trim() : `Donor ${d.id}`;
+                const nic = String(d.nic || '').trim();
+                btn.textContent = nic ? `${label} (${nic})` : label;
+                btn.addEventListener('click', () => {
+                    const searchInput = document.getElementById('lab-donor-search');
+                    if (searchInput) searchInput.value = '';
+                    if (!window.labCalState) window.labCalState = { year: new Date().getFullYear(), month: new Date().getMonth(), selectedDate: '', activeDonorId: '', touched: false };
+                    window.labCalState.activeDonorId = d.id;
+                    window.labCalState.selectedDate = '';
+                    window.labCalState.touched = false;
+                    applyLabReportsFilters();
+                });
+                tabsWrap.appendChild(btn);
+            });
+        }
+
         function applyLabReportsFilters() {
             const labReports = window.allVisibleLabReports || [];
             const searchInput = document.getElementById('lab-donor-search');
@@ -2524,7 +3024,28 @@
             const dateVal = String(state.selectedDate || '').trim();
             const q = searchInput ? String(searchInput.value || '').trim().toLowerCase() : '';
 
-            // update tab active state
+            // Requested Appointments view (donor reschedule requests)
+            if ((window.labAppointmentsView || 'scheduled') === 'requested') {
+                const requested = (labReports || []).filter(r => {
+                    const info = parseRescheduleInfo(r && (r.notes ?? r.result_notes));
+                    return !!(info && info.proposedDate);
+                });
+                updateRequestedAppointmentsTable(requested);
+                return;
+            }
+
+            // When user is typing a donor query, show matching donor options (not all donors)
+            const donorMatches = getLabDonorMatches(q);
+            const treatQueryAsDonorSearch = q.length >= 1 && donorMatches.length > 0;
+            if (treatQueryAsDonorSearch) {
+                renderLabDonorOptions(donorMatches);
+            } else {
+                // Hide options when not actively searching for a donor
+                const tabsWrap = document.getElementById('lab-donor-tabs');
+                if (tabsWrap) tabsWrap.innerHTML = '';
+            }
+
+            // update option active state (if options are currently shown)
             const tabsWrap = document.getElementById('lab-donor-tabs');
             if (tabsWrap) {
                 tabsWrap.querySelectorAll('.lab-tab').forEach(b => {
@@ -2532,11 +3053,17 @@
                 });
             }
 
-            // Require donor selection (as requested)
+            // Only treat the query as a test-type search when it is NOT being used to search donors
+            const testQuery = treatQueryAsDonorSearch ? '' : q;
+
+            // Require donor selection
             if (!donorId) {
-                updateLabReportsTable([]);
-                renderLabCalendar([]);
-                renderLabCalendarDetails([], '', '');
+                updateLabReportsTable([], 'Please Select a Patient');
+                const allForCalendar = testQuery
+                    ? labReports.filter(r => String(r.test_type || '').toLowerCase().includes(testQuery))
+                    : labReports;
+                renderLabCalendar(allForCalendar);
+                renderLabCalendarDetails(allForCalendar, 'All Patients', dateVal);
                 return;
             }
 
@@ -2564,14 +3091,15 @@
             if (dateVal) {
                 filtered = filtered.filter(r => {
                     const d = String(r.test_date || '').slice(0, 10);
-                    return d === dateVal;
+                    const req = getRequestedDate(r);
+                    return d === dateVal || req === dateVal;
                 });
             }
 
-            if (q) {
+            if (testQuery) {
                 filtered = filtered.filter(r => {
                     const tt = String(r.test_type || '').toLowerCase();
-                    return tt.includes(q);
+                    return tt.includes(testQuery);
                 });
             }
 
@@ -2593,6 +3121,30 @@
                 .replace(/'/g, '&#039;');
         }
 
+        function parseRescheduleInfo(notes) {
+            const text = String(notes || '');
+            if (!text) return null;
+
+            // Example:
+            // [Reschedule Request] Proposed date: 2026-04-21 | Reason: ... | Requested at: 2026-04-12 20:13
+            const re = /\[Reschedule Request\]\s*Proposed date:\s*(\d{4}-\d{2}-\d{2})\s*\|\s*Reason:\s*([^|\n]+?)\s*\|\s*Requested at:\s*([^\n]+)/gi;
+            let match;
+            let last = null;
+            while ((match = re.exec(text)) !== null) {
+                last = {
+                    proposedDate: match[1],
+                    reason: (match[2] || '').trim(),
+                    requestedAt: (match[3] || '').trim(),
+                };
+            }
+            return last;
+        }
+
+        function getRequestedDate(report) {
+            const info = parseRescheduleInfo(report && (report.notes ?? report.result_notes));
+            return info && info.proposedDate ? String(info.proposedDate) : '';
+        }
+
         function renderLabCalendarDetails(donorReports, donorDisplay, dateVal) {
             const container = document.getElementById('lab-cal-details');
             if (!container) return;
@@ -2612,7 +3164,11 @@
                 return;
             }
 
-            const rows = (donorReports || []).filter(r => String(r.test_date || '').slice(0, 10) === dateVal);
+            const rows = (donorReports || []).filter(r => {
+                const d = String(r.test_date || '').slice(0, 10);
+                const req = getRequestedDate(r);
+                return d === dateVal || req === dateVal;
+            });
 
             if (rows.length === 0) {
                 container.innerHTML = `
@@ -2628,11 +3184,22 @@
                 .map(r => {
                     const testType = escapeHtml(String(r.test_type || '').trim() || 'Test');
                     const testDate = escapeHtml(String(r.test_date || '').trim() || dateVal);
+                    const showDonor = String(donorDisplay || '').trim().toLowerCase() === 'all patients';
+                    const donorName = showDonor ? escapeHtml(String(r.donor_name || '').trim()) : '';
+                    const donorLine = (showDonor && donorName)
+                        ? `<div class="cal-details-sub">Donor: ${donorName}</div>`
+                        : '';
+                    const info = parseRescheduleInfo(r && (r.notes ?? r.result_notes));
+                    const reqLine = (info && info.proposedDate)
+                        ? `<div class="cal-details-sub" style="color: var(--danger-color); font-weight: 800;">Reschedule requested: ${escapeHtml(info.proposedDate)}${info.reason ? (' — ' + escapeHtml(info.reason)) : ''}</div>`
+                        : '';
                     return `
                         <div class="cal-details-item">
                             <div class="cal-details-left">
                                 <div class="cal-details-test">${testType}</div>
                                 <div class="cal-details-sub">${testDate}</div>
+                                ${donorLine}
+                                ${reqLine}
                             </div>
                         </div>
                     `;
@@ -2675,12 +3242,19 @@
             const todayIso = dateToIso(new Date());
             const selectedIso = String(state.selectedDate || '').trim();
 
-            // Build appointment presence per date (Hospital: single highlight color)
-            const byDate = new Set();
+            // Build appointment presence per date
+            // - scheduled dates: blue
+            // - requested new dates: red (higher priority)
+            const byDateClass = new Map();
             (donorReports || []).forEach(r => {
                 const iso = String(r.test_date || '').slice(0, 10);
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return;
-                byDate.add(iso);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(iso) && !byDateClass.has(iso)) {
+                    byDateClass.set(iso, 'apt-blue');
+                }
+                const req = getRequestedDate(r);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(req)) {
+                    byDateClass.set(req, 'apt-red');
+                }
             });
 
             // Calendar structure: day headers + blanks + days
@@ -2707,8 +3281,8 @@
                 const mm = String(month + 1).padStart(2, '0');
                 const dd = String(day).padStart(2, '0');
                 const iso = `${year}-${mm}-${dd}`;
-                const has = byDate.has(iso);
-                const cls = has ? 'apt-blue' : '';
+                const cls = byDateClass.get(iso) || '';
+                const has = !!cls;
 
                 const cell = document.createElement('div');
                 cell.className = ['cal-day', cls, has ? 'clickable' : ''].filter(Boolean).join(' ');
@@ -2744,7 +3318,7 @@
             applyLabReportsFilters();
         }
 
-        function updateLabReportsTable(labReports) {
+        function updateLabReportsTable(labReports, emptyMessage) {
             const tableContent = document.querySelector('#lab-reports-table');
             if (!tableContent) return;
 
@@ -2769,7 +3343,8 @@
             if (labReports.length === 0) {
                 const row = document.createElement('div');
                 row.className = 'table-row';
-                row.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">No lab reports found</div>';
+                const msg = String(emptyMessage || '').trim() || 'No scheduled appointments';
+                row.innerHTML = `<div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">${escapeHtml(msg)}</div>`;
                 tableContent.appendChild(row);
                 return;
             }
@@ -2777,6 +3352,16 @@
             // Add new rows
             labReports.forEach(report => {
                 const status = normalizeStatus(report);
+                const resInfo = parseRescheduleInfo(report && (report.notes ?? report.result_notes));
+                const requestedHtml = resInfo && resInfo.proposedDate
+                    ? `<div style="margin-top:4px; font-size:12px; color: var(--danger-color); font-weight: 800;">Requested: ${escapeHtml(resInfo.proposedDate)}</div>`
+                    : '';
+                const resActions = resInfo && resInfo.proposedDate
+                    ? `
+                        <button class="btn btn-primary btn-small" onclick="applyRescheduleRequest(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Apply request</button>
+                        <button class="btn btn-secondary btn-small" onclick="declineRescheduleRequest(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Decline</button>
+                    `
+                    : '';
                 const row = document.createElement('div');
                 row.className = 'table-row';
                 row.innerHTML = `
@@ -2784,21 +3369,88 @@
                     <div class="table-cell" data-label="Donor NIC">${report.donor_nic}</div>
                     <div class="table-cell name" data-label="Donor Name">${report.donor_name}</div>
                     <div class="table-cell" data-label="Test Type">${report.test_type}</div>
-                    <div class="table-cell" data-label="Test Date">${new Date(report.test_date).toLocaleDateString('en-GB')}</div>
+                    <div class="table-cell" data-label="Test Date">${new Date(report.test_date).toLocaleDateString('en-GB')}${requestedHtml}</div>
                     <div class="table-cell" data-label="Result Status">
                         <span class="status-badge ${statusClass(status)}">${status}</span>
                     </div>
-                    <div class="table-cell" data-label="Actions" style="display: flex; gap: 0.2rem; align-items: center; flex-wrap: wrap;">
-                        <button class="btn btn-secondary btn-small" onclick="editLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem;">Delete</button>
+                    <div class="table-cell" data-label="Actions" style="display: flex; flex-direction: column; gap: 0.35rem; align-items: stretch;">
+                        <button class="btn btn-secondary btn-small" onclick="editLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteLabReport(${report.id})" style="padding: 4px 8px; font-size: 0.75rem; width: 100%;">Delete</button>
+                        ${resActions}
                     </div>
                 `;
                 tableContent.appendChild(row);
             });
         }
 
-        function approveLabReport(reportId) {
-            if (confirm('Are you sure you want to approve this lab report results?')) {
+        async function applyRescheduleRequest(reportId) {
+            const ok = await (typeof hcConfirm === 'function'
+                ? hcConfirm('Apply the donor\'s requested new date to this appointment?')
+                : Promise.resolve(window.confirm('Apply the donor\'s requested new date to this appointment?')));
+            if (!ok) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'apply_reschedule_request';
+            form.appendChild(actionInput);
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'report_id';
+            idInput.value = reportId;
+            form.appendChild(idInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        async function declineRescheduleRequest(reportId) {
+            const reason = (typeof hcPrompt === 'function')
+                ? await hcPrompt('Decline reschedule request', { placeholder: 'Reason (required)', required: true })
+                : window.prompt('Reason for declining (required):');
+
+            const msg = String(reason || '').trim();
+            if (!msg) return;
+
+            const ok = await (typeof hcConfirm === 'function'
+                ? hcConfirm('Send a decline notification to the donor?', { danger: true })
+                : Promise.resolve(window.confirm('Send a decline notification to the donor?')));
+            if (!ok) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'decline_reschedule_request';
+            form.appendChild(actionInput);
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'report_id';
+            idInput.value = reportId;
+            form.appendChild(idInput);
+
+            const rInput = document.createElement('input');
+            rInput.type = 'hidden';
+            rInput.name = 'reason';
+            rInput.value = msg;
+            form.appendChild(rInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        async function approveLabReport(reportId) {
+            const ok = await hcConfirm('Are you sure you want to approve this lab report results?');
+            if (!ok) return;
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.style.display = 'none';
@@ -2817,11 +3469,11 @@
                 
                 document.body.appendChild(form);
                 form.submit();
-            }
         }
 
-        function rejectLabReport(reportId) {
-            if (confirm('Are you sure you want to reject this lab report results?')) {
+        async function rejectLabReport(reportId) {
+            const ok = await hcConfirm('Are you sure you want to reject this lab report results?', { danger: true });
+            if (!ok) return;
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.style.display = 'none';
@@ -2840,7 +3492,6 @@
                 
                 document.body.appendChild(form);
                 form.submit();
-            }
         }
 
         function editLabReport(reportId) {
@@ -2857,7 +3508,7 @@
 
                 if (!report) {
                     console.error('Report not found');
-                    alert('Report not found');
+                    hcAlert('Report not found', 'error');
                     return;
                 }
 
@@ -2954,7 +3605,7 @@
                 console.log('Modal opened and form populated');
             } catch (error) {
                 console.error('Error in editLabReport:', error);
-                alert('Error opening edit form: ' + error.message);
+                hcAlert('Error opening edit form: ' + error.message, 'error');
             }
         }
 
@@ -3040,81 +3691,173 @@
             });
         }
 
-        function showServerMessage(message, type) {
-            // Remove any existing notifications to prevent stacking
-            const existingNotifications = document.querySelectorAll('.server-notification');
-            existingNotifications.forEach(notification => notification.remove());
+        // Donor-style toast + dialogs (hospital portal)
+        function hcEnsurePopupUI() {
+            if (!document.getElementById('hc-popup-style')) {
+                const style = document.createElement('style');
+                style.id = 'hc-popup-style';
+                style.textContent = `
+                    #hc-toast{position:fixed;top:5.25rem;right:1.5rem;z-index:3000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.15);transform:translateY(-80px);opacity:0;transition:all .35s ease;max-width:320px;}
+                    #hc-toast.show{transform:translateY(0);opacity:1;}
+                    #hc-toast.toast-success{background:#16a34a;color:#fff;}
+                    #hc-toast.toast-error{background:#dc2626;color:#fff;}
+                    #hc-toast.toast-info{background:#2563eb;color:#fff;}
+                    #hc-toast.toast-warning{background:#d97706;color:#fff;}
 
-            const n = document.createElement('div');
-            n.className = 'server-notification';
-            n.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' :
-                    type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' :
-                        type === 'info' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' :
-                            'linear-gradient(135deg, #f59e0b, #d97706)'};
-                color: white;
-                padding: 16px 24px;
-                border-radius: 12px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.1);
-                z-index: 10000;
-                font-weight: 600;
-                font-size: 14px;
-                max-width: 350px;
-                word-wrap: break-word;
-                transform: translateX(120%);
-                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                border: 1px solid rgba(255,255,255,0.2);
-                backdrop-filter: blur(10px);
-                cursor: pointer;
-            `;
-
-            // Add close button
-            n.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; position: relative;">
-                    <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
-                        <span style="font-size: 18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
-                            ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'info' ? 'ℹ️' : '⚠️'}
-                        </span>
-                        <span style="text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${message}</span>
+                    #hc-dialog{position:fixed;inset:0;z-index:3500;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);padding:1.25rem;}
+                    #hc-dialog.show{display:flex;}
+                    #hc-dialog .hc-card{width:min(520px,100%);background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.25);border:1px solid rgba(2,6,23,.08);overflow:hidden;}
+                    #hc-dialog .hc-head{padding:1rem 1.25rem;border-bottom:1px solid rgba(2,6,23,.08);display:flex;align-items:center;justify-content:space-between;gap:.75rem;}
+                    #hc-dialog .hc-title{font-weight:800;font-size:1rem;color:#0f172a;}
+                    #hc-dialog .hc-body{padding:1rem 1.25rem;color:#334155;font-weight:600;}
+                    #hc-dialog .hc-body pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit;}
+                    #hc-dialog .hc-input{margin-top:.75rem;width:100%;padding:.7rem .8rem;border-radius:10px;border:1px solid rgba(2,6,23,.15);outline:none;font-weight:600;}
+                    #hc-dialog .hc-actions{display:flex;justify-content:flex-end;gap:.6rem;padding:1rem 1.25rem;border-top:1px solid rgba(2,6,23,.08);}
+                    #hc-dialog .hc-btn{border:none;border-radius:10px;padding:.65rem 1rem;font-weight:800;cursor:pointer;}
+                    #hc-dialog .hc-btn-cancel{background:#f1f5f9;color:#0f172a;}
+                    #hc-dialog .hc-btn-cancel:hover{background:#e2e8f0;}
+                    #hc-dialog .hc-btn-ok{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;}
+                    #hc-dialog .hc-btn-ok:hover{opacity:.95;}
+                    #hc-dialog .hc-btn-danger{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;}
+                    #hc-dialog .hc-btn-danger:hover{opacity:.95;}
+                `;
+                document.head.appendChild(style);
+            }
+            if (!document.getElementById('hc-toast')) {
+                const t = document.createElement('div');
+                t.id = 'hc-toast';
+                document.body.appendChild(t);
+            }
+            if (!document.getElementById('hc-dialog')) {
+                const d = document.createElement('div');
+                d.id = 'hc-dialog';
+                d.innerHTML = `
+                    <div class="hc-card" role="dialog" aria-modal="true">
+                        <div class="hc-head"><div class="hc-title" id="hcDialogTitle">Message</div></div>
+                        <div class="hc-body"><pre id="hcDialogText"></pre><input id="hcDialogInput" class="hc-input" style="display:none" /></div>
+                        <div class="hc-actions" id="hcDialogActions"></div>
                     </div>
-                    <button onclick="this.parentElement.parentElement.remove()" 
-                            style="background: rgba(255,255,255,0.2); border: none; color: white; 
-                                   border-radius: 50%; width: 24px; height: 24px; cursor: pointer; 
-                                   display: flex; align-items: center; justify-content: center; 
-                                   font-size: 12px; font-weight: bold; transition: background 0.2s;">
-                        ×
-                    </button>
-                </div>
-            `;
+                `;
+                d.addEventListener('click', (e) => { if (e.target === d) hcCloseDialog(); });
+                document.body.appendChild(d);
+            }
+        }
 
-            document.body.appendChild(n);
+        function showServerMessage(message, type) {
+            hcEnsurePopupUI();
+            const t = document.getElementById('hc-toast');
 
-            // Animate in
-            requestAnimationFrame(() => {
-                n.style.transform = 'translateX(0)';
-                n.style.opacity = '1';
+            let cls = 'toast-info';
+            let prefix = 'i ';
+            if (type === 'success') { cls = 'toast-success'; prefix = '✓ '; }
+            else if (type === 'error') { cls = 'toast-error'; prefix = '✕ '; }
+            else if (type === 'warning') { cls = 'toast-warning'; prefix = '! '; }
+
+            t.className = 'show ' + cls;
+            t.innerText = prefix + String(message ?? '');
+            if (window.__hcToastTimer) clearTimeout(window.__hcToastTimer);
+            window.__hcToastTimer = setTimeout(() => { t.className = ''; }, 3500);
+        }
+
+        function hcCloseDialog() {
+            const d = document.getElementById('hc-dialog');
+            if (d) d.classList.remove('show');
+        }
+
+        function hcShowDialog({ title = 'Message', text = '', input = null, okText = 'OK', cancelText = null, danger = false } = {}) {
+            hcEnsurePopupUI();
+            const d = document.getElementById('hc-dialog');
+            const titleEl = document.getElementById('hcDialogTitle');
+            const textEl = document.getElementById('hcDialogText');
+            const inputEl = document.getElementById('hcDialogInput');
+            const actionsEl = document.getElementById('hcDialogActions');
+
+            titleEl.textContent = title;
+            textEl.textContent = String(text ?? '');
+            actionsEl.innerHTML = '';
+
+            if (input !== null) {
+                inputEl.style.display = 'block';
+                inputEl.type = 'text';
+                inputEl.value = String(input.value ?? '');
+                inputEl.placeholder = String(input.placeholder ?? '');
+            } else {
+                inputEl.style.display = 'none';
+                inputEl.value = '';
+            }
+
+            return new Promise((resolve) => {
+                const cleanup = () => document.removeEventListener('keydown', onKey);
+                const finish = (result) => { cleanup(); hcCloseDialog(); resolve(result); };
+                const onKey = (e) => {
+                    if (!d.classList.contains('show')) return;
+                    if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+                    if (e.key === 'Enter' && input !== null) { e.preventDefault(); finish(String(inputEl.value ?? '')); }
+                };
+                document.addEventListener('keydown', onKey);
+
+                if (cancelText) {
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = 'hc-btn hc-btn-cancel';
+                    btnCancel.type = 'button';
+                    btnCancel.textContent = cancelText;
+                    btnCancel.onclick = () => finish(null);
+                    actionsEl.appendChild(btnCancel);
+                }
+
+                const btnOk = document.createElement('button');
+                btnOk.className = 'hc-btn ' + (danger ? 'hc-btn-danger' : 'hc-btn-ok');
+                btnOk.type = 'button';
+                btnOk.textContent = okText;
+                btnOk.onclick = () => {
+                    if (input !== null) return finish(String(inputEl.value ?? ''));
+                    finish(true);
+                };
+                actionsEl.appendChild(btnOk);
+
+                d.classList.add('show');
+                setTimeout(() => { (input !== null ? inputEl : btnOk).focus(); }, 0);
             });
+        }
 
-            // Auto-hide after 3 seconds
-            setTimeout(() => {
-                n.style.transform = 'translateX(120%)';
-                n.style.opacity = '0';
-                setTimeout(() => n.remove(), 400);
-            }, 3000);
+        function hcAlert(text, type = 'info') {
+            const title = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Message';
+            return hcShowDialog({ title, text, okText: 'OK' });
+        }
+        function hcConfirm(text, { danger = false } = {}) {
+            return hcShowDialog({ title: 'Confirm', text, okText: danger ? 'Confirm' : 'OK', cancelText: 'Cancel', danger }).then(v => v === true);
+        }
+        function hcPrompt(text, { placeholder = '', defaultValue = '' } = {}) {
+            return hcShowDialog({ title: 'Input Required', text, input: { placeholder, value: defaultValue }, okText: 'Submit', cancelText: 'Cancel' });
+        }
 
-            // Add hover effect
-            n.addEventListener('mouseenter', () => {
-                n.style.transform = 'translateX(0) scale(1.02)';
-                n.style.boxShadow = '0 15px 35px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.15)';
-            });
+        async function approveSupportRequest(id) {
+            if (!id) return;
+            const ok = await hcConfirm('Approve this support request?');
+            if (!ok) return;
 
-            n.addEventListener('mouseleave', () => {
-                n.style.transform = 'translateX(0) scale(1)';
-                n.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.1)';
-            });
+            const form = document.getElementById('supportRequestActionForm');
+            document.getElementById('supportRequestAction').value = 'approve_support_request';
+            document.getElementById('supportRequestId').value = String(id);
+            document.getElementById('supportRequestRejectReason').value = '';
+            form.submit();
+        }
+
+        async function rejectSupportRequest(id) {
+            if (!id) return;
+            const reason = await hcPrompt('Reason for rejection (required):', { placeholder: 'Type reason...' });
+            if (!reason || String(reason).trim() === '') {
+                await hcAlert('Rejection reason is required.', 'error');
+                return;
+            }
+            const ok = await hcConfirm('Reject this support request?', { danger: true });
+            if (!ok) return;
+
+            const form = document.getElementById('supportRequestActionForm');
+            document.getElementById('supportRequestAction').value = 'reject_support_request';
+            document.getElementById('supportRequestId').value = String(id);
+            document.getElementById('supportRequestRejectReason').value = String(reason).trim();
+            form.submit();
         }
 
         function notify(message, type) {
@@ -3126,6 +3869,26 @@
             const dropdown = document.getElementById('user-dropdown');
             dropdown.classList.toggle('show');
         }
+
+        // Notifications dropdown
+        document.addEventListener('DOMContentLoaded', function () {
+            const bell = document.getElementById('notificationBell');
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!bell || !dropdown) return;
+
+            bell.addEventListener('click', function (e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+            });
+
+            dropdown.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', function () {
+                dropdown.classList.remove('show');
+            });
+        });
 
         function editProfile() {
             document.getElementById('profile-modal').classList.add('show');
@@ -3176,16 +3939,14 @@
         }
 
         function logout() {
-            if (confirm('Are you sure you want to logout?')) {
+            hcConfirm('Are you sure you want to logout?', { danger: true }).then((ok) => {
+                if (!ok) return;
                 showServerMessage('Logging out...', 'info');
-                // Close dropdown
                 document.getElementById('user-dropdown').classList.remove('show');
-
-                // Redirect to actual logout route
                 setTimeout(() => {
                     window.location.href = '<?php echo ROOT; ?>/logout';
                 }, 500);
-            }
+            });
         }
 
         // Close dropdown when clicking outside

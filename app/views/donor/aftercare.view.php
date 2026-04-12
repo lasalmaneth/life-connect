@@ -61,10 +61,21 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <tr>
                                         <td><i class="far fa-clock text-accent"></i> <?= date('M d, Y - h:i A', strtotime($apt->appointment_date)) ?></td>
                                         <td style="font-weight: 600; color: var(--blue-800);"><?= htmlspecialchars($apt->appointment_type) ?></td>
-                                        <td style="color: var(--g500);"><?= htmlspecialchars($apt->description ?: 'N/A') ?></td>
+                                        <td style="color: var(--g500);">
+                                            <?php
+                                                $desc = trim((string)($apt->description ?? ''));
+                                                $rej = trim((string)($apt->rejection_reason ?? ''));
+                                                if (($apt->status ?? '') === 'Cancelled' && $rej !== '') {
+                                                    echo htmlspecialchars(($desc !== '' ? $desc . ' — ' : '') . 'Rejected: ' . $rej);
+                                                } else {
+                                                    echo htmlspecialchars($desc !== '' ? $desc : 'N/A');
+                                                }
+                                            ?>
+                                        </td>
                                         <td>
                                             <?php 
                                                 $statusClass = 'd-status--neutral';
+                                                if ($apt->status === 'Requested') $statusClass = 'd-status--pending';
                                                 if ($apt->status === 'Scheduled') $statusClass = 'd-status--info';
                                                 if ($apt->status === 'Completed') $statusClass = 'd-status--success';
                                                 if ($apt->status === 'Cancelled' || $apt->status === 'Missed') $statusClass = 'd-status--danger';
@@ -111,7 +122,23 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <tr>
                                         <td><i class="far fa-calendar text-accent"></i> <?= date('M d, Y', strtotime($req->created_at)) ?></td>
                                         <td style="font-weight: 500; color: var(--blue-800);"><?= htmlspecialchars($req->reason) ?></td>
-                                        <td style="color: var(--g500);"><?= htmlspecialchars($req->description ?: 'N/A') ?></td>
+                                        <td style="color: var(--g500);">
+                                            <?php
+                                                $fullDesc = (string)($req->description ?? '');
+                                                $markerPos = strpos($fullDesc, '[Hospital Review]');
+                                                $userDesc = $markerPos !== false ? trim(substr($fullDesc, 0, $markerPos)) : trim($fullDesc);
+                                                $reviewReason = '';
+                                                if (preg_match('/\[Hospital Review\][\s\S]*?\nReason:\s*([^\n]+)/i', $fullDesc, $m)) {
+                                                    $reviewReason = trim((string)$m[1]);
+                                                }
+                                            ?>
+                                            <div><?= htmlspecialchars($userDesc !== '' ? $userDesc : 'N/A') ?></div>
+                                            <?php if (strtoupper((string)($req->status ?? '')) === 'REJECTED' && $reviewReason !== ''): ?>
+                                                <div style="margin-top: 6px; color: var(--blue-800); font-weight: 600;">
+                                                    Rejection reason: <?= htmlspecialchars($reviewReason) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php 
                                                 $statusClass = 'd-status--warning'; 

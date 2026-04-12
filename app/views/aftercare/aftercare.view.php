@@ -9,34 +9,62 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aftercare Support | LifeConnect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/donor/donor.css">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/aftercare/aftercare.css">
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/hospital/hospital.css">
+    <style>
+        /* Aftercare page uses Hospital header styles, but must remain scrollable.
+           hospital.css sets body as a fixed-height flex container; override locally. */
+        html { height: auto; }
+        body.aftercare-portal {
+            height: auto;
+            min-height: 100vh;
+            display: block;
+            overflow-y: auto;
+        }
+    </style>
 </head>
-<body>
+<body class="aftercare-portal">
 
-<header class="d-header">
-  <div class="d-header__inner">
-    <div class="logo">
-      <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
-          <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
-          <div>
-            <strong style="display:block; font-size:1.1rem; color:var(--blue-700); line-height:1.2;">LifeConnect</strong>
-            <p style="margin:0; font-size:.68rem; color:var(--g500);">Aftercare Portal</p>
-          </div>
-      </a>
-    </div>
-    <div class="d-header__right">
-      <div class="d-user-chip">
-        <div class="d-user-avatar"><?= strtoupper(substr($patientName, 0, 1)) ?></div>
-        <div>
-          <div class="d-user-chip__name"><?= htmlspecialchars($patientName) ?></div>
-          <div class="d-user-chip__badge" style="background:var(--blue-100); color:var(--blue-700);">RECIPIENT</div>
+<div class="header">
+    <div class="header-content">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <a href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
+                <img src="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px; width: auto;">
+                <div>
+                    <strong style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
+                    <p style="margin:0; font-size:.68rem; color:#6b7280; padding-top:2px;">Aftercare Portal</p>
+                </div>
+            </a>
         </div>
-      </div>
-      <a class="d-btn d-btn--sm d-btn--secondary" href="<?= ROOT ?>/aftercare/logout" style="margin-left: 12px; text-decoration:none;">Logout</a>
+
+        <div class="header-right">
+            <a class="nav-link" href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" title="Home">
+                <i class="fa-solid fa-house"></i>
+                <span>Home</span>
+            </a>
+
+            <button class="notification-bell" type="button" title="Notifications" aria-label="Notifications">
+                <i class="fa-solid fa-bell"></i>
+            </button>
+
+            <div class="user-info" style="cursor: default;">
+                <div class="user-avatar"><?php echo strtoupper(substr($patientName, 0, 1)); ?></div>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="font-size: 0.9rem; font-weight: 600; color: #1e293b;"><?php echo htmlspecialchars($patientName); ?></div>
+                    <div class="user-id-pill">
+                        <i class="fa-solid fa-id-card" style="font-size: 0.65rem;"></i>
+                        <span><?php echo htmlspecialchars((string)($patient->registration_number ?? 'RECIPIENT')); ?></span>
+                    </div>
+                </div>
+                <a class="btn-logout" href="<?= ROOT ?>/aftercare/logout" title="Logout" aria-label="Logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+        </div>
     </div>
-  </div>
-</header>
+</div>
 
 <main class="d-content" style="margin-left: 0;">
     <div class="d-content__header">
@@ -82,7 +110,7 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="appointmentsTableBody">
                                 <?php if (!empty($appointments)): foreach ($appointments as $apt): ?>
                                     <tr>
                                         <td><?= date('M d, Y - h:i A', strtotime($apt->appointment_date)) ?></td>
@@ -136,7 +164,23 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                                     <tr>
                                         <td><?= date('M d, Y', strtotime($req->created_at ?? $req->submitted_date ?? 'now')) ?></td>
                                         <td style="font-weight: 500; color: var(--blue-800);"><?= htmlspecialchars($req->reason) ?></td>
-                                        <td style="color: var(--g500);"><?= htmlspecialchars($req->description ?: 'N/A') ?></td>
+                                        <td style="color: var(--g500);">
+                                            <?php
+                                                $fullDesc = (string)($req->description ?? '');
+                                                $markerPos = strpos($fullDesc, '[Hospital Review]');
+                                                $userDesc = $markerPos !== false ? trim(substr($fullDesc, 0, $markerPos)) : trim($fullDesc);
+                                                $reviewReason = '';
+                                                if (preg_match('/\[Hospital Review\][\s\S]*?\nReason:\s*([^\n]+)/i', $fullDesc, $m)) {
+                                                    $reviewReason = trim((string)$m[1]);
+                                                }
+                                            ?>
+                                            <div><?= htmlspecialchars($userDesc !== '' ? $userDesc : 'N/A') ?></div>
+                                            <?php if (strtoupper((string)($req->status ?? '')) === 'REJECTED' && $reviewReason !== ''): ?>
+                                                <div style="margin-top: 6px; color: var(--blue-800); font-weight: 600;">
+                                                    Rejection reason: <?= htmlspecialchars($reviewReason) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php
                                                 $status = (string)($req->status ?: 'PENDING');
@@ -426,12 +470,65 @@ function submitAppointment(e) {
         if (data.success) {
             alert('Appointment booked successfully!');
             closeAppointmentModal();
-            location.reload();
+
+            if (data.appointment) {
+                // Update calendar dataset in-place
+                appointmentsData.push({
+                    date: data.appointment.date,
+                    time: data.appointment.time,
+                    type: data.appointment.type,
+                    description: data.appointment.description || '',
+                    status: data.appointment.status
+                });
+                calendar.render();
+
+                // Update appointments table
+                const tbody = document.getElementById('appointmentsTableBody');
+                if (tbody) {
+                    // Remove the empty-state row if present
+                    const emptyRow = tbody.querySelector('tr td[colspan="4"]');
+                    if (emptyRow) {
+                        tbody.innerHTML = '';
+                    }
+
+                    const status = (data.appointment.status || 'Scheduled');
+                    let statusClass = 'd-status--neutral';
+                    if (status === 'Scheduled') statusClass = 'd-status--info';
+                    if (status === 'Completed') statusClass = 'd-status--success';
+                    if (status === 'Cancelled' || status === 'Missed') statusClass = 'd-status--danger';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${data.appointment.datetime_display || ''}</td>
+                        <td style="font-weight: 600; color: var(--blue-800);">${escapeHtml(data.appointment.type || '')}</td>
+                        <td style="color: var(--g500);">${escapeHtml((data.appointment.description || '') || 'N/A')}</td>
+                        <td>
+                            <div class="d-status ${statusClass}" style="display: inline-flex; padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <div class="d-status__dot"></div>
+                                ${escapeHtml(status)}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            } else {
+                // Fallback for older API responses
+                location.reload();
+            }
         } else {
             alert('Error: ' + (data.message || 'Unable to book appointment'));
         }
     })
     .catch(() => alert('An error occurred while booking the appointment'));
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 function openSupportRequestModal() {

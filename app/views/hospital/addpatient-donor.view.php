@@ -158,7 +158,7 @@
                     document.getElementById('grant-access-btn').style.display = 'none';
                 }
             } catch (e) {
-                alert('Connection error occurred.');
+                hcAlert('Connection error occurred.', 'error');
             }
         }
 
@@ -171,5 +171,9 @@
             }
         });
     </script>
+
+    <?php
+        require_once __DIR__ . '/footer.php';
+    ?>
 </body>
 </html>

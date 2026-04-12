@@ -114,6 +114,24 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="data-table" style="margin-top: 24px;">
+                            <div class="table-header">
+                                <h4>Aftercare Appointments</h4>
+                            </div>
+                            <div class="table-content" id="aftercare-requests-table">
+                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                    <div class="table-cell">Appointment ID</div>
+                                    <div class="table-cell">Patient NIC</div>
+                                    <div class="table-cell">Patient Name</div>
+                                    <div class="table-cell">Requested Date</div>
+                                    <div class="table-cell">Type</div>
+                                    <div class="table-cell">Reason</div>
+                                    <div class="table-cell">Status</div>
+                                    <div class="table-cell">Actions</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -253,11 +271,16 @@
 
                     let html = '';
                     donors.forEach(donor => {
+                        const donorId = Number(donor.id || 0);
+                        const donorCode = donorId > 0 ? ('D_' + String(donorId).padStart(5, '0')) : '';
+                        const nic = String(donor.nic_number || '');
+                        const name = `${donor.first_name || ''} ${donor.last_name || ''}`.trim();
+
                         html += `
                 <div style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer;"
-                     onclick="selectDonor('${donor.nic_number}', '${donor.first_name} ${donor.last_name}', ${donor.id})">
-                    <strong>${donor.first_name} ${donor.last_name}</strong><br>
-                    <small style="color: #666;">NIC: ${donor.nic_number}</small>
+                     onclick="selectDonor('${nic}', '${name.replace(/'/g, "\\'")}', ${donorId})">
+                    <strong>${name || '—'}</strong><br>
+                    <small style="color: #666;">${donorCode ? ('ID: ' + donorCode + ' · ') : ''}NIC: ${nic || '—'}</small>
                 </div>
             `;
                     });
@@ -267,9 +290,10 @@
                 }
 
                 function selectDonor(nic, name, donorId) {
-                    document.getElementById('donor-search').value = name + ' (' + nic + ')';
+                    const code = donorId ? ('D_' + String(donorId).padStart(5, '0')) : '';
+                    document.getElementById('donor-search').value = name + (nic ? (' (' + nic + ')') : '');
                     document.getElementById('selected-donor-id').value = donorId;
-                    document.getElementById('selected-donor-name').textContent = name + ' - ' + nic;
+                    document.getElementById('selected-donor-name').textContent = (code ? (code + ' · ') : '') + name + (nic ? (' · ' + nic) : '');
                     document.getElementById('selected-donor-info').style.display = 'block';
                     document.getElementById('donor-search-results').style.display = 'none';
                 }
@@ -282,7 +306,7 @@
                     const notes = document.getElementById('notes').value;
 
                     if (!donorId || !testType || !testDate || !status) {
-                        alert('Please fill in all required fields');
+                        hcAlert('Please fill in all required fields', 'error');
                         return;
                     }
 
@@ -316,6 +340,92 @@
                     window.allScheduledAppointments = appointments || [];
                     console.log('Loaded scheduled appointments:', window.allScheduledAppointments);
                     updateScheduledAppointmentsTable(window.allScheduledAppointments);
+
+                    const aftercare = <?php echo json_encode($aftercare_appointments ?? []); ?>;
+                    window.aftercareRequests = aftercare || [];
+                    updateAftercareRequestsTable(window.aftercareRequests);
+                }
+
+                function updateAftercareRequestsTable(items) {
+                    const tableContent = document.querySelector('#aftercare-requests-table');
+                    if (!tableContent) return;
+
+                    const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
+                    existingRows.forEach(row => row.remove());
+
+                    if (!items || items.length === 0) {
+                        const emptyRow = document.createElement('div');
+                        emptyRow.className = 'table-row';
+                        emptyRow.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">No aftercare appointment requests.</div>';
+                        tableContent.appendChild(emptyRow);
+                        return;
+                    }
+
+                    items.forEach(apt => {
+                        const row = document.createElement('div');
+                        row.className = 'table-row';
+                        const dateText = apt.appointment_date ? new Date(apt.appointment_date).toLocaleString('en-GB') : '';
+                        const status = apt.status || '';
+                        const isRequested = String(status).toLowerCase() === 'requested';
+                        const statusClass = isRequested ? 'status-pending' : (String(status).toLowerCase() === 'scheduled' ? 'status-success' : 'status-danger');
+                        const reason = apt.rejection_reason ? String(apt.rejection_reason) : '';
+                        const desc = apt.description ? String(apt.description) : '';
+                        const reasonHtml = (String(status).toLowerCase() === 'cancelled' && reason) ? (desc ? (desc + ' — ') : '') + ('Rejected: ' + reason) : desc;
+                        row.innerHTML = `
+                            <div class="table-cell" data-label="Appointment ID">${apt.appointment_id ?? ''}</div>
+                            <div class="table-cell name" data-label="Patient NIC">${apt.patient_id ?? ''}</div>
+                            <div class="table-cell" data-label="Patient Name">${apt.patient_name ?? ''}</div>
+                            <div class="table-cell" data-label="Requested Date">${dateText}</div>
+                            <div class="table-cell" data-label="Type">${apt.appointment_type ?? ''}</div>
+                            <div class="table-cell" data-label="Reason">${reasonHtml || ''}</div>
+                            <div class="table-cell" data-label="Status"><span class="status-badge ${statusClass}">${status}</span></div>
+                            <div class="table-cell" data-label="Actions">
+                                ${isRequested ? `
+                                    <div style="display:flex; flex-direction:column; gap:8px;">
+                                        <button class="btn btn-success btn-small" onclick="acceptAftercareRequest(${apt.appointment_id})">Accept</button>
+                                        <button class="btn btn-danger btn-small" onclick="rejectAftercareRequest(${apt.appointment_id})">Reject</button>
+                                    </div>
+                                ` : '<span style="align-self:center; color:#64748b; font-weight:600;">No actions</span>'}
+                            </div>
+                        `;
+                        tableContent.appendChild(row);
+                    });
+                }
+
+                function postAftercareAction(action, appointmentId, extra = {}) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.style.display = 'none';
+
+                    const fields = Object.assign({
+                        action,
+                        appointment_id: String(appointmentId || '')
+                    }, extra);
+
+                    Object.entries(fields).forEach(([k, v]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = k;
+                        input.value = String(v ?? '');
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+
+                async function acceptAftercareRequest(appointmentId) {
+                    const ok = await hcConfirm('Accept this aftercare appointment request?');
+                    if (!ok) return;
+                    postAftercareAction('accept_aftercare_appointment', appointmentId);
+                }
+
+                async function rejectAftercareRequest(appointmentId) {
+                    const ok = await hcConfirm('Reject this aftercare appointment request?', { danger: true });
+                    if (!ok) return;
+                    const reason = await hcPrompt('Enter rejection reason (required):', { required: true });
+                    if (!reason) return;
+                    postAftercareAction('reject_aftercare_appointment', appointmentId, { reason });
                 }
 
                 function statusBadgeClass(status) {
@@ -323,6 +433,25 @@
                     if (s.includes('approved')) return 'status-success';
                     if (s.includes('rejected')) return 'status-danger';
                     return 'status-pending';
+                }
+
+                function parseRescheduleInfo(notes) {
+                    const text = String(notes || '');
+                    if (!text) return null;
+
+                    // Example line:
+                    // [Reschedule Request] Proposed date: 2026-04-30 | Reason: ... | Requested at: 2026-04-12 20:13
+                    const re = /\[Reschedule Request\]\s*Proposed date:\s*(\d{4}-\d{2}-\d{2})\s*\|\s*Reason:\s*([^|\n]+?)\s*\|\s*Requested at:\s*([^\n]+)/gi;
+                    let match;
+                    let last = null;
+                    while ((match = re.exec(text)) !== null) {
+                        last = {
+                            proposedDate: match[1],
+                            reason: (match[2] || '').trim(),
+                            requestedAt: (match[3] || '').trim(),
+                        };
+                    }
+                    return last;
                 }
 
                 function updateScheduledAppointmentsTable(appointments) {
@@ -344,16 +473,21 @@
                         const row = document.createElement('div');
                         row.className = 'table-row';
                         const dateText = apt.test_date ? new Date(apt.test_date).toLocaleDateString('en-GB') : '';
+                        const res = parseRescheduleInfo(apt.notes);
+                        const resHtml = res ? `<div style="margin-top:4px; font-size:12px; color:#0b4a86; font-weight:600;">Requested: ${res.proposedDate}</div>` : '';
+                        const notesHtml = res
+                            ? `<div style="white-space:pre-wrap;">${apt.notes ?? ''}</div>`
+                            : `${apt.notes ?? ''}`;
                         row.innerHTML = `
                 <div class="table-cell" data-label="Appointment ID">${apt.appointment_id ?? ''}</div>
                 <div class="table-cell name" data-label="Donor NIC">${apt.donor_nic ?? ''}</div>
                 <div class="table-cell" data-label="Donor Name">${apt.donor_name ?? ''}</div>
                 <div class="table-cell" data-label="Test Type">${apt.test_type ?? ''}</div>
-                <div class="table-cell" data-label="Scheduled Date">${dateText}</div>
+                <div class="table-cell" data-label="Scheduled Date">${dateText}${resHtml}</div>
                 <div class="table-cell" data-label="Status">
                     <span class="status-badge ${statusBadgeClass(apt.status)}">${apt.status ?? ''}</span>
                 </div>
-                <div class="table-cell" data-label="Notes">${apt.notes ?? ''}</div>
+                <div class="table-cell" data-label="Notes">${notesHtml}</div>
                 <div class="table-cell" data-label="Actions">
                     <button class="btn btn-danger btn-small" onclick="deleteScheduledAppointment(${apt.appointment_id})" style="white-space: nowrap;">Delete</button>
                 </div>
@@ -383,8 +517,9 @@
                     updateScheduledAppointmentsTable(filtered);
                 }
 
-                function deleteScheduledAppointment(appointmentId) {
-                    if (!confirm('Are you sure you want to delete this appointment?')) return;
+                async function deleteScheduledAppointment(appointmentId) {
+                    const ok = await hcConfirm('Are you sure you want to delete this appointment?', { danger: true });
+                    if (!ok) return;
 
                     const form = document.createElement('form');
                     form.method = 'POST';

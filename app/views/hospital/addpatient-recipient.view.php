@@ -190,13 +190,15 @@
             const text = `Aftercare Portal Credentials\nRegistration Number: ${reg}\nPassword: ${pass}`;
 
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).then(() => alert('Credentials copied.')).catch(() => alert('Copy failed.'));
+                navigator.clipboard.writeText(text)
+                    .then(() => showServerMessage('Credentials copied.', 'success'))
+                    .catch(() => showServerMessage('Copy failed.', 'error'));
             } else {
                 const ta = document.createElement('textarea');
                 ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
-                try { document.execCommand('copy'); alert('Credentials copied.'); } catch(e) { alert('Copy failed.'); }
+                try { document.execCommand('copy'); showServerMessage('Credentials copied.', 'success'); } catch(e) { showServerMessage('Copy failed.', 'error'); }
                 ta.remove();
             }
         }
@@ -234,5 +236,9 @@
             w.print();
         }
     </script>
+
+    <?php
+        require_once __DIR__ . '/footer.php';
+    ?>
 </body>
 </html>

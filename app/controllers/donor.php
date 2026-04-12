@@ -68,6 +68,21 @@ class Donor {
                 [':uid' => (int)$_SESSION['user_id']]
             );
             $donorData['aftercare_access'] = !empty($userRow) ? (int)($userRow[0]->aftercare_access ?? 0) : 0;
+        } else {
+            // Fallback for schemas without users.aftercare_access:
+            // When the hospital grants donor aftercare access it upserts a DONOR row into aftercare_patients.
+            $nic = trim((string)($donorData['nic_number'] ?? ''));
+            if ($nic !== '') {
+                try {
+                    $row = $this->query(
+                        "SELECT 1 FROM aftercare_patients WHERE nic = :nic AND patient_type = 'DONOR' AND status = 'ACTIVE' LIMIT 1",
+                        [':nic' => $nic]
+                    );
+                    $donorData['aftercare_access'] = !empty($row) ? 1 : 0;
+                } catch (\Throwable $e) {
+                    $donorData['aftercare_access'] = 0;
+                }
+            }
         }
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
@@ -77,11 +92,8 @@ class Donor {
         $donorIdDisplay = 'D_' . str_pad($rawId, 5, '0', STR_PAD_LEFT);
         $donorRole = "Registered Donor";
 
-        // Parse active roles
-        $activeRoles = [];
-        if (!empty($donorData['active_roles'])) {
-            $activeRoles = json_decode($donorData['active_roles'], true) ?: [];
-        }
+        // Parse active roles (supports older schemas without active_roles)
+        $activeRoles = $donorModel->getActiveRoles($donorId);
 
         // Determine current portal mode (Organ vs Financial)
         $currentMode = $_SESSION['donor_portal_mode'] ?? null;
@@ -291,51 +303,74 @@ class Donor {
         if (session_status() === PHP_SESSION_NONE) session_start();
         header('Content-Type: application/json');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-            exit;
-        }
-
-        $roles = $_POST['roles'] ?? [];
-        if (!is_array($roles)) $roles = [$roles];
-
-        $donorId = $this->getDonorId();
-        $donorModel = new \App\Models\DonorModel();
-
-        // Enforce role exclusivity and consent requirements
-        $isNonDonorRequested = in_array('non', $roles);
-        $isOrganDonorRequested = in_array('organ', $roles);
-
-        if ($isNonDonorRequested && !$isOrganDonorRequested) {
-            // If switching to Non-Donor, ensure Organ role is removed
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
-        }
-
-        // Check if Organ Donor role is being removed
-        $currentRoles = $donorModel->getActiveRoles($donorId);
-        $wasOrganDonor = in_array('organ', $currentRoles);
-        $isOrganDonorNow = in_array('organ', $roles);
-
-        if ($wasOrganDonor && !$isOrganDonorNow) {
-            $summary = $donorModel->getPledgeSummary($donorId);
-            if ($summary['total'] > 0) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
-                ]);
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_SESSION['user_id'])) {
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit;
             }
-        } else if ($isOrganDonorRequested) {
-            // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
+
+            $roles = $_POST['roles'] ?? [];
+            if (!is_array($roles)) $roles = [$roles];
+            $roles = array_values(array_unique(array_filter(array_map(function ($r) {
+                return is_string($r) ? strtolower(trim($r)) : '';
+            }, $roles))));
+
+            if (empty($roles)) {
+                echo json_encode(['success' => false, 'message' => 'No roles selected']);
+                exit;
+            }
+
+            $donorModel = new \App\Models\DonorModel();
+            $donorRow = $donorModel->getDonorByUserId((int)$_SESSION['user_id']);
+            if (!$donorRow) {
+                echo json_encode(['success' => false, 'message' => 'Donor profile not found']);
+                exit;
+            }
+            $donorId = (int)($donorRow->id ?? $donorRow->donor_id ?? 0);
+            if ($donorId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Donor profile not found']);
+                exit;
+            }
+            $_SESSION['donor_id'] = $donorId;
+
+            // Enforce role exclusivity and consent requirements
+            $isNonDonorRequested = in_array('non', $roles, true);
+            $isOrganDonorRequested = in_array('organ', $roles, true);
+
+            if ($isNonDonorRequested && !$isOrganDonorRequested) {
+                // If switching to Non-Donor, ensure Organ role is removed
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
+            }
+
+            // Check if Organ Donor role is being removed
+            $currentRoles = $donorModel->getActiveRoles($donorId);
+            $wasOrganDonor = in_array('organ', $currentRoles, true);
+            $isOrganDonorNow = in_array('organ', $roles, true);
+
+            if ($wasOrganDonor && !$isOrganDonorNow) {
+                $summary = $donorModel->getPledgeSummary($donorId);
+                if (!empty($summary['total'])) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
+                    ]);
+                    exit;
+                }
+            } else if ($isOrganDonorRequested) {
+                // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
+            }
+
+            if ($donorModel->updateActiveRoles($donorId, $roles)) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update roles']);
+            }
+            exit;
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Server error']);
+            exit;
         }
-        
-        if ($donorModel->updateActiveRoles($donorId, $roles)) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update roles']);
-        }
-        exit;
     }
 
     /**
@@ -1422,6 +1457,7 @@ class Donor {
             'current_mode' => $currentMode,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
+            'hospitals' => $approvedHospitals,
             'withdrawal' => $common['withdrawal'],
             'active_page' => 'aftercare',
             'page_title' => 'Aftercare Support',
@@ -1440,8 +1476,15 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
+
+            if (empty($nic)) {
+                echo json_encode(['success' => false, 'message' => 'Donor NIC not found']);
+                exit;
+            }
 
             $date = $_POST['appointment_date'] ?? '';
             $type = $_POST['appointment_type'] ?? '';
@@ -1453,22 +1496,43 @@ class Donor {
                 exit;
             }
 
+            // Normalize HTML <input type="datetime-local"> value (e.g. 2026-04-12T09:00)
+            $date = trim((string)$date);
+            $date = str_replace('T', ' ', $date);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $date .= ' 09:00:00';
+            } elseif (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $date)) {
+                $date .= ':00';
+            }
+
+            $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $date);
+            if (!$dt) {
+                echo json_encode(['success' => false, 'message' => 'Invalid appointment date/time']);
+                exit;
+            }
+            $mysqlDate = $dt->format('Y-m-d H:i:s');
+
+            // Ensure schema supports request workflow
+            $hospitalModel = new \App\Models\HospitalModel();
+            $hospitalModel->ensureAftercareAppointmentsSchema();
+
             $this->query(
                 "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status) 
-                 VALUES (:nic, :name, :host, :date, :type, :desc, 'Scheduled')",
+                 VALUES (:nic, :name, :host, :date, :type, :desc, 'Requested')",
                 [
                     ':nic' => $nic,
                     ':name' => $donorFullName,
                     ':host' => $hospitalRegistrationNo,
-                    ':date' => $date,
+                    ':date' => $mysqlDate,
                     ':type' => $type,
                     ':desc' => $desc
                 ]
             );
 
             echo json_encode(['success' => true]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Database error']);
+        } catch (\Throwable $e) {
+            error_log('Donor::createAppointment error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Server error']);
         }
         exit;
     }
@@ -1483,8 +1547,15 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
+
+            if (empty($nic)) {
+                echo json_encode(['success' => false, 'message' => 'Donor NIC not found']);
+                exit;
+            }
 
             $reason = $_POST['reason'] ?? '';
             $desc = $_POST['description'] ?? '';
@@ -1510,8 +1581,8 @@ class Donor {
             );
 
             echo json_encode(['success' => true]);
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Database error']);
+        } catch (\Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Server error']);
         }
         exit;
     }

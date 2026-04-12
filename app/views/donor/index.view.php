@@ -3,6 +3,13 @@
  * Donor Portal — Overview Page
  */
 
+// Normalize notifications to arrays (some queries return stdClass rows)
+if (!empty($notifications) && is_array($notifications)) {
+    foreach ($notifications as $i => $row) {
+        if (is_object($row)) $notifications[$i] = (array)$row;
+    }
+}
+
 // Age calculation
 $age = 0;
 if (!empty($donor_data['date_of_birth'])) {
@@ -170,8 +177,9 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <ul class="d-timeline">
                             <?php foreach (array_slice($notifications, 0, 4) as $notif): ?>
                                 <li>
-                                    <div class="d-timeline__date"><?= date('M d, Y', strtotime($notif['created_at'])) ?></div>
-                                    <div class="d-timeline__content"><?= htmlspecialchars($notif['message']) ?></div>
+                                    <?php if (is_object($notif)) $notif = (array)$notif; ?>
+                                    <div class="d-timeline__date"><?= !empty($notif['created_at'] ?? null) ? date('M d, Y', strtotime($notif['created_at'])) : '' ?></div>
+                                    <div class="d-timeline__content"><?= htmlspecialchars($notif['message'] ?? ($notif['title'] ?? '')) ?></div>
                                 </li>
                             <?php endforeach; ?>
                         </ul>

@@ -34,7 +34,7 @@
 
                         <div class="data-table">
                             <div class="table-header">
-                                <h4>Pending Eligibility Reviews</h4>
+                                <h4>Eligibility Reviews</h4>
                             </div>
                             <div class="table-content">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
@@ -47,6 +47,7 @@
 
                                 <?php if (!empty($eligibility_pledges ?? [])): ?>
                                     <?php foreach (($eligibility_pledges ?? []) as $p): ?>
+                                        <?php $pledgeStatus = strtoupper(trim((string)($p->status ?? ''))); ?>
                                         <div class="table-row">
                                             <div class="table-cell name" data-label="Donor Details">
                                                 NIC <?= htmlspecialchars($p->nic_number ?? 'N/A') ?> -
@@ -54,18 +55,34 @@
                                             </div>
                                             <div class="table-cell" data-label="Organ Type"><?= htmlspecialchars($p->organ_name ?? 'N/A') ?></div>
                                             <div class="table-cell" data-label="Test Date"><?= htmlspecialchars(isset($p->pledge_date) ? date('Y-m-d', strtotime($p->pledge_date)) : 'N/A') ?></div>
-                                            <div class="table-cell" data-label="Current Status"><span class="status-badge status-pending">Under Review</span></div>
+                                            <div class="table-cell" data-label="Current Status">
+                                                <?php if ($pledgeStatus === 'PENDING'): ?>
+                                                    <span class="status-badge status-pending">Pending Upload</span>
+                                                <?php elseif ($pledgeStatus === 'UPLOADED'): ?>
+                                                    <span class="status-badge status-pending">Under Review</span>
+                                                <?php elseif ($pledgeStatus === 'APPROVED'): ?>
+                                                    <span class="status-badge status-success">Approved</span>
+                                                <?php elseif ($pledgeStatus === 'IN_PROGRESS'): ?>
+                                                    <span class="status-badge status-active">In Progress</span>
+                                                <?php else: ?>
+                                                    <span class="status-badge status-pending"><?= htmlspecialchars($pledgeStatus ?: 'UNKNOWN') ?></span>
+                                                <?php endif; ?>
+                                            </div>
                                             <div class="table-cell" data-label="Actions">
-                                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
-                                                    <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Approve</button>
-                                                    <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Reject</button>
-                                                </div>
+                                                <?php if ($pledgeStatus === 'UPLOADED'): ?>
+                                                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
+                                                        <button class="btn btn-success btn-small" onclick="approveEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Approve</button>
+                                                        <button class="btn btn-danger btn-small" onclick="rejectEligibility('<?= (int)($p->pledge_id ?? 0) ?>')" style="white-space: nowrap;">Reject</button>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span style="color:#64748b; font-weight:600;">No actions</span>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <div class="table-row">
-                                        <div class="table-cell" style="text-align: center; color: #999; grid-column: 1 / -1;">No approved donor pledges assigned to this hospital.</div>
+                                        <div class="table-cell" style="text-align: center; color: #999; grid-column: 1 / -1;">No eligibility pledges found for this hospital.</div>
                                     </div>
                                 <?php endif; ?>
                             </div>
@@ -80,18 +97,49 @@
         <p style="margin: 0; font-size: 14px;">Copyright © 2025 Ministry of Health - LifeConnect Sri Lanka</p>
     </footer>
 
+    <form id="eligibilityActionForm" method="POST" action="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/hospital/eligibility" style="display:none">
+        <input type="hidden" name="action" id="eligibilityAction" value="">
+        <input type="hidden" name="pledge_id" id="eligibilityPledgeId" value="">
+    </form>
+
+    <?php require_once __DIR__ . '/footer.php'; ?>
+
     <script>
-                function approveEligibility() { 
-            showServerMessage('Donor eligibility approved and updated in database', 'success'); 
+        function postEligibilityAction(action, pledgeId) {
+            const form = document.getElementById('eligibilityActionForm');
+            const actionInput = document.getElementById('eligibilityAction');
+            const pledgeInput = document.getElementById('eligibilityPledgeId');
+
+            if (!form || !actionInput || !pledgeInput) {
+                showServerMessage('Unable to submit action.', 'error');
+                return;
+            }
+
+            actionInput.value = String(action || '');
+            pledgeInput.value = String(pledgeId || '');
+            showServerMessage('Updating eligibility...', 'info');
+            form.submit();
         }
-        
-        function rejectEligibility() { 
-            showServerMessage('Donor eligibility rejected and status updated', 'error'); 
+
+        function approveEligibility(pledgeId) {
+            const id = parseInt(pledgeId, 10) || 0;
+            if (!id) return showServerMessage('Invalid pledge.', 'error');
+
+            hcConfirm('Approve this donor eligibility?').then((ok) => {
+                if (!ok) return;
+                postEligibilityAction('approve_eligibility', id);
+            });
+        }
+
+        function rejectEligibility(pledgeId) {
+            const id = parseInt(pledgeId, 10) || 0;
+            if (!id) return showServerMessage('Invalid pledge.', 'error');
+
+            hcConfirm('Reject this donor eligibility?', { danger: true }).then((ok) => {
+                if (!ok) return;
+                postEligibilityAction('reject_eligibility', id);
+            });
         }
     </script>
-
-    <?php
-        require_once __DIR__ . '/footer.php';
-    ?>
 </body>
 </html>

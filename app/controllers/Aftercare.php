@@ -108,6 +108,20 @@ class Aftercare
                 exit;
             }
 
+            $date = trim($date);
+            $date = str_replace('T', ' ', $date); // normalize HTML datetime-local
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $date)) {
+                $date .= ':00';
+            }
+
+            $dt = \DateTime::createFromFormat('Y-m-d H:i:s', $date);
+            if (!$dt) {
+                echo json_encode(['success' => false, 'message' => 'Invalid appointment date/time']);
+                exit;
+            }
+
+            $mysqlDate = $dt->format('Y-m-d H:i:s');
+
             $patientModel->query(
                 "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status)
                  VALUES (:nic, :name, :hosp, :date, :type, :desc, 'Scheduled')",
@@ -115,13 +129,23 @@ class Aftercare
                     ':nic' => (string)$patient->nic,
                     ':name' => (string)$patient->full_name,
                     ':hosp' => $hospitalRegistrationNo,
-                    ':date' => $date,
+                    ':date' => $mysqlDate,
                     ':type' => $type,
                     ':desc' => $desc,
                 ]
             );
 
-            echo json_encode(['success' => true]);
+            echo json_encode([
+                'success' => true,
+                'appointment' => [
+                    'date' => $dt->format('Y-m-d'),
+                    'time' => $dt->format('h:i A'),
+                    'datetime_display' => $dt->format('M d, Y - h:i A'),
+                    'type' => $type,
+                    'description' => $desc,
+                    'status' => 'Scheduled',
+                ],
+            ]);
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => 'Database error']);
         }

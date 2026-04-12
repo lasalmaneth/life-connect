@@ -10,6 +10,17 @@
             <span class="icon"><i class="fas fa-chart-line"></i></span>
             <span>Main Dashboard</span>
         </a>
+
+        <a href="<?php echo ROOT; ?>/hospital/notifications" class="menu-item <?php echo ($current_page === 'notifications') ? 'active' : ''; ?>">
+            <span class="icon"><i class="fas fa-bell"></i></span>
+            <span style="flex:1;">Notifications</span>
+            <?php if (!empty($unread_count ?? 0)): ?>
+                <span style="display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--danger-color); color:var(--white-color); font-size:.7rem; font-weight:900;">
+                    <?php echo (int)($unread_count ?? 0); ?>
+                </span>
+            <?php endif; ?>
+        </a>
+
         <a href="<?php echo ROOT; ?>/hospital/organ-requests" class="menu-item <?php echo ($current_page === 'organ-requests') ? 'active' : ''; ?>">
             <span class="icon"><i class="fas fa-heart"></i></span>
             <span>Organ Requests</span>
