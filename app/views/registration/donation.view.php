@@ -14,55 +14,55 @@ require __DIR__ . '/partials/header.view.php';
 
   <div class="section-div">Donation Roles You Can Register For</div>
 
-  <div class="don-option dis info-mode" style="opacity: 1; cursor: default; border-color: #e5e7eb;">
+  <div class="don-option dis info-mode" onclick="toggleInfo(this)" style="opacity: 1; cursor: pointer; border-color: #e5e7eb;">
     <div class="don-content">
       <div class="don-lbl">
         Financial Donation
-        <i class="fas fa-info-circle info-icon" onclick="toggleInfo(this)"></i>
+        <i class="fas fa-info-circle info-icon"></i>
       </div>
       <div class="don-desc">Contribute financially to support patient care programs, awareness initiatives, and medical research activities.</div>
       <div class="expandable-content">Financial donors help support treatment assistance programs, outreach activities, and hospital-led research initiatives.</div>
     </div>
   </div>
 
-  <div class="don-option dis info-mode" style="opacity: 1; cursor: default; border-color: #e5e7eb;">
+  <div class="don-option dis info-mode" onclick="toggleInfo(this)" style="opacity: 1; cursor: pointer; border-color: #e5e7eb;">
     <div class="don-content">
       <div class="don-lbl">
         Living Organ Donation
-        <i class="fas fa-info-circle info-icon" onclick="toggleInfo(this)"></i>
+        <i class="fas fa-info-circle info-icon"></i>
       </div>
       <div class="don-desc">Register as a living organ donor (for example, kidney donation) after completing eligibility screening and medical approval procedures.</div>
       <div class="expandable-content">Living organ donation involves donating specific organs while alive, subject to detailed medical evaluation and approval by specialists.</div>
     </div>
   </div>
 
-  <div class="don-option dis info-mode" style="opacity: 1; cursor: default; border-color: #e5e7eb;">
+  <div class="don-option dis info-mode" onclick="toggleInfo(this)" style="opacity: 1; cursor: pointer; border-color: #e5e7eb;">
     <div class="don-content">
       <div class="don-lbl">
         Deceased Organ Donation
-        <i class="fas fa-info-circle info-icon" onclick="toggleInfo(this)"></i>
+        <i class="fas fa-info-circle info-icon"></i>
       </div>
       <div class="don-desc">Register consent to donate organs and tissues after death to support life-saving transplantation programs.</div>
       <div class="expandable-content">Organs and tissues may be donated after death depending on medical suitability and hospital coordination procedures at the time.</div>
     </div>
   </div>
 
-  <div class="don-option dis info-mode" style="opacity: 1; cursor: default; border-color: #e5e7eb;">
+  <div class="don-option dis info-mode" onclick="toggleInfo(this)" style="opacity: 1; cursor: pointer; border-color: #e5e7eb;">
     <div class="don-content">
       <div class="don-lbl">
         Full Body Donation
-        <i class="fas fa-info-circle info-icon" onclick="toggleInfo(this)"></i>
+        <i class="fas fa-info-circle info-icon"></i>
       </div>
       <div class="don-desc">Register for full body donation after death to support medical education and research conducted by authorized institutions.</div>
       <div class="expandable-content">Full body donation supports anatomy teaching and research programs in medical faculties, subject to institutional acceptance requirements.</div>
     </div>
   </div>
 
-  <div class="don-option dis info-mode" style="opacity: 1; cursor: default; border-color: #e5e7eb;">
+  <div class="don-option dis info-mode" onclick="toggleInfo(this)" style="opacity: 1; cursor: pointer; border-color: #e5e7eb;">
     <div class="don-content">
       <div class="don-lbl">
         Non-Donor
-        <i class="fas fa-info-circle info-icon" onclick="toggleInfo(this)"></i>
+        <i class="fas fa-info-circle info-icon"></i>
       </div>
       <div class="don-desc">You may choose not to register as a donor at this time and update your decision later from your profile dashboard if you wish.</div>
       <div class="expandable-content">Selecting this option later means you are not participating in donation programs at the moment.</div>
@@ -115,9 +115,8 @@ window.onload = function() {
     };
 };
 
-function toggleInfo(icon) {
-    const parentContent = icon.closest('.don-content');
-    const expandable = parentContent.querySelector('.expandable-content');
+function toggleInfo(container) {
+    const expandable = container.querySelector('.expandable-content');
     
     // Toggle current one
     if (expandable.classList.contains('open')) {

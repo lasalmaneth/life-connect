@@ -87,36 +87,55 @@
             </div>
 
             <div class="contact-form">
-                <form action="#" method="POST">
+                <?php if (isset($_SESSION['contact_success'])): ?>
+                    <div class="cp-notice cp-notice--success mb-4" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 10px; color: #166534; margin-bottom: 25px;">
+                        <i class="fas fa-circle-check" style="margin-right: 8px;"></i>
+                        <?= $_SESSION['contact_success'] ?>
+                        <?php unset($_SESSION['contact_success']); ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php 
+                $errors = $_SESSION['contact_errors'] ?? [];
+                $formData = $_SESSION['contact_data'] ?? [];
+                unset($_SESSION['contact_errors'], $_SESSION['contact_data']);
+                ?>
+
+                <form action="<?= ROOT ?>/reach-us/submit" method="POST">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name</label>
-                            <input type="text" placeholder="e.g. Kamal Perera" required>
+                            <input type="text" name="full_name" placeholder="e.g. Kamal Perera" value="<?= htmlspecialchars($formData['full_name'] ?? '') ?>" required>
+                            <?php if (isset($errors['full_name'])): ?><span style="color: #dc2626; font-size: 0.8rem;"><?= $errors['full_name'] ?></span><?php endif; ?>
                         </div>
                         <div class="form-group">
                             <label>Email Address</label>
-                            <input type="email" placeholder="kamal@example.com" required>
+                            <input type="email" name="email" placeholder="kamal@example.com" value="<?= htmlspecialchars($formData['email'] ?? '') ?>" required>
+                            <?php if (isset($errors['email'])): ?><span style="color: #dc2626; font-size: 0.8rem;"><?= $errors['email'] ?></span><?php endif; ?>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Phone Number</label>
-                            <input type="tel" placeholder="+94 7X XXX XXXX">
+                            <input type="tel" name="phone" placeholder="+94 7X XXX XXXX" value="<?= htmlspecialchars($formData['phone'] ?? '') ?>">
                         </div>
                         <div class="form-group">
                             <label>Subject</label>
-                            <select>
-                                <option>General Inquiry</option>
-                                <option>Donor Registration Help</option>
-                                <option>Legal Questions</option>
-                                <option>Support a Family</option>
-                                <option>Other</option>
+                            <select name="subject">
+                                <?php 
+                                $subjects = ['General Inquiry', 'Donor Registration Help', 'Legal Questions', 'Support a Family', 'Other'];
+                                foreach ($subjects as $sub):
+                                    $sel = ($formData['subject'] ?? '') === $sub ? 'selected' : '';
+                                    echo "<option value=\"$sub\" $sel>$sub</option>";
+                                endforeach;
+                                ?>
                             </select>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Your Message</label>
-                        <textarea rows="5" placeholder="How can we help you?" required></textarea>
+                        <textarea name="message" rows="5" placeholder="How can we help you?" required><?= htmlspecialchars($formData['message'] ?? '') ?></textarea>
+                        <?php if (isset($errors['message'])): ?><span style="color: #dc2626; font-size: 0.8rem;"><?= $errors['message'] ?></span><?php endif; ?>
                     </div>
                     <button type="submit" class="btn-hero" style="width: 100%; border: none; cursor: pointer;">
                         <span>Send Message</span> <i class="fa-solid fa-paper-plane"></i>

@@ -193,7 +193,7 @@ class CustodianModel {
      */
     public function getDeathDeclaration($donorId)
     {
-        $query = "SELECT dd.*, c.name AS declared_by_name
+        $query = "SELECT dd.*, c.name AS declared_by_name, c.phone AS declared_by_phone, c.email AS declared_by_email
                   FROM death_declarations dd
                   JOIN custodians c ON dd.declared_by_custodian_id = c.id
                   WHERE dd.donor_id = :donor_id
@@ -431,7 +431,7 @@ class CustodianModel {
                     attempt_order, is_current, custodian_action
                   ) VALUES (
                     :case_id, :inst_type, :inst_id, :track,
-                    :attempt_order, 1, 'NOT_CONTACTED'
+                    :attempt_order, 1, 'SUBMITTED'
                   )";
         return $this->insert($query, [
             ':case_id' => $caseId,
@@ -457,7 +457,17 @@ class CustodianModel {
                       WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.address
                       WHEN cis.institution_type = 'HOSPITAL' THEN h.address
                       ELSE NULL
-                    END AS institution_address
+                    END AS institution_address,
+                    CASE
+                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.contact_person_phone
+                      WHEN cis.institution_type = 'HOSPITAL' THEN h.contact_number
+                      ELSE NULL
+                    END AS contact_phone,
+                    CASE
+                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.contact_person_email
+                      WHEN cis.institution_type = 'HOSPITAL' THEN (SELECT email FROM users WHERE id = h.user_id)
+                      ELSE NULL
+                    END AS contact_email
                   FROM case_institution_status cis
                   LEFT JOIN medical_schools ms ON cis.institution_type = 'MEDICAL_SCHOOL' AND cis.institution_id = ms.id
                   LEFT JOIN hospitals h ON cis.institution_type = 'HOSPITAL' AND cis.institution_id = h.id
@@ -767,9 +777,106 @@ class CustodianModel {
         }
     }
 
-    public function submitBundle($caseId) {
+    public function submitBundle($caseId, $checklistJson = null) {
         $this->query("UPDATE donation_cases SET bundle_status = 'SUBMITTED' WHERE id = :id", [':id' => $caseId]);
-        $this->query("UPDATE case_institution_status SET document_status = 'PENDING_REVIEW', document_action_at = NOW() WHERE donation_case_id = :id AND is_current = 1 AND institution_status = 'ACCEPTED'", [':id' => $caseId]);
+        
+        $updateQuery = "UPDATE case_institution_status 
+                        SET document_status = 'PENDING_REVIEW', 
+                            document_action_at = NOW(),
+                            submitted_checklist_json = :checklist
+                        WHERE donation_case_id = :id AND is_current = 1 AND institution_status = 'ACCEPTED'";
+        $this->query($updateQuery, [':id' => $caseId, ':checklist' => $checklistJson]);
+    }
+
+    /**
+     * Get the result of the document review for banners
+     */
+    public function getDocumentReviewStatus($donationCaseId)
+    {
+        $query = "SELECT cis.*, 
+                    CASE
+                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
+                      ELSE 'Institution'
+                    END AS institution_name
+                  FROM case_institution_status cis
+                  LEFT JOIN medical_schools ms ON cis.institution_id = ms.id
+                  WHERE cis.donation_case_id = :case_id AND cis.is_current = 1 LIMIT 1";
+        $result = $this->query($query, [':case_id' => $donationCaseId]);
+        return $result ? $result[0] : null;
+    }
+
+    /**
+     * Get the custodian ID who declared the death (The Leader)
+     */
+    public function getLeaderId($caseId)
+    {
+        $query = "SELECT dd.declared_by_custodian_id 
+                  FROM donation_cases dc
+                  JOIN death_declarations dd ON dc.death_declaration_id = dd.id
+                  WHERE dc.id = :case_id";
+        $result = $this->query($query, [':case_id' => $caseId]);
+        return $result ? (int)$result[0]->declared_by_custodian_id : null;
+    }
+
+    /**
+     * Check if a custodian is the leader for a case
+     */
+    public function isLeader($custodianId, $caseId)
+    {
+        $leaderId = $this->getLeaderId($caseId);
+        if ($leaderId === null) return true; // If no death declared yet, anyone is leader
+        return (int)$custodianId === $leaderId;
+    }
+
+    /**
+     * Get issued certificates for a donation case
+     */
+    public function getDonationCertificates($caseId)
+    {
+        $query = "SELECT dc.*, 
+                         CASE 
+                            WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name 
+                            WHEN cis.institution_type = 'HOSPITAL' THEN h.name 
+                            ELSE 'Unknown Institution'
+                         END AS institution_name
+                  FROM donation_certificates dc
+                  JOIN case_institution_status cis ON dc.case_institution_request_id = cis.id
+                  LEFT JOIN medical_schools ms ON (cis.institution_id = ms.id AND cis.institution_type = 'MEDICAL_SCHOOL')
+                  LEFT JOIN hospitals h ON (cis.institution_id = h.id AND cis.institution_type = 'HOSPITAL')
+                  WHERE dc.donation_case_id = :case_id";
+        return $this->query($query, [':case_id' => $caseId]) ?: [];
+    }
+
+    /**
+     * Get issued appreciation letters for a donation case
+     */
+    public function getAppreciationLetters($caseId)
+    {
+        // Letters are issued from body usage records
+        $query = "SELECT al.*, 
+                         ms.school_name AS institution_name, 
+                         bul.usage_type
+                  FROM appreciation_letters al
+                  JOIN body_usage_logs bul ON al.usage_log_id = bul.id
+                  JOIN medical_schools ms ON bul.medical_school_id = ms.id
+                  JOIN donation_cases dc ON bul.donor_id = dc.donor_id
+                  WHERE dc.id = :case_id
+                  ORDER BY al.issued_at DESC";
+        return $this->query($query, [':case_id' => $caseId]) ?: [];
+    }
+
+    /**
+     * Get archived or completed cases for a donor
+     */
+    public function getArchivedCases($donorId)
+    {
+        $query = "SELECT dc.*, dd.date_of_death, dd.cause_of_death 
+                  FROM donation_cases dc
+                  JOIN death_declarations dd ON dc.death_declaration_id = dd.id
+                  WHERE dc.donor_id = :donor_id 
+                  AND dc.overall_status IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
+                  ORDER BY dc.created_at DESC";
+        return $this->query($query, [':donor_id' => $donorId]) ?: [];
     }
 }
 

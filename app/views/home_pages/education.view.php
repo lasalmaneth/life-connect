@@ -105,7 +105,7 @@
             </div>
             <div class="hero-image-wrap">
                 <div class="hero-shape"></div>
-                <img src="<?= ROOT ?>/public/assets/images/faq-person.jpg" class="hero-img" alt="Education Hero" />
+                <img src="<?= ROOT ?>/public/assets/images/home-education.png" class="hero-img" alt="Education Hero" />
             </div>
             </div>
         </div>
@@ -386,7 +386,7 @@
                     <div class="cta-actions">
                         <a href="<?= ROOT ?>/signup" class="btn-hero"><i class="fas fa-user-plus"></i> <span>Register as a Donor</span></a>
                         <a href="<?= ROOT ?>/deceased-donation" class="btn-outline"><i class="fas fa-book-open"></i> Learn More About Body Donation</a>
-                        <a href="<?= ROOT ?>/tributes" class="btn-outline"><i class="fas fa-users"></i> Read Donor Stories</a>
+                        <a href="<?= ROOT ?>/home#tributes" class="btn-outline"><i class="fas fa-users"></i> Read Donor Stories</a>
                     </div>
                 </div>
             </div>

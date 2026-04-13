@@ -32,7 +32,7 @@ class RegistrationInstitution {
             if (!preg_match('/^0[0-9]{9}$/', $data['phone'])) $errors[] = "Phone number must be 10 digits and start with 0.";
             if (empty($data['address'])) $errors[] = "Address is required.";
             if (empty($_POST['password']) || strlen($_POST['password']) < 8) $errors[] = "Password must be at least 8 characters.";
-            if (empty($_POST['terms'])) $errors[] = "You must accept the terms & conditions.";
+            if (empty($_POST['terms_agreed'])) $errors[] = "You must accept the terms & conditions.";
 
             if (empty($errors)) {
                 // Password handling

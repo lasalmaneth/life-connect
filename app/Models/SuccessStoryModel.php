@@ -9,9 +9,11 @@ class SuccessStoryModel {
 
     protected $table = 'success_stories';
 
-    public function getAllStories() {
-        $query = "SELECT * FROM {$this->table} ORDER BY created_at DESC";
-        return $this->query($query);
+    public function getStoriesByInstitution($id, $type) {
+        $query = "SELECT * FROM {$this->table} 
+                  WHERE institution_id = :id AND institution_type = :type 
+                  ORDER BY created_at DESC";
+        return $this->query($query, ['id' => $id, 'type' => $type]) ?: [];
     }
 
     public function getStoryById($id) {
@@ -25,14 +27,25 @@ class SuccessStoryModel {
             $query = "UPDATE {$this->table} SET 
                         title = :title, 
                         description = :description, 
-                        hospital_registration_no = :hospital_registration_no, 
+                        story_type = :story_type,
+                        author_name = :author_name,
+                        donors_count = :donors_count,
+                        students_helped = :students_helped,
                         success_date = :success_date,
-                        status = :status 
+                        status = :status,
+                        review_message = :review_message
                       WHERE story_id = :story_id";
             $data['story_id'] = $id;
         } else {
-            $query = "INSERT INTO {$this->table} (title, description, hospital_registration_no, success_date, status, created_at) 
-                      VALUES (:title, :description, :hospital_registration_no, :success_date, :status, NOW())";
+            $query = "INSERT INTO {$this->table} (
+                        institution_id, institution_type, title, description, 
+                        story_type, author_name, donors_count, students_helped, 
+                        success_date, status, created_at
+                      ) VALUES (
+                        :institution_id, :institution_type, :title, :description, 
+                        :story_type, :author_name, :donors_count, :students_helped, 
+                        :success_date, :status, NOW()
+                      )";
         }
 
         return $this->query($query, $data);

@@ -1319,3 +1319,75 @@ input[type="password"]::-ms-clear {
   padding: 12px;
   opacity: 1;
 }
+
+/* District Custom Dropdown */
+.district-dropdown-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.district-dropdown-wrap .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+  font-size: 14px;
+}
+
+.district-dropdown-wrap input {
+  padding-left: 40px !important;
+}
+
+.district-dropdown-wrap .dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 59, 110, 0.15);
+  border: 1px solid #e5e7eb;
+  padding: 6px 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.district-dropdown-wrap .dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.district-dropdown-wrap .dropdown-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.district-dropdown-wrap .dropdown-item:hover,
+.district-dropdown-wrap .dropdown-item.active {
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.district-dropdown-wrap .match-highlight {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.district-dropdown-wrap .no-results {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}

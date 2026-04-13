@@ -26,10 +26,26 @@
         <h4 style="margin-bottom: 1rem; color: var(--g800); border-bottom: 1px solid var(--g200); padding-bottom: 0.5rem;">
             Physical Verification Status
         </h4>
-        <div style="padding: 1.5rem; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 8px; margin-bottom: 2rem;">
-            <div style="font-size: 0.75rem; color: var(--blue-600); margin-bottom: 8px; font-weight: 700; text-transform: uppercase;">Current Phase</div>
-            <div style="font-weight: 600; color: var(--blue-900); font-size: 1.1rem;">Post-Arrival Anatomical Assessment</div>
-            <p style="margin-top: 8px; color: var(--blue-700); font-size: 0.8125rem;">The body has reached institution grounds. Final medical clearance is required before formal intake.</p>
+        <div style="padding: 1.5rem; background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: 12px; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--blue-600); margin-bottom: 8px; font-weight: 700; text-transform: uppercase;">Current Phase</div>
+                    <div style="font-weight: 600; color: var(--blue-900); font-size: 1.1rem;">Post-Arrival Anatomical Assessment</div>
+                    <p style="margin-top: 8px; color: var(--blue-700); font-size: 0.8125rem;">The body has reached institution grounds. Final medical clearance is required before formal intake.</p>
+                </div>
+            </div>
+
+            <?php if (isset($certificate) && $certificate): ?>
+                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--blue-100); display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--blue-900);">Donation Certificate Issued</div>
+                        <div style="font-size: 0.75rem; color: var(--blue-500); font-weight: 600;">Ref: <?= htmlspecialchars($certificate->certificate_number) ?></div>
+                    </div>
+                    <a href="<?= ROOT ?>/medical-school/certificates/view?id=<?= $certificate->id ?>" class="ms-btn-details" style="background: var(--white); border-color: var(--blue-200);">
+                        <i class="fas fa-certificate"></i> View Certificate
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
 
         <?php if ($exam->final_exam_status === 'REJECTED'): ?>
@@ -47,46 +63,60 @@
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                 <form action="<?= ROOT ?>/medical-school/final-examinations/accept" method="POST" style="flex: 1;">
                     <input type="hidden" name="exam_id" value="<?= $exam->id ?>">
-                    <button type="submit" class="cp-btn cp-btn--success" style="width: 100%;">
-                        <i class="fas fa-check-circle"></i> Pass Examination
+                    <button type="submit" class="cp-btn" style="width: 100%; background: #059669 !important; color: white !important; border: none; height: 48px; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);">
+                        <i class="fas fa-check-circle mr-2"></i> Pass Examination
                     </button>
-                    <p style="font-size: 0.6875rem; color: var(--g500); margin-top: 6px; text-align: center;">Formally admits body into the institution usage log.</p>
+                    <p style="font-size: 0.6875rem; color: var(--g500); margin-top: 8px; text-align: center;">Formally admits body into usage log.</p>
                 </form>
 
-                <button class="cp-btn cp-btn--danger" style="flex: 1;" onclick="document.getElementById('rejectExamArea').classList.toggle('cp-hidden')">
-                    <i class="fas fa-file-medical-alt"></i> Reject Anatomically
-                </button>
+                <div style="flex: 1;">
+                    <button class="cp-btn" style="width: 100%; background: #dc2626 !important; color: white !important; border: none; height: 48px; font-weight: 700; border-radius: 12px; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.2);" onclick="document.getElementById('rejectExamArea').classList.toggle('cp-hidden')">
+                        <i class="fas fa-file-medical-alt mr-2"></i> Reject Anatomically
+                    </button>
+                </div>
             </div>
 
-            <!-- Reject Exam Logic -->
-            <div id="rejectExamArea" class="cp-hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: var(--red-50); border-radius: 8px; border: 1px solid var(--red-100);">
+            <!-- Reject Exam Area -->
+            <div id="rejectExamArea" class="cp-hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: #fff1f2; border-radius: 14px; border: 1px solid #fecaca; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
                 <form action="<?= ROOT ?>/medical-school/final-examinations/reject" method="POST">
                     <input type="hidden" name="exam_id" value="<?= $exam->id ?>">
                     
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--red-900);">Categorical Reason:</label>
-                        <select name="reason" class="cp-input" style="width: 100%;" required>
-                            <option value="">-- Select Category --</option>
-                            <option value="Advanced Decomposition">Advanced Decomposition</option>
-                            <option value="Unauthorized Autopsy">Unauthorized Autopsy</option>
-                            <option value="Communicable Disease">Communicable Disease</option>
-                            <option value="Violent Trauma">Violent Trauma</option>
-                            <option value="Missing Legal Docs">Missing Legal Docs at Arrival</option>
+                    <h5 style="color: #991b1b; margin-bottom: 1.25rem; font-size: 1rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-microscope" style="font-size: 1.1rem;"></i> Medical Rejection Details
+                    </h5>
+
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 800; margin-bottom: 6px; color: #991b1b; text-transform: uppercase; letter-spacing: 0.025em;">Anatomical Rejection Category</label>
+                        <select name="reason" class="cp-form-control" style="width: 100%; height: 44px; border-radius: 10px; border-color: #fecaca; background: white; font-weight: 600;" required>
+                            <option value="">-- Select Specific Reason --</option>
+                            <option value="Body decomposition (putrefaction)">Body decomposition (putrefaction)</option>
+                            <option value="Infectious disease (HIV, Hepatitis, etc.)">Infectious disease (HIV, Hepatitis, etc.)</option>
+                            <option value="Presence of open wounds or bed sores">Presence of open wounds or bed sores</option>
+                            <option value="Recent major surgical procedures">Recent major surgical procedures</option>
+                            <option value="Extensive surgical scars">Extensive surgical scars</option>
+                            <option value="Severe physical deformities">Severe physical deformities</option>
+                            <option value="Extreme obesity">Extreme obesity</option>
+                            <option value="Severe emaciation">Severe emaciation</option>
+                            <option value="Certain types of cancer affecting suitability">Certain types of cancer affecting suitability</option>
+                            <option value="General poor physical conditioned">General poor physical condition of the body</option>
+                            <option value="Other">Other (Specify in notes)</option>
                         </select>
                     </div>
 
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--red-900);">Detailed Exam Notes:</label>
-                        <textarea name="notes" class="cp-textarea" style="width: 100%; height: 100px; border-color: var(--red-200);" placeholder="Specific medical findings..." required></textarea>
+                    <div id="examNotesArea" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 800; margin-bottom: 6px; color: #991b1b; text-transform: uppercase;">Medical Findings / Mandatory Notes</label>
+                        <textarea name="notes" class="cp-textarea" style="width: 100%; height: 100px; border-radius: 10px; border-color: #fecaca; padding: 12px; font-size: 0.875rem;" placeholder="Please provide professional medical justification for rejection..." required></textarea>
                     </div>
 
-                    <button type="submit" class="cp-btn cp-btn--danger" style="width: 100%;">Final Body Rejection & Archive</button>
+                    <button type="submit" class="cp-btn" style="width: 100%; background: #991b1b; color: white; height: 44px; border: none; font-weight: 700; border-radius: 10px;">
+                        Confirm Anatomical Rejection & Archive
+                    </button>
                 </form>
             </div>
         </div>
     <?php endif; ?>
 
     <style>
-        .cp-hidden { display: none; }
+        .cp-hidden { display: none !important; }
     </style>
 <?php endif; ?>

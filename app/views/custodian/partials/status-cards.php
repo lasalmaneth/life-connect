@@ -5,7 +5,7 @@
  */
 $stat_donor_status = $death_declaration ? 'Deceased' : 'Alive';
 $stat_case_status  = $activeCase ? 'Protocol Active' : 'Not Active';
-$stat_inst_status  = $currentRequest ? str_replace('_', ' ', $currentRequest->status) : 'Pending Selection';
+$stat_inst_status  = $currentRequest ? str_replace('_', ' ', $currentRequest->request_status) : 'Pending Selection';
 $donationTypeStr   = str_replace('_', ' ', $consent['donation_type'] ?? 'NONE');
 ?>
 <div class="cp-stats-grid mb-4">

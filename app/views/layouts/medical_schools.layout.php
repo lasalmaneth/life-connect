@@ -62,6 +62,7 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error'], $_SESSION['success_m
     <!-- Custodian CSS (shared design system — cp- prefix) -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/main.css?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/drawer.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/medicalschools/medicalschools.css?v=<?= time() ?>">
 </head>
 <body>
 

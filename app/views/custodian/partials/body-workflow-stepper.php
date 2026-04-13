@@ -2,7 +2,7 @@
 /**
  * Body Workflow Stepper Partial
  */
-$reqStatus = $currentRequest->status ?? null;
+$reqStatus = $currentRequest->request_status ?? null;
 $hasDocs = !empty($docs);
 ?>
 <div class="p-track-container mb-4">
@@ -25,29 +25,32 @@ $hasDocs = !empty($docs);
 
         <!-- Step 3: Documents -->
         <?php 
-            $step3State = ($currentRequest && !$hasDocs) ? 'active' : ($hasDocs ? 'done' : '');
+            $docStatus = $currentRequest->document_status ?? 'PENDING';
+            $step3State = ($docStatus === 'ACCEPTED') ? 'done' : (($currentRequest->request_status ?? '') === 'ACCEPTED' ? 'active' : '');
         ?>
         <div class="step <?= $step3State ?>">
-            <div class="step-circle"><?= $hasDocs ? '<i class="fas fa-check"></i>' : '3' ?></div>
+            <div class="step-circle"><?= ($docStatus === 'ACCEPTED') ? '<i class="fas fa-check"></i>' : '3' ?></div>
             <div class="step-lbl">Documents</div>
         </div>
 
         <!-- Step 4: Examination -->
         <?php 
-            $step4State = ($reqStatus === 'EXAMINATION') ? 'active' : '';
+            $examStatus = $currentRequest->final_exam_status ?? 'PENDING';
+            $step4State = ($examStatus === 'ACCEPTED') ? 'done' : (($docStatus === 'ACCEPTED') ? 'active' : '');
         ?>
         <div class="step <?= $step4State ?>">
-            <div class="step-circle">4</div>
+            <div class="step-circle"><?= ($examStatus === 'ACCEPTED') ? '<i class="fas fa-check"></i>' : '4' ?></div>
             <div class="step-lbl">Examination</div>
         </div>
 
-        <!-- Step 5: Decision -->
+        <!-- Step 5: Appreciation -->
         <?php 
-            $step5State = ($reqStatus === 'APPROVED') ? 'done' : ($reqStatus === 'REJECTED' ? 'danger' : '');
+            $hasCorrespondence = !empty($appreciation_letters) || !empty($certificates);
+            $step5State = $hasCorrespondence ? 'done' : (($examStatus === 'ACCEPTED') ? 'active' : '');
         ?>
         <div class="step <?= $step5State ?>">
-            <div class="step-circle"><?= $reqStatus === 'APPROVED' ? '<i class="fas fa-check"></i>' : '5' ?></div>
-            <div class="step-lbl">Final Decision</div>
+            <div class="step-circle"><?= $hasCorrespondence ? '<i class="fas fa-check"></i>' : '5' ?></div>
+            <div class="step-lbl">Appreciation</div>
         </div>
     </div>
 </div>

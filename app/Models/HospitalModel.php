@@ -644,4 +644,38 @@ class HospitalModel {
 
         return $this->query($query, [':hospital_id' => $hospitalId]) ?: [];
     }
+
+    /**
+     * Automated Recognition Trigger for Hospitals
+     * To be called when an organ retrieval is marked as SUCCESSFUL.
+     */
+    public function issueDonationCertificate($cisId, $hospitalId)
+    {
+        // 1. Get Case Details
+        $caseRec = $this->query("SELECT donation_case_id, institution_name FROM case_institution_status cis 
+                                 JOIN hospitals h ON cis.institution_id = h.id
+                                 WHERE cis.id = :id AND cis.institution_id = :h_id", 
+                                 [':id' => $cisId, ':h_id' => $hospitalId])[0] ?? null;
+        
+        if (!$caseRec) return false;
+        
+        $caseId = $caseRec->donation_case_id;
+
+        // 2. Sync Status
+        $this->query("UPDATE donation_cases SET overall_status = 'SUCCESSFUL' WHERE id = :case_id", [':case_id' => $caseId]);
+        $this->query("UPDATE case_institution_status SET institution_status = 'ACCEPTED' WHERE id = :cis_id", [':cis_id' => $cisId]);
+
+        // 3. Issue Certificate
+        $certNum = "CERT-H-" . date('Y') . "-" . str_pad($caseId, 4, '0', STR_PAD_LEFT);
+        $this->query("INSERT INTO donation_certificates (donation_case_id, case_institution_request_id, certificate_number, file_path, issued_by_name)
+                      VALUES (:case_id, :cis_id, :cert_num, :path, :issuer)", [
+                        ':case_id' => $caseId,
+                        ':cis_id' => $cisId,
+                        ':cert_num' => $certNum,
+                        ':path' => 'pending', 
+                        ':issuer' => $caseRec->institution_name ?? 'Donation Hospital'
+                      ]);
+        
+        return true;
+    }
 }

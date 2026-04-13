@@ -52,6 +52,8 @@
         </div>
     </div>
 
+    <!-- Family Custodians section removed for Consent Registry (Pre-Death) -->
+
     <div class="cp-drawer-section">
         <h4 class="cp-drawer-section__title">
             <i class="fas fa-file-signature"></i> Consent Information
@@ -84,9 +86,15 @@
                     <div style="font-weight: 600; font-size: 0.875rem; color: var(--slate);">Consent Document PDF</div>
                     <div style="font-size: 0.75rem; color: var(--g500);">Archive copy of signed willingness form.</div>
                 </div>
-                <button class="cp-btn cp-btn--secondary cp-btn--sm">
-                    <i class="fas fa-download"></i> Download
-                </button>
+                <?php if ($donor->signed_form_path): ?>
+                    <a href="<?= ROOT ?>/<?= htmlspecialchars($donor->signed_form_path) ?>" target="_blank" class="cp-btn cp-btn--secondary cp-btn--sm">
+                        <i class="fas fa-eye"></i> View Signed form
+                    </a>
+                <?php else: ?>
+                    <button class="cp-btn cp-btn--secondary cp-btn--sm" disabled style="opacity: 0.6; cursor: not-allowed;" title="Donor has not uploaded the signed form yet.">
+                        <i class="fas fa-clock"></i> Pending Upload
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>

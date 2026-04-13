@@ -18,11 +18,14 @@ trait Database {
 
         $check = $stm->execute($data);
         if($check){
-            $result = $stm->fetchAll(PDO::FETCH_OBJ);
-        }
-
-        if(is_array($result) && count($result)){
-            return $result;
+            if (stripos($query, 'SELECT') === 0) {
+                $result = $stm->fetchAll(PDO::FETCH_OBJ);
+                if (is_array($result) && count($result)) {
+                    return $result;
+                }
+            } else {
+                return true;
+            }
         }
 
         return false;

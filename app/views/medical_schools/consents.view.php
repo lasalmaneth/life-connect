@@ -31,12 +31,29 @@ function consentBadgeClass($status) {
     </div>
     <div class="cp-content-header__actions">
         <span class="cp-badge cp-badge--info cp-badge--lg">
-            <i class="fas fa-list"></i><?= count($donors) ?> Records
+            <i class="fas fa-list cp-mr-2"></i> Institutional Registry
         </span>
     </div>
 </div>
 
 <div class="cp-content-body">
+    <!-- Premium Filter Bar -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+        <div class="cp-filter-tabs">
+            <?php 
+            $statuses = [
+                'ALL' => 'All Records',
+                'GIVEN' => 'Active',
+                'WITHDRAWN' => 'Withdrawn',
+                'FLAGGED' => 'Flagged'
+            ];
+            foreach ($statuses as $val => $lbl): 
+                $active = ($active_status === $val) ? 'active' : '';
+            ?>
+                <a href="?status=<?= $val ?>" class="cp-filter-btn <?= $active ?>"><?= $lbl ?></a>
+            <?php endforeach; ?>
+        </div>
+    </div>
     <div class="cp-table-container">
         <table class="cp-table">
             <thead>
@@ -56,8 +73,8 @@ function consentBadgeClass($status) {
                         <td colspan="7">
                             <div class="cp-empty-state">
                                 <i class="fas fa-inbox cp-empty-state__icon"></i>
-                                <div class="cp-empty-state__msg">No Consent Records Found</div>
-                                <div class="cp-empty-state__sub">Once donors register body donation intent with your institution, they will appear here.</div>
+                                <div class="cp-empty-state__msg">No records match this filter</div>
+                                <div class="cp-empty-state__sub">Try switching to "All Records" to see the full list of donors assigned to your institution.</div>
                             </div>
                         </td>
                     </tr>
@@ -77,18 +94,22 @@ function consentBadgeClass($status) {
                                     </div>
                                 </div>
                             </td>
-                            <td><?= htmlspecialchars($donor->nic_number) ?></td>
+                            <td><code class="cp-nic-badge"><?= htmlspecialchars($donor->nic_number) ?></code></td>
                             <td>
-                                <div class="cp-table__filename"><?= date('d M Y', strtotime($donor->consent_date)) ?></div>
-                                <div class="cp-table__subtext"><?= date('H:i', strtotime($donor->consent_date)) ?></div>
+                                <?php if ($donor->consent_date): ?>
+                                    <div class="cp-table__filename"><?= date('d M Y', strtotime($donor->consent_date)) ?></div>
+                                    <div class="cp-table__subtext"><?= date('H:i', strtotime($donor->consent_date)) ?></div>
+                                <?php else: ?>
+                                    <span class="cp-text-g400">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <div class="cp-table__filename"><?= htmlspecialchars($donor->witness1_name) ?></div>
-                                <div class="cp-table__subtext"><?= htmlspecialchars($donor->witness2_name) ?></div>
+                                <div class="cp-table__filename"><?= htmlspecialchars($donor->witness1_name ?: 'N/A') ?></div>
+                                <div class="cp-table__subtext"><?= htmlspecialchars($donor->witness2_name ?: 'N/A') ?></div>
                             </td>
                             <td>
                                 <span class="cp-badge cp-badge--<?= $donor->verification_status === 'APPROVED' ? 'success' : 'warning' ?>">
-                                    <?= htmlspecialchars($donor->verification_status) ?>
+                                    <?= htmlspecialchars($donor->verification_status ?: 'PENDING') ?>
                                 </span>
                             </td>
                             <td>
@@ -100,12 +121,17 @@ function consentBadgeClass($status) {
                                         <i class="fas fa-flag"></i> FLAGGED
                                     </span>
                                 <?php endif; ?>
+                                <?php if ($donor->consent_status === 'WITHDRAWN'): ?>
+                                    <div class="cp-table__subtext text-danger mt-1">
+                                        <i class="fas fa-calendar-xmark"></i> <?= date('d M Y', strtotime($donor->withdrawal_date)) ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <div class="cp-table__actions">
                                     <button class="cp-btn cp-btn--secondary cp-btn--sm"
                                             onclick="openConsentDrawer(<?= $donor->id ?>)">
-                                        <i class="fas fa-eye"></i> Details
+                                        <i class="fas fa-eye"></i> Consent Details
                                     </button>
                                 </div>
                             </td>
@@ -134,6 +160,8 @@ function openConsentDrawer(id) {
         .catch(() => { bodyEl.innerHTML = '<div class="cp-alert cp-alert--danger">Failed to load. Please try again.</div>'; });
 }
 </script>
+
+
 
 <?php
 $page_content = ob_get_clean();

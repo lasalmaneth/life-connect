@@ -6,17 +6,90 @@
     <!-- Use system core font mapping to allow printable fonts without external fetches -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/layout.css">
     <style>
-        body { margin:0; padding:0; background: #e2e8f0; }
+        body { margin:0; padding:0; background: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .cp-print-hidden { display: block; }
+        @media print {
+            .cp-print-hidden { display: none !important; }
+            body { background: white; }
+        }
+        .local-toolbar {
+            background: #1e3a8a;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .local-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 20px;
+            height: 40px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            line-height: 1;
+        }
+        .local-btn-primary { background: #2563eb; color: white; }
+        .local-btn-outline { background: transparent; color: white; border-color: white; }
+        .local-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+        /* Legal Document Styling */
+        .cp-legal-header-flex {
+            position: relative;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+        .cp-legal-office-use {
+            position: absolute;
+            top: 0;
+            right: 0;
+            border: 1.5px solid #000;
+            padding: 6px 14px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .cp-legal-inst-banner {
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            margin: 10px 0 25px 0;
+            color: #000;
+            line-height: 1.2;
+        }
+        .cp-legal-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-decoration: underline;
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
 
-<div class="cp-print-hidden cp-bg-blue-800 cp-text-white" style="padding: 15px; text-align: center; position: sticky; top:0; z-index:999;">
-    <button onclick="window.print()" class="cp-btn cp-btn--primary" style="margin-right: 15px;">
-        <svg fill="currentColor" width="16" viewBox="0 0 24 24" style="display:inline-block; vertical-align:middle;"><path d="M19,8H5C3.34,8,2,9.34,2,11v6h4v4h12v-4h4v-6C22,9.34,20.66,8,19,8z M16,19H8v-5h8V19z M19,12c-0.55,0-1-0.45-1-1s0.45-1,1-1s1,0.45,1,1S19.55,12,19,12z M18,3H6v4h12V3z"></path></svg>
-        Print this Document
+<div class="local-toolbar cp-print-hidden">
+    <button onclick="window.print()" class="local-btn local-btn-primary">
+        <svg fill="currentColor" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M19,8H5C3.34,8,2,9.34,2,11v6h4v4h12v-4h4v-6C22,9.34,20.66,8,19,8z M16,19H8v-5h8V19z M19,12c-0.55,0-1-0.45-1-1s0.45-1,1-1s1,0.45,1,1S19.55,12,19,12z M18,3H6v4h12V3z"></path></svg>
+        Print Document
     </button>
-    <a href="<?= ROOT ?>/custodian/documents" class="cp-btn cp-btn--outline" style="border-color: #fff; color: #fff;">Back to Documents</a>
+    <a href="<?= ROOT ?>/custodian/documents" class="local-btn local-btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Checklist
+    </a>
 </div>
 
 <div class="cp-legal-doc-wrapper">
@@ -24,13 +97,15 @@
 
         <?php if ($type === 'datasheet'): ?>
 
-            <div class="cp-legal-office-use">This information is for office use only</div>
+            <div class="cp-legal-header-flex">
+                <div class="cp-legal-office-use">This information is for office use only</div>
+            </div>
             
-            <div style="text-align: center; margin-top: 15px; font-weight: bold; font-size: 1.1em; text-transform: uppercase;">
+            <div class="cp-legal-inst-banner">
                 <?= htmlspecialchars($instName ?? 'Department of Anatomy, Faculty of Medicine, University of Colombo') ?>
             </div>
 
-            <div class="cp-legal-title" style="margin-top: 15px;">Data Sheet for Cadaver Donation</div>
+            <div class="cp-legal-title">Data Sheet for Cadaver Donation</div>
 
             <div class="cp-legal-section-title">Details of the Deceased</div>
             <div class="cp-legal-row">

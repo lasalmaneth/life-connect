@@ -48,6 +48,14 @@
                 <div class="cp-drawer-field__label">Nationality</div>
                 <div class="cp-drawer-field__value"><?= htmlspecialchars($request->nationality ?? 'N/A') ?></div>
             </div>
+            <div>
+                <div class="cp-drawer-field__label">Date of Death</div>
+                <div class="cp-drawer-field__value"><?= $request->date_of_death ? date('d M, Y', strtotime($request->date_of_death)) : 'N/A' ?></div>
+            </div>
+            <div>
+                <div class="cp-drawer-field__label">Submission Date</div>
+                <div class="cp-drawer-field__value"><?= date('d M, Y', strtotime($request->submission_date ?? $request->created_at)) ?></div>
+            </div>
         </div>
     </div>
 
@@ -73,20 +81,72 @@
         <?php endif; ?>
     </div>
 
-    <?php if ($request->request_status === 'PENDING' || $request->request_status === 'UNDER_REVIEW'): ?>
-        <div class="cp-drawer-section" style="border-top: 1px solid var(--g100); padding-top: 1.5rem;">
-            <div style="display: flex; gap: 1rem;">
-                <form action="<?= ROOT ?>/medical-school/submission-requests/accept" method="POST" style="flex: 1;">
-                    <input type="hidden" name="request_id" value="<?= $request->cis_id ?>">
-                    <button type="submit" class="cp-btn cp-btn--success" style="width: 100%;">
-                        <i class="fas fa-check"></i> Accept Request
-                    </button>
-                    <p style="font-size: 0.6875rem; color: var(--g500); margin-top: 8px; text-align: center;">Approves outreach and unlocks document submission.</p>
-                </form>
+    <!-- Family Custodians Section (Compact Style) -->
+    <div style="background: white; border: 1px solid var(--blue-100); border-radius: 12px; margin-top: 1rem; padding: 1rem; box-shadow: 0 2px 8px rgba(0, 91, 170, 0.02);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--blue-50); padding-bottom: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user-shield" style="color: var(--blue-600); font-size: 0.85rem;"></i>
+                <span style="font-weight: 800; font-size: 0.75rem; color: var(--blue-700); text-transform: uppercase; letter-spacing: 0.05em;">Family Custodians</span>
+            </div>
+            <span style="font-size: 0.65rem; color: var(--g500); font-weight: 700; background: var(--g50); padding: 2px 10px; border-radius: 50px;">
+                <?= count($custodians) ?>
+            </span>
+        </div>
+        
+        <?php if (empty($custodians)): ?>
+            <div style="padding: 1rem; background: #fffcf0; border: 1px dashed #fef3c7; border-radius: 8px; font-size: 0.8125rem; color: #92400e; text-align: center;">
+                <i class="fas fa-info-circle mr-1"></i> No family custodians are explicitly assigned yet.
+            </div>
+        <?php else: ?>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <?php foreach ($custodians as $c): ?>
+                    <div style="background: #f8fafc; padding: 0.875rem; border-radius: 10px; border: 1px solid var(--g100); position: relative;">
+                        <span style="position: absolute; top: 10px; right: 12px; color: var(--blue-500); font-weight: 800; font-size: 0.8rem; opacity: 0.6;">#</span>
+                        
+                        <div style="font-weight: 800; color: var(--blue-900); font-size: 0.875rem; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 6px;">
+                            <?= htmlspecialchars($c->name ?? 'N/A') ?>
+                            <span style="font-weight: 400; color: var(--g400); font-size: 0.75rem;">(<?= htmlspecialchars($c->relationship ?? 'N/A') ?>)</span>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 1rem; border-top: 1px solid var(--g50); padding-top: 0.65rem;">
+                            <div>
+                                <label style="display: block; font-size: 0.55rem; color: var(--g400); font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">Phone</label>
+                                <div style="font-weight: 700; color: var(--blue-600); font-size: 0.8rem;">
+                                    <?= !empty($c->phone) ? htmlspecialchars($c->phone) : 'N/A' ?>
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.55rem; color: var(--g400); font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">Email</label>
+                                <div style="font-weight: 600; color: var(--blue-900); font-size: 0.8rem; word-break: break-all;">
+                                    <?= !empty($c->email) ? htmlspecialchars($c->email) : 'N/A' ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 
-                <button class="cp-btn cp-btn--danger" style="flex: 1;" onclick="document.getElementById('rejectRequestArea').classList.toggle('cp-hidden')">
-                    <i class="fas fa-times"></i> Reject Request
-                </button>
+    <?php if ($request->request_status === 'PENDING' || $request->request_status === 'UNDER_REVIEW'): ?>
+        <div class="cp-drawer-section" style="border-top: 1px solid var(--cp-gray-200); padding-top: 1.5rem;">
+            <div style="display: flex; gap: 16px; align-items: flex-start;">
+                <div style="flex: 1;">
+                    <form action="<?= ROOT ?>/medical-school/submission-requests/accept" method="POST">
+                        <input type="hidden" name="request_id" value="<?= $request->cis_id ?>">
+                        <button type="submit" class="cp-btn" style="width: 100%; height: 48px; background: #10b981; color: white; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                            <i class="fas fa-check"></i> Accept Request
+                        </button>
+                    </form>
+                    <p style="font-size: 0.75rem; color: var(--cp-gray-500); margin-top: 10px; text-align: center; line-height: 1.4;">Approves outreach and unlocks document submission.</p>
+                </div>
+
+                <div style="flex: 1;">
+                    <button type="button" class="cp-btn" style="width: 100%; height: 48px; background: #ef4444; color: white; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);" onclick="document.getElementById('rejectRequestArea').classList.toggle('cp-hidden')">
+                        <i class="fas fa-times"></i> Reject Request
+                    </button>
+                    <p style="font-size: 0.75rem; color: var(--cp-gray-500); margin-top: 10px; text-align: center; line-height: 1.4;">Declines the request with a formal rejection reason.</p>
+                </div>
             </div>
 
             <div id="rejectRequestArea" class="cp-hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: #fef2f2; border-radius: 8px; border: 1px solid #fca5a5;">
@@ -109,7 +169,9 @@
                     
                     <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; margin-top: 10px;">
                         <span onclick="document.getElementById('rejectRequestArea').classList.add('cp-hidden')" style="font-size: 0.875rem; color: #6b7280; cursor: pointer; text-decoration: underline;">Cancel</span>
-                        <button type="submit" class="cp-btn" style="background: #dc2626; color: white; border: none; padding: 8px 16px;"><i class="fas fa-exclamation-triangle"></i> Confirm Rejection</button>
+                        <button type="submit" class="cp-btn" style="background: #dc2626; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);">
+                            <i class="fas fa-exclamation-triangle"></i> Confirm Rejection
+                        </button>
                     </div>
                 </form>
             </div>

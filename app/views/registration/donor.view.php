@@ -63,6 +63,15 @@ require __DIR__ . '/partials/header.view.php';
       <input type="tel" name="phone" id="d_phone" placeholder="0771234567" maxlength="10" oninput="onPhone('d_phone','d_phoneH')" value="<?= htmlspecialchars($_POST['phone'] ?? $sessionData['phone'] ?? '') ?>">
       <span class="hint" id="d_phoneH">10 digits, starting with 0</span>
     </div>
+    <div class="form-group">
+      <label>District <span class="req">*</span></label>
+      <div class="district-dropdown-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" name="district" id="d_dist" placeholder="Select or type your district" autocomplete="off" value="<?= htmlspecialchars($_POST['district'] ?? $sessionData['district'] ?? '') ?>">
+        <ul id="d_dist_menu" class="dropdown-menu"></ul>
+      </div>
+      <span class="hint" id="d_distH">Select your current district</span>
+    </div>
     <div class="form-group full">
       <label>Email Address <span class="req">*</span></label>
       <input type="email" name="email" id="d_email" placeholder="your.email@example.com" oninput="onEmail('d_email','d_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
@@ -90,13 +99,28 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group full">
       <label>Terms &amp; Conditions <span class="req">*</span></label>
-      <div class="terms-row" id="termsRow" onclick="tToggle('d_terms','termsRow','termsH')">
-        <input type="checkbox" name="terms" id="d_terms" onclick="event.stopPropagation(); tToggle('d_terms','termsRow','termsH', true)">
-        <span>I agree to the <a href="#" onclick="event.stopPropagation()">Terms &amp; Conditions</a> and <a href="#" onclick="event.stopPropagation()">Privacy Policy</a> of LifeConnect.</span>
+      <div class="terms-row" id="termsRow" onclick="tToggle('d_terms','termsRow','termsH')" style="padding: 10px 15px; border-radius: 8px;">
+            <label class="checkbox-label" style="font-size:0.85rem; line-height:1.2; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="terms_agreed" id="d_terms" required style="width:16px; height:16px; cursor: pointer;">
+                <span>I agree to the <a href="#" onclick="openTerms(event)">Terms & Conditions</a> and <a href="#" onclick="openPrivacy(event)">Privacy Policy</a>.</span>
+            </label>
       </div>
       <span class="hint" id="termsH">You must accept the terms to continue</span>
     </div>
   </div>
+
+  <style>
+    .terms-row a {
+        color: #64748b !important;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 600;
+    }
+    .terms-row a:hover {
+        color: #3b82f6 !important;
+        text-decoration: underline;
+    }
+  </style>
   <div class="btn-group">
     <a href="<?= ROOT ?>/signup" class="btn btn-outline" ><i class="fas fa-arrow-left"></i> Back</a>
     <button type="submit" name="basicinfo" class="btn btn-primary" >Next <i class="fas fa-arrow-right"></i></button>

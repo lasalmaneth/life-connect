@@ -84,7 +84,8 @@ class Login {
 
             echo json_encode([
                 'success' => true,
-                'role' => $user->role
+                'role' => $user->role,
+                'must_change_credentials' => !empty($user->must_change_credentials) ? 1 : 0
             ]);
 
             return;

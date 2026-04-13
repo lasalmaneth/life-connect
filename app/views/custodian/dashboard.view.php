@@ -65,6 +65,9 @@ ob_start();
     <!-- 1. TOP SUMMARY CARDS -->
     <?php require __DIR__ . '/partials/status-cards.php'; ?>
 
+    <!-- Workflow Locking Notice -->
+    <?php include __DIR__ . '/partials/lock-notice.php'; ?>
+
     <!-- 2. MAIN LOGIC BLOCKS -->
     <?php if (!$death_declaration): ?>
         
@@ -95,6 +98,9 @@ ob_start();
             </div>
 
         <?php else: ?>
+            
+            <!-- Global Read-Only Notice for Co-Custodians -->
+            <?php include __DIR__ . '/partials/lock-notice.php'; ?>
             
             <?php if (!$activeCase): ?>
                 
@@ -131,13 +137,17 @@ ob_start();
                             <!-- BODY FLOW SPECIFIC STATES -->
                             <?php if (!$currentInstRequest): ?>
                                 <!-- STATE: NO SCHOOL SELECTED YET -->
-                                <div class="cp-section-card cp-border-blue-500 h-100">
+                                <div class="cp-section-card h-full cp-border-blue-500">
                                     <div class="cp-section-card__header cp-bg-blue-600 text-white border-0">
                                         <div class="cp-section-card__title text-white"><i class="fas fa-building-columns"></i> Choose a Medical School</div>
                                     </div>
                                     <div class="cp-section-card__body">
                                         <p class="mb-4">Select precisely ONE Medical School from the donor's consent mandate to begin.</p>
-                                        <a href="<?= ROOT ?>/custodian/institution-requests" class="cp-btn cp-btn--primary">Open Institution Selection</a>
+                                        <?php if ($isLeader): ?>
+                                            <a href="<?= ROOT ?>/custodian/institution-requests" class="cp-btn cp-btn--primary cp-btn--fw">Open Institution Selection</a>
+                                        <?php else: ?>
+                                            <button class="cp-btn cp-btn--primary cp-btn--fw cp-btn--locked" disabled>Selection Locked</button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             <?php else: ?>
@@ -148,13 +158,17 @@ ob_start();
                             <!-- ORGAN FLOW SPECIFIC STATES -->
                             <?php if (!$currentInstRequest): ?>
                                 <!-- STATE: NO HOSPITAL SELECTED YET -->
-                                <div class="cp-section-card h-100 cp-border-orange">
+                                <div class="cp-section-card h-full cp-border-orange">
                                     <div class="cp-section-card__header cp-bg-orange text-white border-0">
                                         <div class="cp-section-card__title text-white"><i class="fas fa-hospital text-white"></i> Choose Transplantation Hospital</div>
                                     </div>
                                     <div class="cp-section-card__body">
                                         <p class="mb-4">Select a hospital to submit the organ extraction reports.</p>
-                                        <a href="<?= ROOT ?>/custodian/institution-requests" class="cp-btn cp-btn--primary cp-bg-orange cp-border-orange">Open Hospital Selection</a>
+                                        <?php if ($isLeader): ?>
+                                            <a href="<?= ROOT ?>/custodian/institution-requests" class="cp-btn cp-btn--primary cp-btn--fw cp-bg-orange cp-border-orange">Open Hospital Selection</a>
+                                        <?php else: ?>
+                                            <button class="cp-btn cp-btn--primary cp-btn--fw cp-btn--locked" disabled>Selection Locked</button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             <?php else: ?>

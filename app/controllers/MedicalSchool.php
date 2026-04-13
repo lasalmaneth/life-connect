@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\MedicalSchoolModel;
+use App\Models\SuccessStoryModel;
 
 class MedicalSchool
 {
@@ -26,30 +27,66 @@ class MedicalSchool
         return ['model' => $schoolModel, 'school' => $school];
     }
 
+    /**
+     * Shared authorization for document viewing (allows both School and Custodian)
+     */
+    private function checkDocumentAuth()
+    {
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+        
+        $allowedRoles = ['MEDICAL_SCHOOL', 'CUSTODIAN'];
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], $allowedRoles)) {
+            redirect('login');
+            die();
+        }
+
+        $schoolModel = new MedicalSchoolModel();
+        $school = $schoolModel->getSchoolByUserId($_SESSION['user_id']);
+        return ['model' => $schoolModel, 'school' => $school];
+    }
+
     public function dashboard()
     {
         $auth = $this->checkAuth();
         $stats = $auth['model']->getDashboardStats($auth['school']->id);
-        $this->view('medical_schools/dashboard', ['school' => $auth['school'], 'stats' => $stats]);
+        $urgentAlerts = $auth['model']->getUrgentAlerts($auth['school']->id);
+        
+        $this->view('medical_schools/dashboard', [
+            'school' => $auth['school'], 
+            'stats' => $stats,
+            'urgentAlerts' => $urgentAlerts
+        ]);
     }
 
     // ── STAGE A: CONSENT REGISTRY ─────────────────
     public function consents()
     {
         $auth = $this->checkAuth();
-        $donors = $auth['model']->getPreDeathConsents($auth['school']->id);
-        $this->view('medical_schools/consents', ['school' => $auth['school'], 'donors' => $donors]);
+        $status = $_GET['status'] ?? 'ALL';
+        $donors = $auth['model']->getPreDeathConsents($auth['school']->id, $status);
+        $this->view('medical_schools/consents', [
+            'school' => $auth['school'], 
+            'donors' => $donors,
+            'active_status' => $status
+        ]);
     }
 
     public function viewConsent()
     {
-        $auth = $this->checkAuth();
+        $auth = $this->checkDocumentAuth();
         $id = $_GET['id'] ?? null;
         if (!$id)
             redirect('medical-school/consents');
 
-        $donor = $auth['model']->getDonorDetails($auth['school']->id, $id, 'CONSENT');
-        $this->view('medical_schools/drawers/consent', ['school' => $auth['school'], 'donor' => $donor]);
+        $schoolId = $auth['school']->id ?? null;
+        $donor = $auth['model']->getDonorDetails($schoolId, $id, 'CONSENT');
+        $custodians = $donor ? $auth['model']->getCustodiansForDonor($donor->id) : [];
+        $this->view('medical_schools/drawers/consent', [
+            'school' => $auth['school'] ?? null, 
+            'donor' => $donor,
+            'custodians' => $custodians
+        ]);
     }
 
     public function flagConsent()
@@ -94,7 +131,14 @@ class MedicalSchool
         $auth = $this->checkAuth();
         $filter = $_GET['status'] ?? 'PENDING';
         $requests = $auth['model']->getSubmissionRequests($auth['school']->id, $filter);
-        $this->view('medical_schools/submission-requests', ['school' => $auth['school'], 'requests' => $requests, 'current_filter' => $filter]);
+        $stats = $auth['model']->getDashboardStats($auth['school']->id);
+        
+        $this->view('medical_schools/submission-requests', [
+            'school' => $auth['school'], 
+            'requests' => $requests, 
+            'active_status' => $filter,
+            'stats' => $stats
+        ]);
     }
 
     public function viewSubmissionRequest()
@@ -105,7 +149,12 @@ class MedicalSchool
             redirect('medical-school/submission-requests');
 
         $request = $auth['model']->getSubmissionRequestDetails($auth['school']->id, $id);
-        $this->view('medical_schools/drawers/submission-request', ['school' => $auth['school'], 'request' => $request]);
+        $custodians = $request ? $auth['model']->getCustodiansForDonor($request->donor_id) : [];
+        $this->view('medical_schools/drawers/submission-request', [
+            'school' => $auth['school'], 
+            'request' => $request,
+            'custodians' => $custodians
+        ]);
     }
 
     public function acceptSubmissionRequest()
@@ -164,8 +213,13 @@ class MedicalSchool
     public function submissions()
     {
         $auth = $this->checkAuth();
-        $submissions = $auth['model']->getBodySubmissions($auth['school']->id);
-        $this->view('medical_schools/submissions', ['school' => $auth['school'], 'submissions' => $submissions]);
+        $status = $_GET['status'] ?? 'ALL';
+        $submissions = $auth['model']->getBodySubmissions($auth['school']->id, $status);
+        $this->view('medical_schools/submissions', [
+            'school' => $auth['school'], 
+            'submissions' => $submissions,
+            'active_status' => $status
+        ]);
     }
 
     public function viewSubmission()
@@ -177,7 +231,13 @@ class MedicalSchool
 
         $submission = $auth['model']->getSubmissionDetails($auth['school']->id, $id);
         $documents = $auth['model']->getSubmissionDocuments($id);
-        $this->view('medical_schools/drawers/submission', ['school' => $auth['school'], 'submission' => $submission, 'documents' => $documents]);
+        $custodians = $submission ? $auth['model']->getCustodiansForDonor($submission->donor_id) : [];
+        $this->view('medical_schools/drawers/submission', [
+            'school' => $auth['school'], 
+            'submission' => $submission, 
+            'documents' => $documents,
+            'custodians' => $custodians
+        ]);
     }
 
     public function acceptSubmission()
@@ -185,9 +245,17 @@ class MedicalSchool
         $auth = $this->checkAuth();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['submission_id'] ?? null;
-            if ($id) {
-                $auth['model']->updateDocumentStatus($auth['school']->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
-                $_SESSION['flash_success'] = "Documents verified and accepted.";
+            $extra = [
+                'handover_date' => $_POST['handover_date'] ?? null,
+                'handover_time' => $_POST['handover_time'] ?? null,
+                'handover_msg'  => $_POST['handover_message'] ?? ''
+            ];
+
+            if ($id && $extra['handover_date'] && $extra['handover_time']) {
+                $auth['model']->updateDocumentStatus($auth['school']->id, $id, 'ACCEPTED', 'Documents Verified', $_SESSION['user_id'], $extra);
+                $_SESSION['flash_success'] = "Documents verified and accepted. Handover scheduled.";
+            } else {
+                $_SESSION['flash_error'] = "Handover date and time are required to accept.";
             }
             redirect('medical-school/submissions');
             die();
@@ -199,21 +267,25 @@ class MedicalSchool
         $auth = $this->checkAuth();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['submission_id'] ?? null;
-            $type = $_POST['reason_type'] ?? '';
-            $details = $_POST['reason'] ?? '';
+            $code = $_POST['rejection_reason_code'] ?? '';
+            $otherText = $_POST['reason_other'] ?? '';
+            $missingDocs = $_POST['missing_docs'] ?? []; // Array of doc names
 
-            $reason = trim($type);
-            if ($type === 'Other' || empty($type)) {
-                $reason = trim($details);
-            } else if (!empty($details)) {
-                $reason .= ' - ' . trim($details);
+            $reason = $code;
+            if ($code === 'Other' || empty($code)) {
+                $reason = $otherText;
             }
 
-            if ($id && $reason) {
-                $auth['model']->updateDocumentStatus($auth['school']->id, $id, 'REJECTED', $reason, $_SESSION['user_id']);
+            $extra = [
+                'reason_code' => $code,
+                'missing_json' => !empty($missingDocs) ? json_encode($missingDocs) : null
+            ];
+
+            if ($id && ($code || $otherText)) {
+                $auth['model']->updateDocumentStatus($auth['school']->id, $id, 'REJECTED', $reason, $_SESSION['user_id'], $extra);
                 $_SESSION['flash_success'] = "Documents rejected and reason stored.";
             } else {
-                $_SESSION['flash_error'] = "Reason is required to reject.";
+                $_SESSION['flash_error'] = "A rejection reason is required.";
             }
             redirect('medical-school/submissions');
             die();
@@ -251,8 +323,13 @@ class MedicalSchool
     public function finalExaminations()
     {
         $auth = $this->checkAuth();
-        $exams = $auth['model']->getFinalExaminations($auth['school']->id);
-        $this->view('medical_schools/final-examinations', ['school' => $auth['school'], 'exams' => $exams]);
+        $status = $_GET['status'] ?? 'ALL';
+        $exams = $auth['model']->getFinalExaminations($auth['school']->id, $status);
+        $this->view('medical_schools/final-examinations', [
+            'school' => $auth['school'], 
+            'exams' => $exams,
+            'active_status' => $status
+        ]);
     }
 
     public function viewFinalExamination()
@@ -263,7 +340,12 @@ class MedicalSchool
             redirect('medical-school/final-examinations');
 
         $exam = $auth['model']->getFinalExaminationDetails($auth['school']->id, $id);
-        $this->view('medical_schools/drawers/final-examination', ['school' => $auth['school'], 'exam' => $exam]);
+        $certificate = $auth['model']->getCertificateByCisId($id);
+        $this->view('medical_schools/drawers/final-examination', [
+            'school' => $auth['school'], 
+            'exam' => $exam,
+            'certificate' => $certificate
+        ]);
     }
 
     public function acceptFinalBody()
@@ -306,18 +388,6 @@ class MedicalSchool
         $this->view('medical_schools/appreciation', ['school' => $auth['school'], 'letters' => $letters]);
     }
 
-    public function generateAppreciationLetter()
-    {
-        $auth = $this->checkAuth();
-        // Generates/stores letter and sets flash
-        $_SESSION['flash_success'] = "Letter generated successfully.";
-        redirect('medical-school/appreciation');
-    }
-
-    public function viewAppreciationLetter()
-    {
-        // Simple view fallback
-    }
 
     public function certificates()
     {
@@ -326,14 +396,14 @@ class MedicalSchool
         $this->view('medical_schools/certificates', ['school' => $auth['school'], 'certificates' => $certificates]);
     }
 
-    public function generateDonationCertificate()
-    {
-        $_SESSION['flash_success'] = "Certificate generated successfully.";
-        redirect('medical-school/certificates');
-    }
-
     public function viewCertificate()
     {
+        $auth = $this->checkDocumentAuth();
+        $id = $_GET['id'] ?? null;
+        if($id) {
+            $certificate = $auth['model']->getDonationCertificateById($id);
+            $this->view('medical_schools/print-certificate', ['id' => $id, 'certificate' => $certificate]);
+        }
     }
 
     public function stories()
@@ -345,9 +415,46 @@ class MedicalSchool
 
     public function createStory()
     {
+        $auth = $this->checkAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $storyModel = new SuccessStoryModel();
+            
+            $data = [
+                'institution_id' => $auth['school']->id,
+                'institution_type' => 'MEDICAL_SCHOOL',
+                'title' => $_POST['title'] ?? '',
+                'description' => $_POST['description'] ?? '',
+                'story_type' => $_POST['story_type'] ?? 'IMPACT',
+                'author_name' => $_POST['author_name'] ?? null,
+                'donors_count' => (int)($_POST['donors_count'] ?? 0),
+                'students_helped' => (int)($_POST['students_helped'] ?? 0),
+                'success_date' => $_POST['success_date'] ?? date('Y-m-d'),
+                'status' => 'Pending'
+            ];
+
+            $storyModel->saveStory($data);
+            header("Location: " . ROOT . "/medical-school/stories?success=1");
+            exit;
+        }
     }
-    public function editStory()
+
+    public function deleteStory()
     {
+        $auth = $this->checkAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['story_id'] ?? null;
+            if ($id) {
+                $storyModel = new SuccessStoryModel();
+                $story = $storyModel->getStoryById($id);
+                
+                // Security check: ensure the story belongs to this school
+                if ($story && $story->institution_id == $auth['school']->id && $story->institution_type === 'MEDICAL_SCHOOL') {
+                    $storyModel->deleteStory($id);
+                }
+            }
+            header("Location: " . ROOT . "/medical-school/stories?deleted=1");
+            exit;
+        }
     }
 
     public function archived()
@@ -357,19 +464,109 @@ class MedicalSchool
         $this->view('medical_schools/archived', ['school' => $auth['school'], 'archived' => $archived]);
     }
 
-    public function viewArchivedRecord()
-    {
-    }
-
-    public function usageLogs()
+    /**
+     * Diagnostic helper to reset a donor for re-testing
+     * URL: medical-school/debug/reset-donor?id=DR-00037
+     */
+    public function resetDonor()
     {
         $auth = $this->checkAuth();
-        $logs = $auth['model']->getUsageLogs($auth['school']->id);
-        $this->view('medical_schools/usage-logs', ['school' => $auth['school'], 'logs' => $logs]);
+        $id = $_GET['id'] ?? null;
+        if ($id) {
+            $auth['model']->resetDonorUsage($id, $auth['school']->id);
+            $_SESSION['flash_success'] = "Test donor #{$id} reset successfully. Logs and letters cleared.";
+        }
+        redirect('medical-school/usage-logs');
     }
 
-    public function viewUsageLog()
+
+    public function usageLogs($cisId = null)
     {
+        $auth = $this->checkAuth();
+        
+        // Handle cis_id passed via argument or URL parameter
+        $cisId = $cisId ?? ($_GET['cis_id'] ?? null);
+        
+        $caseInfo = null;
+        if ($cisId) {
+            $caseInfo = $auth['model']->getAnatomicalCaseInfo($auth['school']->id, $cisId);
+        }
+
+        $logs = $auth['model']->getUsageLogs($auth['school']->id, $cisId);
+        $inventory = $auth['model']->getAnatomicalInventory($auth['school']->id);
+        $inventoryStats = $auth['model']->getInventoryStats($auth['school']->id);
+        
+        $this->view('medical_schools/usage-logs', [
+            'school' => $auth['school'],
+            'caseInfo' => $caseInfo,
+            'logs' => $logs,
+            'inventory' => $inventory,
+            'inventoryStats' => $inventoryStats,
+            'cis_id' => $cisId,
+            'activePage' => 'usage-logs'
+        ]);
+    }
+
+    public function submitUsage()
+    {
+        $auth = $this->checkAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $dept = $_POST['usage_department'] === 'Other' ? ($_POST['other_dept'] ?? 'Other') : $_POST['usage_department'];
+            $subject = $_POST['subject_area'] === 'Other' ? ($_POST['other_subject'] ?? 'Other') : $_POST['subject_area'];
+
+            $data = [
+                'donor_id' => $_POST['donor_id'] ?? null,
+                'school_id' => $auth['school']->id,
+                'usage_type' => $_POST['usage_type'] ?? 'Teaching',
+                'description' => $_POST['description'] ?? '',
+                'usage_date' => $_POST['usage_date'] ?? date('Y-m-d'),
+                'usage_department' => $dept,
+                'subject_area' => $subject,
+                'handled_by' => $_POST['handled_by'] ?? '',
+                'duration' => $_POST['duration'] ?? '',
+                'other_notes' => $_POST['other_notes'] ?? ''
+            ];
+
+            if ($data['donor_id'] && $data['usage_date']) {
+                $auth['model']->recordUsage($data);
+                $_SESSION['flash_success'] = "Academic usage record added to the timeline successfully.";
+            } else {
+                $_SESSION['flash_error'] = "Required fields are missing.";
+            }
+            redirect($_SERVER['HTTP_REFERER'] ?? 'medical-school/usage-logs');
+            die();
+        }
+    }
+
+    public function issueAppreciationLetter()
+    {
+        $auth = $this->checkAuth();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $usageId = $_POST['usage_id'] ?? null;
+            if ($usageId) {
+                $auth['model']->issueAppreciationLetter($usageId, $auth['school']->id, $_SESSION['user_id']);
+                $_SESSION['flash_success'] = "Appreciation letter issued formally.";
+            }
+            redirect($_SERVER['HTTP_REFERER'] ?? 'medical-school/usage-logs');
+            die();
+        }
+    }
+
+    public function viewAppreciationLetter()
+    {
+        $auth = $this->checkDocumentAuth();
+        $id = $_GET['id'] ?? null;
+        $letter = $auth['model']->getAppreciationLetter($id);
+
+        if (!$letter) {
+            $_SESSION['flash_error'] = "Letter record not found.";
+            redirect('medical-school/usage-logs');
+            die();
+        }
+
+        $this->view('medical_schools/appreciation-letter', [
+            'letter' => $letter
+        ]);
     }
 
     public function reports()

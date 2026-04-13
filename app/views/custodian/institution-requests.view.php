@@ -45,168 +45,130 @@ if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->tim
         <?php if (!empty($institutionStatuses)): ?>
             <?php foreach ($institutionStatuses as $req): ?>
             <?php 
-                // Determine styling based on status
-                $statusColor = 'blue';
-                $statusIcon = 'fa-spinner fa-spin';
-                $statusMsg = 'Pending Institution Review';
-                $cardStatusClass = 'pending';
+                $statusType = strtolower($req->institution_status);
+                $avatarIcon = ($req->institution_type === 'MEDICAL_SCHOOL') ? 'fa-building-columns' : 'fa-hospital-user';
+                $statusLabel = str_replace('_', ' ', $req->institution_status);
                 
-                if ($req->institution_status === 'ACCEPTED') {
-                    $statusColor = 'success';
-                    $statusIcon = 'fa-check-circle';
-                    $statusMsg = 'Request ACCEPTED';
-                    $cardStatusClass = 'approved';
-                } elseif ($req->institution_status === 'REJECTED') {
-                    $statusColor = 'danger';
-                    $statusIcon = 'fa-circle-xmark';
-                    $statusMsg = 'Request Rejected';
-                    $cardStatusClass = 'rejected';
-                } elseif ($req->institution_status === 'WITHDRAWN') {
-                    $statusColor = 'g500';
-                    $statusIcon = 'fa-ban';
-                    $statusMsg = 'Request Withdrawn';
-                    $cardStatusClass = 'withdrawn';
-                }
+                // Map status to pill class
+                $pillClass = 'pending';
+                if ($req->institution_status === 'ACCEPTED') $pillClass = 'approved';
+                if ($req->institution_status === 'REJECTED') $pillClass = 'rejected';
             ?>
-            <div class="cp-section-card cp-req-card cp-req-card--<?= $cardStatusClass ?> mb-4">
-                <div class="cp-section-card__header">
-                    <div class="cp-section-card__title">
-                        <i class="fas <?= $statusIcon ?>"></i> <?= $statusMsg ?>
+            <div class="cp-inst-card cp-inst-card--<?= $pillClass ?>">
+                <div class="cp-inst-card__inner">
+                    <div class="cp-inst-avatar">
+                        <i class="fas <?= $avatarIcon ?>"></i>
                     </div>
-                </div>
-                <div class="cp-section-card__body">
-                    <div class="cp-req-header-row">
-                        <div>
-                            <h3 class="cp-text-xl cp-font-bold mb-1"><?= htmlspecialchars($req->institution_name) ?></h3>
-                            <div class="cp-text-sm cp-text-g500 mb-4">
-                                <i class="fas fa-building mr-1"></i> <?= str_replace('_', ' ', $req->institution_type) ?>
-                            </div>
-                            <span class="badge cp-req-status-badge cp-req-status-badge--<?= $cardStatusClass ?>">
-                                <?= str_replace('_', ' ', $req->institution_status) ?>
-                            </span>
-                        </div>
-                        <div class="cp-req-date-badge">
-                            <div class="cp-text-xs cp-text-g500 text-uppercase tracking-wider mb-1"><i class="far fa-calendar-alt mr-1"></i> Submitted On</div>
-                            <div class="cp-font-semibold"><?= date('M j, Y', strtotime($req->submission_date ?: $req->created_at)) ?></div>
-                            <div class="cp-text-xs cp-text-g500 mt-1"><?= date('g:i A', strtotime($req->submission_date ?: $req->created_at)) ?></div>
-                        </div>
-                    </div>
-
-                    <?php if ($req->institution_status === 'PENDING'): ?>
-                        <div class="cp-req-info-box">
-                            <p class="mb-0 cp-text-blue-800 cp-text-sm">
-                                <strong><i class="fas fa-info-circle mr-1"></i> Notice:</strong> 
-                                The medical school must review this request before you can proceed to the document upload phase. Please wait for their approval.
-                            </p>
-                            <?php if (count($availableInstitutions) > 0): ?>
-                                <hr class="my-2" style="border-color: rgba(30, 64, 175, 0.2);">
-                                <p class="mb-0 cp-text-blue-800 cp-text-sm">
-                                    <strong><i class="fas fa-code-branch mr-1"></i> Multiple Consents Detected:</strong> 
-                                    Because the donor consented to multiple medical schools, if this request happens to be rejected, you will be able to apply to another consented university.
-                                </p>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($req->institution_status === 'REJECTED'): ?>
-                        <div class="cp-req-reject-box">
-                            <i class="fas fa-circle-exclamation fa-2x cp-text-red-600"></i>
+                    <div class="cp-inst-details">
+                        <div class="cp-inst-header">
                             <div>
-                                <strong class="cp-text-red-900 cp-req-rejected-title">Request Rejected by Institution</strong>
-                                <div class="cp-req-reject-reason">
-                                    <p class="mb-0 cp-text-g700">
-                                        <strong>Reason provided:</strong><br>
-                                        <span class="cp-text-red-800 cp-req-reject-text">
-                                            "<?= htmlspecialchars($req->rejection_message ?: 'No specific reason provided by the institution.') ?>"
-                                        </span>
-                                    </p>
+                                <h3 class="cp-inst-name"><?= htmlspecialchars($req->institution_name) ?></h3>
+                                <div class="cp-text-xs cp-text-g500 text-uppercase tracking-widest mt-1">
+                                    <?= str_replace('_', ' ', $req->institution_type) ?>
                                 </div>
                             </div>
+                            <div class="cp-status-pill cp-status-pill--<?= $pillClass ?>">
+                                <?= $statusLabel ?>
+                            </div>
                         </div>
-                    <?php endif; ?>
+
+                        <div class="cp-inst-meta">
+                            <div class="cp-meta-item">
+                                <i class="far fa-calendar-check"></i>
+                                Submitted: <?= date('M j, Y', strtotime($req->submission_date ?: $req->created_at)) ?>
+                            </div>
+                            <div class="cp-meta-item">
+                                <i class="far fa-clock"></i>
+                                <?= date('g:i A', strtotime($req->submission_date ?: $req->created_at)) ?>
+                            </div>
+                        </div>
+
+                        <?php if ($req->institution_status === 'PENDING'): ?>
+                            <div class="cp-memo">
+                                <span class="cp-memo-label">Current Status</span>
+                                <div class="cp-memo-body">
+                                    The institution has been notified. We are awaiting their confirmation of receipt and initial review. Please do not attempt to contact them directly.
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($req->institution_status === 'REJECTED'): ?>
+                            <div class="cp-memo cp-memo--danger">
+                                <span class="cp-memo-label">Rejection Reason</span>
+                                <div class="cp-memo-body">
+                                    "<?= htmlspecialchars($req->rejection_message ?: 'The institution could not accept this case at this time.') ?>"
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($req->institution_status === 'ACCEPTED'): ?>
+                            <div class="cp-memo cp-memo--success">
+                                <span class="cp-memo-label">Approval Notice</span>
+                                <div class="cp-memo-body">
+                                    This institution has formally accepted the donation. You may now proceed to the next phase of the workflow.
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
-        <?php endforeach; ?>
+            <?php endforeach; ?>
         <?php endif; ?>
 
-        <!-- Selection UI -->
-        <?php if (!$currentInstRequest || $currentInstRequest->institution_status === 'REJECTED' || $currentInstRequest->institution_status === 'WITHDRAWN'): ?>
+        <!-- Selection UI (Locked check) -->
+        <?php if (!$isLeader): ?>
+            <?php include __DIR__ . '/partials/lock-notice.php'; ?>
+        <?php elseif (!$currentInstRequest || $currentInstRequest->institution_status === 'REJECTED' || $currentInstRequest->institution_status === 'WITHDRAWN'): ?>
+            
             <?php if ($currentInstRequest && $currentInstRequest->institution_status === 'REJECTED'): ?>
-                <?php if (count($availableInstitutions) > 0): ?>
-                    <div class="cp-req-fallback-notice">
-                        <i class="fas fa-lightbulb fa-2x cp-text-blue-600"></i>
-                        <div>
-                            <strong class="cp-text-blue-900 cp-req-multiple-consents-title">Multiple Consents Available</strong>
-                            <p class="cp-text-blue-800 mt-1 mb-0">
-                                Since the donor consented to multiple medical schools during registration, you have the option to reroute this donation. Please try submitting an application to your next preferred institution from the dropdown below.
-                            </p>
-                        </div>
+                <div class="cp-notice cp-notice--info mb-4">
+                    <i class="fas fa-lightbulb fa-2x"></i>
+                    <div>
+                        <strong>Fallback Option Available</strong>
+                        <p class="mb-0">Since the previous request was rejected, you can now nominate another medical school from the donor's sanctioned list below.</p>
                     </div>
-                <?php else: ?>
-                    <div class="cp-req-fallback-notice" style="background-color: var(--red-50); border-left-color: var(--red-500);">
-                        <i class="fas fa-xmark-circle fa-2x cp-text-red-600"></i>
-                        <div>
-                            <strong class="cp-text-red-900 cp-req-multiple-consents-title">No Fallback Institutions Available</strong>
-                            <p class="cp-text-red-800 mt-1 mb-0">
-                                This institution request was rejected, and there are no other medical schools listed in the donor's consent profile. Unfortunately, this may mean the body cannot be accepted for donation. Please contact support if you need further assistance.
-                            </p>
-                        </div>
-                    </div>
-                <?php endif; ?>
+                </div>
             <?php endif; ?>
 
             <?php if (count($availableInstitutions) > 0): ?>
                 <?php if ($isTimeout): ?>
-                    <div class="cp-section-card cp-req-card mb-4" style="border: 1px solid var(--red-200);">
-                        <div class="cp-section-card__header cp-bg-red-50">
-                            <div class="cp-section-card__title cp-text-red-800">
-                                <i class="fas <?= $isBody ? 'fa-building-columns' : 'fa-hospital' ?>"></i> 
-                                Select <?= $isBody ? 'Medical School' : 'Hospital' ?>
-                            </div>
-                        </div>
-                        <div class="cp-section-card__body">
-                            <div class="alert alert-danger p-3 mb-0" style="background-color: var(--red-50); border: 1px solid var(--red-200); color: var(--red-900); border-radius: 8px;">
-                                <div style="display:flex; gap:12px; align-items:flex-start;">
-                                    <i class="fas fa-ban fa-2x mt-1" style="color: var(--red-600);"></i>
-                                    <div>
-                                        <strong>48-Hour Legal Limit Reached</strong>
-                                        <p class="mb-0 mt-1 cp-text-sm">
-                                            Unfortunately, you can no longer submit an application to a new university. Medical Faculty regulations mandate that physical delivery of the body must unconditionally take place within 48 hours. Because roughly <strong><?= floor($hoursSinceDeath) ?> hours</strong> have passed since death, standard protocols dictate immediate rejection due to putrefaction risks. 
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="cp-timeout-alert">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        <div>
+                            <h4>48-Hour Deadline Exceeded</h4>
+                            <p>
+                                The body must be delivered within 48 hours to be legally viable for donation. 
+                                Standard protocols dictate that institutions cannot accept bodies after this window.
+                            </p>
                         </div>
                     </div>
                 <?php else: ?>
-                    <div class="cp-section-card cp-req-card mb-4">
-                        <div class="cp-section-card__header cp-bg-g50">
-                            <div class="cp-section-card__title">
-                                <i class="fas <?= $isBody ? 'fa-building-columns' : 'fa-hospital' ?>"></i> 
-                                Select <?= $isBody ? 'Medical School' : 'Hospital' ?>
+                    <div class="cp-section-card mb-4" style="border: 1px solid var(--cp-gray-200); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+                        <div class="cp-section-card__header" style="background: white; border-bottom: 1px solid var(--cp-gray-200); padding: 18px 24px;">
+                            <div class="cp-section-card__title" style="font-weight: 800; color: var(--cp-gray-800); display: flex; align-items: center; gap: 12px; font-size: 1rem;">
+                                <div style="width: 36px; height: 36px; background: #eff6ff; color: #2563eb; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas <?= $isBody ? 'fa-building-columns' : 'fa-hospital' ?>"></i> 
+                                </div>
+                                Request New Institution
                             </div>
                         </div>
-                        <div class="cp-section-card__body">
-                            <p class="cp-text-sm cp-text-g500 mb-4">
-                                <?php if ($isBody): ?>
-                                    Please select precisely one Medical School from the donor's sanctioned list to receive the body.
-                                <?php else: ?>
-                                    Select a hospital for organ harvesting and medical report review.
-                                <?php endif; ?>
-                            </p>
-
+                        <div class="cp-section-card__body" style="padding: 24px; background: white;">
                             <form id="select-inst-form">
                                 <input type="hidden" name="institution_type" value="<?= $institutionType ?>">
-                                <div class="mb-4">
-                                    <select name="institution_id" class="cp-form-control" required>
-                                        <option value="" disabled selected>-- Choose Institution --</option>
-                                        <?php foreach ($availableInstitutions as $inst): ?>
-                                            <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->school_name ?? $inst->hospital_name ?? 'Unknown') ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="cp-req-justify-end">
-                                    <button type="button" id="submit-inst-btn" class="cp-btn cp-btn--primary">Initiate Request</button>
+                                <div style="display: flex; gap: 16px; align-items: flex-start;">
+                                    <div style="flex: 1;">
+                                        <select name="institution_id" class="cp-form-control" style="width: 100%; height: 50px; border-radius: 12px; border: 1px solid var(--cp-gray-200); padding: 0 16px; font-size: 0.95rem; background-color: #f8fafc;" required>
+                                            <option value="" disabled selected>-- Choose from consented institutions --</option>
+                                            <?php foreach ($availableInstitutions as $inst): ?>
+                                                <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->school_name ?? $inst->hospital_name ?? 'Unknown') ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div style="width: 180px;">
+                                        <button type="button" id="submit-inst-btn" class="cp-btn" style="width: 100%; height: 50px; background: #1e293b; color: white; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);">
+                                            Send Request
+                                        </button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -214,7 +176,6 @@ if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->tim
                 <?php endif; ?>
             <?php endif; ?>
         <?php endif; ?>
-
     <?php endif; ?>
 
 </div>
@@ -239,10 +200,10 @@ document.getElementById('submit-inst-btn')?.addEventListener('click', async () =
         if (result.success) {
             window.location.reload();
         } else {
-            alert(result.error || 'Failed to request institution');
+            cpNotify.alert('Selection Error', result.error || 'Failed to request institution', 'error');
         }
     } catch (e) {
-        alert('An error occurred. Please try again.');
+        cpNotify.alert('System Error', 'An error occurred. Please try again.', 'error');
     }
 });
 </script>
@@ -251,5 +212,3 @@ document.getElementById('submit-inst-btn')?.addEventListener('click', async () =
 $page_content = ob_get_clean();
 require dirname(__DIR__) . '/layouts/custodian.layout.php';
 ?>
-
-

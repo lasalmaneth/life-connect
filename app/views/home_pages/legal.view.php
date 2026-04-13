@@ -65,7 +65,7 @@
             </div>
             <div class="hero-image-wrap">
                 <div class="hero-shape"></div>
-                <img src="<?= ROOT ?>/public/assets/images/faq-person1.jpg" class="hero-img" alt="Legal Overview" />
+                <img src="<?= ROOT ?>/public/assets/images/home-law.jpg" class="hero-img" alt="Legal Overview" />
             </div>
             </div>
         </div>

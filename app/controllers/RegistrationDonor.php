@@ -19,10 +19,11 @@ class RegistrationDonor {
                 'dob'        => trim($_POST['dob'] ?? ''),
                 'gender'     => trim($_POST['gender'] ?? ''),
                 'phone'      => trim($_POST['phone'] ?? ''),
+                'district'   => trim($_POST['district'] ?? ''),
                 'email'      => trim($_POST['email'] ?? ''),
                 'password'   => $_POST['password'] ?? '',
                 'confirm_password' => $_POST['confirm_password'] ?? '',
-                'terms'      => $_POST['terms'] ?? '',
+                'terms'      => $_POST['terms_agreed'] ?? '',
                 'role'       => $role
             ];
 
@@ -127,6 +128,17 @@ class RegistrationDonor {
         // Phone
         if (!preg_match('/^0[0-9]{9}$/', $data['phone'])) {
             $errors[] = "Phone number must be 10 digits and start with 0.";
+        }
+
+        // District
+        $validDistricts = [
+            'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha', 
+            'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 
+            'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 
+            'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+        ];
+        if (empty($data['district']) || !in_array($data['district'], $validDistricts)) {
+            $errors[] = "Please select a valid district.";
         }
 
         // Email

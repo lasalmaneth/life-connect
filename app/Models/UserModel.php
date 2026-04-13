@@ -124,4 +124,18 @@ class UserModel {
             ':id' => $userId
         ]);
     }
+
+    public function updateCredentials($userId, $username, $passwordHash) {
+        $query = "UPDATE users SET username = :username, password_hash = :hash WHERE id = :id";
+        return $this->query($query, [
+            ':username' => $username,
+            ':hash' => $passwordHash,
+            ':id' => $userId
+        ]);
+    }
+
+    public function clearMustChangeFlag($userId) {
+        $query = "UPDATE users SET must_change_credentials = 0 WHERE id = :id";
+        return $this->query($query, [':id' => $userId]);
+    }
 }
