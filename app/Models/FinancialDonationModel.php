@@ -156,6 +156,13 @@ class FinancialDonationModel {
         return $this->query($query, [':donor_id' => $donorId]);
     }
 
+    public function getDonationById($id)
+    {
+        $query = "SELECT * FROM donations WHERE id = :id LIMIT 1";
+        $res = $this->query($query, [':id' => $id]);
+        return $res ? $res[0] : null;
+    }
+
     public function createDonation($data)
     {
         $query = "INSERT INTO donations (user_id, amount, note, status, created_at)
@@ -169,5 +176,15 @@ class FinancialDonationModel {
         ]);
         
         return true;
+    }
+
+    /**
+     * Get Total Cumulative Amount Donated by a user
+     */
+    public function getTotalDonatedAmount($userId)
+    {
+        $query = "SELECT SUM(amount) as total FROM donations WHERE user_id = :uid AND status = 'SUCCESS'";
+        $res = $this->query($query, [':uid' => $userId]);
+        return $res ? (float)($res[0]->total ?? 0) : 0.0;
     }
 }

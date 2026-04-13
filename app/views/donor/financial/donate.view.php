@@ -31,21 +31,21 @@ $donorName = htmlspecialchars(($donor_data['first_name'] ?? '') . ' ' . ($donor_
                                 <i class="fas fa-bolt" style="color: var(--blue-600);"></i> Quick Amounts
                             </label>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
-                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="1000">Rs. 1,000</button>
-                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="2500">Rs. 2,500</button>
-                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="5000">Rs. 5,000</button>
-                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="10000" style="grid-column: span 3;">Rs. 10,000</button>
+                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="1000">LKR 1,000</button>
+                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="2500">LKR 2,500</button>
+                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="5000">LKR 5,000</button>
+                                <button type="button" class="d-btn d-btn--outline amount-btn" data-amount="10000" style="grid-column: span 3;">LKR 10,000</button>
                             </div>
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
                             <label for="customAmount" style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--g600); margin-bottom: 0.4rem;">
-                                Custom Amount (Rs.) <span style="color: var(--danger);">*</span>
+                                Custom Amount (LKR ) <span style="color: var(--danger);">*</span>
                             </label>
-                            <input type="number" id="customAmount" name="amount" min="100" placeholder="Enter amount (minimum Rs. 100)"
+                            <input type="number" id="customAmount" name="amount" min="100" placeholder="Enter amount (minimum LKR 100)"
                                    style="width: 100%; padding: 0.7rem 1rem; border: 1.5px solid var(--g300); border-radius: var(--r); font-size: 1rem; transition: border 0.2s; box-sizing: border-box;">
                             <div id="amountError" style="color: var(--danger); font-size: 0.78rem; margin-top: 0.3rem; display: none;">
-                                <i class="fas fa-exclamation-circle"></i> Please enter at least Rs. 100.
+                                <i class="fas fa-exclamation-circle"></i> Please enter at least LKR 100.
                             </div>
                         </div>
 

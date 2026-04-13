@@ -102,6 +102,42 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <p><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($donor_data['district'] ?? 'Sri Lanka') ?>, Sri Lanka</p>
                     </div>
                     
+                    <?php 
+                    $in_progress_donation = array_filter($pledged_organs ?? [], function($o) {
+                        return ($o['status'] ?? '') === 'IN_PROGRESS';
+                    });
+                    $in_progress_donation = !empty($in_progress_donation) ? reset($in_progress_donation) : null;
+                    ?>
+
+                    <?php if ($in_progress_donation): ?>
+                    <div style="background: linear-gradient(135deg, #e11d48, #9f1239); color: white; padding: 1rem; border-radius: 16px; margin: 0.5rem 1.5rem 1.25rem; text-align: left; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 10px 25px rgba(225, 29, 72, 0.2); position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: -10px; right: -10px; font-size: 3.5rem; opacity: 0.12; transform: rotate(-15deg);">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div style="font-weight: 800; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.08em; font-size: 0.65rem; color: rgba(255,255,255,0.95);">
+                            <span style="width: 10px; height: 10px; background: #fff; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; box-shadow: 0 0 10px #fff;"></span> In-Progress Donation
+                        </div>
+                        <div style="line-height: 1.4; position: relative; z-index: 1;">
+                            <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; color: white; letter-spacing: -0.01em;">
+                                <?= htmlspecialchars($in_progress_donation['organ_name']) ?>
+                            </div>
+                            <div style="color: rgba(255,255,255,0.9); font-weight: 600; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 20px; height: 20px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem;">
+                                    <i class="fas fa-hospital-alt"></i>
+                                </div>
+                                <?= htmlspecialchars($in_progress_donation['hospital_name'] ?? 'Assigned Hospital') ?>
+                            </div>
+                        </div>
+                        <style>
+                            @keyframes pulse {
+                                0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
+                                70% { transform: scale(1.2); opacity: 0.4; box-shadow: 0 0 0 6px rgba(255,255,255,0); }
+                                100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+                            }
+                        </style>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if (($stats['total'] ?? 0) > 0): ?>
                     <div style="margin: 0.5rem 0 1rem; padding: 0 1.5rem;">
                         <button class="d-btn d-btn--primary d-btn--sm" style="width:100%; border-radius:10px;" onclick="window.location.href='<?=ROOT?>/donor/documents'">
@@ -174,6 +210,29 @@ include __DIR__ . '/inc/sidebar.view.php';
                         </div>
                     </div>
                 <?php endforeach; endif; ?>
+                
+                <!-- Financial Donation Acknowledgement -->
+                <?php if (!empty($total_financial) && $total_financial > 0): ?>
+                    <div class="d-feed-card" style="border-left: 5px solid #3b82f6; background: #eff6ff;">
+                        <div class="d-feed-card__header">
+                            <div class="d-feed-card__author-img" style="background:#dbeafe; color:#3b82f6;">
+                                <i class="fas fa-hand-holding-dollar"></i>
+                            </div>
+                            <div class="d-feed-card__meta">
+                                <h4>Life-Saving Financial Contribution</h4>
+                                <span><i class="far fa-heart"></i> Total Impact Recorded</span>
+                            </div>
+                        </div>
+                        <div class="d-feed-card__content">
+                            <p style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 0.1rem;">Thank You for Your Generosity!</p>
+                        </div>
+                        <div class="d-feed-card__actions" style="border-color: #dbeafe;">
+                            <button class="d-btn d-btn--primary d-btn--sm" style="border-radius: 50px; padding: 0.5rem 1.25rem; background: #3b82f6;" onclick="window.location.href='<?=ROOT?>/donor/download-pdf?type=total_financial_certificate'">
+                                <i class="fas fa-certificate"></i> Download Financial Certificate
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Pending Pledges Tracking -->
                 <div class="d-sidebar-section" style="border-left: 5px solid var(--blue-600);">

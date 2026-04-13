@@ -267,7 +267,7 @@ class DonorModel {
     public function getPledgedOrgans($donorId)
     {
         // Also pull latest history data for SUSPENDED/COMPLETED pledges
-        $query = "SELECT p.*, o.name as organ_name, o.description,
+        $query = "SELECT p.*, o.name as organ_name, o.description, h.name as hospital_name,
                   (SELECT status FROM consent_withdrawals 
                    WHERE donor_id = p.donor_id AND organ_id = p.organ_id 
                    AND status = 'PENDING_UPLOAD' 
@@ -283,6 +283,7 @@ class DonorModel {
                    ORDER BY created_at DESC LIMIT 1) as donated_organ_name
                   FROM donor_pledges p 
                   JOIN organs o ON p.organ_id = o.id 
+                  LEFT JOIN hospitals h ON p.preferred_hospital_id = h.id
                   WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'
                   GROUP BY p.organ_id";
         

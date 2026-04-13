@@ -177,6 +177,10 @@ class Donor {
 
         $districts = $this->getDistricts();
 
+        // Fetch Financial Donation Stats for Overview
+        $financialModel = new \App\Models\FinancialDonationModel();
+        $totalFinancial = $financialModel->getTotalDonatedAmount($donorData['user_id']);
+
         $this->view('donor/index', [
             'donor_data' => $donorData,
             'donor_full_name' => $donorFullName,
@@ -193,6 +197,7 @@ class Donor {
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
             'withdrawal' => $common['withdrawal'],
+            'total_financial' => $totalFinancial,
             'active_page' => 'overview',
             'page_title' => 'Overview',
             'page_css' => [],
@@ -1340,6 +1345,7 @@ class Donor {
         $medicalSchools = $medicalSchoolModel->getAllApprovedMedicalSchools();
         $bodyUsageStatus = $donorModel->getBodyUsageStatus($donorId);
         $uploadedPledges = $organModel->getUploadedPledges($donorId);
+        $completedPledges = $organModel->getCompletedPledges($donorId);
         $districts = $this->getDistricts();
 
         $this->view('donor/documents', [
@@ -1353,6 +1359,7 @@ class Donor {
             'medical_schools' => $medicalSchools,
             'body_usage_status' => $bodyUsageStatus,
             'uploaded_pledges' => $uploadedPledges,
+            'completed_pledges' => $completedPledges,
             'districts' => $districts,
             'withdrawal' => $common['withdrawal'],
             'stats'      => $common['stats'],
@@ -1383,6 +1390,24 @@ class Donor {
                 redirect('donor/donations');
             }
             $this->viewDigitalCard();
+        } else if ($type === 'certificate') {
+            $pledgeId = (int)($_GET['pledge_id'] ?? 0);
+            if ($pledgeId > 0) {
+                $this->viewCertificate($pledgeId);
+            } else {
+                $_SESSION['error_message'] = "Missing Pledge ID for certificate download.";
+                redirect('donor/documents');
+            }
+        } else if ($type === 'financial_certificate') {
+            $donationId = (int)($_GET['id'] ?? 0);
+            if ($donationId > 0) {
+                $this->viewFinancialCertificate($donationId);
+            } else {
+                $_SESSION['error_message'] = "Missing Donation ID for certificate.";
+                redirect('donor/financial-history');
+            }
+        } else if ($type === 'total_financial_certificate') {
+            $this->viewTotalFinancialCertificate();
         } else if ($type === 'lab_report') {
             $this->redirect('donor/test-results');
         }
@@ -1801,6 +1826,116 @@ class Donor {
             'donor_role' => $donorRole,
             'active_roles' => $activeRoles,
             'current_mode' => $currentMode,
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Certificate of Appreciation as printable HTML
+     */
+    public function viewCertificate($pledgeId)
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        
+        $pledge = $this->query("SELECT dp.*, o.name as organ_name 
+                                FROM donor_pledges dp 
+                                JOIN organs o ON dp.organ_id = o.id 
+                                WHERE dp.id = :id AND dp.donor_id = :donor_id AND dp.status = 'COMPLETED'", 
+                                [':id' => $pledgeId, ':donor_id' => $donorId]);
+        
+        if (!$pledge) {
+            $_SESSION['error_message'] = "Certificate not found or pledge not completed.";
+            redirect('donor/documents');
+        }
+
+        $pledgeData = $pledge[0];
+        $donorData = $common['donorData'];
+        
+        $this->view('donor/certificate', [
+            'donor_data' => $donorData,
+            'donor_full_name' => $common['donorFullName'],
+            'pledge' => $pledgeData,
+            'donation_type' => 'organ',
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Financial Donation Certificate as printable HTML
+     */
+    public function viewFinancialCertificate($donationId)
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $common = $this->getCommonData();
+        
+        $donationModel = new \App\Models\FinancialDonationModel();
+        $donation = $donationModel->getDonationById($donationId);
+
+        // Verification: Ensure the donation belongs to the logged-in user and is successful
+        if (!$donation || (int)$donation->user_id !== (int)$userId || $donation->status !== 'SUCCESS') {
+            $_SESSION['error_message'] = "Certificate not found or unauthorized access.";
+            redirect('donor/financial-history');
+        }
+
+        $this->view('donor/certificate', [
+            'donor_data' => $common['donorData'],
+            'donor_full_name' => $common['donorFullName'],
+            'donation' => $donation,
+            'donation_type' => 'financial',
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Cumulative Financial Donation Certificate (Total Contributed)
+     */
+    public function viewTotalFinancialCertificate()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $common = $this->getCommonData();
+        
+        $donationModel = new \App\Models\FinancialDonationModel();
+        $history = $donationModel->getDonationsByDonorId($userId);
+
+        $totalAmount = 0;
+        if ($history) {
+            foreach ($history as $d) {
+                if ($d->status === 'SUCCESS' || $d->status === 'COMPLETED') {
+                    $totalAmount += (float)$d->amount;
+                }
+            }
+        }
+
+        if ($totalAmount <= 0) {
+            $_SESSION['error_message'] = "You haven't made any successful donations yet.";
+            redirect('donor/financial-history');
+        }
+
+        // We create a dummy donation object for the shared template
+        $donation = (object)[
+            'amount' => $totalAmount,
+            'created_at' => date('Y-m-d H:i:s'),
+            'id' => 0 // Special flag for total
+        ];
+
+        $this->view('donor/certificate', [
+            'donor_data' => $common['donorData'],
+            'donor_full_name' => $common['donorFullName'],
+            'donation' => $donation,
+            'donation_type' => 'total_financial',
             'ROOT' => ROOT
         ]);
         exit;
