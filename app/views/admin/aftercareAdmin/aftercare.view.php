@@ -31,10 +31,6 @@ $admin_status = 'Active';
             min-height: 100vh;
         }
 
-        .stats-grid {
-            margin-top: 20px;
-        }
-
         .header-nav {
             display: flex;
             gap: 1.5rem;
@@ -64,11 +60,125 @@ $admin_status = 'Active';
         .nav-link i {
             font-size: 1rem;
         }
+
+        .stats-grid {
+            margin-top: 20px;
+        }
+
+        /* Premium Modal Overrides */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
+            padding: 0;
+            overflow: hidden;
+            max-width: 700px;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #1e56a0 0%, #003b6e 100%);
+            padding: 1.5rem 2rem;
+            border: none;
+        }
+
+        .modal-header h3 {
+            color: white;
+            font-weight: 700;
+            margin: 0;
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        /* Review Section Styling */
+        .review-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .review-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .review-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+
+        .review-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        /* Table Styles - Matching User Management */
+        .data-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .table-header h4 {
+            margin: 0;
+            color: #003b6e;
+            font-weight: 700;
+        }
+
+        .table-row {
+            display: flex;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .table-row:hover:not(.header-row) {
+            background: #f8fafc;
+        }
+
+        .header-row {
+            background: #f8fafc;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table-cell {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
-<script src="<?= ROOT ?>/public/assets/js/admin/aftercare.js" defer></script>
-
+    <script>
+        const ROOT = "<?= ROOT ?>";
+    </script>
+    <script src="<?= ROOT ?>/public/assets/js/admin/aftercare.js" defer></script>
     <div class="header">
         <div class="header-content">
             <div class="header-left">
@@ -97,8 +207,11 @@ $admin_status = 'Active';
                         <span class="user-name"><?php echo $admin_full_name; ?></span>
                         <span class="user-role"><?php echo $admin_role_display; ?></span>
                     </div>
+                    <i class="fa-solid fa-chevron-down ms-2 opacity-50"></i>
                 </div>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 
@@ -150,28 +263,28 @@ $admin_status = 'Active';
 
                     <div class="stats-grid dashboard-metrics">
                         <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="dashboard-total-requests"><?= $stats['total'] ?></div>
+                            <div class="stat-number quick-stat-number" id="dashboard-total-requests"><?= $stats['total'] ?? 0 ?></div>
                             <div class="stat-label">Total Support Requests</div>
                         </div>
                         <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="dashboard-pending"><?= $stats['pending'] ?></div>
+                            <div class="stat-number quick-stat-number" id="dashboard-pending"><?= $stats['pending'] ?? 0 ?></div>
                             <div class="stat-label">Pending Approval</div>
                         </div>
                         <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="dashboard-total-amount">LKR 0</div>
-                            <div class="stat-label">Total Support Amount</div>
+                            <div class="stat-number quick-stat-number" id="dashboard-total-patients"><?= $stats['total_patients'] ?? 0 ?></div>
+                            <div class="stat-label">Total Aftercare Patients</div>
                         </div>
                         <div class="stat-card glass-card">
-                            <div class="stat-number" id="dashboard-total-patients">5</div>
-                            <div class="stat-label">Total Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number" id="dashboard-recipients">3</div>
+                            <div class="stat-number" id="dashboard-recipients" style="color: #005baa;"><?= $stats['recipient_patients'] ?? 0 ?></div>
                             <div class="stat-label">Recipient Patients</div>
                         </div>
                         <div class="stat-card glass-card">
-                            <div class="stat-number" id="dashboard-donors">2</div>
-                            <div class="stat-label">Post-Donation Patients</div>
+                            <div class="stat-number" id="dashboard-donors" style="color: #059669;"><?= $stats['donor_patients'] ?? 0 ?></div>
+                            <div class="stat-label">Donor Patients</div>
+                        </div>
+                        <div class="stat-card glass-card">
+                            <div class="stat-number" id="dashboard-avg-age"><?= $stats['average_age'] ?? 0 ?></div>
+                            <div class="stat-label">Average Patient Age</div>
                         </div>
                     </div>
                 </div>
@@ -180,8 +293,11 @@ $admin_status = 'Active';
             <!-- Support Requests -->
             <div id="support-requests" class="content-section" style="display: none;">
                 <div class="content-header">
-                    <h2>Support Requests</h2>
-                    <p>Manage and review patient support applications</p>
+                    <h2>
+                        <i class="fa-solid fa-hand-holding-heart"></i>
+                        Support Requests
+                    </h2>
+                    <p>Manage and review patient support applications and medical assistance requests.</p>
                 </div>
                 <div class="content-body">
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; padding-top: 2rem;">
@@ -249,8 +365,11 @@ $admin_status = 'Active';
             <!-- Aftercare Patients -->
             <div id="patients" class="content-section" style="display: none;">
                 <div class="content-header">
-                    <h2>Aftercare Patients</h2>
-                    <p>Monitor and manage post-surgery patient follow-ups</p>
+                    <h2>
+                        <i class="fa-solid fa-user-injured"></i>
+                        Aftercare Patient Records
+                    </h2>
+                    <p>Monitor and manage post-surgery patient follow-ups and long-term care records.</p>
                 </div>
                 <div class="content-body">
                     <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; padding-top: 2rem;">
@@ -300,19 +419,18 @@ $admin_status = 'Active';
 
                     <div class="data-table">
                         <div class="table-header">
-                            <h4>Patient Records</h4>
+                            <h4>Aftercare Patient Records</h4>
                         </div>
                         <div class="table-content" id="patients-table">
-                            <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                <div class="table-cell">Patient ID</div>
-                                <div class="table-cell">Patient Name</div>
+                            <div class="table-row header-row">
+                                <div class="table-cell" style="flex: 1.5;">Patient Details</div>
                                 <div class="table-cell">Age</div>
                                 <div class="table-cell">Blood Type</div>
-                                <div class="table-cell">Surgery Type</div>
-                                <div class="table-cell">Patient Type</div>
+                                <div class="table-cell">Type</div>
+                                <div class="table-cell">Status</div>
                                 <div class="table-cell">Actions</div>
                             </div>
-                            <!-- AJAX will load data here -->
+                            <!-- AJAX will load patient rows here -->
                         </div>
                     </div>
                 </div>
@@ -377,57 +495,67 @@ $admin_status = 'Active';
     </div>
 </div>
 
-<!-- Patient Details Modal -->
+<!-- Patient Details Modal (Modern Styled) -->
 <div id="patientModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Patient Details</h3>
-            <button class="close-btn" onclick="closePatientModal()">&times;</button>
+            <h3>Patient Profile Review</h3>
+            <button class="modal-close" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closePatientModal()">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="payment-details">
-                <div class="detail-row">
-                    <div class="detail-label">Patient ID</div>
-                    <div class="detail-value" id="modal-patient-id">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Patient Name</div>
-                    <div class="detail-value" id="modal-patient-name">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Email</div>
-                    <div class="detail-value" id="modal-patient-email">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Age</div>
-                    <div class="detail-value" id="modal-patient-age">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Blood Type</div>
-                    <div class="detail-value" id="modal-patient-bloodtype">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Surgery Type</div>
-                    <div class="detail-value" id="modal-patient-surgery">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Patient Type</div>
-                    <div class="detail-value">
-                        <span class="status-badge" id="modal-patient-type">-</span>
+            <div class="review-section">
+                <div class="review-grid">
+                    <div class="review-item">
+                        <span class="review-label">Registration Number</span>
+                        <span class="review-value" id="modal-patient-id">-</span>
+                    </div>
+                    <div class="review-item">
+                        <span class="review-label">Full Name</span>
+                        <span class="review-value" id="modal-patient-name">-</span>
+                    </div>
+                    <div class="review-item">
+                        <span class="review-label">National ID (NIC)</span>
+                        <span class="review-value" id="modal-patient-nic">-</span>
+                    </div>
+                    <div class="review-item">
+                        <span class="review-label">Patient Status</span>
+                        <span class="review-value" id="modal-patient-status">-</span>
                     </div>
                 </div>
-                <div class="detail-row">
-                    <div class="detail-label">Notes</div>
-                    <div class="detail-value" id="modal-patient-notes">-</div>
+            </div>
+
+            <div class="review-grid" style="margin-bottom: 2rem;">
+                <div class="review-item">
+                    <span class="review-label">Age</span>
+                    <span class="review-value" id="modal-patient-age">-</span>
+                </div>
+                <div class="review-item">
+                    <span class="review-label">Blood Type</span>
+                    <span class="review-value" id="modal-patient-bloodtype">-</span>
+                </div>
+                <div class="review-item">
+                    <span class="review-label">Gender</span>
+                    <span class="review-value" id="modal-patient-gender">-</span>
+                </div>
+                <div class="review-item">
+                    <span class="review-label">Classification</span>
+                    <span class="review-value" id="modal-patient-type">-</span>
+                </div>
+            </div>
+
+            <div class="review-section">
+                <div class="review-item">
+                    <span class="review-label">Associated Hospital (Reg No)</span>
+                    <span class="review-value" id="modal-patient-hosp">-</span>
                 </div>
             </div>
             
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closePatientModal()">
-                    <i class="fa-solid fa-times"></i> Close
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <button class="btn btn-secondary" onclick="closePatientModal()" style="border-radius: 12px; padding: 0.75rem 1.5rem;">
+                    Close
                 </button>
-                <button class="btn btn-primary" onclick="viewLabReport()">
-                    <i class="fa-solid fa-file-medical"></i> Lab Report
+                <button class="btn btn-primary" style="border-radius: 12px; padding: 0.75rem 1.5rem; background: #005baa;">
+                    <i class="fa-solid fa-file-medical"></i> Clinical Records
                 </button>
             </div>
         </div>

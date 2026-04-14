@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Controllers;
+namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\Core\Database;
@@ -190,10 +190,6 @@ class UserAdmin {
         }
     }
 
-
-
-
-
     public function getNotifications() {
         header('Content-Type: application/json');
         try {
@@ -376,4 +372,3 @@ class UserAdmin {
     }
 
 }
-

@@ -1,6 +1,6 @@
-<?php
+<?php 
 
-namespace App\Controllers;
+namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\Models\FinancialDonationModel;
@@ -9,6 +9,8 @@ class FinancialAdminController {
     use Controller;
 
     public function index() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
         $model = new FinancialDonationModel();
         $this->view('admin/finance', [
             'total' => $model->getTotalDonations(),
@@ -19,6 +21,8 @@ class FinancialAdminController {
 
     public function getAllDonations() {
         header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
         $model = new FinancialDonationModel();
         echo json_encode(['success' => true, 'donations' => $model->getAllDonations()]);
     }

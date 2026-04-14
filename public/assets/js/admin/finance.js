@@ -173,11 +173,36 @@ function formatDate(dateString) {
 function showPaymentModal(payment) {
     document.getElementById('modal-payment-id').textContent = '#' + payment.id;
     document.getElementById('modal-donor-id').textContent = payment.full_name || '—';
+    document.getElementById('modal-email').textContent = payment.email || 'N/A';
+    document.getElementById('modal-note').textContent = payment.note || 'No additional notes provided.';
     document.getElementById('modal-amount').textContent = `LKR ${parseFloat(payment.amount).toLocaleString('en-US', {minimumFractionDigits:2})}`;
     document.getElementById('modal-date').textContent = formatDate(payment.date);
 
     const status = (payment.status || 'PENDING').toUpperCase();
-    document.getElementById('modal-status').textContent = status;
+    const statusEl = document.getElementById('modal-status');
+    const iconEl = document.getElementById('modal-status-icon');
+    const iconBox = document.getElementById('modal-status-icon-box');
+    
+    statusEl.textContent = status;
+
+    // Theming based on status
+    if (status === 'SUCCESS' || status === 'COMPLETED') {
+        statusEl.style.color = '#16a34a';
+        iconEl.className = 'fa-solid fa-circle-check';
+        iconEl.style.color = '#16a34a';
+        iconBox.style.background = '#dcfce7';
+    } else if (status === 'FAILED') {
+        statusEl.style.color = '#ef4444';
+        iconEl.className = 'fa-solid fa-circle-xmark';
+        iconEl.style.color = '#ef4444';
+        iconBox.style.background = '#fee2e2';
+    } else {
+        // Pending or others (Yellow/Orange)
+        statusEl.style.color = '#d97706';
+        iconEl.className = 'fa-solid fa-clock';
+        iconEl.style.color = '#d97706';
+        iconBox.style.background = '#fef3c7';
+    }
 
     const txRef = payment.transaction_id || `TRX-${String(payment.id).padStart(4,'0')}`;
     document.getElementById('modal-reference').textContent = txRef;

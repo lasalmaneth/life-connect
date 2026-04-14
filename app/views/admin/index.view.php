@@ -231,6 +231,7 @@
   position: relative;
   height: 200px;
   margin-top: 10px;
+  margin-bottom: 30px; /* Space for labels */
 }
 
 .chart-grid-line {
@@ -271,9 +272,13 @@
 }
 
 .bar-label {
-  margin-top: 6px;
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
   color: #1e40af;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 /* ====== Chart Stats (below bar chart) ====== */

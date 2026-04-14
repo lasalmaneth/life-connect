@@ -137,6 +137,7 @@ class FinancialDonationModel {
         $query = "SELECT
                     d.id,
                     COALESCE(CONCAT(dn.first_name, ' ', dn.last_name), u.username) AS full_name,
+                    u.email,
                     d.amount,
                     d.created_at AS date,
                     d.note,

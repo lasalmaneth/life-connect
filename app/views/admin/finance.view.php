@@ -351,54 +351,79 @@
     
     <!-- Payment Details Modal -->
     <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-file-invoice" style="margin-right: 8px;"></i>Payment Details</h3>
-                <button class="modal-close" onclick="closePaymentModal()">&times;</button>
-            </div>
-            <div id="feedback-details" style="padding: 0 20px;">
-                <div class="form-group">
-                    <label class="form-label">Payment ID</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="modal-payment-id"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Donor Name</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="modal-donor-id"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Amount</label>
-                    <div class="form-input" style="background: var(--gray-bg-color); color: var(--primary-color); font-weight: bold; font-size: 1.1rem;" id="modal-amount"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Date</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="modal-date"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);">
-                        <span class="status-badge status-completed" id="modal-status"></span>
+        <div class="modal-content" style="padding: 2.5rem; border-radius: 24px; max-width: 500px;">
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closePaymentModal()">&times;</button>
+                
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <!-- Status Icon -->
+                    <div id="modal-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #dcfce7; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                        <i id="modal-status-icon" class="fa-solid fa-circle-check" style="font-size: 20px; color: #16a34a;"></i>
+                    </div>
+
+                    <!-- Title -->
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Payment Details</h2>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Transaction Reference</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="modal-reference"></div>
+
+                <p style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Details of the financial donation transaction.</p>
+
+                <!-- Details Card (2-Column Grid) -->
+                <div style="background: #f0f7ff; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Payment ID</span>
+                        <div id="modal-payment-id" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Status</span>
+                        <div id="modal-status" style="font-size: 0.95rem; font-weight: 700; color: #16a34a;">-</div>
+                    </div>
+                    
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Donor Name</span>
+                        <div id="modal-donor-id" style="font-size: 1rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Email Address</span>
+                        <div id="modal-email" style="font-size: 0.9rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
+                    </div>
+
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Amount</span>
+                        <div id="modal-amount" style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Date</span>
+                        <div id="modal-date" style="font-size: 0.95rem; font-weight: 600; color: #0f172a;">-</div>
+                    </div>
+
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Transaction Reference</span>
+                        <div id="modal-reference" style="font-size: 0.85rem; font-weight: 600; color: #0f172a; font-family: monospace;">-</div>
+                    </div>
+
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Donor Note</span>
+                        <div id="modal-note" style="font-size: 0.9rem; font-weight: 500; color: #475569; font-style: italic; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 5px;">-</div>
+                    </div>
                 </div>
-            </div>
-            <div class="action-buttons" style="margin-top: 2rem;">
-                <button type="button" class="btn btn-primary" onclick="printPaymentDetails()">
-                    <i class="fa-solid fa-print"></i> Print
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="closePaymentModal()">Close</button>
+
+                <!-- Footer Buttons -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="printPaymentDetails()" style="background: #005baa; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                        <i class="fa-solid fa-print"></i> Print
+                    </button>
+                    <button type="button" onclick="closePaymentModal()" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Close</button>
+                </div>
             </div>
         </div>
     </div>
     
     <script>
         const ROOT = '<?= ROOT ?>';
-        // Add minimal scripts for closing modals if not fully handled in finance.js
-        function closePaymentModal() {
-            document.getElementById('paymentModal').style.display = 'none';
-        }
+
 
         // SVG Chart Tooltip Logic
         function showTooltip(month, val, event) {
