@@ -157,7 +157,7 @@ class RegistrationReview {
 
             $_SESSION['submitted_username'] = $username;
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $_SESSION['reg_error'] = $e->getMessage();
             error_log("Registration Exception: " . $e->getMessage());
             return false;
@@ -252,7 +252,7 @@ class RegistrationReview {
             
             $_SESSION['submitted_username'] = $username;
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $_SESSION['reg_error'] = $e->getMessage();
             error_log("Institution Registration Exception: " . $e->getMessage());
             return false;

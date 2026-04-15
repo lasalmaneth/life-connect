@@ -7,58 +7,58 @@ use App\Core\Model;
 class HospitalModel {
     use Model;
 
-    protected $table = 'hospitals'; // Updated to match new schema
+    protected $table = 'hospitals';
+
+    protected $allowedColumns = [
+        'user_id',
+        'registration_number',
+        'transplant_id',
+        'name',
+        'address',
+        'contact_number',
+        'district',
+        'facility_type',
+        'cmo_name',
+        'cmo_nic',
+        'medical_license_number',
+        'verification_status'
+    ];
 
     public function registerHospital($userId, $hospitalData, $cmoData)
     {
-        $query = "INSERT INTO hospitals (
-            user_id, registration_number, transplant_id, name, address, contact_number, district, facility_type, 
-            cmo_name, cmo_nic, medical_license_number, verification_status
-        ) VALUES (
-            :user_id, :reg_no, :transplant_id, :name, :address, :contact_number, :district, :type, 
-            :cmo_name, :cmo_nic, :license, 'PENDING'
-        )";
-        
-        $params = [
-            ':user_id' => $userId,
-            ':reg_no' => $hospitalData['registration_number'],
-            ':transplant_id' => $hospitalData['transplant_id'] ?? null,
-            ':name' => $hospitalData['name'],
-            ':address' => $hospitalData['address'],
-            ':contact_number' => $hospitalData['contact_number'] ?? null,
-            ':district' => $hospitalData['district'],
-            ':type' => $hospitalData['type'],
-            ':cmo_name' => $cmoData['name'],
-            ':cmo_nic' => $cmoData['nic'],
-            ':license' => $cmoData['license_number']
-        ];
-        
-        $this->query($query, $params);
-        return true;
+        return $this->insert([
+            'user_id' => $userId,
+            'registration_number' => $hospitalData['registration_number'],
+            'transplant_id' => $hospitalData['transplant_id'] ?? null,
+            'name' => $hospitalData['name'],
+            'address' => $hospitalData['address'],
+            'contact_number' => $hospitalData['contact_number'] ?? null,
+            'district' => $hospitalData['district'],
+            'facility_type' => $hospitalData['type'],
+            'cmo_name' => $cmoData['name'],
+            'cmo_nic' => $cmoData['nic'],
+            'medical_license_number' => $cmoData['license_number'],
+            'verification_status' => 'PENDING'
+        ]);
     }
 
     public function hospitalRegNoExists($regNo)
     {
-        $query = "SELECT COUNT(*) as count FROM hospitals WHERE registration_number = :reg_no";
-        $result = $this->query($query, [':reg_no' => $regNo]);
-        return $result && $result[0]->count > 0;
+        return $this->count(['registration_number' => $regNo]) > 0;
     }
 
     public function getAllHospitals()
     {
-        $query = "SELECT * FROM hospitals WHERE verification_status = 'APPROVED' ORDER BY name ASC";
-        return $this->query($query);
+        return $this->where(['verification_status' => 'APPROVED'], [], '*', 'name ASC');
     }
 
     public function getHospitalByUserId($userId)
     {
-        $query = "SELECT h.*, u.email AS user_email, u.phone AS user_phone
-                  FROM hospitals h
-                  LEFT JOIN users u ON u.id = h.user_id
-                  WHERE h.user_id = :user_id
-                  LIMIT 1";
-        $results = $this->query($query, [':user_id' => $userId]);
-        return $results ? $results[0] : false;
+        $joins = [
+            ['table' => 'users u', 'on' => 'u.id = hospitals.user_id', 'type' => 'LEFT']
+        ];
+        $res = $this->queryJoin($joins, ['hospitals.user_id' => $userId], 'hospitals.*, u.email AS user_email, u.phone AS user_phone', '', 1);
+        return $res ? $res[0] : false;
     }
 
     private function donorPledgeHasColumn($column)

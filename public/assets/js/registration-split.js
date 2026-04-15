@@ -1264,9 +1264,9 @@
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if(d.success) {
-                var colors = { 'PENDING': '#d97706', 'ACTIVE': '#16a34a', 'REJECTED': '#dc2626' };
+                var colors = { 'PENDING': '#d97706', 'ACTIVE': '#16a34a', 'REJECTED': '#dc2626', 'SUSPENDED': '#dc2626' };
                 var msg = "Status: " + d.status;
-                if(d.status === 'REJECTED' && d.review_message) {
+                if((d.status === 'REJECTED' || d.status === 'SUSPENDED') && d.review_message) {
                     msg += " (Reason: " + d.review_message + ")";
                 }
                 resEl.textContent = msg;
@@ -1492,4 +1492,34 @@
     if (typeof populateInstitutionFromState === 'function') {
         window.populateInstitutionFromState = populateInstitutionFromState;
     }
+    // ─── Initialization for Pre-filled Fields (Auto-fill fix) ────────────────
+    function checkPreFilled() {
+        // Donor Fields
+        if (getRole() === 'donor') {
+            if (document.getElementById("d_user") && document.getElementById("d_user").value.trim() !== '') {
+                onUsername('d_user', 'd_userH');
+            }
+            if (document.getElementById("d_email") && document.getElementById("d_email").value.trim() !== '') {
+                onEmail('d_email', 'd_emailH');
+            }
+            if (document.getElementById("d_nic") && document.getElementById("d_nic").value.trim() !== '') {
+                onNIC();
+            }
+        }
+        // Institution Fields
+        if (getRole() === 'institution') {
+            if (document.getElementById("inst_user") && document.getElementById("inst_user").value.trim() !== '') {
+                onUsername('inst_user', 'inst_userH');
+            }
+            if (document.getElementById("inst_email") && document.getElementById("inst_email").value.trim() !== '') {
+                onEmail('inst_email', 'inst_emailH');
+            }
+        }
+    }
+
+    // Run slightly delayed to ensure browser auto-fill has settled
+    window.addEventListener("load", function() {
+        setTimeout(checkPreFilled, 500);
+    });
+
 })();

@@ -34,20 +34,8 @@
       <a class="d-menu-item <?= ($activePage ?? '') === 'body-acceptance' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/body-acceptance">
         <span class="d-menu-item__icon"><i class="fas fa-hand-holding-medical"></i></span> Body Acceptance
       </a>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'stories' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/stories">
-        <span class="d-menu-item__icon"><i class="fas fa-bullhorn"></i></span> Success Stories
-      </a>
       <a class="d-menu-item <?= ($activePage ?? '') === 'usage-logs' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/usage-logs">
         <span class="d-menu-item__icon"><i class="fas fa-clipboard-list"></i></span> Cadaver Usage Logs
-      </a>
-    </div>
-    <div class="d-menu-section">
-      <div class="d-menu-section__title">Records</div>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'certificates' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/certificates">
-        <span class="d-menu-item__icon"><i class="fas fa-file-certificate"></i></span> Certificates
-      </a>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/reports">
-        <span class="d-menu-item__icon"><i class="fas fa-chart-bar"></i></span> Reports
       </a>
     </div>
   </nav>

@@ -25,10 +25,28 @@ class RegistrationInstitution {
             // Validate
             $errors = [];
             if (empty($data['name'])) $errors[] = "Institution name is required.";
-            if (empty($data['username']) || !preg_match('/^[a-zA-Z0-9_]+$/', $data['username'])) $errors[] = "Valid username is required.";
+            
+            if (empty($data['username']) || !preg_match('/^[a-zA-Z0-9_]+$/', $data['username'])) {
+                $errors[] = "Valid username is required.";
+            } else {
+                $userModel = new \App\Models\UserModel();
+                if ($userModel->usernameExists($data['username'])) {
+                    $errors[] = "Username is already taken.";
+                }
+            }
+
             if (empty($data['reg_no'])) $errors[] = "Registration number is required.";
             if ($data['type'] === 'hospital' && empty($data['transplant_id'])) $errors[] = "Transplant ID is required for hospitals.";
-            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors[] = "Valid email is required.";
+            
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Valid email is required.";
+            } else {
+                $userModel = new \App\Models\UserModel();
+                if ($userModel->emailExists($data['email'])) {
+                    $errors[] = "Email is already registered.";
+                }
+            }
+
             if (!preg_match('/^0[0-9]{9}$/', $data['phone'])) $errors[] = "Phone number must be 10 digits and start with 0.";
             if (empty($data['address'])) $errors[] = "Address is required.";
             if (empty($_POST['password']) || strlen($_POST['password']) < 8) $errors[] = "Password must be at least 8 characters.";

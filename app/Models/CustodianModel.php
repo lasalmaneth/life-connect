@@ -3,11 +3,22 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Core\Model;
 
 class CustodianModel {
-    use Database;
+    use Model;
 
     protected $table = 'custodians';
+    protected $allowedColumns = [
+        'user_id',
+        'donor_id',
+        'custodian_number',
+        'name',
+        'relationship',
+        'phone',
+        'email',
+        'address'
+    ];
 
     // ─────────────────────────────────────────────────
     // CUSTODIAN IDENTITY
@@ -18,13 +29,15 @@ class CustodianModel {
      */
     public function getCustodianByUserId($userId)
     {
-        $query = "SELECT c.*, d.first_name AS donor_first_name, d.last_name AS donor_last_name,
-                         d.nic_number AS donor_nic
-                  FROM custodians c
-                  JOIN donors d ON c.donor_id = d.id
-                  WHERE c.user_id = :user_id";
-        $result = $this->query($query, [':user_id' => $userId]);
-        return $result ? $result[0] : null;
+        return $this->queryJoin(
+            [['table' => 'donors d', 'on' => 'c.donor_id = d.id', 'type' => 'JOIN']],
+            ['c.user_id' => $userId],
+            'c.*, d.first_name AS donor_first_name, d.last_name AS donor_last_name, d.nic_number AS donor_nic',
+            '',
+            1,
+            0,
+            'custodians c'
+        )[0] ?? null;
     }
 
     /**
@@ -32,13 +45,18 @@ class CustodianModel {
      */
     public function getDonorForCustodian($custodianId)
     {
-        $query = "SELECT d.*, u.email AS user_email, u.phone AS user_phone
-                  FROM custodians c
-                  JOIN donors d ON c.donor_id = d.id
-                  LEFT JOIN users u ON d.user_id = u.id
-                  WHERE c.id = :custodian_id";
-        $result = $this->query($query, [':custodian_id' => $custodianId]);
-        return $result ? $result[0] : null;
+        return $this->queryJoin(
+            [
+                ['table' => 'donors d', 'on' => 'c.donor_id = d.id', 'type' => 'JOIN'],
+                ['table' => 'users u', 'on' => 'd.user_id = u.id', 'type' => 'LEFT']
+            ],
+            ['c.id' => $custodianId],
+            'd.*, u.email AS user_email, u.phone AS user_phone',
+            '',
+            1,
+            0,
+            'custodians c'
+        )[0] ?? null;
     }
 
     /**
@@ -46,13 +64,7 @@ class CustodianModel {
      */
     public function getCoCustodian($donorId, $excludeCustodianId)
     {
-        $query = "SELECT * FROM custodians
-                  WHERE donor_id = :donor_id AND id != :exclude_id";
-        $result = $this->query($query, [
-            ':donor_id' => $donorId,
-            ':exclude_id' => $excludeCustodianId
-        ]);
-        return $result ? $result[0] : null;
+        return $this->first(['donor_id' => $donorId], ['id' => $excludeCustodianId]);
     }
 
     /**
@@ -60,10 +72,7 @@ class CustodianModel {
      */
     public function getCustodiansByDonor($donorId)
     {
-        $query = "SELECT * FROM custodians
-                  WHERE donor_id = :donor_id
-                  ORDER BY custodian_number ASC";
-        return $this->query($query, [':donor_id' => $donorId]) ?: [];
+        return $this->where(['donor_id' => $donorId], [], '*', 'custodian_number ASC');
     }
 
     /**
@@ -71,64 +80,48 @@ class CustodianModel {
      */
     public function updateCustodianContact($custodianId, $data)
     {
-        $query = "UPDATE custodians SET
-                  name = :name,
-                  relationship = :relationship,
-                  phone = :phone,
-                  email = :email,
-                  address = :address
-                  WHERE id = :id";
-        return $this->query($query, [
-            ':name'         => $data['name'] ?? null,
-            ':relationship' => $data['relationship'] ?? null,
-            ':phone'        => $data['phone'] ?? null,
-            ':email'        => $data['email'] ?? null,
-            ':address'      => $data['address'] ?? null,
-            ':id'           => $custodianId
-        ]);
+        return $this->update($custodianId, $data);
     }
 
     // ─────────────────────────────────────────────────
     // CONSENT RESOLUTION
     // ─────────────────────────────────────────────────
 
-    /**
-     * Resolve the active donation type from the donor's consents.
-     * Rules:
-     *   - If body donation consent exists → BODY (or BODY_AND_CORNEA if eye was also pledged)
-     *   - If only organ pledges → ORGAN
-     *   - Body donation is the "last active" if registered after organ pledges
-     */
     public function resolveActiveConsent($donorId)
     {
-        // Check for body donation consent
-        $bodyQuery = "SELECT bdc.*, ms.school_name, ms.university_affiliation, ms.address AS school_address
-                      FROM body_donation_consents bdc
-                      LEFT JOIN medical_schools ms ON bdc.medical_school_id = ms.id
-                      WHERE bdc.donor_id = :donor_id
-                      ORDER BY bdc.consent_date DESC";
-        $bodyConsents = $this->query($bodyQuery, [':donor_id' => $donorId]) ?: [];
+        // Use queryJoin for body consents
+        $bodyConsents = $this->queryJoin(
+            [['table' => 'medical_schools ms', 'on' => 'bdc.medical_school_id = ms.id', 'type' => 'LEFT']],
+            ['bdc.donor_id' => $donorId],
+            'bdc.*, ms.school_name, ms.university_affiliation, ms.address AS school_address',
+            'bdc.consent_date DESC',
+            100,
+            0,
+            'body_donation_consents bdc'
+        ) ?: [];
 
-        // Check for organ pledges
-        $organQuery = "SELECT dp.*, o.name AS organ_name
-                       FROM donor_pledges dp
-                       JOIN organs o ON dp.organ_id = o.id
-                       WHERE dp.donor_id = :donor_id AND dp.status != 'WITHDRAWN'";
-        $organPledges = $this->query($organQuery, [':donor_id' => $donorId]) ?: [];
+        // Use queryJoin for organ pledges
+        $organPledges = $this->queryJoin(
+            [['table' => 'organs o', 'on' => 'dp.organ_id = o.id', 'type' => 'JOIN']],
+            ['dp.donor_id' => $donorId, 'dp.status !=' => 'WITHDRAWN'],
+            'dp.*, o.name AS organ_name',
+            '',
+            100,
+            0,
+            'donor_pledges dp'
+        ) ?: [];
 
-        // Check if cornea/eye was pledged
         $hasCornea = false;
         foreach ($organPledges as $pledge) {
-            if (strtolower($pledge->organ_name) === 'cornea' || strtolower($pledge->organ_name) === 'eye') {
+            $name = strtolower($pledge->organ_name ?? '');
+            if ($name === 'cornea' || $name === 'eye') {
                 $hasCornea = true;
                 break;
             }
         }
 
-        // Determine type based on donor's pledge_type
-        $donorQuery = "SELECT pledge_type FROM donors WHERE id = :donor_id";
-        $donor = $this->query($donorQuery, [':donor_id' => $donorId]);
-        $pledgeType = $donor ? $donor[0]->pledge_type : 'NONE';
+        $donor = $this->first(['id' => $donorId], [], 'pledge_type', '', 'donors');
+        $pledgeType = $donor ? $donor->pledge_type : 'NONE';
 
         $result = [
             'donation_type' => 'NONE',
@@ -152,165 +145,19 @@ class CustodianModel {
      */
     public function getNextOfKin($donorId)
     {
-        $query = "SELECT * FROM next_of_kin WHERE donor_id = :donor_id";
-        return $this->query($query, [':donor_id' => $donorId]) ?: [];
+        return $this->where(['donor_id' => $donorId], [], '*', '', 'next_of_kin');
     }
-
-    // ─────────────────────────────────────────────────
-    // DEATH DECLARATION
-    // ─────────────────────────────────────────────────
-
-    /**
-     * Create a death declaration and start the donation window
-     */
-    public function createDeathDeclaration($data)
-    {
-        // Calculate 48-hour window
-        $deathDateTime = $data['date_of_death'] . ' ' . $data['time_of_death'];
-        $windowExpires = date('Y-m-d H:i:s', strtotime($deathDateTime . ' +48 hours'));
-
-        $query = "INSERT INTO death_declarations (
-                    donor_id, declared_by_custodian_id, date_of_death, time_of_death,
-                    place_of_death, cause_of_death, additional_notes, window_expires_at
-                  ) VALUES (
-                    :donor_id, :custodian_id, :date_of_death, :time_of_death,
-                    :place_of_death, :cause_of_death, :additional_notes, :window_expires_at
-                  )";
-        return $this->insert($query, [
-            ':donor_id' => $data['donor_id'],
-            ':custodian_id' => $data['custodian_id'],
-            ':date_of_death' => $data['date_of_death'],
-            ':time_of_death' => $data['time_of_death'],
-            ':place_of_death' => $data['place_of_death'],
-            ':cause_of_death' => $data['cause_of_death'],
-            ':additional_notes' => $data['additional_notes'] ?? null,
-            ':window_expires_at' => $windowExpires
-        ]);
-    }
-
-    /**
-     * Get death declaration for a donor
-     */
-    public function getDeathDeclaration($donorId)
-    {
-        $query = "SELECT dd.*, c.name AS declared_by_name, c.phone AS declared_by_phone, c.email AS declared_by_email
-                  FROM death_declarations dd
-                  JOIN custodians c ON dd.declared_by_custodian_id = c.id
-                  WHERE dd.donor_id = :donor_id
-                  ORDER BY dd.created_at DESC LIMIT 1";
-        $result = $this->query($query, [':donor_id' => $donorId]);
-        return $result ? $result[0] : null;
-    }
-
-    // ─────────────────────────────────────────────────
-    // DONATION CASE
-    // ─────────────────────────────────────────────────
-
-    /**
-     * Create a donation case (auto-generates case number)
-     */
-    public function createDonationCase($data)
-    {
-        // Generate case number: DC-YYYY-NNN
-        $year = date('Y');
-        $countQuery = "SELECT COUNT(*) AS cnt FROM donation_cases WHERE case_number LIKE :prefix";
-        $countResult = $this->query($countQuery, [':prefix' => "DC-$year-%"]);
-        $next = ($countResult ? $countResult[0]->cnt : 0) + 1;
-        $caseNumber = sprintf("DC-%s-%03d", $year, $next);
-
-        $query = "INSERT INTO donation_cases (
-                    donor_id, death_declaration_id, case_number, donation_type
-                  ) VALUES (
-                    :donor_id, :death_declaration_id, :case_number, :donation_type
-                  )";
-        return $this->insert($query, [
-            ':donor_id' => $data['donor_id'],
-            ':death_declaration_id' => $data['death_declaration_id'],
-            ':case_number' => $caseNumber,
-            ':donation_type' => $data['donation_type']
-        ]);
-    }
-
-    /**
-     * Get the donation case for a donor
-     */
-    public function getDonationCase($donorId)
-    {
-        $query = "SELECT dc.*, dd.date_of_death, dd.time_of_death, dd.window_expires_at, dd.status AS death_status
-                  FROM donation_cases dc
-                  JOIN death_declarations dd ON dc.death_declaration_id = dd.id
-                  WHERE dc.donor_id = :donor_id
-                  ORDER BY dc.created_at DESC LIMIT 1";
-        $result = $this->query($query, [':donor_id' => $donorId]);
-        return $result ? $result[0] : null;
-    }
-
-    /**
-     * Get case by ID
-     */
-    public function getDonationCaseById($caseId)
-    {
-        $query = "SELECT * FROM donation_cases WHERE id = :id";
-        $result = $this->query($query, [':id' => $caseId]);
-        return $result ? $result[0] : null;
-    }
-
-    /**
-     * Update case status
-     */
-    public function updateCaseStatus($caseId, $legalStatus = null, $overallStatus = null)
-    {
-        $sets = [];
-        $params = [':id' => $caseId];
-
-        if ($legalStatus !== null) {
-            $sets[] = "legal_status = :legal_status";
-            $params[':legal_status'] = $legalStatus;
-        }
-        if ($overallStatus !== null) {
-            $sets[] = "overall_status = :overall_status";
-            $params[':overall_status'] = $overallStatus;
-        }
-        if (empty($sets)) return false;
-
-        $query = "UPDATE donation_cases SET " . implode(', ', $sets) . " WHERE id = :id";
-        return $this->query($query, $params);
-    }
-
-    // ─────────────────────────────────────────────────
-    // LEGAL ACTIONS
-    // ─────────────────────────────────────────────────
 
     /**
      * Submit a legal action (confirm or object)
      */
     public function submitLegalAction($data)
     {
-        $query = "INSERT INTO custodian_legal_actions (
-                    donation_case_id, custodian_id, action_type, method,
-                    reason_category, reason_text, remarks,
-                    signed_document_path, co_signed_document_path
-                  ) VALUES (
-                    :case_id, :custodian_id, :action_type, :method,
-                    :reason_category, :reason_text, :remarks,
-                    :signed_doc, :co_signed_doc
-                  )";
-        $result = $this->insert($query, [
-            ':case_id' => $data['donation_case_id'],
-            ':custodian_id' => $data['custodian_id'],
-            ':action_type' => $data['action_type'],
-            ':method' => $data['method'],
-            ':reason_category' => $data['reason_category'] ?? null,
-            ':reason_text' => $data['reason_text'] ?? null,
-            ':remarks' => $data['remarks'] ?? null,
-            ':signed_doc' => $data['signed_document_path'] ?? null,
-            ':co_signed_doc' => $data['co_signed_document_path'] ?? null
-        ]);
+        $result = $this->insert($data, 'custodian_legal_actions');
 
-        // Update case legal_status
         if ($result) {
             $newStatus = ($data['action_type'] === 'CONFIRM') ? 'CONFIRMED' : 'OBJECTED';
-            $this->updateCaseStatus($data['donation_case_id'], $newStatus, null);
+            $this->update($data['donation_case_id'], ['legal_status' => $newStatus], 'id', 'donation_cases');
         }
 
         return $result;
@@ -321,13 +168,15 @@ class CustodianModel {
      */
     public function getLegalAction($caseId)
     {
-        $query = "SELECT cla.*, c.name AS custodian_name
-                  FROM custodian_legal_actions cla
-                  JOIN custodians c ON cla.custodian_id = c.id
-                  WHERE cla.donation_case_id = :case_id
-                  ORDER BY cla.created_at DESC LIMIT 1";
-        $result = $this->query($query, [':case_id' => $caseId]);
-        return $result ? $result[0] : null;
+        return $this->queryJoin(
+            [['table' => 'custodians c', 'on' => 'cla.custodian_id = c.id', 'type' => 'JOIN']],
+            ['cla.donation_case_id' => $caseId],
+            'cla.*, c.name AS custodian_name',
+            'cla.created_at DESC',
+            1,
+            0,
+            'custodian_legal_actions cla'
+        )[0] ?? null;
     }
 
     // ─────────────────────────────────────────────────
@@ -340,26 +189,33 @@ class CustodianModel {
     public function getAvailableInstitutions($caseId, $track)
     {
         // Get already-attempted institution IDs
-        $attemptedQuery = "SELECT institution_id FROM case_institution_status
-                           WHERE donation_case_id = :case_id AND track = :track";
-        $attempted = $this->query($attemptedQuery, [':case_id' => $caseId, ':track' => $track]) ?: [];
+        $attempted = $this->where(
+            ['donation_case_id' => $caseId, 'track' => $track], 
+            [], 
+            'institution_id', 
+            '', 
+            'case_institution_status'
+        ) ?: [];
         $attemptedIds = array_map(fn($r) => $r->institution_id, $attempted);
 
         if ($track === 'BODY' || $track === 'CORNEA') {
-              // Strict Rule: ONLY fetch medical schools that the donor explicitly consented to
-              $query = "SELECT ms.id, ms.school_name, ms.university_affiliation, ms.address
-                        FROM body_donation_consents bdc
-                        JOIN medical_schools ms ON bdc.medical_school_id = ms.id
-                        JOIN donation_cases dc ON dc.donor_id = bdc.donor_id
-                        WHERE dc.id = :case_id";
-              $institutions = $this->query($query, [':case_id' => $caseId]) ?: [];
+            // Strict Rule: ONLY fetch medical schools that the donor explicitly consented to
+            $institutions = $this->queryJoin(
+                [
+                    ['table' => 'medical_schools ms', 'on' => 'bdc.medical_school_id = ms.id', 'type' => 'JOIN'],
+                    ['table' => 'donation_cases dc', 'on' => 'dc.donor_id = bdc.donor_id', 'type' => 'JOIN']
+                ],
+                ['dc.id' => $caseId],
+                'ms.id, ms.school_name, ms.university_affiliation, ms.address',
+                '',
+                100,
+                0,
+                'body_donation_consents bdc'
+            );
         } else {
             // ORGAN: get from donor_pledges -> hospitals (via organ_requests or direct mapping)
-            // For now, get all active hospitals since donor_pledges don't link to specific hospitals
-            $query = "SELECT h.id, h.name AS school_name, h.registration_number, h.address
-                      FROM hospitals h
-                      WHERE h.verification_status = 'APPROVED'";
-            $institutions = $this->query($query) ?: [];
+            // For now, get all active hospitals approved by the system.
+            $institutions = $this->where(['verification_status' => 'APPROVED'], [], 'id, name AS school_name, registration_number, address', '', 'hospitals') ?: [];
         }
 
         // Filter out already attempted
@@ -387,96 +243,48 @@ class CustodianModel {
             }
         }
 
-        if (!$isConsented) {
-            return false; // The user maliciously tried to bypass the dropdown to an un-consented uni
-        }
+        if (!$isConsented) return false;
 
         // Check if there's already a current institution being reviewed
-        $checkQuery = "SELECT id FROM case_institution_status
-                       WHERE donation_case_id = :case_id
-                       AND track = :track
-                       AND is_current = 1
-                       AND institution_status IN ('PENDING','UNDER_REVIEW')";
-        $existing = $this->query($checkQuery, [':case_id' => $caseId, ':track' => $track]);
+        $existingCount = $this->count(
+            [
+                'donation_case_id' => $caseId,
+                'track' => $track,
+                'is_current' => 1,
+                'institution_status IN' => "('PENDING','UNDER_REVIEW')"
+            ],
+            [],
+            'case_institution_status'
+        );
 
-        if ($existing && count($existing) > 0) {
-            return false; // Another institution is currently active
-        }
+        if ($existingCount > 0) return false;
 
         // Check if any institution was already accepted
-        $acceptedQuery = "SELECT id FROM case_institution_status
-                          WHERE donation_case_id = :case_id
-                          AND track = :track
-                          AND institution_status = 'ACCEPTED'";
-        $accepted = $this->query($acceptedQuery, [':case_id' => $caseId, ':track' => $track]);
+        $acceptedCount = $this->count(
+            ['donation_case_id' => $caseId, 'track' => $track, 'institution_status' => 'ACCEPTED'],
+            [],
+            'case_institution_status'
+        );
 
-        if ($accepted && count($accepted) > 0) {
-            return false; // Already accepted by an institution
-        }
+        if ($acceptedCount > 0) return false;
 
         // Get next attempt order
-        $orderQuery = "SELECT COALESCE(MAX(attempt_order), 0) + 1 AS next_order
-                       FROM case_institution_status
-                       WHERE donation_case_id = :case_id AND track = :track";
-        $orderResult = $this->query($orderQuery, [':case_id' => $caseId, ':track' => $track]);
-        $nextOrder = $orderResult ? $orderResult[0]->next_order : 1;
+        $nextOrder = ($this->max('attempt_order', ['donation_case_id' => $caseId, 'track' => $track], 'case_institution_status') ?? 0) + 1;
 
         // Clear previous active claims
-        $this->query("UPDATE case_institution_status SET is_current = 0 
-                      WHERE donation_case_id = :case_id AND track = :track", 
-                     [':case_id' => $caseId, ':track' => $track]);
+        $this->updateWhere(['is_current' => 0], ['donation_case_id' => $caseId, 'track' => $track], 'case_institution_status');
 
-        $query = "INSERT INTO case_institution_status (
-                    donation_case_id, institution_type, institution_id, track,
-                    attempt_order, is_current, custodian_action
-                  ) VALUES (
-                    :case_id, :inst_type, :inst_id, :track,
-                    :attempt_order, 1, 'SUBMITTED'
-                  )";
-        return $this->insert($query, [
-            ':case_id' => $caseId,
-            ':inst_type' => $institutionType,
-            ':inst_id' => $institutionId,
-            ':track' => $track,
-            ':attempt_order' => $nextOrder
-        ]);
+        return $this->insert([
+            'donation_case_id' => $caseId,
+            'institution_type' => $institutionType,
+            'institution_id'   => $institutionId,
+            'track'            => $track,
+            'attempt_order'    => $nextOrder,
+            'is_current'       => 1,
+            'custodian_action' => 'SUBMITTED'
+        ], 'case_institution_status');
     }
 
-    /**
-     * Get the currently active institution for a case + track
-     */
-    public function getCurrentInstitution($caseId, $track)
-    {
-        $query = "SELECT cis.*,
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
-                      WHEN cis.institution_type = 'HOSPITAL' THEN h.name
-                      ELSE 'Akshidhana Sangamaya'
-                    END AS institution_name,
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.address
-                      WHEN cis.institution_type = 'HOSPITAL' THEN h.address
-                      ELSE NULL
-                    END AS institution_address,
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.contact_person_phone
-                      WHEN cis.institution_type = 'HOSPITAL' THEN h.contact_number
-                      ELSE NULL
-                    END AS contact_phone,
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.contact_person_email
-                      WHEN cis.institution_type = 'HOSPITAL' THEN (SELECT email FROM users WHERE id = h.user_id)
-                      ELSE NULL
-                    END AS contact_email
-                  FROM case_institution_status cis
-                  LEFT JOIN medical_schools ms ON cis.institution_type = 'MEDICAL_SCHOOL' AND cis.institution_id = ms.id
-                  LEFT JOIN hospitals h ON cis.institution_type = 'HOSPITAL' AND cis.institution_id = h.id
-                  WHERE cis.donation_case_id = :case_id
-                  AND cis.track = :track
-                  AND cis.is_current = 1";
-        $result = $this->query($query, [':case_id' => $caseId, ':track' => $track]);
-        return $result ? $result[0] : null;
-    }
 
     /**
      * Submit documents to the current institution (lock docs, mark as submitted)
@@ -484,20 +292,18 @@ class CustodianModel {
     public function submitToInstitution($caseInstitutionStatusId)
     {
         // Update institution status
-        $query = "UPDATE case_institution_status SET
-                    custodian_action = 'SUBMITTED',
-                    institution_status = 'UNDER_REVIEW',
-                    submission_date = NOW()
-                  WHERE id = :id AND is_current = 1";
-        $this->query($query, [':id' => $caseInstitutionStatusId]);
+        $this->update($caseInstitutionStatusId, [
+            'custodian_action' => 'SUBMITTED',
+            'institution_status' => 'UNDER_REVIEW',
+            'submission_date' => date('Y-m-d H:i:s')
+        ], 'id', 'case_institution_status');
 
         // Lock all documents for this attempt
-        $docQuery = "UPDATE custodian_documents SET
-                       status = 'SUBMITTED'
-                     WHERE case_institution_status_id = :status_id AND status = 'UPLOADED'";
-        $this->query($docQuery, [':status_id' => $caseInstitutionStatusId]);
-
-        return true;
+        return $this->updateWhere(
+            ['status' => 'SUBMITTED'],
+            ['case_institution_status_id' => $caseInstitutionStatusId, 'status' => 'UPLOADED'],
+            'custodian_documents'
+        );
     }
 
     /**
@@ -507,49 +313,24 @@ class CustodianModel {
      */
     public function handleInstitutionResponse($statusId, $response, $message = null)
     {
-        $query = "UPDATE case_institution_status SET
-                    institution_status = :response,
-                    rejection_message = :message,
-                    response_date = NOW(),
-                    is_current = :keep_current
-                  WHERE id = :id";
-        $this->query($query, [
-            ':response' => $response,
-            ':message' => $message,
-            ':keep_current' => ($response === 'ACCEPTED') ? 1 : 0,
-            ':id' => $statusId
-        ]);
+        $this->update($statusId, [
+            'institution_status' => $response,
+            'rejection_message' => $message,
+            'response_date' => date('Y-m-d H:i:s'),
+            'is_current' => ($response === 'ACCEPTED') ? 1 : 0
+        ], 'id', 'case_institution_status');
 
-        // If accepted, update overall case status
+        // If accepted, update overall case status to COMPLETED
         if ($response === 'ACCEPTED') {
-            $caseQuery = "SELECT donation_case_id FROM case_institution_status WHERE id = :id";
-            $result = $this->query($caseQuery, [':id' => $statusId]);
-            if ($result) {
-                $this->updateCaseStatus($result[0]->donation_case_id, null, 'COMPLETED');
+            $cis = $this->first(['id' => $statusId], [], 'donation_case_id', '', 'case_institution_status');
+            if ($cis) {
+                $this->updateCaseStatus($cis->donation_case_id, null, 'COMPLETED');
             }
         }
 
         return true;
     }
 
-    /**
-     * Get all institution statuses for a case (history of attempts)
-     */
-    public function getInstitutionStatuses($caseId)
-    {
-        $query = "SELECT cis.*,
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
-                      WHEN cis.institution_type = 'HOSPITAL' THEN h.name
-                      ELSE 'Akshidhana Sangamaya'
-                    END AS institution_name
-                  FROM case_institution_status cis
-                  LEFT JOIN medical_schools ms ON cis.institution_type = 'MEDICAL_SCHOOL' AND cis.institution_id = ms.id
-                  LEFT JOIN hospitals h ON cis.institution_type = 'HOSPITAL' AND cis.institution_id = h.id
-                  WHERE cis.donation_case_id = :case_id
-                  ORDER BY cis.track, cis.attempt_order ASC";
-        return $this->query($query, [':case_id' => $caseId]) ?: [];
-    }
 
     // ─────────────────────────────────────────────────
     // DOCUMENT MANAGEMENT
@@ -560,28 +341,12 @@ class CustodianModel {
      */
     public function uploadDocument($data)
     {
-        $query = "INSERT INTO custodian_documents (
-                    donation_case_id, case_institution_status_id, document_type, file_path
-                  ) VALUES (
-                    :case_id, :status_id, :doc_type, :file_path
-                  )";
-        return $this->insert($query, [
-            ':case_id' => $data['donation_case_id'],
-            ':status_id' => $data['case_institution_status_id'],
-            ':doc_type' => $data['document_type'],
-            ':file_path' => $data['file_path']
-        ]);
+        return $this->insert($data, 'custodian_documents');
     }
 
-    /**
-     * Get documents for a specific institution attempt
-     */
     public function getDocuments($caseInstitutionStatusId)
     {
-        $query = "SELECT * FROM custodian_documents
-                  WHERE case_institution_status_id = :status_id
-                  ORDER BY uploaded_at ASC";
-        return $this->query($query, [':status_id' => $caseInstitutionStatusId]) ?: [];
+        return $this->where(['case_institution_status_id' => $caseInstitutionStatusId], [], '*', 'uploaded_at ASC', 'custodian_documents');
     }
 
     /**
@@ -589,12 +354,15 @@ class CustodianModel {
      */
     public function getAllDocuments($caseId)
     {
-        $query = "SELECT cd.*, cis.institution_type, cis.institution_id, cis.track
-                  FROM custodian_documents cd
-                  JOIN case_institution_status cis ON cd.case_institution_status_id = cis.id
-                  WHERE cd.donation_case_id = :case_id
-                  ORDER BY cd.uploaded_at ASC";
-        return $this->query($query, [':case_id' => $caseId]) ?: [];
+        return $this->queryJoin(
+            [['table' => 'case_institution_status cis', 'on' => 'cd.case_institution_status_id = cis.id', 'type' => 'JOIN']],
+            ['cd.donation_case_id' => $caseId],
+            'cd.*, cis.institution_type, cis.institution_id, cis.track',
+            'cd.uploaded_at ASC',
+            100,
+            0,
+            'custodian_documents cd'
+        );
     }
 
     // ─────────────────────────────────────────────────
@@ -606,31 +374,21 @@ class CustodianModel {
      */
     public function saveCadaverSheet($data)
     {
-        // Check if one already exists for this institution status
         $existing = $this->getCadaverSheet($data['case_institution_status_id']);
+        $formDataJson = json_encode($data['form_data']);
 
         if ($existing) {
-            $query = "UPDATE cadaver_data_sheets SET
-                        form_data = :form_data,
-                        status = :status
-                      WHERE id = :id";
-            return $this->query($query, [
-                ':form_data' => json_encode($data['form_data']),
-                ':status' => $data['status'] ?? 'DRAFT',
-                ':id' => $existing->id
-            ]);
+            return $this->update($existing->id, [
+                'form_data' => $formDataJson,
+                'status'    => $data['status'] ?? 'DRAFT'
+            ], 'id', 'cadaver_data_sheets');
         } else {
-            $query = "INSERT INTO cadaver_data_sheets (
-                        donation_case_id, case_institution_status_id, form_data, status
-                      ) VALUES (
-                        :case_id, :status_id, :form_data, :status
-                      )";
-            return $this->insert($query, [
-                ':case_id' => $data['donation_case_id'],
-                ':status_id' => $data['case_institution_status_id'],
-                ':form_data' => json_encode($data['form_data']),
-                ':status' => $data['status'] ?? 'DRAFT'
-            ]);
+            return $this->insert([
+                'donation_case_id'           => $data['donation_case_id'],
+                'case_institution_status_id' => $data['case_institution_status_id'],
+                'form_data'                  => $formDataJson,
+                'status'                     => $data['status'] ?? 'DRAFT'
+            ], 'cadaver_data_sheets');
         }
     }
 
@@ -639,129 +397,35 @@ class CustodianModel {
      */
     public function getCadaverSheet($caseInstitutionStatusId)
     {
-        $query = "SELECT * FROM cadaver_data_sheets
-                  WHERE case_institution_status_id = :status_id";
-        $result = $this->query($query, [':status_id' => $caseInstitutionStatusId]);
-        if ($result && $result[0]) {
-            $result[0]->form_data = json_decode($result[0]->form_data, true);
+        $res = $this->first(['case_institution_status_id' => $caseInstitutionStatusId], [], '*', '', 'cadaver_data_sheets');
+        if ($res && !empty($res->form_data)) {
+            $res->form_data = json_decode($res->form_data, true);
         }
-        return $result ? $result[0] : null;
+        return $res;
     }
 
     // ─────────────────────────────────────────────────
     // TIMELINE / AUDIT
     // ─────────────────────────────────────────────────
 
-    /**
-     * Get chronological timeline of all actions for a case
-     */
-    public function getTimeline($caseId)
-    {
-        $events = [];
-
-        // Death declaration
-        $ddQuery = "SELECT dd.created_at, c.name AS actor,
-                           CONCAT('Death declared: ', dd.cause_of_death) AS description
-                    FROM death_declarations dd
-                    JOIN donation_cases dc ON dc.death_declaration_id = dd.id
-                    JOIN custodians c ON dd.declared_by_custodian_id = c.id
-                    WHERE dc.id = :case_id";
-        $dd = $this->query($ddQuery, [':case_id' => $caseId]) ?: [];
-        foreach ($dd as $e) {
-            $events[] = ['time' => $e->created_at, 'actor' => $e->actor, 'event' => $e->description, 'type' => 'death'];
-        }
-
-        // Legal actions
-        $laQuery = "SELECT cla.created_at, c.name AS actor,
-                           CONCAT(cla.action_type, ' via ', cla.method) AS description
-                    FROM custodian_legal_actions cla
-                    JOIN custodians c ON cla.custodian_id = c.id
-                    WHERE cla.donation_case_id = :case_id";
-        $la = $this->query($laQuery, [':case_id' => $caseId]) ?: [];
-        foreach ($la as $e) {
-            $events[] = ['time' => $e->created_at, 'actor' => $e->actor, 'event' => $e->description, 'type' => 'legal'];
-        }
-
-        // Institution status changes
-        $isQuery = "SELECT cis.created_at, cis.submission_date, cis.response_date,
-                           cis.institution_status, cis.track, cis.attempt_order,
-                           CASE
-                             WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
-                             WHEN cis.institution_type = 'HOSPITAL' THEN h.name
-                             ELSE 'Akshidhana Sangamaya'
-                           END AS institution_name
-                    FROM case_institution_status cis
-                    LEFT JOIN medical_schools ms ON cis.institution_type = 'MEDICAL_SCHOOL' AND cis.institution_id = ms.id
-                    LEFT JOIN hospitals h ON cis.institution_type = 'HOSPITAL' AND cis.institution_id = h.id
-                    WHERE cis.donation_case_id = :case_id
-                    ORDER BY cis.attempt_order";
-        $is = $this->query($isQuery, [':case_id' => $caseId]) ?: [];
-        foreach ($is as $e) {
-            $events[] = [
-                'time' => $e->created_at,
-                'actor' => 'System',
-                'event' => "Attempt #{$e->attempt_order}: {$e->institution_name} ({$e->track}) — {$e->institution_status}",
-                'type' => 'institution'
-            ];
-            if ($e->submission_date) {
-                $events[] = [
-                    'time' => $e->submission_date,
-                    'actor' => 'Custodian',
-                    'event' => "Documents submitted to {$e->institution_name}",
-                    'type' => 'submission'
-                ];
-            }
-            if ($e->response_date) {
-                $events[] = [
-                    'time' => $e->response_date,
-                    'actor' => $e->institution_name,
-                    'event' => "Response: {$e->institution_status}",
-                    'type' => 'response'
-                ];
-            }
-        }
-
-        // Document uploads
-        $docQuery = "SELECT cd.uploaded_at AS created_at, cd.document_type
-                     FROM custodian_documents cd
-                     WHERE cd.donation_case_id = :case_id";
-        $docs = $this->query($docQuery, [':case_id' => $caseId]) ?: [];
-        foreach ($docs as $e) {
-            $events[] = [
-                'time' => $e->created_at,
-                'actor' => 'Custodian',
-                'event' => "Uploaded: {$e->document_type}",
-                'type' => 'document'
-            ];
-        }
-
-        // Sort by time
-        usort($events, fn($a, $b) => strtotime($a['time']) - strtotime($b['time']));
-
-        return $events;
-    }
     // --- DOCUMENT BUNDLE METHODS ---------------------------------------
 
     public function getSwornStatement($caseId) {
-        $query = "SELECT * FROM sworn_statements WHERE donation_case_id = :id LIMIT 1";
-        $res = $this->query($query, [':id' => $caseId]);
-        return $res ? $res[0] : null;
+        return $this->first(['donation_case_id' => $caseId], [], '*', '', 'sworn_statements');
     }
 
     public function saveSwornStatement($caseId, $formData) {
         $existing = $this->getSwornStatement($caseId);
         $json = json_encode($formData);
         if ($existing) {
-            $this->query("UPDATE sworn_statements SET form_data = :data WHERE donation_case_id = :id", [':data' => $json, ':id' => $caseId]);
+            $this->updateWhere(['form_data' => $json], ['donation_case_id' => $caseId], 'sworn_statements');
         } else {
-            $this->query("INSERT INTO sworn_statements (donation_case_id, form_data) VALUES (:id, :data)", [':id' => $caseId, ':data' => $json]);
+            $this->insert(['donation_case_id' => $caseId, 'form_data' => $json], 'sworn_statements');
         }
     }
 
     public function getCadaverDataSheet($caseId) {
-        $query = "SELECT * FROM cadaver_data_sheets WHERE donation_case_id = :id LIMIT 1";
-        $res = $this->query($query, [':id' => $caseId]);
-        return $res ? $res[0] : null;
+        return $this->first(['donation_case_id' => $caseId], [], '*', '', 'cadaver_data_sheets');
     }
 
     public function saveCadaverDataSheet($caseId, $formData) {
@@ -769,23 +433,30 @@ class CustodianModel {
         $json = json_encode($formData);
         
         if ($existing) {
-            $this->query("UPDATE cadaver_data_sheets SET form_data = :data WHERE donation_case_id = :id", [':data' => $json, ':id' => $caseId]);
+            $this->updateWhere(['form_data' => $json], ['donation_case_id' => $caseId], 'cadaver_data_sheets');
         } else {
-            $cisRes = $this->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id ORDER BY is_current DESC, id DESC LIMIT 1", [':id' => $caseId]);
-            $cisId = $cisRes ? $cisRes[0]->id : 0;
-            $this->query("INSERT INTO cadaver_data_sheets (donation_case_id, case_institution_status_id, form_data) VALUES (:id, :cisId, :data)", [':id' => $caseId, ':cisId' => $cisId, ':data' => $json]);
+            $cis = $this->first(['donation_case_id' => $caseId], [], 'id', 'is_current DESC, id DESC', 'case_institution_status');
+            $cisId = $cis ? $cis->id : 0;
+            $this->insert(['donation_case_id' => $caseId, 'case_institution_status_id' => $cisId, 'form_data' => $json], 'cadaver_data_sheets');
         }
     }
 
     public function submitBundle($caseId, $checklistJson = null) {
-        $this->query("UPDATE donation_cases SET bundle_status = 'SUBMITTED' WHERE id = :id", [':id' => $caseId]);
+        $this->update($caseId, ['bundle_status' => 'SUBMITTED'], 'id', 'donation_cases');
         
-        $updateQuery = "UPDATE case_institution_status 
-                        SET document_status = 'PENDING_REVIEW', 
-                            document_action_at = NOW(),
-                            submitted_checklist_json = :checklist
-                        WHERE donation_case_id = :id AND is_current = 1 AND institution_status = 'ACCEPTED'";
-        $this->query($updateQuery, [':id' => $caseId, ':checklist' => $checklistJson]);
+        $this->updateWhere(
+            [
+                'document_status' => 'PENDING_REVIEW', 
+                'document_action_at' => date('Y-m-d H:i:s'),
+                'submitted_checklist_json' => $checklistJson
+            ],
+            [
+                'donation_case_id' => $caseId, 
+                'is_current' => 1, 
+                'institution_status' => 'ACCEPTED'
+            ],
+            'case_institution_status'
+        );
     }
 
     /**
@@ -793,16 +464,16 @@ class CustodianModel {
      */
     public function getDocumentReviewStatus($donationCaseId)
     {
-        $query = "SELECT cis.*, 
-                    CASE
-                      WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
-                      ELSE 'Institution'
-                    END AS institution_name
-                  FROM case_institution_status cis
-                  LEFT JOIN medical_schools ms ON cis.institution_id = ms.id
-                  WHERE cis.donation_case_id = :case_id AND cis.is_current = 1 LIMIT 1";
-        $result = $this->query($query, [':case_id' => $donationCaseId]);
-        return $result ? $result[0] : null;
+        $res = $this->queryJoin(
+            [['table' => 'medical_schools ms', 'on' => 'cis.institution_id = ms.id', 'type' => 'LEFT']],
+            ['cis.donation_case_id' => $donationCaseId, 'cis.is_current' => 1],
+            'cis.*, CASE WHEN cis.institution_type = "MEDICAL_SCHOOL" THEN ms.school_name ELSE "Institution" END AS institution_name',
+            '',
+            1,
+            0,
+            'case_institution_status cis'
+        );
+        return $res ? $res[0] : null;
     }
 
     /**
@@ -810,12 +481,14 @@ class CustodianModel {
      */
     public function getLeaderId($caseId)
     {
-        $query = "SELECT dd.declared_by_custodian_id 
-                  FROM donation_cases dc
-                  JOIN death_declarations dd ON dc.death_declaration_id = dd.id
-                  WHERE dc.id = :case_id";
-        $result = $this->query($query, [':case_id' => $caseId]);
-        return $result ? (int)$result[0]->declared_by_custodian_id : null;
+        $res = $this->queryJoin(
+            [['table' => 'death_declarations dd', 'on' => 'donation_cases.death_declaration_id = dd.id', 'type' => 'JOIN']],
+            ['donation_cases.id' => $caseId],
+            'dd.declared_by_custodian_id',
+            '',
+            1
+        );
+        return $res ? (int)$res[0]->declared_by_custodian_id : null;
     }
 
     /**
@@ -833,18 +506,19 @@ class CustodianModel {
      */
     public function getDonationCertificates($caseId)
     {
-        $query = "SELECT dc.*, 
-                         CASE 
-                            WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name 
-                            WHEN cis.institution_type = 'HOSPITAL' THEN h.name 
-                            ELSE 'Unknown Institution'
-                         END AS institution_name
-                  FROM donation_certificates dc
-                  JOIN case_institution_status cis ON dc.case_institution_request_id = cis.id
-                  LEFT JOIN medical_schools ms ON (cis.institution_id = ms.id AND cis.institution_type = 'MEDICAL_SCHOOL')
-                  LEFT JOIN hospitals h ON (cis.institution_id = h.id AND cis.institution_type = 'HOSPITAL')
-                  WHERE dc.donation_case_id = :case_id";
-        return $this->query($query, [':case_id' => $caseId]) ?: [];
+        return $this->queryJoin(
+            [
+                ['table' => 'case_institution_status cis', 'on' => 'donation_certificates.case_institution_request_id = cis.id', 'type' => 'JOIN'],
+                ['table' => 'medical_schools ms', 'on' => 'cis.institution_id = ms.id AND cis.institution_type = "MEDICAL_SCHOOL"', 'type' => 'LEFT'],
+                ['table' => 'hospitals h', 'on' => 'cis.institution_id = h.id AND cis.institution_type = "HOSPITAL"', 'type' => 'LEFT']
+            ],
+            ['donation_certificates.donation_case_id' => $caseId],
+            'donation_certificates.*, CASE WHEN cis.institution_type = "MEDICAL_SCHOOL" THEN ms.school_name WHEN cis.institution_type = "HOSPITAL" THEN h.name ELSE "Unknown Institution" END AS institution_name',
+            '',
+            100,
+            0,
+            'donation_certificates'
+        ) ?: [];
     }
 
     /**
@@ -853,16 +527,19 @@ class CustodianModel {
     public function getAppreciationLetters($caseId)
     {
         // Letters are issued from body usage records
-        $query = "SELECT al.*, 
-                         ms.school_name AS institution_name, 
-                         bul.usage_type
-                  FROM appreciation_letters al
-                  JOIN body_usage_logs bul ON al.usage_log_id = bul.id
-                  JOIN medical_schools ms ON bul.medical_school_id = ms.id
-                  JOIN donation_cases dc ON bul.donor_id = dc.donor_id
-                  WHERE dc.id = :case_id
-                  ORDER BY al.issued_at DESC";
-        return $this->query($query, [':case_id' => $caseId]) ?: [];
+        return $this->queryJoin(
+            [
+                ['table' => 'body_usage_logs bul', 'on' => 'appreciation_letters.usage_log_id = bul.id', 'type' => 'JOIN'],
+                ['table' => 'medical_schools ms', 'on' => 'bul.medical_school_id = ms.id', 'type' => 'JOIN'],
+                ['table' => 'donation_cases dc', 'on' => 'bul.donor_id = dc.donor_id', 'type' => 'JOIN']
+            ],
+            ['dc.id' => $caseId],
+            'appreciation_letters.*, ms.school_name AS institution_name, bul.usage_type',
+            'appreciation_letters.issued_at DESC',
+            100,
+            0,
+            'appreciation_letters'
+        ) ?: [];
     }
 
     /**
@@ -870,13 +547,15 @@ class CustodianModel {
      */
     public function getArchivedCases($donorId)
     {
-        $query = "SELECT dc.*, dd.date_of_death, dd.cause_of_death 
-                  FROM donation_cases dc
-                  JOIN death_declarations dd ON dc.death_declaration_id = dd.id
-                  WHERE dc.donor_id = :donor_id 
-                  AND dc.overall_status IN ('COMPLETED', 'CANCELLED', 'ARCHIVED')
-                  ORDER BY dc.created_at DESC";
-        return $this->query($query, [':donor_id' => $donorId]) ?: [];
+        return $this->queryJoin(
+            [['table' => 'death_declarations dd', 'on' => 'donation_cases.death_declaration_id = dd.id', 'type' => 'JOIN']],
+            [
+                'donation_cases.donor_id' => $donorId,
+                'donation_cases.overall_status IN' => "('COMPLETED', 'CANCELLED', 'ARCHIVED')"
+            ],
+            'donation_cases.*, dd.date_of_death, dd.cause_of_death',
+            'donation_cases.created_at DESC'
+        ) ?: [];
     }
 }
 

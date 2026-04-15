@@ -167,10 +167,7 @@ route('medical-school/usage-logs', 'MedicalSchool@usageLogs');
 route('medical-school/usage-logs/submit', 'MedicalSchool@submitUsage');
 route('medical-school/issue-appreciation-letter', 'MedicalSchool@issueAppreciationLetter');
 route('medical-school/debug/reset-donor', 'MedicalSchool@resetDonor');
-route('medical-school/reports', 'MedicalSchool@reports');
-route('medical-school/usage-logs/view', 'MedicalSchool@viewUsageLog');
-route('medical-school/appreciation/view', 'MedicalSchool@viewAppreciationLetter');
-
+route('medical-school/view-inventory-detail', 'MedicalSchool@viewInventoryDetail');
 route('medical-school/reports', 'MedicalSchool@reports');
 
 // New Registration Flow

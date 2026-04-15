@@ -26,7 +26,7 @@ $ms_nav_items = [
         'title' => 'Post-Death Review',
         'items' => [
             ['href' => ROOT . '/medical-school/submission-requests', 'icon' => 'fa-inbox',          'label' => 'Submission Requests', 'key' => 'submission-requests', 'badge' => true],
-            ['href' => ROOT . '/medical-school/submissions',         'icon' => 'fa-folder-open',    'label' => 'Body Submissions',    'key' => 'submissions', 'badge' => true],
+            ['href' => ROOT . '/medical-school/submissions',         'icon' => 'fa-folder-open',    'label' => 'Document Submissions','key' => 'submissions', 'badge' => true],
             ['href' => ROOT . '/medical-school/final-examinations',  'icon' => 'fa-clipboard-check','label' => 'Final Examination',   'key' => 'final-examinations'],
         ],
     ],

@@ -82,15 +82,6 @@
 </head>
 <body>
 
-<div class="local-toolbar cp-print-hidden">
-    <button onclick="window.print()" class="local-btn local-btn-primary">
-        <svg fill="currentColor" width="18" height="18" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M19,8H5C3.34,8,2,9.34,2,11v6h4v4h12v-4h4v-6C22,9.34,20.66,8,19,8z M16,19H8v-5h8V19z M19,12c-0.55,0-1-0.45-1-1s0.45-1,1-1s1,0.45,1,1S19.55,12,19,12z M18,3H6v4h12V3z"></path></svg>
-        Print Document
-    </button>
-    <a href="<?= ROOT ?>/custodian/documents" class="local-btn local-btn-outline">
-        <i class="fas fa-arrow-left"></i> Back to Checklist
-    </a>
-</div>
 
 <div class="cp-legal-doc-wrapper">
     <div class="cp-legal-page">

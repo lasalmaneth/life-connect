@@ -37,7 +37,7 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group">
       <label>Username <span class="req">*</span></label>
-      <input type="text" name="username" id="inst_user" placeholder="e.g. colombo_gen_hospital" maxlength="30" oninput="onUsername('inst_user','inst_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
+      <input type="text" name="username" id="inst_user" placeholder="e.g. colombo_gen_hospital" maxlength="30" oninput="onUsername('inst_user','inst_userH')" onchange="onUsername('inst_user','inst_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
       <span class="hint" id="inst_userH">Letters, numbers and underscores only</span>
     </div>
     <div class="form-group">
@@ -52,7 +52,7 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group">
       <label>Official Email <span class="req">*</span></label>
-      <input type="email" name="email" id="inst_email" placeholder="admin@hospital.lk" oninput="onEmail('inst_email','inst_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
+      <input type="email" name="email" id="inst_email" placeholder="admin@hospital.lk" oninput="onEmail('inst_email','inst_emailH')" onchange="onEmail('inst_email','inst_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
       <span class="hint" id="inst_emailH">A confirmation OTP will be sent to verify this address upon submission.</span>
     </div>
     <div class="form-group">

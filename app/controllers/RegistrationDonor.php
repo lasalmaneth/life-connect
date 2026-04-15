@@ -110,6 +110,11 @@ class RegistrationDonor {
             $errors[] = "Username is required.";
         } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $data['username'])) {
             $errors[] = "Username can contain only letters, numbers and underscores.";
+        } else {
+            $userModel = new \App\Models\UserModel();
+            if ($userModel->usernameExists($data['username'])) {
+                $errors[] = "Username is already taken.";
+            }
         }
 
         // NIC (support old and new format)
@@ -117,6 +122,11 @@ class RegistrationDonor {
             $errors[] = "NIC is required.";
         } elseif (!preg_match('/^([0-9]{9}[VvXx]|[0-9]{12})$/', $data['nic'])) {
             $errors[] = "Invalid NIC format.";
+        } else {
+            $donorModel = new \App\Models\DonorModel();
+            if ($donorModel->nicExists($data['nic'])) {
+                $errors[] = "NIC is already registered.";
+            }
         }
 
         // DOB (auto-extracted from NIC, may be empty on first POST)
@@ -144,6 +154,11 @@ class RegistrationDonor {
         // Email
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors[] = "Valid email address is required.";
+        } else {
+            $userModel = new \App\Models\UserModel();
+            if ($userModel->emailExists($data['email'])) {
+                $errors[] = "Email is already registered.";
+            }
         }
 
         // Password

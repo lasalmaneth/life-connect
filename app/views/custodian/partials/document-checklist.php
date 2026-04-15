@@ -752,3 +752,103 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
 </div>
 
 <?php require __DIR__ . '/recognition-viewer.php'; ?>
+
+<script>
+/**
+ * MISSION CRITICAL: Checklist Interactivity & Submission Engine
+ */
+function toggleExtraDoc(type, show) {
+    const el = document.getElementById('extra_' + type);
+    if (!el) return;
+    el.style.display = show ? 'block' : 'none';
+    updateWorkflowState();
+}
+
+function updateWorkflowState() {
+    const mandatoryChecks = document.querySelectorAll('.required-check');
+    const extraChecks = document.querySelectorAll('.extra-check');
+    const bundleInput = document.getElementById('bundleFileInput');
+    const submitBtn = document.getElementById('finalSubmitBtn');
+    const submitText = document.getElementById('submitBtnText');
+
+    let totalRequired = mandatoryChecks.length;
+    let completedCount = 0;
+
+    // 1. Mandatory Items (Step 2)
+    mandatoryChecks.forEach(ch => {
+        if (ch.checked) completedCount++;
+    });
+
+    // 2. Conditional Special Items (Step 3)
+    extraChecks.forEach(ch => {
+        const parent = ch.closest('[id^="extra_"]');
+        if (parent && parent.style.display !== 'none') {
+            totalRequired++;
+            if (ch.checked) completedCount++;
+        }
+    });
+
+    // 3. UI Update
+    const countEl = document.getElementById('completeCount');
+    const totalEl = document.getElementById('totalCount');
+    if (countEl) countEl.innerText = completedCount;
+    if (totalEl) totalEl.innerText = totalRequired;
+
+    // 4. Submission Button Logic
+    const allDocsChecked = (completedCount >= totalRequired);
+    const fileSelected = bundleInput && bundleInput.files.length > 0;
+
+    if (allDocsChecked && fileSelected) {
+        submitBtn.classList.remove('compact-action-btn--disabled');
+        submitBtn.classList.add('compact-action-btn--primary');
+        submitText.innerText = "Submit Case Bundle";
+    } else {
+        submitBtn.classList.add('compact-action-btn--disabled');
+        if (submitBtn.classList.contains('compact-action-btn--primary')) {
+            submitBtn.classList.remove('compact-action-btn--primary');
+        }
+        
+        if (!allDocsChecked) submitText.innerText = "Complete Prerequisites";
+        else if (!fileSelected) submitText.innerText = "Select Bundle File";
+    }
+}
+
+function submitFinalBundle() {
+    const bundleInput = document.getElementById('bundleFileInput');
+    if (!bundleInput || bundleInput.files.length === 0) {
+        alert("Please select your consolidated ZIP/PDF bundle before submitting.");
+        return;
+    }
+
+    const form = document.getElementById('finalBundleForm');
+    const existingHidden = form.querySelectorAll('input[name^="docs["]');
+    existingHidden.forEach(h => h.remove());
+
+    const allChecked = document.querySelectorAll('input.required-check:checked, input.extra-check:checked');
+    allChecked.forEach(ch => {
+        const extraParent = ch.closest('[id^="extra_"]');
+        if (extraParent && extraParent.style.display === 'none') return;
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'docs[]';
+        input.value = ch.getAttribute('data-id') || ch.name;
+        form.appendChild(input);
+    });
+
+    form.submit();
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('required-check') || e.target.classList.contains('extra-check') || e.target.type === 'file') {
+        updateWorkflowState();
+    }
+});
+
+// Initialize on Load
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", updateWorkflowState);
+} else {
+    updateWorkflowState();
+}
+</script>

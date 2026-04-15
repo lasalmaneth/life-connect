@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Core\Model;
 
 class NextOfKinModel {
-    use Database;
+    use Model;
 
     protected $table = 'next_of_kin';
+
+    protected $allowedColumns = [
+        'donor_id',
+        'name',
+        'relationship',
+        'nic_number',
+        'contact_number',
+        'email'
+    ];
 
     public function updateNextOfKin($id, $donorId, $data) {
         $query = "UPDATE next_of_kin SET 
@@ -40,8 +49,6 @@ class NextOfKinModel {
     }
 
     public function countKinByDonorId($donorId) {
-        $query = "SELECT COUNT(*) as count FROM next_of_kin WHERE donor_id = :donor_id";
-        $result = $this->query($query, [':donor_id' => $donorId]);
-        return $result ? $result[0]->count : 0;
+        return $this->count(['donor_id' => $donorId]);
     }
 }

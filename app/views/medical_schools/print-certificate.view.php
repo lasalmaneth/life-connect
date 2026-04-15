@@ -194,6 +194,22 @@
 </head>
 <body>
 
+<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'MEDICAL_SCHOOL'): ?>
+    <div class="controls">
+        <?php 
+            $backUrl = (isset($_GET['from']) && $_GET['from'] === 'examinations') 
+                ? ROOT . '/medical-school/final-examinations' 
+                : ROOT . '/medical-school/usage-logs';
+        ?>
+        <a href="<?= $backUrl ?>" class="btn-action">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <button onclick="window.print()" class="btn-action primary">
+            <i class="fas fa-print"></i> Print Certificate
+        </button>
+    </div>
+<?php endif; ?>
+
     <div class="certificate-container">
         <div class="cp-seal">
             <img src="<?= ROOT ?>/assets/images/logo.png" alt="LifeConnect">

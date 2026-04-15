@@ -348,6 +348,19 @@ class MedicalSchool
         ]);
     }
 
+    public function viewInventoryDetail()
+    {
+        $auth = $this->checkAuth();
+        $id = $_GET['id'] ?? null;
+        if (!$id) exit;
+
+        $case = $auth['model']->getFinalExaminationDetails($auth['school']->id, $id);
+        $this->view('medical_schools/drawers/inventory-detail', [
+            'school' => $auth['school'],
+            'case' => $case
+        ]);
+    }
+
     public function acceptFinalBody()
     {
         $auth = $this->checkAuth();

@@ -1,218 +1,229 @@
 <?php
 /**
  * Custodian Portal — Lock Notice Partial
- * Displays a high-visibility notice when the donation process is being
- * managed by another custodian (the 'Process Leader').
+ * Displays a premium, non-intrusive notice when the process is managed by another coordinator.
  */
 
 if (isset($isLeader) && !$isLeader && !empty($leaderInfo)): ?>
-    <div class="cp-lock-notice flipInX-animation">
-        <div class="cp-lock-notice__glass"></div>
-        <div class="cp-lock-notice__icon-wrapper">
-            <div class="cp-lock-notice__icon">
-                <i class="fas fa-lock"></i>
-            </div>
-            <div class="cp-lock-notice__icon-glow"></div>
-        </div>
+    <div class="cp-lock-notice modernized-notice flipInX-animation">
+        <div class="cp-lock-notice__accent"></div>
         
-        <div class="cp-lock-notice__body">
-            <h4 class="cp-lock-notice__title">Action Restricted: Managed by Coordinator</h4>
-            <p class="cp-lock-notice__text">
-                <span class="cp-lock-notice__author"><?= htmlspecialchars($leaderInfo->declared_by_name ?? 'The reporting custodian') ?></span> 
-                initiated this report. Access is restricted to the process leader to ensure institutional compliance.
-            </p>
-            
-            <div class="cp-lock-notice__actions">
-                <?php if (!empty($leaderInfo->declared_by_phone)): ?>
-                    <a href="tel:<?= htmlspecialchars($leaderInfo->declared_by_phone) ?>" class="cp-lock-action-btn">
-                        <span class="btn-icon"><i class="fas fa-phone-alt"></i></span>
-                        <span class="btn-text">Call Coordinator</span>
-                    </a>
-                <?php endif; ?>
-                
-                <?php if (!empty($leaderInfo->declared_by_email)): ?>
-                    <a href="mailto:<?= htmlspecialchars($leaderInfo->declared_by_email) ?>" class="cp-lock-action-btn">
-                        <span class="btn-icon"><i class="fas fa-envelope"></i></span>
-                        <span class="btn-text">Send Email</span>
-                    </a>
-                <?php endif; ?>
-                
-                <?php if (empty($leaderInfo->declared_by_phone) && empty($leaderInfo->declared_by_email)): ?>
-                    <div class="cp-lock-notice__info">
-                        <i class="fas fa-exclamation-circle"></i> Contact info unavailable
-                    </div>
-                <?php endif; ?>
+        <div class="cp-lock-notice__main">
+            <div class="cp-lock-notice__header">
+                <div class="cp-lock-notice__badge">
+                    <i class="fas fa-lock"></i>
+                    <span>READ-ONLY ACCESS</span>
+                </div>
+                <h4 class="cp-lock-notice__title">Process Managed by Coordinator</h4>
+            </div>
+
+            <div class="cp-lock-notice__content">
+                <p class="cp-lock-notice__description">
+                    <strong class="cp-lock-notice__leader-name"><?= htmlspecialchars($leaderInfo->declared_by_name ?? 'The reporting custodian') ?></strong> 
+                    is currently leading this donation case. You have full visibility but management actions are restricted to ensure institutional compliance.
+                </p>
+
+                <div class="cp-lock-notice__contact-info">
+                    <?php if (!empty($leaderInfo->declared_by_phone)): ?>
+                        <a href="tel:<?= htmlspecialchars($leaderInfo->declared_by_phone) ?>" class="cp-lock-contact-item">
+                            <i class="fas fa-phone-alt"></i>
+                            <span><?= htmlspecialchars($leaderInfo->declared_by_phone) ?></span>
+                        </a>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($leaderInfo->declared_by_email)): ?>
+                        <a href="mailto:<?= htmlspecialchars($leaderInfo->declared_by_email) ?>" class="cp-lock-contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span><?= htmlspecialchars($leaderInfo->declared_by_email) ?></span>
+                        </a>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
 
     <style>
+    .modernized-notice {
+        position: relative;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1.5rem 1.75rem;
+        margin-bottom: 2.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        display: flex;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+    .modernized-notice:hover {
+        transform: translateY(-2px);
+    }
+
+    .cp-lock-notice__accent {
+        position: absolute;
+        top: 0; left: 0; bottom: 0;
+        width: 5px;
+        background: linear-gradient(to bottom, #4f46e5, #06b6d4);
+    }
+
+    .cp-lock-notice__main {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .cp-lock-notice__header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .cp-lock-notice__badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 10px;
+        border-radius: 99px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .cp-lock-notice__badge i {
+        font-size: 0.7rem;
+        color: #64748b;
+    }
+
+    .cp-lock-notice__title {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: -0.01em;
+    }
+
+    .cp-lock-notice__content {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 2rem;
+    }
+
+    .cp-lock-notice__description {
+        font-size: 0.9rem;
+        color: #64748b;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 650px;
+    }
+
+    .cp-lock-notice__leader-name {
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+    .cp-lock-notice__contact-info {
+        display: flex;
+        gap: 1.5rem;
+        margin: 0.25rem 0 1.25rem 0;
+    }
+
+    .cp-lock-contact-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #475569;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .cp-lock-contact-item:hover {
+        color: #4f46e5;
+        transform: translateX(2px);
+    }
+
+    .cp-lock-contact-item i {
+        color: #64748b;
+        font-size: 0.8rem;
+        transition: color 0.2s ease;
+    }
+
+    .cp-lock-contact-item:hover i {
+        color: #4f46e5;
+    }
+
+    .cp-lock-notice__actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .cp-lock-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.6rem 1.2rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 700;
+        transition: all 0.25s ease;
+        border: 1px solid transparent;
+    }
+
+    .cp-lock-btn--call {
+        background: #f8fafc;
+        color: #1e293b;
+        border-color: #e2e8f0;
+    }
+
+    .cp-lock-btn--call:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+    }
+
+    .cp-lock-btn--mail {
+        background: #4f46e5;
+        color: white;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+
+    .cp-lock-btn--mail:hover {
+        background: #4338ca;
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 900px) {
+        .cp-lock-notice__content {
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+        .cp-lock-notice__actions {
+            width: 100%;
+        }
+        .cp-lock-btn {
+            flex: 1;
+            justify-content: center;
+        }
+    }
+
     @keyframes flipInX {
-        from { transform: perspective(400px) rotate3d(1, 0, 0, 30deg); opacity: 0; }
+        from { transform: perspective(400px) rotate3d(1, 0, 0, 10deg); opacity: 0; }
         to { transform: perspective(400px); opacity: 1; }
     }
 
     .flipInX-animation {
         animation: flipInX 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-
-    .cp-lock-notice {
-        position: relative;
-        display: flex;
-        gap: 1.5rem;
-        padding: 1.75rem;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #fffcf0 0%, #fff9e6 100%);
-        border: 1px solid rgba(251, 191, 36, 0.3);
-        box-shadow: 
-            0 10px 25px -5px rgba(217, 119, 6, 0.08),
-            0 8px 10px -6px rgba(217, 119, 6, 0.05);
-        margin-bottom: 2rem;
-        overflow: hidden;
-        align-items: center;
-    }
-
-    .cp-lock-notice__glass {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at top right, rgba(255,255,255,0.7) 0%, transparent 60%);
-        pointer-events: none;
-    }
-
-    .cp-lock-notice__icon-wrapper {
-        position: relative;
-        flex-shrink: 0;
-        z-index: 1;
-    }
-
-    .cp-lock-notice__icon {
-        width: 60px;
-        height: 60px;
-        background: #ffffff;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #d97706;
-        font-size: 1.5rem;
-        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
-        border: 1px solid rgba(251, 191, 36, 0.2);
-        position: relative;
-        z-index: 2;
-    }
-
-    .cp-lock-notice__icon-glow {
-        position: absolute;
-        top: 50%; left: 50%;
-        width: 80%; height: 80%;
-        background: #fbbf24;
-        filter: blur(20px);
-        opacity: 0.2;
-        transform: translate(-50%, -50%);
-        z-index: 1;
-    }
-
-    .cp-lock-notice__body {
-        position: relative;
-        z-index: 2;
-        flex: 1;
-    }
-
-    .cp-lock-notice__title {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #92400e;
-        margin: 0 0 0.5rem 0;
-        letter-spacing: -0.01em;
-    }
-
-    .cp-lock-notice__text {
-        font-size: 0.95rem;
-        color: #b45309;
-        line-height: 1.6;
-        margin-bottom: 1.25rem;
-        max-width: 600px;
-    }
-
-    .cp-lock-notice__author {
-        font-weight: 800;
-        color: #92400e;
-        text-decoration: underline decoration-thickness(2px) underline-offset(2px) rgba(146, 64, 14, 0.2);
-    }
-
-    .cp-lock-notice__actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .cp-lock-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0.6rem 1.25rem;
-        background: #ffffff;
-        border: 1px solid rgba(251, 191, 36, 0.4);
-        border-radius: 12px;
-        text-decoration: none;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 4px rgba(217, 119, 6, 0.04);
-    }
-
-    .btn-icon {
-        width: 28px;
-        height: 28px;
-        background: #fffcf0;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #d97706;
-        font-size: 0.85rem;
-        transition: all 0.3s;
-    }
-
-    .btn-text {
-        font-size: 0.875rem;
-        font-weight: 700;
-        color: #92400e;
-    }
-
-    .cp-lock-action-btn:hover {
-        transform: translateY(-2px);
-        background: #ffffff;
-        border-color: #fbbf24;
-        box-shadow: 0 6px 15px rgba(217, 119, 6, 0.1);
-    }
-
-    .cp-lock-action-btn:hover .btn-icon {
-        background: #fbbf24;
-        color: white;
-    }
-
-    .cp-lock-notice__info {
-        font-size: 0.85rem;
-        color: #b45309;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-weight: 600;
-        opacity: 0.7;
-    }
-
-    @media (max-width: 640px) {
-        .cp-lock-notice {
-            flex-direction: column;
-            text-align: center;
-            padding: 2rem 1.5rem;
-        }
-        .cp-lock-notice__text {
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .cp-lock-notice__actions {
-            justify-content: center;
-        }
     }
     </style>
 <?php endif; ?>

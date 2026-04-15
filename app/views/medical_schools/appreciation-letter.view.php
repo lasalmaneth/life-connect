@@ -51,6 +51,44 @@
         .btn-back { background: rgba(255,255,255,0.1); color: white; }
         .btn-back:hover { background: rgba(255,255,255,0.2); }
 
+        /* ── CONTROLS (Standardized) ────────────────────────────── */
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 1000;
+        }
+        .btn-action {
+            background: #fff;
+            border: 1px solid #e6eaf0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #3d4f63;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-action.primary {
+            background: #059669;
+            color: #fff;
+            border: none;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            background: #f8fafc;
+        }
+        .btn-action.primary:hover { background: #047857; }
+
         /* ── PAGE WRAPPER ─────────────────────────────────────────── */
         .page {
             max-width: 860px;
@@ -157,6 +195,7 @@
             .letter-header, .letter-footer { background: white !important; border-color: #eee !important; }
             .letter-body::before { opacity: 0.15 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .badge-issued { border-color: #ccc !important; }
+            .controls { display: none !important; }
         }
 
         @media (max-width: 600px) {
@@ -166,6 +205,22 @@
     </style>
 </head>
 <body>
+
+<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'MEDICAL_SCHOOL'): ?>
+<div class="controls">
+    <?php 
+        $backUrl = (isset($_GET['from']) && $_GET['from'] === 'examinations') 
+            ? ROOT . '/medical-school/final-examinations' 
+            : ROOT . '/medical-school/usage-logs';
+    ?>
+    <a href="<?= $backUrl ?>" class="btn-action">
+        <i class="fas fa-arrow-left"></i> Back
+    </a>
+    <button onclick="window.print()" class="btn-action primary">
+        <i class="fas fa-print"></i> Print Letter
+    </button>
+</div>
+<?php endif; ?>
 
 <div class="page">
     <div class="letter-card">

@@ -668,7 +668,7 @@
             </div>
             <div style="display: flex;">
                 <img src="<?= ROOT ?>/public/assets/images/home-ourstory.jpg" alt="LifeConnect mission"
-                    style="width:100%; height:360px; object-fit:cover; border-radius:var(--r); box-shadow:0 8px 30px rgba(0,0,0,.08)" />
+                    style="width:100%; height:100%; min-height:420px; object-fit:cover; border-radius:var(--r); box-shadow:0 8px 30px rgba(0,0,0,.08)" />
             </div>
         </div>
     </section>

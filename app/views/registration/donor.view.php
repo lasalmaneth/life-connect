@@ -40,12 +40,12 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group">
       <label>Username <span class="req">*</span></label>
-      <input type="text" name="username" id="d_user" placeholder="e.g. kamal_perera" maxlength="30" oninput="onUsername('d_user','d_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
+      <input type="text" name="username" id="d_user" placeholder="e.g. kamal_perera" maxlength="30" oninput="onUsername('d_user','d_userH')" onchange="onUsername('d_user','d_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
       <span class="hint" id="d_userH">Letters, numbers and underscores only</span>
     </div>
     <div class="form-group">
       <label>NIC Number <span class="req">*</span></label>
-      <input type="text" name="nic" id="d_nic" placeholder="e.g. 200012345678 or 841234567V" maxlength="12" oninput="onNIC()" value="<?= htmlspecialchars($_POST['nic'] ?? $sessionData['nic'] ?? '') ?>">
+      <input type="text" name="nic" id="d_nic" placeholder="e.g. 199012345678 or 901234567V" maxlength="12" oninput="onNIC()" onchange="onNIC()" value="<?= htmlspecialchars($_POST['nic'] ?? $sessionData['nic'] ?? '') ?>">
       <span class="hint" id="d_nicH">New 12-digit format or old 9-digit + V / X</span>
     </div>
     <div class="form-group">
@@ -74,7 +74,7 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group full">
       <label>Email Address <span class="req">*</span></label>
-      <input type="email" name="email" id="d_email" placeholder="your.email@example.com" oninput="onEmail('d_email','d_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
+      <input type="email" name="email" id="d_email" placeholder="kamal@gmail.com" oninput="onEmail('d_email','d_emailH')" onchange="onEmail('d_email','d_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
       <span class="hint" id="d_emailH">A confirmation OTP will be sent to verify this address upon submission.</span>
     </div>
     <div class="form-group full">

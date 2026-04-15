@@ -4,15 +4,17 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\CustodianModel;
-
+use App\Models\UserModel;
 class Custodian {
     use Controller;
 
     private $model;
+    private $caseModel;
 
     public function __construct()
     {
         $this->model = new CustodianModel();
+        $this->caseModel = new \App\Models\DonationCaseModel();
     }
 
     /**
@@ -37,10 +39,11 @@ class Custodian {
         }
 
         $custodian = $this->model->getCustodianByUserId($_SESSION['user_id']);
+        // show($custodian);
         if (!$custodian) {
-            if ($this->isAjax()) {
-                $this->json(['error' => 'Custodian record not found'], 404);
-            }
+            // if ($this->isAjax()) {
+            //     $this->json(['error' => 'Custodian record not found'], 404);
+            // }
             redirect('login');
             return null;
         }
@@ -48,16 +51,17 @@ class Custodian {
         
         // --- SECURITY SETUP GUARD ---
         // Source of truth for security flag is the 'users' table
-        $userModel = new \App\Models\UserModel();
-        $userSession = $userModel->getUserById($_SESSION['user_id']);
-        
-        if ($userSession && !empty($userSession->must_change_credentials)) {
-            $url = $_GET['url'] ?? '';
-            if (strpos($url, 'custodian/security-setup') === false && strpos($url, 'custodian/update-security') === false) {
-                redirect('custodian/security-setup');
-                return null;
-            }
-        }
+        // $userModel = new UserModel();
+        // $userSession = $userModel->getUserById($_SESSION['user_id']);
+        // show($userSession);
+
+        // if ($userSession && !empty($userSession->must_change_credentials)) {
+        //     $url = $_GET['url'] ?? '';
+        //     if (strpos($url, 'custodian/security-setup') === false && strpos($url, 'custodian/update-security') === false) {
+        //         redirect('custodian/security-setup');
+        //         return null;
+        //     }
+        // }
 
         return $custodian;
     }
@@ -103,12 +107,12 @@ class Custodian {
         if (!$custodian) return;
 
         $donorId = $custodian->donor_id;
-        $activeCase = $this->model->getDonationCase($donorId);
+        $activeCase = $this->caseModel->getCaseByDonor($donorId);
         $certificates = $activeCase ? $this->model->getDonationCertificates($activeCase->id) : [];
         $appreciationLetters = $activeCase ? $this->model->getAppreciationLetters($activeCase->id) : [];
         
         // Fetch activity timeline (Limit to top 5 for dashboard)
-        $fullTimeline = $activeCase ? $this->model->getTimeline($activeCase->id) : [];
+        $fullTimeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
         $timeline = array_slice($fullTimeline, 0, 5);
 
         $this->renderPage('custodian/dashboard', 'dashboard', 'Dashboard', $custodian, [
@@ -178,7 +182,7 @@ class Custodian {
 
         $donorId = $custodian->donor_id;
         $cidRaw = $custodian->id ?? $custodian->cid;
-        $activeCase = $this->model->getDonationCase($custodian->donor_id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         $docs = [];
         $hasSworn = false;
         
@@ -199,7 +203,7 @@ class Custodian {
         // Resolve track and current institution
         $consent = $this->model->resolveActiveConsent($custodian->donor_id);
         $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = ($activeCase) ? $this->model->getCurrentInstitution($activeCase->id, $track) : null;
+        $currentInst = ($activeCase) ? $this->caseModel->getCurrentInstitution($activeCase->id, $track) : null;
 
         // Fetch review status here to avoid calling model from view
         $review = $this->model->getDocumentReviewStatus($activeCase->id ?? 0);
@@ -254,10 +258,10 @@ class Custodian {
         if (!$custodian) return;
 
         $donorId = $custodian->donor_id;
-        $activeCase = $this->model->getDonationCase($donorId);
+        $activeCase = $this->caseModel->getCaseByDonor($donorId);
         
         // Full activity timeline
-        $timeline = $activeCase ? $this->model->getTimeline($activeCase->id) : [];
+        $timeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
 
         // Historical / Archived cases for this donor
         $archived = $this->model->getArchivedCases($donorId);
@@ -272,20 +276,26 @@ class Custodian {
     {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
-
-        $donorId = $custodian->donor_id;
-        $cidRaw = $custodian->id ?? $custodian->cid;
+        // show($custodian);
+        // $donorId = $custodian->donor_id;
+        // show($donorId);
+        // $cidRaw = $custodian->id ?? $custodian->cid;
 
         $availableInstitutions = [];
         $institutionStatuses = [];
         $institutionType = 'MEDICAL_SCHOOL';
-        $activeCase = $this->model->getDonationCase($custodian->donor_id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+        // show($activeCase);
         if ($activeCase) {
             $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
+            // show($consent);
             $track = $consent['donation_type'] ?? 'BODY';
             $institutionType = ($track === 'BODY' || $track === 'BODY_AND_CORNEA') ? 'MEDICAL_SCHOOL' : 'HOSPITAL';
-            $availableInstitutions = $this->model->getAvailableInstitutions($activeCase->id, $track) ?: [];
-            $institutionStatuses = $this->model->getInstitutionStatuses($activeCase->id) ?: [];
+            //  show($institutionType);
+            $availableInstitutions = $this->caseModel->getAvailableInstitutions($activeCase->id, $track) ?: [];
+            // show($availableInstitutions);
+            $institutionStatuses = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
+            //  show($institutionStatuses);
         }
 
         $this->renderPage('custodian/institution-requests', 'institution-requests', 'Institution Requests', $custodian, [
@@ -459,8 +469,8 @@ class Custodian {
             $donorId = $donor->id ?? $donor->donor_id;
             $coCustodian = $this->model->getCoCustodian($donorId, $cidRaw);
             $consent = $this->model->resolveActiveConsent($donorId);
-            $deathDecl = $this->model->getDeathDeclaration($donorId);
-            $donationCase = $this->model->getDonationCase($donorId);
+            $deathDecl = $this->caseModel->getDeathDeclaration($donorId);
+            $donationCase = $this->caseModel->getCaseByDonor($donorId);
             
             if ($donationCase) {
                 $activeCase = $donationCase;
@@ -474,7 +484,7 @@ class Custodian {
 
                 // Get current institution request (Pending/Accepted/Rejected by Medical School)
                 $track = $consent['donation_type'] ?? 'BODY';
-                $currentInstRequest = $this->model->getCurrentInstitution($donationCase->id, $track);
+                $currentInstRequest = $this->caseModel->getCurrentInstitution($donationCase->id, $track);
                 
                 // CRITICAL: Bridge for stepper logic
                 $currentRequest = $currentInstRequest;
@@ -531,8 +541,8 @@ class Custodian {
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $coCustodian = $this->model->getCoCustodian($custodian->donor_id, $custodian->id);
         $consent = $this->model->resolveActiveConsent($custodian->donor_id);
-        $deathDecl = $this->model->getDeathDeclaration($custodian->donor_id);
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $deathDecl = $this->caseModel->getDeathDeclaration($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
 
         $dashboard = [
             'custodian' => $custodian,
@@ -570,7 +580,7 @@ class Custodian {
         }
 
         // Check if already declared
-        $existing = $this->model->getDeathDeclaration($custodian->donor_id);
+        $existing = $this->caseModel->getDeathDeclaration($custodian->donor_id);
         if ($existing) {
             $this->json(['error' => 'Death has already been declared for this donor'], 409);
             return;
@@ -578,7 +588,7 @@ class Custodian {
 
         $data = [
             'donor_id' => $custodian->donor_id,
-            'custodian_id' => $custodian->id,
+            'declared_by_custodian_id' => $custodian->id,
             'date_of_death' => $_POST['date_of_death'] ?? '',
             'time_of_death' => $_POST['time_of_death'] ?? '',
             'place_of_death' => $_POST['place_of_death'] ?? '',
@@ -594,7 +604,7 @@ class Custodian {
             }
         }
 
-        $deathId = $this->model->createDeathDeclaration($data);
+        $deathId = $this->caseModel->createDeathDeclaration($data);
         if (!$deathId) {
             $this->json(['error' => 'Failed to create death declaration'], 500);
             return;
@@ -602,7 +612,7 @@ class Custodian {
 
         // Resolve consent and auto-create donation case
         $consent = $this->model->resolveActiveConsent($custodian->donor_id);
-        $caseId = $this->model->createDonationCase([
+        $caseId = $this->caseModel->createDonationCase([
             'donor_id' => $custodian->donor_id,
             'death_declaration_id' => $deathId,
             'donation_type' => $consent['donation_type']
@@ -728,7 +738,7 @@ class Custodian {
             return;
         }
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
@@ -785,15 +795,15 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
         }
 
         $track = $_GET['track'] ?? 'BODY';
-        $institutions = $this->model->getAvailableInstitutions($donationCase->id, $track);
-        $currentInst = $this->model->getCurrentInstitution($donationCase->id, $track);
+        $institutions = $this->caseModel->getAvailableInstitutions($donationCase->id, $track);
+        $currentInst = $this->caseModel->getCurrentInstitution($donationCase->id, $track);
 
         $this->json(['success' => true, 'data' => [
             'available' => $institutions,
@@ -811,15 +821,24 @@ class Custodian {
         if (!$custodian) return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->json(['error' => 'Method not allowed'], 405);
+            // if ($this->isAjax()) {
+            //     $this->json(['error' => 'Method not allowed'], 405);
+            // } else {
+                redirect('custodian/institution-requests');
+            
             return;
         }
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
-        if (!$donationCase) {
-            $this->json(['error' => 'No active donation case'], 404);
-            return;
-        }
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+        // if (!$donationCase) {
+        //     if ($this->isAjax()) {
+        //         $this->json(['error' => 'No active donation case'], 404);
+        //     } else {
+        //         $_SESSION['error_message'] = "No active donation case found.";
+        //         redirect('custodian/institution-requests');
+        //     }
+        //     return;
+        // }
 
         $result = $this->model->selectInstitution(
             $donationCase->id,
@@ -827,13 +846,23 @@ class Custodian {
             $_POST['institution_type'] ?? 'MEDICAL_SCHOOL',
             $_POST['track'] ?? 'BODY'
         );
-
+        // show($result);
         if ($result === false) {
-            $this->json(['error' => 'Cannot select institution: it is either not permitted by the donor\'s consent profile, or another case is currently active.'], 409);
+            $err = 'Cannot select institution: it is either not permitted by the donor\'s consent profile, or another request is currently active.';
+            // if ($this->isAjax()) {
+            //     $this->json(['error' => $err], 409);
+            // } else {
+                $_SESSION['error_message'] = $err;
+                redirect('custodian/institution-requests');
+            
             return;
         }
 
-        $this->json(['success' => true, 'case_institution_status_id' => $result]);
+        // if ($this->isAjax()) {
+        //     $this->json(['success' => true, 'case_institution_status_id' => $result]);
+        // } else {
+            $_SESSION['success_message'] = "Institution request sent successfully.";
+            redirect('custodian/institution-requests');
     }
 
     /**
@@ -850,7 +879,7 @@ class Custodian {
             return;
         }
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
@@ -902,7 +931,7 @@ class Custodian {
         if ($statusId) {
             $docs = $this->model->getDocuments($statusId);
         } else {
-            $donationCase = $this->model->getDonationCase($custodian->donor_id);
+            $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
             $docs = $donationCase ? $this->model->getAllDocuments($donationCase->id) : [];
         }
 
@@ -947,7 +976,7 @@ class Custodian {
             return;
         }
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
@@ -989,13 +1018,13 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
         }
 
-        $statuses = $this->model->getInstitutionStatuses($donationCase->id);
+        $statuses = $this->caseModel->getInstitutionStatuses($donationCase->id);
         $this->json(['success' => true, 'data' => $statuses]);
     }
 
@@ -1008,13 +1037,13 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $donationCase = $this->model->getDonationCase($custodian->donor_id);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
             $this->json(['error' => 'No active donation case'], 404);
             return;
         }
 
-        $timeline = $this->model->getTimeline($donationCase->id);
+        $timeline = $this->caseModel->getTimeline($donationCase->id);
         $this->json(['success' => true, 'data' => $timeline]);
     }
 
@@ -1026,7 +1055,7 @@ class Custodian {
 
         $donorId = $custodian->donor_id;
         $cidRaw = $custodian->id ?? $custodian->cid;
-        $deathDecl = $this->model->getDeathDeclaration($donorId);
+        $deathDecl = $this->caseModel->getDeathDeclaration($donorId);
 
         if ($deathDecl && $deathDecl->declared_by_custodian_id != $cidRaw) {
             header('Location: ' . ROOT . '/custodian/dashboard');
@@ -1038,7 +1067,7 @@ class Custodian {
             exit;
         }
 
-        $activeCase = $this->model->getDonationCase($custodian->donor_id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$activeCase) {
              header('Location: ' . ROOT . '/custodian/documents');
              exit;
@@ -1056,7 +1085,7 @@ class Custodian {
 
         $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
         $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = $this->model->getCurrentInstitution($activeCase->id, $track);
+        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $track);
         $instName = $currentInst ? $currentInst->institution_name : 'Department of Anatomy, University of Colombo';
         $instAddress = $currentInst ? $currentInst->institution_address : 'Kynsey Road, Colombo 08';
 
@@ -1079,11 +1108,19 @@ class Custodian {
             $formData = json_decode($record->form_data, true) ?? [];
         }
 
+        // Pre-populate place of death from death declaration if missing
+        if (empty($formData['place_of_death']) && $deathDecl) {
+            $formData['place_of_death'] = $deathDecl->place_of_death;
+        }
+
         $this->renderPage('custodian/document-form', 'documents', $page_heading, $custodian, [
             'type' => $type,
             'formData' => $formData,
             'instName' => $instName,
-            'instAddress' => $instAddress
+            'instAddress' => $instAddress,
+            'death_declaration' => $deathDecl,
+            'activeCase' => $activeCase,
+            'donor' => $this->model->getDonorForCustodian($custodian->id)
         ]);
     }
 
@@ -1091,7 +1128,7 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST') return;
         $type = $_POST['type'] ?? '';
-        $activeCase = $this->model->getDonationCase($custodian->donor_id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         
         if (!$activeCase || !in_array($type, ['sworn', 'datasheet'])) {
              header('Location: ' . ROOT . '/custodian/documents');
@@ -1123,7 +1160,7 @@ class Custodian {
             $this->model->saveCadaverDataSheet($activeCase->id, $formData);
         }
         
-        header('Location: ' . ROOT . '/custodian/print-document?type=' . urlencode($type));
+        header('Location: ' . ROOT . '/custodian/document-form?type=' . urlencode($type) . '&saved=1');
         exit;
     }
 
@@ -1137,7 +1174,7 @@ class Custodian {
             exit;
         }
 
-        $activeCase = $this->model->getDonationCase($custodian->donor_id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$activeCase) {
              header('Location: ' . ROOT . '/custodian/documents');
              exit;
@@ -1145,7 +1182,7 @@ class Custodian {
         
         $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
         $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = $this->model->getCurrentInstitution($activeCase->id, $track);
+        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $track);
         $instName = $currentInst ? $currentInst->institution_name : 'Department of Anatomy, University of Colombo';
         $instAddress = $currentInst ? $currentInst->institution_address : 'Kynsey Road, Colombo 08';
 
@@ -1161,7 +1198,7 @@ class Custodian {
 
         $cwd = $custodian->id ?? $custodian->custodian_id ?? 0;
         $donor = $this->model->getDonorForCustodian($cwd);
-        $death_declaration = $this->model->getDeathDeclaration($donor->id ?? $donor->donor_id);
+        $death_declaration = $this->caseModel->getDeathDeclaration($donor->id ?? $donor->donor_id);
 
         // Render printable view without dashboard layout
         require __DIR__ . '/../views/custodian/print-document.view.php';
@@ -1174,7 +1211,7 @@ class Custodian {
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $donorId = $donor->id ?? $donor->donor_id ?? $custodian->donor_id;
-        $activeCase = $this->model->getDonationCase($donorId);
+        $activeCase = $this->caseModel->getCaseByDonor($donorId);
 
         if ($activeCase) {
             $statusRec = $this->model->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id AND is_current = 1 AND request_status = 'ACCEPTED'", [':id' => $activeCase->id]);

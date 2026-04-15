@@ -35,17 +35,21 @@
                 </div>
             </div>
 
-            <?php if (isset($certificate) && $certificate): ?>
-                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--blue-100); display: flex; align-items: center; justify-content: space-between;">
+        <!-- Premium Certificate Banner (Matches Usage Logs Style) -->
+        <?php if (isset($certificate) && $certificate && strtolower($exam->final_exam_status) === 'accepted'): ?>
+            <div style="padding: 1.25rem; border-radius: 12px; border: 1px solid #dbeafe; background: #eff6ff; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-certificate" style="color: #2563eb; font-size: 1.1rem;"></i>
                     <div>
-                        <div style="font-size: 0.85rem; font-weight: 700; color: var(--blue-900);">Donation Certificate Issued</div>
-                        <div style="font-size: 0.75rem; color: var(--blue-500); font-weight: 600;">Ref: <?= htmlspecialchars($certificate->certificate_number) ?></div>
+                        <div style="font-weight: 800; color: #1e40af; font-size: 0.85rem;">Donation Certificate Issued</div>
+                        <div style="font-size: 0.7rem; color: #3b82f6; font-weight: 700;">Ref: <?= htmlspecialchars($certificate->certificate_number) ?></div>
                     </div>
-                    <a href="<?= ROOT ?>/medical-school/certificates/view?id=<?= $certificate->id ?>" class="ms-btn-details" style="background: var(--white); border-color: var(--blue-200);">
-                        <i class="fas fa-certificate"></i> View Certificate
-                    </a>
                 </div>
-            <?php endif; ?>
+                <a href="<?= ROOT ?>/medical-school/certificates/view?id=<?= $certificate->id ?>&from=examinations" class="cp-btn" style="height: 36px; padding: 0 16px; font-size: 0.75rem; background: var(--white); border: 1px solid #3b82f6; color: #2563eb; border-radius: 8px; font-weight: 700; text-decoration: none; display: flex; align-items: center;">
+                    <i class="fas fa-eye mr-2"></i> View Certificate
+                </a>
+            </div>
+        <?php endif; ?>
         </div>
 
         <?php if ($exam->final_exam_status === 'REJECTED'): ?>

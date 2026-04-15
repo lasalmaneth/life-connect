@@ -40,7 +40,7 @@ if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->tim
             </div>
         </div>
     <?php else: ?>
-
+        
         <!-- Active Request Display -->
         <?php if (!empty($institutionStatuses)): ?>
             <?php foreach ($institutionStatuses as $req): ?>
@@ -153,19 +153,22 @@ if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->tim
                             </div>
                         </div>
                         <div class="cp-section-card__body" style="padding: 24px; background: white;">
-                            <form id="select-inst-form">
+                            <form action="<?= ROOT ?>/custodian/select-institution" method="POST">
                                 <input type="hidden" name="institution_type" value="<?= $institutionType ?>">
+                                <input type="hidden" name="track" value="<?= $track ?? 'BODY' ?>">
                                 <div style="display: flex; gap: 16px; align-items: flex-start;">
                                     <div style="flex: 1;">
+                                         <!-- <?php show($availableInstitutions); ?> -->
                                         <select name="institution_id" class="cp-form-control" style="width: 100%; height: 50px; border-radius: 12px; border: 1px solid var(--cp-gray-200); padding: 0 16px; font-size: 0.95rem; background-color: #f8fafc;" required>
                                             <option value="" disabled selected>-- Choose from consented institutions --</option>
+                                            <!-- <?php show($availableInstitutions); ?> -->
                                             <?php foreach ($availableInstitutions as $inst): ?>
                                                 <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->school_name ?? $inst->hospital_name ?? 'Unknown') ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
                                     <div style="width: 180px;">
-                                        <button type="button" id="submit-inst-btn" class="cp-btn" style="width: 100%; height: 50px; background: #1e293b; color: white; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);">
+                                        <button type="submit" class="cp-btn" style="width: 100%; height: 50px; background: #1e293b; color: white; border-radius: 12px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);">
                                             Send Request
                                         </button>
                                     </div>
@@ -179,34 +182,6 @@ if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->tim
     <?php endif; ?>
 
 </div>
-
-<script>
-document.getElementById('submit-inst-btn')?.addEventListener('click', async () => {
-    const form = document.getElementById('select-inst-form');
-    const formData = new FormData(form);
-
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    try {
-        const response = await fetch('<?= ROOT ?>/api/custodian/select-institution', {
-            method: 'POST',
-            body: formData
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-            window.location.reload();
-        } else {
-            cpNotify.alert('Selection Error', result.error || 'Failed to request institution', 'error');
-        }
-    } catch (e) {
-        cpNotify.alert('System Error', 'An error occurred. Please try again.', 'error');
-    }
-});
-</script>
 
 <?php
 $page_content = ob_get_clean();

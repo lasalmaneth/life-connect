@@ -3,7 +3,7 @@
  * Medical School Portal — Body Submissions (Stages E & F)
  */
 
-$page_title    = 'Body Submissions';
+$page_title    = 'Document Submissions';
 $active_page   = 'submissions';
 
 ob_start();
@@ -11,7 +11,7 @@ ob_start();
 
 <div class="cp-content-header">
     <div class="cp-content-header__content">
-        <h1 class="cp-content-header__title"><i class="fas fa-folder-open"></i> Body Submissions</h1>
+        <h1 class="cp-content-header__title"><i class="fas fa-folder-open"></i> Document Submissions</h1>
         <p class="cp-content-header__subtitle">Verification and review of mandatory document bundles submitted by custodians.</p>
     </div>
     <div class="cp-content-header__actions">

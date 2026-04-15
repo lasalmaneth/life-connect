@@ -67,6 +67,15 @@ class Login {
                 return;
             }
 
+            if ($status === 'SUSPENDED') {
+                $reason = !empty($user->review_message) ? " Reason: " . $user->review_message : " Please contact support.";
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Your account has been suspended.' . $reason
+                ]);
+                return;
+            }
+
             // Prevent session fixation and clear stale data from previous users
             session_regenerate_id(true);
             
