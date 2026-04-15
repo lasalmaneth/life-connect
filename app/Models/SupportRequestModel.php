@@ -10,6 +10,15 @@ class SupportRequestModel {
     protected $table = 'support_requests';
 
     /**
+     * Fetch requests by status
+     */
+    public function getRequestsByStatus($status) {
+        $query = "SELECT * FROM $this->table WHERE status = :status ORDER BY created_at DESC";
+        $results = $this->query($query, [':status' => strtoupper($status)]);
+        return $results ? $results : [];
+    }
+
+    /**
      * Fetch all support requests from the database
      */
     public function getAllRequests() {

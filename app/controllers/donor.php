@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use App\Models\FinancialDonationModel;
+use App\Models\admin\FinancialDonationModel;
 
 class Donor {
     use Controller, Database;
@@ -152,6 +152,7 @@ class Donor {
         // Check if first login (no roles selected yet)
         $isFirstLogin = empty($activeRoles);
 
+
         $donorModel = new \App\Models\DonorModel();
         $donorStats = $donorModel->getDonorStats($donorId);
         $pledgedOrgans = $donorModel->getPledgedOrgans($donorId);
@@ -164,6 +165,7 @@ class Donor {
 
         $notificationModel = new \App\Models\NotificationModel();
         $notifications = $notificationModel->getNotificationsForUser($donorData['user_id'], 5);
+        $notifications = json_decode(json_encode($notifications), true) ?: []; // convert stdClass → array
         
         // NEW: Fetch medical investigations for dashboard
         $investigationModel = new \App\Models\UpcomingAppointmentModel();

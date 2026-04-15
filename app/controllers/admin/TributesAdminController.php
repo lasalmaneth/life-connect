@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\Models\SuccessStoryModel;

@@ -231,6 +231,7 @@
   position: relative;
   height: 200px;
   margin-top: 10px;
+  margin-bottom: 30px; /* Space for labels */
 }
 
 .chart-grid-line {
@@ -271,9 +272,13 @@
 }
 
 .bar-label {
-  margin-top: 6px;
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
   color: #1e40af;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 /* ====== Chart Stats (below bar chart) ====== */
@@ -637,7 +642,8 @@ body {
                 <div id="accounts" class="content-section" style="display: none;">
                     <div class="content-header">
                         <h2>User Account Management</h2>
-                       </div>
+                        <p>Navigate through user profiles, manage registration statuses, and oversee account security.</p>
+                    </div>
                     <div class="content-body">
                         <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px;">
                             <div class="search-bar" style="margin-bottom: 0; flex: 1;">
@@ -655,9 +661,14 @@ body {
                                 <select class="filter-select" id="role-filter" onchange="fetchUsers()">
                                     <option value="">All Roles</option>
                                     <option value="donor">Donor</option>
-                                    <option value="patient">Patient</option>
                                     <option value="hospital">Hospital</option>
-                                    <option value="financial">Financial Donor</option>
+                                    <option value="medical_school">Medical School</option>
+                                    <option value="custodian">Custodian</option>
+                                    <option value="patient">Patient</option>
+                                    <option value="u_admin">User Admin</option>
+                                    <option value="f_admin">Financial Admin</option>
+                                    <option value="ac_admin">Aftercare Admin</option>
+                                    <option value="d_admin">Donation Admin</option>
                                 </select>
                             </div>
                         </div>
@@ -690,7 +701,7 @@ body {
                 <div id="notifications" class="content-section" style="display: none;">
                     <div class="content-header">
                         <h2>User Notifications</h2>
-                        <p>Manage and send system notifications to users</p>
+                        <p>Draft and dispatch critical system updates, approvals, and reminders to specific user groups.</p>
                     </div>
                     <div class="content-body">
                         <div class="action-section">
@@ -723,8 +734,8 @@ body {
                 <!-- Donor Eligibility -->
                 <div id="eligibility" class="content-section" style="display: none;">
                     <div class="content-header">
-                        <h2>Donor Eligibility Management</h2>
-                        <p>Assess and update donor eligibility status</p>
+                        <h2>Donor Eligibility</h2>
+                        <p>Review and update donor eligibility criteria based on medical assessments and regulatory standards.</p>
                     </div>
                     <div class="content-body">
                         <div class="search-bar">
@@ -787,6 +798,7 @@ body {
 <div id="feedbacks" class="content-section" style="display: none;">
     <div class="content-header">
         <h2>Feedback Management</h2>
+        <p>Audit user testimonials and inquiries to improve overall platform satisfaction and support.</p>
     </div>
     <div class="content-body">
         <div class="action-section">
@@ -854,10 +866,11 @@ body {
 
     <!-- Review User Modal (Detailed Premium View) -->
     <div id="review-user-modal" class="modal">
-        <div class="modal-content" style="padding: 2.5rem; border-radius: 24px; max-width: 500px;">
-            <!-- Modal Header with Icon (Simplified Horizontal Layout) -->
-            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
-                <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('review-user-modal')">&times;</button>
+        <div class="modal-content">
+            <div class="modal-scroll-area">
+                <!-- Modal Header with Icon (Simplified Horizontal Layout) -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('review-user-modal')">&times;</button>
                 
                 <div style="display: flex; align-items: center; gap: 1.25rem;">
                     <!-- Status Icon -->
@@ -959,6 +972,38 @@ body {
                         </div>
                     </div>
 
+                    <!-- Medical School Identity Section -->
+                    <div id="medical-school-identity-section" style="display: none; contents;">
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Medical School Name</span>
+                            <div id="review-med-name" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">University Affiliation</span>
+                            <div id="review-med-univ" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">UGC Accreditation #</span>
+                            <div id="review-med-ugc" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Contact Person</span>
+                            <div id="review-med-contact-name" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Direct Contact Number</span>
+                            <div id="review-med-contact-phone" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">District</span>
+                            <div id="review-med-district" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Institution Address</span>
+                            <div id="review-med-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                    </div>
+
                     <!-- Admin Identity Section -->
                     <div id="admin-identity-section" style="display: none; contents;">
                         <div>
@@ -1031,6 +1076,14 @@ body {
                                 <span>Verified via Private Health Services (PHSRC) <a href="https://www.phsrc.lk/" target="_blank" style="color: #3b82f6; text-decoration: underline; font-size: 0.75rem; margin-left: 4px; font-weight: 700;"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem;"></i></a></span>
                             </label>
                         </div>
+
+                        <!-- Medical School Specific (UGC) -->
+                        <div id="medical-school-verification-controls" style="display: none;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #1e293b; cursor: pointer; font-weight: 600;">
+                                <input type="checkbox" id="verify-med-registry" onchange="checkVerificationStatus(); generateReviewMessage()" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Verified UGC Registry <a href="https://www.ugc.ac.lk/" target="_blank" style="color: #3b82f6; text-decoration: underline; font-size: 0.75rem; margin-left: 4px; font-weight: 700;"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.65rem;"></i></a></span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Status Dropdown -->
@@ -1049,6 +1102,19 @@ body {
                         <textarea id="review-message" rows="3" placeholder="Provide a reason for the update..." style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none;"></textarea>
                     </div>
 
+                    </div>
+                    
+                    <!-- Suspension Secondary Confirmation (Inline) -->
+                    <div id="suspension-notice" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 1rem; margin-top: 0.5rem; align-items: flex-start; gap: 12px;">
+                        <div style="flex-shrink: 0; width: 32px; height: 32px; background: #fee2e2; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-triangle-exclamation" style="font-size: 14px; color: #dc2626;"></i>
+                        </div>
+                        <div>
+                            <p style="margin: 0; color: #991b1b; font-size: 0.85rem; line-height: 1.5; font-weight: 700;">Are you sure you want to suspend this account?</p>
+                            <p style="margin: 2px 0 0 0; color: #b91c1c; font-size: 0.75rem; font-weight: 500;">Access will be immediately revoked. Click "Yes, Suspend Account" to proceed.</p>
+                        </div>
+                    </div>
+
                     <!-- Footer Buttons (Right Aligned) -->
                     <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
                         <button type="button" onclick="closeModal('review-user-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Cancel</button>
@@ -1057,6 +1123,7 @@ body {
                             <span id="btn-save-text">Confirm Rejection</span>
                         </button>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -1194,45 +1261,47 @@ body {
     </div>
 </div>
 
-    <!-- Bulk Action Authorization Modal -->
+    <!-- Bulk Action Authorization Modal (Existing) -->
     <div id="bulk-action-modal" class="modal">
-        <div class="modal-content" style="padding: 2.5rem; border-radius: 24px; max-width: 500px;">
-            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
-                <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('bulk-action-modal')">&times;</button>
-                
-                <div style="display: flex; align-items: center; gap: 1.25rem;">
-                    <div id="bulk-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <i id="bulk-status-icon" class="fa-solid fa-circle-check" style="font-size: 20px; color: #059669;"></i>
+        <div class="modal-content">
+            <div class="modal-scroll-area">
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('bulk-action-modal')">&times;</button>
+                    
+                    <div style="display: flex; align-items: center; gap: 1.25rem;">
+                        <div id="bulk-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i id="bulk-status-icon" class="fa-solid fa-circle-check" style="font-size: 20px; color: #059669;"></i>
+                        </div>
+                        <div>
+                            <h2 id="bulk-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Authorize Bulk Action</h2>
+                        </div>
                     </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 10px;">
+                        <span id="bulk-user-count-badge" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">0 Users</span>
+                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Selected for status update</span>
+                    </div>
+
+                    <p id="bulk-modal-desc" style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Authorize the following status transition and customize the review notification message below.</p>
+
                     <div>
-                        <h2 id="bulk-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Authorize Bulk Action</h2>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Review Message (Editable)</span>
+                        <textarea id="bulk-review-message" rows="4" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none; font-weight: 500; line-height: 1.4;"></textarea>
                     </div>
-                </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 10px;">
-                    <span id="bulk-user-count-badge" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">0 Users</span>
-                    <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Selected for status update</span>
-                </div>
-
-                <p id="bulk-modal-desc" style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Authorize the following status transition and customize the review notification message below.</p>
-
-                <!-- Editable Message Section -->
-                <div>
-                    <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Review Message (Editable)</span>
-                    <textarea id="bulk-review-message" rows="4" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none; font-weight: 500; line-height: 1.4;"></textarea>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="closeModal('bulk-action-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer;">Cancel</button>
-                    <button type="button" id="btn-confirm-bulk" onclick="executeBulkUpdate()" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
-                        <i id="bulk-confirm-icon" class="fa-solid fa-circle-check"></i>
-                        <span id="bulk-confirm-text">Confirm Activation</span>
-                    </button>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button type="button" onclick="closeModal('bulk-action-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer;">Cancel</button>
+                        <button type="button" id="btn-confirm-bulk" onclick="executeBulkUpdate()" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                            <i id="bulk-confirm-icon" class="fa-solid fa-circle-check"></i>
+                            <span id="bulk-confirm-text">Confirm Activation</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <!-- Hidden context for the update -->
             <input type="hidden" id="bulk-target-status">
         </div>
+    </div>
+
     </div>
 
     <!-- Toast Notification -->
@@ -1724,11 +1793,14 @@ async function updateUserStatus(userId, status) {
 
                         const isHospital = (user.role && user.role.toUpperCase() === 'HOSPITAL');
                         const isDonor = (user.role && user.role.toUpperCase() === 'DONOR');
+                        const isMedSchool = (user.role && user.role.toUpperCase() === 'MEDICAL_SCHOOL');
                         const isAdmin = (user.role && ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'].includes(user.role.toUpperCase()));
 
                         // Reset display
                         if (donorIdentity) donorIdentity.style.display = 'none';
                         if (hospitalIdentity) hospitalIdentity.style.display = 'none';
+                        const medIdentity = document.getElementById('medical-school-identity-section');
+                        if (medIdentity) medIdentity.style.display = 'none';
                         const adminIdentity = document.getElementById('admin-identity-section');
                         if (adminIdentity) adminIdentity.style.display = 'none';
                         
@@ -1796,6 +1868,29 @@ async function updateUserStatus(userId, status) {
 
                             const hAddress = document.getElementById('review-hosp-address');
                             if (hAddress) hAddress.innerText = user.address || 'No address provided';
+                        } else if (isMedSchool) {
+                            if (medIdentity) medIdentity.style.display = 'contents';
+                            
+                            const mName = document.getElementById('review-med-name');
+                            if (mName) mName.innerText = user.school_name || '-';
+                            
+                            const mUniv = document.getElementById('review-med-univ');
+                            if (mUniv) mUniv.innerText = user.univ_affiliation || '-';
+                            
+                            const mUgc = document.getElementById('review-med-ugc');
+                            if (mUgc) mUgc.innerText = user.ugc_number || '-';
+                            
+                            const mContact = document.getElementById('review-med-contact-name');
+                            if (mContact) mContact.innerText = user.contact_person || '-';
+                            
+                            const mPhone = document.getElementById('review-med-contact-phone');
+                            if (mPhone) mPhone.innerText = user.contact_phone || '-';
+                            
+                            const mDistrict = document.getElementById('review-med-district');
+                            if (mDistrict) mDistrict.innerText = user.district || '-';
+                            
+                            const mAddress = document.getElementById('review-med-address');
+                            if (mAddress) mAddress.innerText = user.address || 'No address provided';
                         } else if (isAdmin) {
                             if (adminIdentity) adminIdentity.style.display = 'contents';
                             
@@ -1826,24 +1921,35 @@ async function updateUserStatus(userId, status) {
                                                   // Show role-specific verifications
                             const donorControls = document.getElementById('donor-verification-controls');
                             const hospitalControls = document.getElementById('hospital-verification-controls');
+                            const medControls = document.getElementById('medical-school-verification-controls');
                             
                             if (user.role && user.role.toLowerCase() === 'donor') {
                                 if (donorControls) donorControls.style.display = 'block';
                                 if (hospitalControls) hospitalControls.style.display = 'none';
+                                if (medControls) medControls.style.display = 'none';
                             } else if (user.role && user.role.toLowerCase() === 'hospital') {
                                 if (donorControls) donorControls.style.display = 'none';
                                 if (hospitalControls) hospitalControls.style.display = 'block';
+                                if (medControls) medControls.style.display = 'none';
                                 if (document.getElementById('hosp-reg-num-text')) {
                                     document.getElementById('hosp-reg-num-text').innerText = user.registration_number || 'N/A';
                                 }
+                            } else if (user.role && user.role.toLowerCase() === 'medical_school') {
+                                if (donorControls) donorControls.style.display = 'none';
+                                if (hospitalControls) hospitalControls.style.display = 'none';
+                                if (medControls) medControls.style.display = 'block';
                             } else {
                                 if (donorControls) donorControls.style.display = 'none';
                                 if (hospitalControls) hospitalControls.style.display = 'none';
+                                if (medControls) medControls.style.display = 'none';
                             }
                         } else {
                                 verifSection.style.display = 'none';
                                 document.getElementById('verify-genuine').checked = (statusUpper === 'ACTIVE');
                                 document.getElementById('verify-registry').checked = (statusUpper === 'ACTIVE');
+                                if (document.getElementById('verify-med-registry')) {
+                                    document.getElementById('verify-med-registry').checked = (statusUpper === 'ACTIVE');
+                                }
                             }
                         }
 
@@ -1878,6 +1984,9 @@ async function updateUserStatus(userId, status) {
                         canSave = genuine && donorRegistry;
                     } else if (currentRole === 'hospital') {
                         canSave = genuine && hospitalRegistry;
+                    } else if (currentRole === 'medical_school') {
+                        const medRegistry = document.getElementById('verify-med-registry').checked;
+                        canSave = genuine && medRegistry;
                     } else {
                         canSave = true; // Other roles
                     }
@@ -1902,15 +2011,22 @@ async function updateUserStatus(userId, status) {
                     }
 
                     // Ensure correct role controls are shown on reversion select
-                    const donorControls = document.getElementById('donor-verification-controls');
-                    const hospitalControls = document.getElementById('hospital-verification-controls');
-                    if (currentRole === 'donor') {
-                        if (donorControls) donorControls.style.display = 'block';
-                        if (hospitalControls) hospitalControls.style.display = 'none';
-                    } else if (currentRole === 'hospital') {
-                        if (donorControls) donorControls.style.display = 'none';
-                        if (hospitalControls) hospitalControls.style.display = 'block';
-                    }
+                const donorControls = document.getElementById('donor-verification-controls');
+                const hospitalControls = document.getElementById('hospital-verification-controls');
+                const medControls = document.getElementById('medical-school-verification-controls');
+                if (currentRole === 'donor') {
+                    if (donorControls) donorControls.style.display = 'block';
+                    if (hospitalControls) hospitalControls.style.display = 'none';
+                    if (medControls) medControls.style.display = 'none';
+                } else if (currentRole === 'hospital') {
+                    if (donorControls) donorControls.style.display = 'none';
+                    if (hospitalControls) hospitalControls.style.display = 'block';
+                    if (medControls) medControls.style.display = 'none';
+                } else if (currentRole === 'medical_school') {
+                    if (donorControls) donorControls.style.display = 'none';
+                    if (hospitalControls) hospitalControls.style.display = 'none';
+                    if (medControls) medControls.style.display = 'block';
+                }
                 } else if (originalStatus !== 'PENDING') {
                     verifSection.style.display = 'none';
                 }
@@ -1933,6 +2049,9 @@ async function updateUserStatus(userId, status) {
             }
 
             // Dynamic Styling based on Status
+            const suspensionNotice = document.getElementById('suspension-notice');
+            if (suspensionNotice) suspensionNotice.style.display = 'none'; // Reset notice on any status change
+
             if (status === 'ACTIVE') {
                 btnSave.style.background = '#059669'; // Emerald-600
                 btnText.innerText = 'Confirm Approval';
@@ -1942,7 +2061,7 @@ async function updateUserStatus(userId, status) {
                 icon.style.color = '#059669';
             } else if (status === 'SUSPENDED') {
                 btnSave.style.background = '#dc2626'; // Red-600
-                btnText.innerText = 'Confirm Removal';
+                btnText.innerText = 'Confirm Suspension';
                 btnIcon.className = 'fa-solid fa-circle-xmark';
                 iconBox.style.background = '#fee2e2'; // Red-50
                 icon.className = 'fa-solid fa-circle-xmark';
@@ -1989,18 +2108,36 @@ async function updateUserStatus(userId, status) {
             } else if (status === 'SUSPENDED') {
                  const donorRegistry = document.getElementById('verify-registry').checked;
                  const hospitalRegistry = document.getElementById('verify-hospital-registry').checked;
+                 const medRegistryEl = document.getElementById('verify-med-registry');
+                 const medRegistry = medRegistryEl ? medRegistryEl.checked : false;
                  const userRoleElement = document.getElementById('review-user-role-display');
-                 const currentRole = userRoleElement ? userRoleElement.innerText.split('|')[0].trim().toLowerCase() : '';
+                 const roleText = userRoleElement ? userRoleElement.innerText.split('|')[0].trim().toLowerCase() : '';
+                 const currentRole = roleText.replace(' ', '_');
                  
-                 const registry = (currentRole === 'hospital') ? hospitalRegistry : donorRegistry;
-                 const registryName = (currentRole === 'hospital') ? "Hospital PHSRC registry" : "official Election Commission registry";
+                 let registry = false;
+                 let registryName = "";
+                 let registryFailTerm = "";
+
+                 if (currentRole === 'hospital') {
+                     registry = hospitalRegistry;
+                     registryName = "Hospital PHSRC registry";
+                     registryFailTerm = "Hospital registration";
+                 } else if (currentRole === 'medical_school') {
+                     registry = medRegistry;
+                     registryName = "official UGC universities registry";
+                     registryFailTerm = "UGC accreditation number";
+                 } else {
+                     registry = donorRegistry;
+                     registryName = "official Election Commission registry";
+                     registryFailTerm = "NIC record";
+                 }
 
                  if (!genuine && !registry) {
-                     msgBox.value = `Verification failed: Profile data authenticity concerns and ${currentRole === 'hospital' ? 'Hospital license' : 'NIC record'} could not be verified.`;
+                     msgBox.value = `Verification failed: Profile data authenticity concerns and ${registryFailTerm} could not be verified.`;
                  } else if (!genuine) {
                      msgBox.value = "Verification failed: Profile information and submitted details could not be validated for authenticity.";
                  } else if (!registry) {
-                     msgBox.value = `Verification failed: ${currentRole === 'hospital' ? 'Hospital registration' : 'NIC record'} could not be verified via the ${registryName}.`;
+                     msgBox.value = `Verification failed: ${registryFailTerm} could not be verified via the ${registryName}.`;
                  } else {
                      msgBox.value = "Account suspended for administrative review.";
                  }
@@ -2016,53 +2153,28 @@ async function updateUserStatus(userId, status) {
             }
         }
 
-        async function submitUserReview(action) {
-            const userId = document.getElementById('review-user-id').value;
-            const role = document.getElementById('review-user-role').value;
-            const newStatus = document.getElementById('review-status-dropdown').value;
-            
-            const data = {
-                first_name: document.getElementById('review-firstname')?.value || '',
-                last_name: document.getElementById('review-lastname')?.value || '',
-                phone: document.getElementById('review-phone')?.value || ''
-            };
-
+        async function executeStatusUpdate(userId, role, newStatus, currentAction, reviewMessage, data) {
             try {
-                // If the dropdown status was changed, we map it back to APPROVE/REJECT for the existing controller logic
-                // or we just send the NEW status.
-                // Let's refine the controller to accept 'UPDATE' action with 'new_status' parameter.
-                
-                let submitAction = action;
-                if (action === 'UPDATE') {
-                   // Determine if it looks like an approval or rejection for the activity log trigger
-                   const currentStatus = document.getElementById('review-user-status').value;
-                   if (newStatus !== currentStatus) {
-                       submitAction = (newStatus === 'ACTIVE') ? 'APPROVE' : (newStatus === 'SUSPENDED' ? 'REJECT' : 'UPDATE');
-                   }
-                }
-
                 const response = await fetch(`${ROOT}/user-admin/reviewUser`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         user_id: userId, 
                         role: role, 
-                        action: submitAction, 
+                        action: currentAction, 
                         data: data,
                         new_status: newStatus,
-                        review_message: document.getElementById('review-message').value
+                        review_message: reviewMessage
                     })
                 });
                 
                 const text = await response.text();
-                // console.log('RAW SERVER RESPONSE:', text); 
-                
                 let result;
                 try {
                     result = JSON.parse(text);
                 } catch (e) {
                     console.error('SERVER SENT MALFORMED DATA:', text);
-                    showToast('error', 'Server error: Malformed data received. Check console.');
+                    showToast('error', 'Server error: Malformed data received.');
                     return;
                 }
 
@@ -2076,8 +2188,45 @@ async function updateUserStatus(userId, status) {
                 }
             } catch (error) {
                 console.error('Error submitting review:', error);
-                showToast('error', 'Update failed: Check your connection or administrative permissions.');
+                showToast('error', 'Update failed: Check your connection.');
             }
+        }
+
+        async function submitUserReview(action) {
+            const userId = document.getElementById('review-user-id').value;
+            const role = document.getElementById('review-user-role').value;
+            const newStatus = document.getElementById('review-status-dropdown').value;
+            const reviewMessage = document.getElementById('review-message').value;
+
+            // Two-stage Inline Suspension Confirmation
+            if (newStatus === 'SUSPENDED') {
+                const notice = document.getElementById('suspension-notice');
+                const btnText = document.getElementById('btn-save-text');
+                const btnIcon = document.getElementById('btn-save-icon');
+
+                if (notice && notice.style.display === 'none') {
+                    notice.style.display = 'flex';
+                    if (btnText) btnText.innerText = 'Yes, Suspend Account';
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-user-slash';
+                    return; // Stop here for first stage
+                }
+            }
+            
+            const data = {
+                first_name: document.getElementById('review-firstname')?.value || '',
+                last_name: document.getElementById('review-lastname')?.value || '',
+                phone: document.getElementById('review-phone')?.value || ''
+            };
+
+            let submitAction = action;
+            if (action === 'UPDATE') {
+                const currentStatus = document.getElementById('review-user-status').value;
+                if (newStatus !== currentStatus) {
+                    submitAction = (newStatus === 'ACTIVE') ? 'APPROVE' : (newStatus === 'SUSPENDED' ? 'REJECT' : 'UPDATE');
+                }
+            }
+
+            await executeStatusUpdate(userId, role, newStatus, submitAction, reviewMessage, data);
         }
 
         async function editUser(userId) {
