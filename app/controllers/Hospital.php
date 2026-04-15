@@ -9,6 +9,15 @@ use App\Models\HospitalModel;
 class Hospital {
     use Controller;
 
+    public function organRequestsLegacy() {
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        // Redirect legacy /hospital/organ_request.view.php to clean URL
+        redirect('hospital/organ-requests');
+    }
+
     public function index(){
         // Session check
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
@@ -168,6 +177,68 @@ class Hospital {
 
         $back = $_SERVER['HTTP_REFERER'] ?? (ROOT . '/hospital/notifications');
         header('Location: ' . $back);
+        exit;
+    }
+
+    public function markNotificationRead()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $id = (int)($_POST['id'] ?? 0);
+
+        header('Content-Type: application/json');
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid id']);
+            exit;
+        }
+
+        $notificationModel = new \App\Models\NotificationModel();
+        $row = $notificationModel->query("SELECT user_id FROM notifications WHERE id = :id LIMIT 1", [':id' => $id]);
+        if (!$row || (int)($row[0]->user_id ?? 0) !== $userId) {
+            echo json_encode(['success' => false, 'message' => 'Not found']);
+            exit;
+        }
+
+        $ok = (bool)$notificationModel->markAsRead($id);
+        echo json_encode(['success' => $ok]);
+        exit;
+    }
+
+    public function deleteNotification()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $userId = (int)$_SESSION['user_id'];
+        $id = (int)($_POST['id'] ?? 0);
+
+        header('Content-Type: application/json');
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid id']);
+            exit;
+        }
+
+        $notificationModel = new \App\Models\NotificationModel();
+        $row = $notificationModel->query("SELECT user_id FROM notifications WHERE id = :id LIMIT 1", [':id' => $id]);
+        if (!$row || (int)($row[0]->user_id ?? 0) !== $userId) {
+            echo json_encode(['success' => false, 'message' => 'Not found']);
+            exit;
+        }
+
+        $ok = (bool)$notificationModel->deleteNotification($id);
+        echo json_encode(['success' => $ok]);
         exit;
     }
 
@@ -815,6 +886,13 @@ class Hospital {
                 break;
         }
 
+        // Prefer returning to the page that submitted the form (donor-style routing).
+        $back = $_SERVER['HTTP_REFERER'] ?? '';
+        if (is_string($back) && $back !== '') {
+            header('Location: ' . $back);
+            exit;
+        }
+
         redirect('hospital');
     }
 
@@ -854,7 +932,8 @@ class Hospital {
             'success_stories' => []
         ];
 
-        $this->view('hospital/organ-requests', $data);
+        // Single canonical Organ Requests view (also used by the alias route)
+        $this->view('hospital/organ_request', $data);
     }
 
     public function eligibility() {
@@ -1097,15 +1176,21 @@ class Hospital {
             if (!empty($donorUser)) {
                 $uid = (int)$donorUser[0]->user_id;
                 try {
+                    // Ensure aftercare_access column exists
                     $hasCol = $hospitalModel->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
-                    if (!empty($hasCol)) {
-                        $hospitalModel->query(
-                            "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
-                            [':uid' => $uid]
-                        );
+                    if (empty($hasCol)) {
+                        // Column doesn't exist, create it
+                        $con = $hospitalModel->connect();
+                        $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
                     }
+                    
+                    // Now update the aftercare_access flag
+                    $hospitalModel->query(
+                        "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
+                        [':uid' => $uid]
+                    );
                 } catch (\Throwable $e) {
-                    // Column may not exist in older schemas; ignore.
+                    // Log error but continue
                 }
 
                 // Also record donor patient details in aftercare_patients
@@ -1596,6 +1681,52 @@ class Hospital {
             }
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
+        exit;
+    }
+
+    /**
+     * Search patient by NIC for recipient patient lookup
+     * POST /hospital/searchPatientByNIC
+     */
+    public function searchPatientByNIC()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
+        try {
+            if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+                echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+                exit;
+            }
+
+            $data = json_decode(file_get_contents('php://input'), true);
+            $nic = trim($data['nic'] ?? '');
+
+            if (empty($nic)) {
+                echo json_encode(['success' => false, 'message' => 'NIC is required']);
+                exit;
+            }
+
+            $hospitalModel = new HospitalModel();
+            
+            // Search in donors table first
+            $patient = $hospitalModel->query(
+                "SELECT id, first_name, last_name, gender, blood_group, CONCAT(first_name, ' ', last_name) as name 
+                 FROM donors WHERE nic_number = :nic LIMIT 1", 
+                [':nic' => $nic]
+            );
+
+            if (!empty($patient)) {
+                echo json_encode([
+                    'success' => true, 
+                    'patient' => (array)$patient[0]
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Patient not found with this NIC']);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error searching patient: ' . $e->getMessage()]);
         }
         exit;
     }

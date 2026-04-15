@@ -257,17 +257,25 @@ function extractRescheduleProposedDate($notes): ?string
                             <?php foreach ($upcoming_appointments as $apt):
                                 $status   = $apt->status ?? 'Pending';
                                 $isPending = ($status === 'Pending');
+                                $isRequested = ($status === 'Requested');
                                 $proposed = extractRescheduleProposedDate($apt->notes ?? '');
-                                $iconBg    = $isPending         ? 'background:#fef3c7;color:#b45309;'
+                                
+                                // Handle both test_date (upcoming_appointments) and appointment_date (aftercare_appointments)
+                                $dateField = $apt->test_date ?? $apt->appointment_date ?? date('Y-m-d');
+                                
+                                // Color scheme: yellow=Pending, green=Approved, blue=Requested, red=other
+                                $iconBg    = $isPending     ? 'background:#fef3c7;color:#b45309;'
+                                           : ($isRequested  ? 'background:#dbeafe;color:#1d4ed8;'
                                            : ($status==='Approved' ? 'background:#dcfce7;color:#16a34a;'
-                                           : 'background:#fee2e2;color:#b91c1c;');
-                                $badgeCls  = $isPending         ? 'badge-yellow'
-                                           : ($status==='Approved' ? 'badge-green' : 'badge-red');
+                                           : 'background:#fee2e2;color:#b91c1c;'));
+                                $badgeCls  = $isPending     ? 'badge-yellow'
+                                           : ($isRequested  ? 'badge-blue'
+                                           : ($status==='Approved' ? 'badge-green' : 'badge-red'));
                                 $aptJson   = json_encode([
                                     'id'       => $apt->id,
-                                    'test_type'=> $apt->test_type ?? 'Medical Investigation',
+                                    'test_type'=> $apt->test_type ?? $apt->appointment_type ?? 'Medical Investigation',
                                     'hospital' => $apt->hospital_registration_no ?? 'N/A',
-                                    'date'     => date('F j, Y', strtotime($apt->test_date)),
+                                    'date'     => date('F j, Y', strtotime($dateField)),
                                     'status'   => $status,
                                     'notes'    => $apt->notes ?? '',
                                 ]);
@@ -280,10 +288,10 @@ function extractRescheduleProposedDate($notes): ?string
                                             <i class="fas fa-stethoscope"></i>
                                         </div>
                                         <div>
-                                            <div class="appt-type"><?= htmlspecialchars($apt->test_type ?? 'Medical Investigation') ?></div>
+                                            <div class="appt-type"><?= htmlspecialchars($apt->test_type ?? $apt->appointment_type ?? 'Medical Investigation') ?></div>
                                             <div class="appt-meta">
                                                 <i class="far fa-calendar-alt"></i>
-                                                <?= date('D, M d Y', strtotime($apt->test_date)) ?>
+                                                <?= date('D, M d Y', strtotime($dateField)) ?>
                                                 <?php if (!empty($proposed)): ?>
                                                     &nbsp;·&nbsp; <span style="color:var(--blue-700); font-weight:700;">
                                                         Requested: <?= date('D, M d Y', strtotime($proposed)) ?>

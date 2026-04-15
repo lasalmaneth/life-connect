@@ -349,6 +349,19 @@ class DonorModel {
         return $this->query($query, [':nic' => $nicNumber]) ?: [];
     }
 
+    public function getRequestedAftercareAppointments($nicNumber)
+    {
+        if (empty($nicNumber)) return [];
+        
+        // Get aftercare appointments with 'Requested' status for the donor
+        $query = "SELECT * FROM aftercare_appointments 
+                  WHERE patient_id = :nic 
+                  AND status = 'Requested'
+                  ORDER BY appointment_date ASC";
+        
+        return $this->query($query, [':nic' => $nicNumber]) ?: [];
+    }
+
     public function getBodyUsageStatus($donorId)
     {
         $query = "SELECT bul.*, ms.school_name 
@@ -422,6 +435,245 @@ class DonorModel {
         ];
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // ORGAN-SPECIFIC RE-DONATION ELIGIBILITY
+    // Reads from the `donation_medical_history` table and applies rules:
+    //   • Kidney       → Permanently blocked (cannot re-donate kidney)
+    //   • Bone Marrow  → Blocked for 6 months
+    //   • Liver Portion→ Blocked for 12 months
+    //   • Doctor-approval combinations are flagged as 'RESTRICTED'
+    // ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the donor's overall donation eligibility status.
+     *
+     * @param int $donorId
+     * @return array {
+     *   'is_in_recovery'   => bool,
+     *   'blocked_organs'   => array,  // organ names that are currently blocked
+     *   'next_eligible'    => string|null, // earliest date any timed block lifts
+     *   'history'          => array,  // all rows from donation_medical_history
+     *   'permanent_blocks' => array,  // organ names permanently blocked (kidney)
+     *   'restricted'       => array,  // organ combos that need doctor approval
+     *   'message'          => string  // human-readable summary
+     * }
+     */
+    public function getDonationEligibility($donorId)
+    {
+        try {
+            // Fetch ALL donation history records for this donor
+            $query = "SELECT * FROM donation_medical_history 
+                      WHERE donor_id = :donor_id 
+                      ORDER BY donation_date DESC";
+            $history = $this->query($query, [':donor_id' => $donorId]) ?: [];
+
+            if (empty($history)) {
+                return [
+                    'is_in_recovery'   => false,
+                    'blocked_organs'   => [],
+                    'next_eligible'    => null,
+                    'history'          => [],
+                    'permanent_blocks' => [],
+                    'restricted'       => [],
+                    'message'          => 'No donation history. Eligible for all donations.'
+                ];
+            }
+
+        $today           = new \DateTime();
+        $blockedOrgans   = [];   // currently time-locked
+        $permanentBlocks = [];   // kidney-type permanent block
+        $restricted      = [];   // doctor-approval combos
+        $nextEligible    = null; // earliest date a timed block lifts
+
+        // ── Organ name normalisers (case-insensitive matching) ────────────
+        $isKidney     = fn($name) => stripos((string)$name, 'kidney')    !== false;
+        $isBoneMarrow = fn($name) => stripos((string)$name, 'bone')      !== false
+                                  || stripos((string)$name, 'marrow')    !== false;
+        $isLiver      = fn($name) => stripos((string)$name, 'liver')     !== false;
+
+        // ── Track which organs have already been donated (for combo rules) ─
+        $donatedOrganNames = array_map(fn($row) => (string)($row->donated_organ ?? ''), $history);
+        $hadKidney         = (bool) array_filter($donatedOrganNames, $isKidney);
+        $hadLiver          = (bool) array_filter($donatedOrganNames, $isLiver);
+        $hadBoneMarrow     = (bool) array_filter($donatedOrganNames, $isBoneMarrow);
+
+        foreach ($history as $row) {
+            $organName   = (string)($row->donated_organ ?? '');
+            $nextDate    = !empty($row->next_eligible_date) ? new \DateTime($row->next_eligible_date) : null;
+            $recoverySt  = strtoupper(trim((string)($row->recovery_status ?? '')));
+
+            // ── KIDNEY → Permanent block on re-donating kidney ───────────
+            if ($isKidney($organName)) {
+                if (!in_array('Kidney', $permanentBlocks)) {
+                    $permanentBlocks[] = 'Kidney';
+                }
+                // Kidney→Liver: Restricted (doctor approval)
+                if (!in_array('Kidney → Liver Portion (requires doctor approval)', $restricted)) {
+                    $restricted[] = 'Kidney → Liver Portion (requires doctor approval)';
+                }
+                // After recovery, bone marrow is allowed — no timed block needed
+                continue;
+            }
+
+            // ── BONE MARROW → 6-month block ──────────────────────────────
+            if ($isBoneMarrow($organName)) {
+                // Use next_eligible_date from DB if set, otherwise calculate
+                $eligibleFrom = $nextDate;
+                if (!$eligibleFrom) {
+                    $eligibleFrom = (new \DateTime((string)($row->donation_date ?? 'now')))
+                                    ->modify('+6 months');
+                }
+
+                if ($today < $eligibleFrom) {
+                    $blockedOrgans[] = [
+                        'organ'           => 'Bone Marrow',
+                        'eligible_on'     => $eligibleFrom->format('Y-m-d'),
+                        'days_remaining'  => (int)$today->diff($eligibleFrom)->days
+                    ];
+                    if (!$nextEligible || $eligibleFrom < new \DateTime($nextEligible)) {
+                        $nextEligible = $eligibleFrom->format('Y-m-d');
+                    }
+                }
+                continue;
+            }
+
+            // ── LIVER PORTION → 12-month block ──────────────────────────
+            if ($isLiver($organName)) {
+                // Liver cannot be re-donated
+                if (!in_array('Liver Portion', $permanentBlocks)) {
+                    $permanentBlocks[] = 'Liver Portion';
+                }
+
+                // Use next_eligible_date from DB if set, otherwise calculate
+                $eligibleFrom = $nextDate;
+                if (!$eligibleFrom) {
+                    $eligibleFrom = (new \DateTime((string)($row->donation_date ?? 'now')))
+                                    ->modify('+12 months');
+                }
+
+                // During that 12-month window: other donations are also limited
+                if ($today < $eligibleFrom) {
+                    $blockedOrgans[] = [
+                        'organ'           => 'All major donations (Liver recovery period)',
+                        'eligible_on'     => $eligibleFrom->format('Y-m-d'),
+                        'days_remaining'  => (int)$today->diff($eligibleFrom)->days
+                    ];
+                    if (!$nextEligible || $eligibleFrom < new \DateTime($nextEligible)) {
+                        $nextEligible = $eligibleFrom->format('Y-m-d');
+                    }
+                }
+
+                // Liver→Kidney: Restricted (doctor approval)
+                if (!in_array('Liver Portion → Kidney (requires doctor approval)', $restricted)) {
+                    $restricted[] = 'Liver Portion → Kidney (requires doctor approval)';
+                }
+                continue;
+            }
+        }
+
+        $isInRecovery = !empty($blockedOrgans) || !empty($permanentBlocks);
+
+        // Build a human-readable summary message
+        $messageParts = [];
+        if (!empty($permanentBlocks)) {
+            $messageParts[] = 'Permanently blocked: ' . implode(', ', $permanentBlocks) . '.';
+        }
+        if (!empty($blockedOrgans)) {
+            foreach ($blockedOrgans as $b) {
+                $messageParts[] = $b['organ'] . ' blocked until ' . $b['eligible_on']
+                                . ' (' . $b['days_remaining'] . ' day(s) remaining).';
+            }
+        }
+        if (!empty($restricted)) {
+            $messageParts[] = 'Restricted (needs doctor approval): '
+                            . implode('; ', $restricted) . '.';
+        }
+        if (empty($messageParts)) {
+            $messageParts[] = 'Eligible for new donations.';
+        }
+
+        return [
+            'is_in_recovery'   => $isInRecovery,
+            'blocked_organs'   => $blockedOrgans,
+            'next_eligible'    => $nextEligible,
+            'history'          => $history,
+            'permanent_blocks' => $permanentBlocks,
+            'restricted'       => $restricted,
+            'message'          => implode(' ', $messageParts)
+        ];
+        } catch (\PDOException $e) {
+            // If donation_medical_history table doesn't exist, return default eligibility
+            return [
+                'is_in_recovery'   => false,
+                'blocked_organs'   => [],
+                'next_eligible'    => null,
+                'history'          => [],
+                'permanent_blocks' => [],
+                'restricted'       => [],
+                'message'          => 'No donation history. Eligible for all donations.'
+            ];
+        }
+    }
+
+    /**
+     * Record a completed donation in donation_medical_history
+     * and automatically calculate + store the next_eligible_date.
+     *
+     * Call this whenever a donation is marked COMPLETED.
+     *
+     * @param int    $donorId
+     * @param int    $pledgeId
+     * @param string $donatedOrgan  e.g. 'Kidney', 'Bone Marrow', 'Liver Portion'
+     * @param string $donationDate  e.g. '2025-01-15'
+     * @param int    $hospitalId
+     * @param string $doctorNotes
+     * @return bool
+     */
+    public function recordDonationHistory($donorId, $pledgeId, $donatedOrgan, $donationDate, $hospitalId = null, $doctorNotes = '')
+    {
+        $donatedOrganLower = strtolower(trim((string)$donatedOrgan));
+
+        // Calculate next_eligible_date based on organ type
+        $nextEligibleDate  = null;
+        $recoveryStatus    = 'IN_RECOVERY';
+
+        if (str_contains($donatedOrganLower, 'kidney')) {
+            // Kidney: permanently blocked — use NULL to mean "never"
+            $nextEligibleDate = null;
+            $recoveryStatus   = 'PERMANENT_BLOCK';
+        } elseif (str_contains($donatedOrganLower, 'bone') || str_contains($donatedOrganLower, 'marrow')) {
+            // Bone Marrow: 6 months
+            $nextEligibleDate = (new \DateTime($donationDate))->modify('+6 months')->format('Y-m-d');
+            $recoveryStatus   = 'IN_RECOVERY';
+        } elseif (str_contains($donatedOrganLower, 'liver')) {
+            // Liver Portion: 12 months
+            $nextEligibleDate = (new \DateTime($donationDate))->modify('+12 months')->format('Y-m-d');
+            $recoveryStatus   = 'IN_RECOVERY';
+        } else {
+            // Unknown organ — default to 6 months recovery
+            $nextEligibleDate = (new \DateTime($donationDate))->modify('+6 months')->format('Y-m-d');
+            $recoveryStatus   = 'IN_RECOVERY';
+        }
+
+        $query = "INSERT INTO donation_medical_history 
+                    (donor_id, pledge_id, donated_organ, donation_date, recovery_status, next_eligible_date, doctor_notes, hospital_id)
+                  VALUES 
+                    (:donor_id, :pledge_id, :donated_organ, :donation_date, :recovery_status, :next_eligible_date, :doctor_notes, :hospital_id)";
+
+        $con = $this->connect();
+        $stmt = $con->prepare($query);
+        return $stmt->execute([
+            ':donor_id'          => $donorId,
+            ':pledge_id'         => $pledgeId,
+            ':donated_organ'     => $donatedOrgan,
+            ':donation_date'     => $donationDate,
+            ':recovery_status'   => $recoveryStatus,
+            ':next_eligible_date'=> $nextEligibleDate,
+            ':doctor_notes'      => $doctorNotes,
+            ':hospital_id'       => $hospitalId
+        ]);
+    }
+
     /**
      * Update active roles for a donor
      */
@@ -433,81 +685,16 @@ class DonorModel {
         else if (in_array('financial', $roles)) $categoryId = 2;
         else if (in_array('non', $roles)) $categoryId = 1;
 
-        $hasActiveRoles = $this->hasColumn('donors', 'active_roles');
-
-        $rolesJson = json_encode(array_values($roles));
-        if ($rolesJson === false) {
-            $rolesJson = '[]';
-        }
-
-        $query = $hasActiveRoles
-            ? "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id"
-            : "UPDATE donors SET category_id = :cat_id WHERE id = :id";
-
+        $rolesJson = json_encode($roles);
+        $query = "UPDATE donors SET active_roles = :roles, category_id = :cat_id WHERE id = :id";
+        
+        // Use direct PDO execution via the trait's connection logic for non-SELECT queries
         $con = $this->connect();
         $stm = $con->prepare($query);
-        $params = [
+        return $stm->execute([
+            ':roles' => $rolesJson,
             ':cat_id' => $categoryId,
-            ':id' => $donorId,
-        ];
-        if ($hasActiveRoles) {
-            $params[':roles'] = $rolesJson;
-        }
-        return $stm->execute($params);
-    }
-
-    public function getActiveRoles($donorId): array
-    {
-        $donorId = (int)$donorId;
-        if ($donorId <= 0) return [];
-
-        if ($this->hasColumn('donors', 'active_roles')) {
-            $res = $this->query("SELECT active_roles FROM donors WHERE id = :id LIMIT 1", [':id' => $donorId]);
-            $raw = !empty($res) ? ($res[0]->active_roles ?? null) : null;
-            if (!is_string($raw) || trim($raw) === '') return [];
-
-            $decoded = json_decode($raw, true);
-            if (!is_array($decoded)) return [];
-
-            $roles = [];
-            foreach ($decoded as $role) {
-                if (!is_string($role)) continue;
-                $role = strtolower(trim($role));
-                if ($role === '') continue;
-                $roles[] = $role;
-            }
-            return array_values(array_unique($roles));
-        }
-
-        // Fallback for older schemas: infer a single role from category_id.
-        $res = $this->query("SELECT category_id FROM donors WHERE id = :id LIMIT 1", [':id' => $donorId]);
-        $cat = !empty($res) ? (int)($res[0]->category_id ?? 0) : 0;
-        if ($cat === 3) return ['organ'];
-        if ($cat === 2) return ['financial'];
-        if ($cat === 1) return ['non'];
-        return [];
-    }
-
-    private function hasColumn(string $table, string $column): bool
-    {
-        static $cache = [];
-        $key = $table . '.' . $column;
-        if (array_key_exists($key, $cache)) {
-            return (bool)$cache[$key];
-        }
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
-            $cache[$key] = false;
-            return false;
-        }
-
-        try {
-            $res = $this->query("SHOW COLUMNS FROM {$table} LIKE '{$column}'");
-            $cache[$key] = !empty($res);
-        } catch (\Throwable $e) {
-            $cache[$key] = false;
-        }
-
-        return (bool)$cache[$key];
+            ':id' => $donorId
+        ]);
     }
 }

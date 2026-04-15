@@ -1070,6 +1070,7 @@ CREATE TABLE `support_requests` (
   `patient_name` varchar(255) NOT NULL,
   `patient_type` varchar(100) NOT NULL,
   `reason` varchar(255) NOT NULL,
+  `amount` decimal(10,2) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `status` enum('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING',
   `submitted_date` date NOT NULL,

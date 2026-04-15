@@ -1008,6 +1008,11 @@ main.screen {
     gap: 0.8rem;
 }
 
+#lab-requested-table .table-row {
+    grid-template-columns: 0.8fr 1.2fr 1.2fr 1fr 1fr 1fr 160px 200px;
+    gap: 0.8rem;
+}
+
 .table-row:last-child {
     border-bottom: none;
 }
@@ -1509,3 +1514,94 @@ hospital-footer p,
     color: white !important;
     background: transparent !important;
 }
+
+/* Extracted from index.view.php */
+/* Donor-style calendar (reused for Hospital Upcoming Appointments) */
+        :root {
+            --cal-green:  var(--success-color);
+            --cal-blue:   var(--primary-color);
+            --cal-yellow: var(--warning-color);
+            --cal-red:    var(--danger-color);
+        }
+
+        .lab-tabs { display:flex; flex-wrap:wrap; gap:.45rem; }
+        .lab-tab {
+            border: 1px solid var(--border-color);
+            background: var(--white-color);
+            color: var(--primary-text-color);
+            border-radius: 999px;
+            padding: .38rem .75rem;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: .15s;
+        }
+        .lab-tab:hover { background: var(--gray-bg-color); }
+        .lab-tab.active { background: var(--primary-color); border-color: var(--primary-color); color: var(--white-color); }
+
+        .lab-tabs.vertical .lab-tab {
+            border-radius: 10px;
+            padding: .75rem 1rem;
+            text-align: left;
+            font-size: .95rem;
+            width: 100%;
+        }
+
+        .cal-wrap { padding: 1.25rem; background: var(--white-color); border: 1px solid var(--border-color); border-radius: 14px; width: 360px; }
+        .cal-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem; }
+        .cal-nav h3 { margin:0; font-size: 1.35rem; font-weight: 800; color: var(--primary-text-color); }
+        .cal-nav-btn {
+            width: 46px; height: 46px; border-radius: 999px;
+            border: 2px solid var(--primary-color);
+            background: var(--white-color);
+            color: var(--primary-color);
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .cal-grid { display:grid; grid-template-columns:repeat(7, 1fr); gap: 8px; text-align:center; }
+        .cal-day-hdr { font-size: .9rem; font-weight: 800; color: var(--secondary-text-color); padding: .45rem 0; }
+        .cal-day { padding: 1rem .25rem; border-radius: 12px; font-weight: 800; font-size: 1.12rem;
+                   cursor: default; position: relative; color: var(--primary-text-color); border: 2.5px solid transparent; }
+        .cal-day.clickable { cursor: pointer; }
+        .cal-day.clickable:hover { filter: brightness(.96); }
+        .cal-day.is-today { border-color: var(--primary-color); }
+        .cal-day.is-selected { outline: 2.5px solid var(--primary-color); outline-offset: 1px; }
+        .cal-day::before { content:''; position:absolute; inset:0; border-radius: 12px; opacity: .18; z-index: 0; }
+        .cal-day span { position: relative; z-index: 1; }
+
+        .cal-day.apt-green { color: var(--cal-green); }
+        .cal-day.apt-green::before { background: var(--cal-green); }
+        .cal-day.apt-blue { color: var(--cal-blue); }
+        .cal-day.apt-blue::before { background: var(--cal-blue); }
+        .cal-day.apt-yellow { color: var(--cal-yellow); }
+        .cal-day.apt-yellow::before { background: var(--cal-yellow); }
+        .cal-day.apt-red { color: var(--cal-red); }
+        .cal-day.apt-red::before { background: var(--cal-red); }
+        .cal-day:not(.apt-green):not(.apt-blue):not(.apt-yellow):not(.apt-red)::before { background: transparent; }
+
+        /* Calendar details (shown after clicking a date) */
+        .cal-details { margin-top: .9rem; }
+        .cal-details__title { font-weight: 900; font-size: .95rem; color: var(--primary-text-color); margin-bottom: .25rem; }
+        .cal-details__hint {
+            font-weight: 700;
+            font-size: .86rem;
+            color: var(--secondary-text-color);
+            padding: .65rem;
+            background: var(--gray-bg-color);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+        }
+        .cal-details-list { display:flex; flex-direction:column; gap: .55rem; }
+        .cal-details-item {
+            display:flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .75rem;
+            padding: .7rem .75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: var(--white-color);
+        }
+        .cal-details-left { min-width: 0; }
+        .cal-details-test { font-weight: 900; font-size: .95rem; color: var(--primary-text-color); white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+        .cal-details-sub { font-weight: 700; font-size: .82rem; color: var(--secondary-text-color); margin-top: .12rem; }

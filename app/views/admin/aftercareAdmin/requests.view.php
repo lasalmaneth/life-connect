@@ -14,7 +14,11 @@
                 </div>
             </div>
             <div class="table-cell">
-                <strong>LKR 0.00</strong> <!-- Amount not in DB table support_requests -->
+                <?php if (isset($request->amount) && $request->amount !== '' && is_numeric($request->amount)): ?>
+                    <strong>LKR <?= number_format((float)$request->amount, 2) ?></strong>
+                <?php else: ?>
+                    <span style="color:#64748b; font-weight:700;">—</span>
+                <?php endif; ?>
             </div>
             <div class="table-cell">
                 <?= date('M d, Y', strtotime($request->submitted_date)) ?>

@@ -211,3 +211,12 @@
             }
         }
     ?>
+
+    <!-- Footer -->
+    <footer
+        style="background: linear-gradient(135deg, #005baa 0%, #003b6e 100%); color: white; text-align: center; padding: 20px; margin-top: 40px; box-shadow: 0 -4px 20px rgba(0, 91, 170, 0.2);">
+        <p style="margin: 0; font-size: 14px;">Copyright © 2026 Ministry of Health - LifeConnect Sri Lanka</p>
+    </footer>
+</body>
+
+</html>

@@ -100,13 +100,23 @@ route('api/custodian/submit-institution',   'Custodian@submitToInstitution');
 route('hospital', 'Hospital@index');
 route('hospital/notifications', 'Hospital@notifications');
 route('hospital/markAllNotificationsRead', 'Hospital@markAllNotificationsRead');
-route('hospital/organ-requests', 'Hospital@organRequests');
-route('hospital/eligibility', 'Hospital@eligibility');
-route('hospital/recipients', 'Hospital@recipients');
-route('hospital/stories', 'Hospital@stories');
+route('hospital/markNotificationRead', 'Hospital@markNotificationRead');
+route('hospital/deleteNotification', 'Hospital@deleteNotification');
+// Hospital dashboard sub-routes (clean URLs, same output as index)
+route('hospital/organ-requests', 'Hospital@index');
+// Legacy alias (avoid .view.php in the URL)
+route('hospital/organ_request.view.php', 'Hospital@organRequestsLegacy');
+// Donor-style route for Upcoming Appointments
+route('hospital/appointments', 'Hospital@index');
+// Clean section routes (render the same dashboard and open the correct section)
+route('hospital/eligibility', 'Hospital@index');
+route('hospital/recipients', 'Hospital@index');
+route('hospital/stories', 'Hospital@index');
+route('hospital/test-results', 'Hospital@index');
 route('hospital/search-recipients', 'Hospital@searchRecipients');
 route('hospital/export-recipients', 'Hospital@exportRecipients');
-route('hospital/lab-reports', 'Hospital@labReports');
+// Backward-compatible path (Upcoming Appointments section)
+route('hospital/lab-reports', 'Hospital@index');
 route('hospital/search-donors', 'Hospital@searchDonors');
 route('hospital/addpatient', 'Hospital@addpatient');
 route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');

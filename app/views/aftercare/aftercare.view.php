@@ -155,6 +155,7 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                                 <tr>
                                     <th>Date Submitted</th>
                                     <th>Reason</th>
+                                    <th>Amount</th>
                                     <th>Description</th>
                                     <th>Status</th>
                                 </tr>
@@ -164,6 +165,13 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                                     <tr>
                                         <td><?= date('M d, Y', strtotime($req->created_at ?? $req->submitted_date ?? 'now')) ?></td>
                                         <td style="font-weight: 500; color: var(--blue-800);"><?= htmlspecialchars($req->reason) ?></td>
+                                        <td style="font-weight: 700; color: var(--blue-800);">
+                                            <?php if (isset($req->amount) && $req->amount !== '' && is_numeric($req->amount)): ?>
+                                                LKR <?= number_format((float)$req->amount, 2) ?>
+                                            <?php else: ?>
+                                                —
+                                            <?php endif; ?>
+                                        </td>
                                         <td style="color: var(--g500);">
                                             <?php
                                                 $fullDesc = (string)($req->description ?? '');
@@ -196,7 +204,7 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                                     </tr>
                                 <?php endforeach; else: ?>
                                     <tr>
-                                        <td colspan="4" style="text-align: center; padding: 2rem; color: var(--g500); font-style: italic;">
+                                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--g500); font-style: italic;">
                                             No support requests submitted yet.
                                         </td>
                                     </tr>
@@ -204,6 +212,79 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <!-- Medical History Section -->
+            <div class="d-widget">
+                <div class="d-widget__header">
+                    <div class="d-widget__title" style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fa-solid fa-hospital" style="color: var(--secondary-color); font-size: 1.1rem;"></i>
+                        Medical History & Test Results
+                    </div>
+                </div>
+                <div class="d-widget__body">
+                    <?php if (!empty($medical_history)): ?>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; padding: 1rem 0;">
+                            <?php foreach ($medical_history as $record): ?>
+                                <div style="background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%); border-left: 4px solid var(--secondary-color); padding: 1.25rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 91, 170, 0.1); transition: all 0.3s ease;">
+                                    <!-- Test Header -->
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                                        <div>
+                                            <div style="font-weight: 800; color: #0f172a; font-size: 0.95rem; line-height: 1.4;">
+                                                <?= htmlspecialchars($record->test_name ?? 'Test') ?>
+                                            </div>
+                                            <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
+                                                <?= htmlspecialchars((string)date('M d, Y', strtotime($record->test_date ?? 'now'))) ?>
+                                            </div>
+                                        </div>
+                                        <div style="background: var(--blue-50); color: var(--secondary-color); padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.7rem; font-weight: 700; white-space: nowrap;">
+                                            Completed
+                                        </div>
+                                    </div>
+
+                                    <!-- Test Result -->
+                                    <div style="background: white; padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid var(--secondary-color);">
+                                        <div style="font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">Result</div>
+                                        <div style="font-weight: 700; color: #0f172a; word-break: break-word;">
+                                            <?= htmlspecialchars($record->result_value ?? 'N/A') ?>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hospital Information -->
+                                    <?php if (!empty($record->hospital_name)): ?>
+                                        <div style="background: rgba(255, 255, 255, 0.5); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                                            <div style="font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.35rem;">
+                                                <i class="fa-solid fa-hospital" style="margin-right: 0.4rem; color: var(--secondary-color);"></i>Provided by
+                                            </div>
+                                            <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">
+                                                <?= htmlspecialchars($record->hospital_name) ?>
+                                            </div>
+                                            <?php if (!empty($record->hospital_address)): ?>
+                                                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.3rem;">
+                                                    <?= htmlspecialchars($record->hospital_address) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- View Document Link -->
+                                    <?php if (!empty($record->document_path)): ?>
+                                        <a href="<?= htmlspecialchars((string)($record->document_path)) ?>" target="_blank" style="display: inline-flex; align-items: center; gap: 0.4rem; color: var(--secondary-color); text-decoration: none; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 0.75rem; background: rgba(0, 91, 170, 0.08); border-radius: 6px; transition: all 0.3s ease; cursor: pointer;">
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                            View Report
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div style="text-align: center; padding: 3rem 1rem; color: var(--g500);">
+                            <i class="fa-solid fa-file-medical" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
+                            <p style="margin: 0; font-style: italic;">No medical history records available yet.</p>
+                            <p style="margin: 0.5rem 0 0; font-size: 0.9rem; color: #94a3b8;">Your test results and medical records will appear here automatically from linked hospitals.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -292,6 +373,11 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                     <option value="Counselling Support">Counselling Support</option>
                     <option value="Other">Other</option>
                 </select>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Amount (LKR) <span style="color: #6b7280; font-weight: 500;">(optional)</span></label>
+                <input id="supportAmountInput" type="number" min="0" step="0.01" placeholder="e.g., 2500" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" />
             </div>
 
             <div style="margin-bottom: 1.5rem;">
@@ -554,6 +640,7 @@ function submitSupportRequest(e) {
     const reason = document.getElementById('supportReasonInput').value;
     const description = document.getElementById('supportDescriptionInput').value;
     const hospitalRegistrationNo = document.getElementById('supportHospitalInput').value;
+    const amount = (document.getElementById('supportAmountInput')?.value || '').trim();
 
     if (!reason || !hospitalRegistrationNo) {
         alert('Please fill in all required fields');
@@ -564,6 +651,7 @@ function submitSupportRequest(e) {
     formData.append('reason', reason);
     formData.append('description', description);
     formData.append('hospital_registration_no', hospitalRegistrationNo);
+    if (amount !== '') formData.append('amount', amount);
 
     fetch('<?php echo ROOT; ?>/aftercare/submit-support-request', {
         method: 'POST',

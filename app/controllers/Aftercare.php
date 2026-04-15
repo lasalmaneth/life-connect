@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\AftercarePatientModel;
 use App\Models\HospitalModel;
+use App\Models\MedicalHistoryModel;
 
 class Aftercare
 {
@@ -47,6 +48,8 @@ class Aftercare
 
         $appointments = [];
         $supportRequests = [];
+        $medicalHistory = [];
+        
         if ($nic !== '') {
             $appointments = $patientModel->query(
                 "SELECT * FROM aftercare_appointments WHERE patient_id = :nic ORDER BY appointment_date ASC",
@@ -57,6 +60,10 @@ class Aftercare
                 "SELECT * FROM support_requests WHERE patient_nic = :nic ORDER BY created_at DESC",
                 [':nic' => $nic]
             ) ?: [];
+
+            // Fetch medical history from hospital records
+            $medicalHistoryModel = new MedicalHistoryModel();
+            $medicalHistory = $medicalHistoryModel->getMedicalHistoryByNIC($nic) ?: [];
         }
 
         $hospitalModel = new HospitalModel();
@@ -67,6 +74,7 @@ class Aftercare
             'patient' => $patient,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
+            'medical_history' => $medicalHistory,
             'hospitals' => $approvedHospitals,
         ]);
     }
@@ -166,6 +174,18 @@ class Aftercare
 
         try {
             $patientModel = new AftercarePatientModel();
+
+            // Ensure optional support_requests.amount column exists
+            try {
+                $res = $patientModel->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
+                if (empty($res)) {
+                    $con = $patientModel->connect();
+                    $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                }
+            } catch (\Throwable $e) {
+                // Ignore migration errors; insert will fail if truly required
+            }
+
             $rows = $patientModel->query(
                 "SELECT id, nic, full_name, patient_type, status
                  FROM aftercare_patients
@@ -180,6 +200,8 @@ class Aftercare
             }
 
             $reason = (string)($_POST['reason'] ?? '');
+            $amountRaw = trim((string)($_POST['amount'] ?? ''));
+            $amountRawNorm = str_replace([',', ' '], '', $amountRaw);
             $desc = (string)($_POST['description'] ?? '');
             $hospitalRegistrationNo = (string)($_POST['hospital_registration_no'] ?? '');
             $today = date('Y-m-d');
@@ -189,14 +211,29 @@ class Aftercare
                 exit;
             }
 
+            $amount = null;
+            if ($amountRawNorm !== '') {
+                if (!is_numeric($amountRawNorm)) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amountNum = (float)$amountRawNorm;
+                if ($amountNum < 0) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amount = number_format($amountNum, 2, '.', '');
+            }
+
             $patientModel->query(
-                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, description, status, submitted_date)
-                 VALUES (:nic, :name, 'RECIPIENT', :hosp, :reason, :desc, 'PENDING', :today)",
+                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, amount, description, status, submitted_date)
+                 VALUES (:nic, :name, 'RECIPIENT', :hosp, :reason, :amount, :desc, 'PENDING', :today)",
                 [
                     ':nic' => (string)$patient->nic,
                     ':name' => (string)$patient->full_name,
                     ':hosp' => $hospitalRegistrationNo,
                     ':reason' => $reason,
+                    ':amount' => $amount,
                     ':desc' => $desc,
                     ':today' => $today,
                 ]

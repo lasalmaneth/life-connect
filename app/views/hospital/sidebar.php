@@ -37,7 +37,7 @@
             <span class="icon"><i class="fas fa-star"></i></span>
             <span>Success Stories</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/lab-reports" class="menu-item <?php echo ($current_page === 'lab-reports') ? 'active' : ''; ?>">
+        <a href="<?php echo ROOT; ?>/hospital/appointments" class="menu-item <?php echo ($current_page === 'lab-reports') ? 'active' : ''; ?>">
             <span class="icon"><i class="fas fa-calendar-alt"></i></span>
             <span>Upcoming Appointments</span>
         </a>
