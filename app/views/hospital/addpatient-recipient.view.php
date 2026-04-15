@@ -7,6 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?php echo ROOT; ?>/assets/css/hospital/hospital.css">
     <title>Add Recipient - Aftercare Portal</title>
     <style>
@@ -66,12 +67,19 @@
                 <div class="menu-section">
                     <div class="menu-section-title">NAVIGATION</div>
                     <a href="<?php echo ROOT; ?>/hospital" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-chart-line"></i></span>
                         <span>Main Dashboard</span>
                     </a>
                     <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
                         <span>Aftercare Accounts</span>
+                    </a>
+                </div>
+
+                <div class="menu-section menu-section--footer">
+                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration:none; display:block;">
+                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
+                        <span>Logout</span>
                     </a>
                 </div>
             </div>
@@ -182,13 +190,15 @@
             const text = `Aftercare Portal Credentials\nRegistration Number: ${reg}\nPassword: ${pass}`;
 
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text).then(() => alert('Credentials copied.')).catch(() => alert('Copy failed.'));
+                navigator.clipboard.writeText(text)
+                    .then(() => showServerMessage('Credentials copied.', 'success'))
+                    .catch(() => showServerMessage('Copy failed.', 'error'));
             } else {
                 const ta = document.createElement('textarea');
                 ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
-                try { document.execCommand('copy'); alert('Credentials copied.'); } catch(e) { alert('Copy failed.'); }
+                try { document.execCommand('copy'); showServerMessage('Credentials copied.', 'success'); } catch(e) { showServerMessage('Copy failed.', 'error'); }
                 ta.remove();
             }
         }
@@ -226,5 +236,9 @@
             w.print();
         }
     </script>
+
+    <?php
+        require_once __DIR__ . '/footer.php';
+    ?>
 </body>
 </html>

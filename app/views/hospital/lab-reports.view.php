@@ -323,7 +323,7 @@ require_once __DIR__ . '/header.php';
         const notes = document.getElementById('notes').value;
 
         if (!donorId || !testType || !testDate || !status) {
-            alert('Please fill in all required fields');
+            hcAlert('Please fill in all required fields', 'error');
             return;
         }
 
@@ -424,8 +424,9 @@ require_once __DIR__ . '/header.php';
         updateScheduledAppointmentsTable(filtered);
     }
 
-    function deleteScheduledAppointment(appointmentId) {
-        if (!confirm('Are you sure you want to delete this appointment?')) return;
+    async function deleteScheduledAppointment(appointmentId) {
+        const ok = await hcConfirm('Are you sure you want to delete this appointment?', { danger: true });
+        if (!ok) return;
 
         const form = document.createElement('form');
         form.method = 'POST';

@@ -13,6 +13,18 @@ $today     = date('Y-m-d');
 $todayDay  = (int)date('j');
 $curMonth  = (int)date('m');
 $curYear   = (int)date('Y');
+
+function extractRescheduleProposedDate($notes): ?string
+{
+    $notes = (string)($notes ?? '');
+    if ($notes === '') return null;
+
+    if (preg_match_all('/Proposed date:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notes, $m) && !empty($m[1])) {
+        $d = end($m[1]);
+        return $d ?: null;
+    }
+    return null;
+}
 ?>
 
 <style>
@@ -186,6 +198,9 @@ $curYear   = (int)date('Y');
             $isFuture = ($dateKey >= $today);
             $status   = $apt->status ?? 'Pending';
 
+            // If donor requested reschedule, also highlight the proposed date on the calendar.
+            $proposed = extractRescheduleProposedDate($apt->notes ?? '');
+
             if ($status === 'Rejected')                  $cls = 'apt-red';
             elseif ($status === 'Pending' && $isFuture)  $cls = 'apt-yellow';   // upcoming & pending
             elseif ($status === 'Approved' && $isFuture) $cls = 'apt-green';    // upcoming & approved
@@ -205,6 +220,25 @@ $curYear   = (int)date('Y');
                 'status'      => $status,
                 'notes'       => $apt->notes ?? '',
             ];
+
+            // Add a second calendar entry for the proposed date (keeps original schedule intact).
+            if (!empty($proposed) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $proposed)) {
+                // Always highlight the requested new date in red so it stands out.
+                $pCls = 'apt-red';
+                $priority = ['apt-blue'=>1,'apt-green'=>2,'apt-yellow'=>3,'apt-red'=>4];
+                if (!isset($calMap[$proposed]) || $priority[$pCls] > $priority[$calMap[$proposed]['class']]) {
+                    $calMap[$proposed]['class'] = $pCls;
+                }
+                $calMap[$proposed]['entries'][] = [
+                    'id'        => $apt->id,
+                    'test_type' => ($apt->test_type ?? 'Medical Investigation') . ' (Requested new date)',
+                    'hospital'  => $apt->hospital_registration_no ?? 'N/A',
+                    'date'      => date('F j, Y', strtotime($proposed)),
+                    'date_raw'  => $proposed,
+                    'status'    => 'Reschedule Requested',
+                    'notes'     => $apt->notes ?? '',
+                ];
+            }
         }
         ?>
 
@@ -223,16 +257,25 @@ $curYear   = (int)date('Y');
                             <?php foreach ($upcoming_appointments as $apt):
                                 $status   = $apt->status ?? 'Pending';
                                 $isPending = ($status === 'Pending');
-                                $iconBg    = $isPending         ? 'background:#fef3c7;color:#b45309;'
+                                $isRequested = ($status === 'Requested');
+                                $proposed = extractRescheduleProposedDate($apt->notes ?? '');
+                                
+                                // Handle both test_date (upcoming_appointments) and appointment_date (aftercare_appointments)
+                                $dateField = $apt->test_date ?? $apt->appointment_date ?? date('Y-m-d');
+                                
+                                // Color scheme: yellow=Pending, green=Approved, blue=Requested, red=other
+                                $iconBg    = $isPending     ? 'background:#fef3c7;color:#b45309;'
+                                           : ($isRequested  ? 'background:#dbeafe;color:#1d4ed8;'
                                            : ($status==='Approved' ? 'background:#dcfce7;color:#16a34a;'
-                                           : 'background:#fee2e2;color:#b91c1c;');
-                                $badgeCls  = $isPending         ? 'badge-yellow'
-                                           : ($status==='Approved' ? 'badge-green' : 'badge-red');
+                                           : 'background:#fee2e2;color:#b91c1c;'));
+                                $badgeCls  = $isPending     ? 'badge-yellow'
+                                           : ($isRequested  ? 'badge-blue'
+                                           : ($status==='Approved' ? 'badge-green' : 'badge-red'));
                                 $aptJson   = json_encode([
                                     'id'       => $apt->id,
-                                    'test_type'=> $apt->test_type ?? 'Medical Investigation',
+                                    'test_type'=> $apt->test_type ?? $apt->appointment_type ?? 'Medical Investigation',
                                     'hospital' => $apt->hospital_registration_no ?? 'N/A',
-                                    'date'     => date('F j, Y', strtotime($apt->test_date)),
+                                    'date'     => date('F j, Y', strtotime($dateField)),
                                     'status'   => $status,
                                     'notes'    => $apt->notes ?? '',
                                 ]);
@@ -245,10 +288,15 @@ $curYear   = (int)date('Y');
                                             <i class="fas fa-stethoscope"></i>
                                         </div>
                                         <div>
-                                            <div class="appt-type"><?= htmlspecialchars($apt->test_type ?? 'Medical Investigation') ?></div>
+                                            <div class="appt-type"><?= htmlspecialchars($apt->test_type ?? $apt->appointment_type ?? 'Medical Investigation') ?></div>
                                             <div class="appt-meta">
                                                 <i class="far fa-calendar-alt"></i>
-                                                <?= date('D, M d Y', strtotime($apt->test_date)) ?>
+                                                <?= date('D, M d Y', strtotime($dateField)) ?>
+                                                <?php if (!empty($proposed)): ?>
+                                                    &nbsp;·&nbsp; <span style="color:var(--blue-700); font-weight:700;">
+                                                        Requested: <?= date('D, M d Y', strtotime($proposed)) ?>
+                                                    </span>
+                                                <?php endif; ?>
                                                 <?php if (!empty($apt->hospital_registration_no)): ?>
                                                     &nbsp;·&nbsp; <i class="fas fa-hospital-alt"></i>
                                                     <?= htmlspecialchars($apt->hospital_registration_no) ?>
@@ -268,7 +316,7 @@ $curYear   = (int)date('Y');
 
                                 <?php if ($isPending): ?>
                                 <!-- Action buttons row — below, full width, side by side -->
-                                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.65rem; padding-top:.6rem; border-top:1px solid #f1f5f9;">
+                                <div class="apt-actions-row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.65rem; padding-top:.6rem; border-top:1px solid #f1f5f9;">
                                     <button class="btn-approve"
                                             onclick="openApprove(<?= $apt->id ?>, this)"
                                             data-apt='<?= htmlspecialchars($aptJson, ENT_QUOTES) ?>'
@@ -694,6 +742,7 @@ function openDetail(data) {
         'Approved': {cls:'badge-green', icon:'fa-check-circle'},
         'Rejected': {cls:'badge-red',   icon:'fa-times-circle'},
         'Pending':  {cls:'badge-yellow',icon:'fa-clock'},
+        'Reschedule Requested': {cls:'badge-red', icon:'fa-calendar-alt'},
     };
     const bm = badgeMap[data.status] || {cls:'badge-blue', icon:'fa-history'};
 
@@ -780,17 +829,17 @@ function lockCard(id, newStatus) {
         badge.innerHTML = `<i class="fas ${bm.icon}"></i> ${newStatus}`;
     }
 
-    // Remove action buttons, add locked label
-    const rightEl = card.querySelector('.appt-card-right');
-    if (rightEl) {
-        const btnA = document.getElementById('btn-approve-' + id);
-        const btnR = document.getElementById('btn-reject-' + id);
-        if (btnA) btnA.remove();
-        if (btnR) btnR.remove();
-        const lock = document.createElement('span');
-        lock.style = 'font-size:.78rem; color:var(--g400); font-style:italic;';
-        lock.innerHTML = '<i class="fas fa-lock"></i> Locked';
-        rightEl.appendChild(lock);
+    // Remove action buttons row, replace with locked indicator (layout-safe)
+    const actionsRow = card.querySelector('.apt-actions-row');
+    if (actionsRow) {
+        actionsRow.className = 'apt-locked-row';
+        actionsRow.style.display = 'block';
+        actionsRow.style.paddingTop = '.5rem';
+        actionsRow.style.borderTop = '1px solid #f1f5f9';
+        actionsRow.style.fontSize = '.78rem';
+        actionsRow.style.color = 'var(--g400)';
+        actionsRow.style.fontStyle = 'italic';
+        actionsRow.innerHTML = '<i class="fas fa-lock"></i> Action locked — decision already recorded.';
     }
 
     // Reload cal after short delay so colours update

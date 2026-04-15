@@ -1,358 +1,5 @@
-<?php
-// Hospital dashboard view
-// Data passed from controller: $hospital_name, $hospital_registration, $organ_requests, $recipients, $success_stories, $aftercare_appointments, $stats
 
-// Donor-style clean routing for specific sections.
-// Keep EXACT same UI/output by reusing this view and only changing the initially visible section.
-$requestedUrl = trim((string)($_GET['url'] ?? ''), '/');
-$requestedPath = trim((string)parse_url(($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH), '/');
-$requested = $requestedUrl !== '' ? $requestedUrl : $requestedPath;
-
-// Normalize in case the app is served from a base folder (e.g. "life-connect/hospital/..." )
-$hospitalPos = strpos($requested, 'hospital/');
-if ($hospitalPos !== false) {
-    $requested = substr($requested, $hospitalPos);
-}
-
-$initialSection = 'overview';
-if ($requested === 'hospital/appointments' || $requested === 'hospital/lab-reports') {
-    $initialSection = 'lab-reports';
-} elseif ($requested === 'hospital/organ-requests') {
-    $initialSection = 'organ-requests';
-} elseif ($requested === 'hospital/eligibility') {
-    $initialSection = 'eligibility';
-} elseif ($requested === 'hospital/recipients') {
-    $initialSection = 'recipients';
-} elseif ($requested === 'hospital/stories') {
-    $initialSection = 'stories';
-} elseif ($requested === 'hospital/test-results') {
-    $initialSection = 'test-results';
-}
-
-// Base Hospital URL (keep the address bar here)
-$rootPath = rtrim((string)(parse_url(ROOT, PHP_URL_PATH) ?? ''), '/');
-$hospitalBasePath = $rootPath . '/hospital';
-
-// Notifications (donor-style dropdown)
-if (!isset($notifications) || !isset($unread_count)) {
-    $notifications = [];
-    $unread_count = 0;
-
-    if (!empty($_SESSION['user_id'])) {
-        try {
-            $notificationModel = new \App\Models\NotificationModel();
-            $uid = (int)$_SESSION['user_id'];
-            $unread_count = (int)$notificationModel->getUnreadCount($uid);
-            $recent = $notificationModel->getNotificationsForUser($uid, 5);
-            $notifications = json_decode(json_encode($recent), true) ?: [];
-        } catch (\Throwable $e) {
-            $notifications = [];
-            $unread_count = 0;
-        }
-    }
-}
-?>
-
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
-    
-    <title>Hospital Management - LifeConnect</title>
-</head>
-
-<body>
-    <div class="header">
-        <div class="header-content">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <a href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/"
-                    style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
-                    <img src="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/images/logo.png" alt="LifeConnect"
-                        style="height: 40px; width: auto;">
-                    <div>
-                        <strong
-                            style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
-                        <p style="margin:0; font-size:.68rem; color:#6b7280; padding-top:2px;">Hospital Portal</p>
-                    </div>
-                </a>
-            </div>
-            <div class="header-right">
-                <a class="nav-link" href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" title="Home">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Home</span>
-                </a>
-
-                <div class="notification-container">
-                    <button class="notification-bell" id="notificationBell" type="button" title="Notifications">
-                        <i class="fa-solid fa-bell"></i>
-                        <?php if (!empty($unread_count)): ?>
-                            <span class="notification-badge"><?php echo (int)$unread_count; ?></span>
-                        <?php endif; ?>
-                    </button>
-
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <div class="dropdown-header">
-                            <span>Recent Notifications</span>
-                            <a href="<?php echo ROOT; ?>/hospital/notifications?mark_all_read=1">Mark all read</a>
-                        </div>
-                        <div class="dropdown-body">
-                            <?php if (!empty($notifications)): ?>
-                                <?php foreach ($notifications as $n): ?>
-                                    <a href="<?php echo !empty($n['action_url']) ? (ROOT . '/' . ltrim((string)$n['action_url'], '/')) : (ROOT . '/hospital/notifications'); ?>" class="notification-item <?php echo empty($n['is_read']) ? 'unread' : ''; ?>">
-                                        <div class="notification-icon">
-                                            <i class="fa-solid fa-circle-info"></i>
-                                        </div>
-                                        <div class="notification-content">
-                                            <p class="notification-title"><?php echo htmlspecialchars((string)($n['title'] ?? 'Notification')); ?></p>
-                                            <p class="notification-time"><?php echo !empty($n['created_at']) ? date('M d, H:i', strtotime((string)$n['created_at'])) : ''; ?></p>
-                                        </div>
-                                    </a>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <div class="no-notifications">
-                                    <i class="fa-solid fa-bell-slash"></i>
-                                    <p>No new notifications</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="dropdown-footer">
-                            <a href="<?php echo ROOT; ?>/hospital/notifications">View All Notifications</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="user-info" onclick="toggleUserDropdown()">
-                    <div class="user-avatar"><?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?></div>
-                    <div class="user-details">
-                        <div style="font-weight: 600; font-size: 0.9rem;">
-                            <?php echo htmlspecialchars($hospital_details['name']); ?>
-                        </div>
-                        <div style="font-size: 0.8rem; opacity: 0.8;">
-                            <?php echo htmlspecialchars($hospital_details['role']); ?>
-                        </div>
-                        <div style="font-size: 0.7rem; opacity: 0.6;">ID:
-                            <?php echo htmlspecialchars($hospital_details['registration']); ?>
-                        </div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn-logout" onclick="logout()" title="Logout">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16,17 21,12 16,7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- User Details Dropdown -->
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="dropdown-header">
-                            <div class="user-avatar-large">
-                                <?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?>
-                            </div>
-                            <div>
-                                <div class="user-name"><?php echo htmlspecialchars($hospital_details['name']); ?></div>
-                                <div class="user-role"><?php echo htmlspecialchars($hospital_details['role']); ?></div>
-                            </div>
-                        </div>
-                        <div class="dropdown-content">
-                            <div class="detail-item">
-                                <span class="detail-label">Hospital ID:</span>
-                                <span
-                                    class="detail-value"><?php echo htmlspecialchars($hospital_details['registration']); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Email:</span>
-                                <span
-                                    class="detail-value"><?php echo htmlspecialchars($hospital_details['email']); ?></span>
-                            </div>
-                            <?php
-                            $displayAddress = $hospital_details['address'] ?? 'Not specified';
-                            $displayPhone = $hospital_details['phone'] ?? 'Not specified';
-
-                            // If address contains our special [Phone] marker, parse it
-                            if ($displayAddress && strpos($displayAddress, '[Phone]:') !== false) {
-                                $parts = explode(' | [Address]: ', $displayAddress);
-                                $displayPhone = str_replace('[Phone]: ', '', $parts[0]);
-                                $displayAddress = $parts[1] ?? 'Not specified';
-                            }
-                            ?>
-                            <div class="detail-item">
-                                <span class="detail-label">Address:</span>
-                                <span class="detail-value"><?php echo htmlspecialchars($displayAddress); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Phone:</span>
-                                <span class="detail-value"><?php echo htmlspecialchars($displayPhone); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Status:</span>
-                                <span
-                                    class="detail-value status-active"><?php echo htmlspecialchars($hospital_details['status']); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Last Login:</span>
-                                <span
-                                    class="detail-value"><?php echo date('M d, Y H:i', strtotime($hospital_details['last_login'])); ?></span>
-                            </div>
-                        </div>
-                        <div class="dropdown-footer">
-                            <button class="btn btn-secondary btn-small" onclick="editProfile()">Edit Profile</button>
-                            <button class="btn btn-danger btn-small" onclick="logout()">Logout</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="container">
-        <div class="main-content">
-            <div class="sidebar">
-                <div class="sidebar-header">
-                    <h3>Hospital Portal </h3>
-                    <p>Clinical coordination</p>
-                </div>
-
-                <div class="menu-section">
-                    <div class="menu-section-title">SECTION</div>
-                    <div class="menu-item active" onclick="showContent('overview', this)" style="text-align: left;">
-                        <span class="icon"><i class="fas fa-chart-line"></i></span>
-                        <span>Main Dashboard</span>
-                    </div>
-                    <a href="<?php echo ROOT; ?>/hospital/notifications" class="menu-item" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-bell"></i></span>
-                        <span style="flex:1;">Notifications</span>
-                        <?php if (!empty($unread_count ?? 0)): ?>
-                            <span style="display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--danger-color); color:var(--white-color); font-size:.7rem; font-weight:900; margin-left:auto;">
-                                <?php echo (int)($unread_count ?? 0); ?>
-                            </span>
-                        <?php endif; ?>
-                    </a>
-                    <div class="menu-item" onclick="showContent('organ-requests', this)" data-section="organ-requests" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-heart"></i></span>
-                        <span>Organ Requests</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('eligibility', this)" data-section="eligibility" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-check-circle"></i></span>
-                        <span>Update Eligibility</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('recipients', this)" data-section="recipients" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-user"></i></span>
-                        <span>Recipient Patients</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('stories', this)" data-section="stories" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-star"></i></span>
-                        <span>Success Stories</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('lab-reports', this)" data-section="lab-reports" style="text-decoration:none; color: inherit; display: flex; text-align: left; white-space: nowrap;">
-                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
-                        <span>Upcoming Appointments</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('test-results', this)" data-section="test-results" style="text-decoration:none; color: inherit; display: flex; text-align: left; white-space: nowrap;">
-                        <span class="icon"><i class="fas fa-vial"></i></span>
-                        <span>Test Results</span>
-                    </div>
-                    
-                    <div class="menu-section-title" style="margin-top: 1.5rem;">AFTERCARE</div>
-                    <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item" style="text-decoration: none; color: inherit; display: block; text-align: left;">
-                        <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
-                        <span>Add Aftercare Patient</span>
-                    </a>
-                </div>
-
-                <div class="menu-section menu-section--footer">
-                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration: none; display: block; text-align: left;">
-                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="content-area" id="content-area">
-                <?php require __DIR__ . '/overview.view.php'; ?>
-
-                <?php require __DIR__ . '/organ_request.view.php'; ?>
-
-
-                <?php require __DIR__ . '/eligibility.view.php'; ?>
-
-                <?php require __DIR__ . '/recipients.view.php'; ?>
-
-                <?php require __DIR__ . '/lab_reports.view.php'; ?>
-
-                <?php require __DIR__ . '/test_results.view.php'; ?>
-
-                <?php require __DIR__ . '/stories.view.php'; ?>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Modal -->
-    <?php require __DIR__ . '/profile_modal.view.php'; ?>
-
-    <!-- Recipient Modal -->
-    <?php require __DIR__ . '/recipient_modal.view.php'; ?>
-
-    <!-- Story Modal -->
-    <?php require __DIR__ . '/story_modal.view.php'; ?>
-
-    <!-- Organ Request Modals -->
-    <?php require __DIR__ . '/request_modal.view.php'; ?>
-    <?php require __DIR__ . '/request_details_modal.view.php'; ?>
-
-    <!-- Lab Report Modal -->
-    <?php require __DIR__ . '/lab_report_modal.view.php'; ?>
-
-    <!-- Test Result Upload Modal -->
-    <?php require __DIR__ . '/test_result_modal.view.php'; ?>
-
-    <!-- Export Modal -->
-    <?php require __DIR__ . '/export_modal.view.php'; ?>
-
-    <script>
-        const HOSPITAL_BASE_PATH = <?php echo json_encode($hospitalBasePath); ?>;
-
-        function hospitalPathForSection(id) {
-            const map = {
-                'overview': '',
-                'organ-requests': 'organ-requests',
-                'eligibility': 'eligibility',
-                'recipients': 'recipients',
-                'stories': 'stories',
-                'lab-reports': 'appointments',
-                'test-results': 'test-results'
-            };
-            const suffix = Object.prototype.hasOwnProperty.call(map, id) ? map[id] : '';
-            return suffix ? (HOSPITAL_BASE_PATH + '/' + suffix) : HOSPITAL_BASE_PATH;
-        }
-
-        function sectionFromHospitalPath(pathname) {
-            const base = String(HOSPITAL_BASE_PATH || '');
-            const current = String(pathname || '');
-            if (!base || !current.startsWith(base)) return 'overview';
-
-            const rest = current.slice(base.length).replace(/^\/+/, '');
-            if (!rest) return 'overview';
-
-            if (rest === 'organ-requests') return 'organ-requests';
-            if (rest === 'eligibility') return 'eligibility';
-            if (rest === 'recipients') return 'recipients';
-            if (rest === 'stories') return 'stories';
-            if (rest === 'appointments' || rest === 'lab-reports') return 'lab-reports';
-            if (rest === 'test-results') return 'test-results';
-            return 'overview';
-        }
-
-        function showContent(id, element, updateUrl = true) {
+        function showContent(id, element) {
             // Hide all content sections
             document.querySelectorAll('.content-section').forEach(s => {
                 s.style.display = 'none';
@@ -377,18 +24,6 @@ if (!isset($notifications) || !isset($unread_count)) {
                         item.classList.add('active');
                     }
                 });
-
-                // Also support routed menu items (anchors) via data-section
-                const byData = document.querySelector('.menu-item[data-section="' + id + '"]');
-                if (byData) byData.classList.add('active');
-            }
-
-            // Update URL without reloading (clean routes)
-            if (updateUrl && typeof window !== 'undefined' && window.history && window.history.pushState) {
-                const nextPath = hospitalPathForSection(id);
-                if (nextPath && window.location.pathname !== nextPath) {
-                    window.history.pushState({ section: id }, document.title, nextPath);
-                }
             }
 
             // Scroll to top of content area
@@ -399,22 +34,11 @@ if (!isset($notifications) || !isset($unread_count)) {
             else if (id === 'organ-requests') loadOrganRequests();
             else if (id === 'stories') loadStories();
             else if (id === 'lab-reports') loadLabReports();
-            else if (id === 'test-results') loadTestResults();
         }
 
         // Initialize display
         document.addEventListener('DOMContentLoaded', function() {
-            const initial = <?php echo json_encode($initialSection); ?>;
-            const menu = document.querySelector('.menu-item[data-section="' + initial + '"]');
-            // Don't pushState on initial load; keep the requested URL as-is.
-            showContent(initial, menu || undefined, false);
-        });
-
-        // Support browser back/forward buttons
-        window.addEventListener('popstate', function() {
-            const id = sectionFromHospitalPath(window.location.pathname);
-            const menu = document.querySelector('.menu-item[data-section="' + id + '"]');
-            showContent(id, menu || undefined, false);
+            showContent('overview');
         });
 
         // Organ Request Functions
@@ -938,41 +562,19 @@ if (!isset($notifications) || !isset($unread_count)) {
             nameField.value = '';
             genderField.value = '';
 
-            // Simple validation: accept any combination of digits and V/X
+            // Validate NIC format (example: 1999XXXXXXX - 12 digits or similar)
             if (!nicValue) return;
 
-            // Basic check: must contain digits and optionally V/X at the end
-            if (!/^[0-9]{8,12}[Vv]?$/.test(nicValue)) {
-                nicError.textContent = '⚠️ Invalid NIC format. Use 10-12 digits or 8-9 digits + V';
+            if (!/^\d{10,12}$/.test(nicValue) && !/^\d{10,12}[Vv]?$/.test(nicValue)) {
+                nicError.textContent = '⚠️ Invalid NIC format. Expected: 1999XXXXXXX or 1999XXXXXXV';
                 nicError.style.display = 'block';
                 return;
             }
 
-            // Extract gender from NIC
-            // For both old and new formats, the day-of-year is typically at positions 4-6 (0-indexed: 4-7 for 10-digit, 4-7 for 12-digit)
-            let dayOfYear = 0;
-            if (nicValue.length === 10 || nicValue.length === 12) {
-                // 10 or 12 digit format: YYYYDDDXXXX or YYYYDDDXXXXXX
-                dayOfYear = parseInt(nicValue.substring(4, 7), 10);
-            } else if ((nicValue.length === 9 || nicValue.length === 11) && /[Vv]$/.test(nicValue)) {
-                // Old format 8-9 digits + V: YYDDXXXV or YDDXXXV
-                // Day of year is at positions 2-5 (0-indexed)
-                dayOfYear = parseInt(nicValue.substring(2, 5), 10);
-            }
-
-            // Determine gender from day of year
-            let gender = 'Male';
-            if (dayOfYear > 500) {
-                gender = 'Female';
-            }
-            
-            // Set gender field
-            genderField.value = gender;
-
-            // Show loading message for patient lookup
+            // Show loading message
             nicLoading.style.display = 'block';
 
-            // Fetch patient data via AJAX for name
+            // Fetch patient data via AJAX
             fetch('<?= ROOT ?>/hospital/searchPatientByNIC', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -983,20 +585,21 @@ if (!isset($notifications) || !isset($unread_count)) {
                 nicLoading.style.display = 'none';
                 
                 if (data.success && data.patient) {
-                    // Auto-populate name from database
+                    // Auto-populate name and gender
                     nameField.value = data.patient.name || data.patient.first_name + ' ' + data.patient.last_name || '';
+                    genderField.value = data.patient.gender || data.patient.sex || '';
                     nicError.style.display = 'none';
                 } else {
-                    // Don't show error - allow manual name entry
+                    nicError.textContent = data.message || '⚠️ Patient not found with this NIC';
+                    nicError.style.display = 'block';
                     nameField.value = '';
-                    nicError.style.display = 'none';
+                    genderField.value = '';
                 }
             })
             .catch(error => {
                 nicLoading.style.display = 'none';
-                // Don't show error on fetch failure - allow manual entry
-                nameField.value = '';
-                nicError.style.display = 'none';
+                nicError.textContent = '⚠️ Error fetching patient data';
+                nicError.style.display = 'block';
                 console.error('Error:', error);
             });
         }
@@ -1096,21 +699,6 @@ if (!isset($notifications) || !isset($unread_count)) {
                 // Populate form fields
                 document.getElementById('recipient-nic').value = recipient.nic;
                 document.getElementById('recipient-name').value = recipient.name;
-                
-                // Extract and set gender from NIC
-                const nicValue = recipient.nic;
-                let dayOfYear = 0;
-                if (nicValue.length === 10 || nicValue.length === 12) {
-                    dayOfYear = parseInt(nicValue.substring(4, 7), 10);
-                } else if ((nicValue.length === 9 || nicValue.length === 11) && /[Vv]$/.test(nicValue)) {
-                    dayOfYear = parseInt(nicValue.substring(2, 5), 10);
-                }
-                let gender = 'Male';
-                if (dayOfYear > 500) {
-                    gender = 'Female';
-                }
-                document.getElementById('recipient-gender').value = gender;
-                
                 document.getElementById('recipient-organ').value = normalizeOrganValue(recipient.organ_received);
                 document.getElementById('surgery-date').value = recipient.surgery_date;
                 document.getElementById('treatment-notes').value = recipient.treatment_notes;
@@ -1989,8 +1577,6 @@ if (!isset($notifications) || !isset($unread_count)) {
         function loadLabReports() {
             // Use PHP data directly from the initial page load
             const labReports = <?php echo json_encode($lab_reports ?? []); ?>;
-            // Aftercare appointment requests (from Aftercare portal)
-            window.__aftercareAppointments = <?php echo json_encode($aftercare_appointments ?? []); ?>;
             // Store globally so editLabReport can access it
             window.allLabReports = labReports;
             console.log('Lab reports loaded:', window.allLabReports);
@@ -2009,23 +1595,14 @@ if (!isset($notifications) || !isset($unread_count)) {
             applyLabReportsFilters();
         }
 
-        function loadTestResults() {
-            // Use PHP data directly from the initial page load
-            const testResults = <?php echo json_encode($test_results ?? []); ?>;
-            window.allTestResults = testResults;
-            console.log('Test results loaded:', window.allTestResults);
-        }
-
         function setLabAppointmentsView(view) {
-            const v = (view === 'requested') ? 'requested' : (view === 'aftercare_requested') ? 'aftercare_requested' : 'scheduled';
+            const v = (view === 'requested') ? 'requested' : 'scheduled';
             window.labAppointmentsView = v;
 
             const scheduledWrap = document.getElementById('lab-scheduled-wrap');
             const requestedWrap = document.getElementById('lab-requested-wrap');
-            const aftercareWrap = document.getElementById('lab-aftercare-requested-wrap');
             if (scheduledWrap) scheduledWrap.style.display = (v === 'scheduled') ? '' : 'none';
             if (requestedWrap) requestedWrap.style.display = (v === 'requested') ? '' : 'none';
-            if (aftercareWrap) aftercareWrap.style.display = (v === 'aftercare_requested') ? '' : 'none';
 
             const requestedBtn = document.getElementById('lab-requested-tab');
             if (requestedBtn) {
@@ -2033,142 +1610,7 @@ if (!isset($notifications) || !isset($unread_count)) {
                 requestedBtn.classList.toggle('btn-secondary', v !== 'requested');
             }
 
-            const aftercareBtn = document.getElementById('lab-aftercare-requested-tab');
-            if (aftercareBtn) {
-                aftercareBtn.classList.toggle('btn-primary', v === 'aftercare_requested');
-                aftercareBtn.classList.toggle('btn-secondary', v !== 'aftercare_requested');
-            }
-
-            if (v === 'aftercare_requested') {
-                loadAftercareRequestedAppointments();
-                return;
-            }
-
             applyLabReportsFilters();
-        }
-
-        function getAftercareRequestedAppointments() {
-            const all = window.__aftercareAppointments || [];
-            return (all || []).filter(a => String(a && a.status || '').trim().toLowerCase() === 'requested');
-        }
-
-        function loadAftercareRequestedAppointments() {
-            updateAftercareRequestedAppointmentsTable(getAftercareRequestedAppointments());
-        }
-
-        function updateAftercareRequestedAppointmentsTable(requests) {
-            const tableContent = document.getElementById('aftercare-requested-table');
-            if (!tableContent) return;
-
-            const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
-            existingRows.forEach(row => row.remove());
-
-            if (!requests || requests.length === 0) {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = '<div style="text-align: center; padding: 20px; color: #999; grid-column: 1/-1;">No aftercare appointment requests</div>';
-                tableContent.appendChild(row);
-                return;
-            }
-
-            requests.forEach(a => {
-                const id = a && (a.appointment_id ?? a.id);
-                const patientId = String(a && (a.patient_id ?? '') || '').trim();
-                const patientName = String(a && (a.patient_name ?? '') || '').trim();
-                const type = String(a && (a.appointment_type ?? '') || '').trim();
-                const desc = String(a && (a.description ?? '') || '').trim();
-
-                let when = '';
-                const raw = String(a && (a.appointment_date ?? '') || '').trim();
-                if (raw) {
-                    const d = new Date(raw);
-                    when = isNaN(d.getTime()) ? raw : d.toLocaleString('en-GB');
-                }
-
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-                    <div class="table-cell" data-label="Patient NIC">${escapeHtml(patientId)}</div>
-                    <div class="table-cell name" data-label="Patient Name">${escapeHtml(patientName)}</div>
-                    <div class="table-cell" data-label="Appointment Type">${escapeHtml(type)}</div>
-                    <div class="table-cell" data-label="Requested Date">${escapeHtml(when)}</div>
-                    <div class="table-cell" data-label="Description">${escapeHtml(desc)}</div>
-                    <div class="table-cell" data-label="Actions" style="display: flex; flex-direction: row; gap: 0.35rem; align-items: center; flex-wrap: nowrap;">
-                        <button class="btn btn-primary btn-small" onclick="acceptAftercareAppointment(${Number(id)})" style="padding: 4px 8px; font-size: 0.75rem; white-space: nowrap;">Accept</button>
-                        <button class="btn btn-secondary btn-small" onclick="rejectAftercareAppointment(${Number(id)})" style="padding: 4px 8px; font-size: 0.75rem; white-space: nowrap;">Reject</button>
-                    </div>
-                `;
-                tableContent.appendChild(row);
-            });
-        }
-
-        async function acceptAftercareAppointment(appointmentId) {
-            const id = Number(appointmentId);
-            if (!id) return;
-            const ok = await (typeof hcConfirm === 'function'
-                ? hcConfirm('Accept this aftercare appointment request?')
-                : Promise.resolve(window.confirm('Accept this aftercare appointment request?')));
-            if (!ok) return;
-
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'accept_aftercare_appointment';
-            form.appendChild(actionInput);
-
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'appointment_id';
-            idInput.value = String(id);
-            form.appendChild(idInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        async function rejectAftercareAppointment(appointmentId) {
-            const id = Number(appointmentId);
-            if (!id) return;
-
-            const reason = (typeof hcPrompt === 'function')
-                ? await hcPrompt('Reason for rejection (required):', { placeholder: 'Type reason...' })
-                : window.prompt('Reason for rejection (required):');
-            const msg = String(reason || '').trim();
-            if (!msg) return;
-
-            const ok = await (typeof hcConfirm === 'function'
-                ? hcConfirm('Reject this aftercare appointment request?', { danger: true })
-                : Promise.resolve(window.confirm('Reject this aftercare appointment request?')));
-            if (!ok) return;
-
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'reject_aftercare_appointment';
-            form.appendChild(actionInput);
-
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'appointment_id';
-            idInput.value = String(id);
-            form.appendChild(idInput);
-
-            const rInput = document.createElement('input');
-            rInput.type = 'hidden';
-            rInput.name = 'reason';
-            rInput.value = msg;
-            form.appendChild(rInput);
-
-            document.body.appendChild(form);
-            form.submit();
         }
 
         function updateRequestedAppointmentsTable(requestedReports) {
@@ -2223,7 +1665,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             const id = String(reportId ?? '').trim();
             const report = (window.__labRequestedReportsById || {})[id];
             if (!report) {
-                hcAlert('Could not find details for this request.', 'error');
+                if (typeof hcAlert === 'function') hcAlert('Could not find details for this request.', 'error');
                 return;
             }
 
@@ -2244,7 +1686,9 @@ if (!isset($notifications) || !isset($unread_count)) {
                 info.requestedAt ? `Requested At: ${info.requestedAt}` : null,
             ].filter(Boolean).join('\n');
 
-            hcShowDialog({ title: 'Requested Appointment', text: text || 'No details available.', okText: 'Close' });
+            if (typeof hcShowDialog === 'function') {
+                hcShowDialog({ title: 'Requested Appointment', text: text || 'No details available.', okText: 'Close' });
+            }
         }
 
         function initLabReportsFilters(labReports) {
@@ -2290,26 +1734,13 @@ if (!isset($notifications) || !isset($unread_count)) {
             // Hook search (bind once)
             if (searchInput && !searchInput.dataset.bound) {
                 searchInput.addEventListener('input', applyLabReportsFilters);
-                searchInput.addEventListener('focus', function() {
-                    // Show all donors when search input is focused and empty
-                    const q = String(this.value || '').trim();
-                    if (!q) {
-                        const donors = window.labDonors || [];
-                        renderLabDonorOptions(donors);
-                    } else {
-                        applyLabReportsFilters();
-                    }
-                });
                 searchInput.dataset.bound = '1';
             }
         }
 
         function getLabDonorMatches(query) {
             const q = String(query || '').trim().toLowerCase();
-            if (!q || q.length < 1) {
-                // If query is empty, return all donors (for focus/empty state)
-                return window.labDonors || [];
-            }
+            if (!q || q.length < 1) return [];
             const donors = window.labDonors || [];
             return donors.filter(d => {
                 const name = String(d.name || '').toLowerCase();
@@ -2354,12 +1785,6 @@ if (!isset($notifications) || !isset($unread_count)) {
 
             const dateVal = String(state.selectedDate || '').trim();
             const q = searchInput ? String(searchInput.value || '').trim().toLowerCase() : '';
-
-            // Aftercare Requested Appointments view (from Aftercare portal)
-            if ((window.labAppointmentsView || 'scheduled') === 'aftercare_requested') {
-                loadAftercareRequestedAppointments();
-                return;
-            }
 
             // Requested Appointments view (donor reschedule requests)
             if ((window.labAppointmentsView || 'scheduled') === 'requested') {
@@ -3369,7 +2794,8 @@ if (!isset($notifications) || !isset($unread_count)) {
             }
         });
 
-        // (Removed immediate showContent call to avoid overriding routed initial section)
+        // Initialize
+        showContent('overview');
 
         // Load initial data
         document.addEventListener('DOMContentLoaded', function () {
@@ -3498,6 +2924,3 @@ if (!isset($notifications) || !isset($unread_count)) {
             }, 800);
         }
 
-    </script>
-
-    <?php include 'footer.php'; ?>

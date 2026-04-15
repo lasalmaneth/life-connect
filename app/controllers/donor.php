@@ -9,6 +9,24 @@ use App\Models\admin\FinancialDonationModel;
 class Donor {
     use Controller, Database;
 
+    private function ensureSupportRequestsAmountColumn(): void
+    {
+        static $done = false;
+        if ($done) return;
+
+        try {
+            $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
+            if (empty($res)) {
+                $con = $this->connect();
+                $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+            }
+        } catch (\Throwable $e) {
+            // Ignore migration errors; downstream query will surface failure if truly blocking.
+        }
+
+        $done = true;
+    }
+
     private function usersHasAftercareAccessColumn(): bool
     {
         static $cached = null;
@@ -69,6 +87,14 @@ class Donor {
                 [':uid' => (int)$_SESSION['user_id']]
             );
             $donorData['aftercare_access'] = !empty($userRow) ? (int)($userRow[0]->aftercare_access ?? 0) : 0;
+        } else if (!$this->usersHasAftercareAccessColumn()) {
+            // Create the column if it doesn't exist
+            try {
+                $con = $this->connect();
+                $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
+            } catch (\Throwable $e) {
+                // Column might already exist from MySQL perspective
+            }
         }
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
@@ -115,6 +141,11 @@ class Donor {
         // Harmonize data format to associative arrays for view compatibility
         $notifications = json_decode(json_encode($notifications), true) ?: [];
 
+        // ── Organ-specific re-donation eligibility check ─────────────────
+        // Reads from donation_medical_history and applies business rules:
+        // Kidney=permanent block, Bone Marrow=6 months, Liver=12 months
+        $eligibility = $donorModel->getDonationEligibility($donorId);
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -127,7 +158,8 @@ class Donor {
             'stats' => $stats,
             'unreadCount' => $unreadCount,
             'unread_count' => $unreadCount, // Added for dual-naming compatibility
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'eligibility' => $eligibility  // Re-donation eligibility rules
         ];
     }
 
@@ -199,6 +231,7 @@ class Donor {
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
             'withdrawal' => $common['withdrawal'],
+            'eligibility' => $common['eligibility'],  // Re-donation eligibility
             'total_financial' => $totalFinancial,
             'active_page' => 'overview',
             'page_title' => 'Overview',
@@ -379,6 +412,31 @@ class Donor {
             $message = "";
 
             if ($action === 'select_organ' || $action === 'submit_living_pledge') {
+                // ── Eligibility gate: block pledge if donor is in recovery ────
+                $eligibility = $common['eligibility'];
+                if ($eligibility['is_in_recovery']) {
+                    // Build a clear block message
+                    $blockMsg = 'Your donation request was blocked due to recovery rules. ';
+                    if (!empty($eligibility['permanent_blocks'])) {
+                        $blockMsg .= 'Permanently blocked from re-donating: '
+                                   . implode(', ', $eligibility['permanent_blocks']) . '. ';
+                    }
+                    if (!empty($eligibility['blocked_organs'])) {
+                        foreach ($eligibility['blocked_organs'] as $b) {
+                            $blockMsg .= $b['organ'] . ' is blocked until '
+                                       . date('d M Y', strtotime($b['eligible_on']))
+                                       . ' (' . $b['days_remaining'] . ' day(s) remaining). ';
+                        }
+                    }
+                    if (!empty($eligibility['restricted'])) {
+                        $blockMsg .= 'Restricted combinations require doctor approval: '
+                                   . implode('; ', $eligibility['restricted']) . '.';
+                    }
+                    $_SESSION['error_message'] = trim($blockMsg);
+                    redirect('donor/donations');
+                }
+                // ── End eligibility gate ──────────────────────────────────────
+
                 // Support multiple formats: organ_ids[] (checkboxes), organ_id (living modal), or id (legacy)
                 $organIdsInput = $_POST['organ_ids'] ?? $_POST['organ_id'] ?? $_POST['id'] ?? [];
                 $organIdsInput = is_array($organIdsInput) ? array_map('intval', $organIdsInput) : [(int)$organIdsInput];
@@ -897,12 +955,45 @@ class Donor {
         $currentMode = $common['currentMode'];
 
         $appointmentModel = new \App\Models\UpcomingAppointmentModel();
+        $donorModel = new \App\Models\DonorModel();
 
         // All appointments (history + upcoming) for the list/calendar
         $all_appointments  = $appointmentModel->getAppointmentsByDonorId($donorId) ?: [];
 
         // Only future-dated appointments for the "Upcoming" panel
         $upcoming_appointments = $appointmentModel->getUpcomingByDonorId($donorId);
+
+        // Get requested aftercare appointments and add them to upcoming appointments
+        $nicNumber = $donorData->nic_number ?? null;
+        if ($nicNumber) {
+            $requested_aftercare = $donorModel->getRequestedAftercareAppointments($nicNumber) ?: [];
+            
+            // Normalize aftercare appointments to match the structure of upcoming appointments
+            foreach ($requested_aftercare as $apt) {
+                // Normalize ID field for aftercare appointments
+                if (!isset($apt->id) && isset($apt->appointment_id)) {
+                    $apt->id = $apt->appointment_id;
+                }
+                // Convert appointment_date to test_date format for compatibility with view
+                if (!isset($apt->test_date)) {
+                    $apt->test_date = $apt->appointment_date ?? date('Y-m-d');
+                }
+                // Ensure status is set to "Requested"
+                $apt->status = 'Requested';
+                // Add appointment type if not already set
+                if (!isset($apt->test_type) && isset($apt->appointment_type)) {
+                    $apt->test_type = $apt->appointment_type;
+                }
+                $upcoming_appointments[] = $apt;
+            }
+            
+            // Sort by test_date (appointment_date)
+            usort($upcoming_appointments, function($a, $b) {
+                $dateA = strtotime($a->test_date ?? $a->appointment_date ?? '0');
+                $dateB = strtotime($b->test_date ?? $b->appointment_date ?? '0');
+                return $dateA <=> $dateB;
+            });
+        }
 
         $this->view('donor/appointments', [
             'donor_data'            => $donorData,
@@ -1469,6 +1560,17 @@ class Donor {
         $hospitalModel = new \App\Models\HospitalModel();
         $approvedHospitals = $hospitalModel->getAllHospitals() ?: [];
 
+        // Default hospital: last used in a support request, otherwise latest appointment
+        $defaultHospitalRegNo = '';
+        if (!empty($supportRequests)) {
+            $defaultHospitalRegNo = trim((string)($supportRequests[0]->hospital_registration_no ?? ''));
+        }
+        if ($defaultHospitalRegNo === '' && !empty($appointments)) {
+            // appointments are ordered ASC, so the last entry is the latest
+            $last = $appointments[count($appointments) - 1] ?? null;
+            $defaultHospitalRegNo = trim((string)($last->hospital_registration_no ?? ''));
+        }
+
         $this->view('donor/aftercare', [
             'donor_data' => $donorData,
             'donor_full_name' => $donorFullName,
@@ -1478,6 +1580,8 @@ class Donor {
             'current_mode' => $currentMode,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
+            'hospitals' => $approvedHospitals,
+            'default_hospital_registration_no' => $defaultHospitalRegNo,
             'withdrawal' => $common['withdrawal'],
             'active_page' => 'aftercare',
             'page_title' => 'Aftercare Support',
@@ -1496,7 +1600,9 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
 
             $date = $_POST['appointment_date'] ?? '';
@@ -1539,10 +1645,16 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $this->ensureSupportRequestsAmountColumn();
+
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
 
             $reason = $_POST['reason'] ?? '';
+            $amountRaw = trim((string)($_POST['amount'] ?? ''));
+            $amountRawNorm = str_replace([',', ' '], '', $amountRaw);
             $desc = $_POST['description'] ?? '';
             $hospitalRegistrationNo = $_POST['hospital_registration_no'] ?? '';
             $today = date('Y-m-d');
@@ -1552,14 +1664,29 @@ class Donor {
                 exit;
             }
 
+            $amount = null;
+            if ($amountRawNorm !== '') {
+                if (!is_numeric($amountRawNorm)) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amountNum = (float)$amountRawNorm;
+                if ($amountNum < 0) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amount = number_format($amountNum, 2, '.', '');
+            }
+
             $this->query(
-                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, description, status, submitted_date) 
-                 VALUES (:nic, :name, 'DONOR', :host, :reason, :desc, 'PENDING', :today)",
+                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, amount, description, status, submitted_date) 
+                 VALUES (:nic, :name, 'DONOR', :host, :reason, :amount, :desc, 'PENDING', :today)",
                 [
                     ':nic' => $nic,
                     ':name' => $donorFullName,
                     ':host' => $hospitalRegistrationNo,
                     ':reason' => $reason,
+                    ':amount' => $amount,
                     ':desc' => $desc,
                     ':today' => $today
                 ]

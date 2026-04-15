@@ -10,7 +10,9 @@ if (!empty($donor_data['date_of_birth'])) {
         $dob = new DateTime($donor_data['date_of_birth']);
         $today = new DateTime();
         $age = $today->diff($dob)->y;
-    } catch (Exception $e) { $age = 0; }
+    } catch (Exception $e) {
+        $age = 0;
+    }
 }
 
 $donor_id = $donor_data['id'] ?? 0;
@@ -24,7 +26,10 @@ include __DIR__ . '/inc/sidebar.view.php';
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
                 <h2><i class="fas fa-home text-accent"></i> Dashboard Overview</h2>
-                <p>Greetings, <?= htmlspecialchars($donor_data['first_name'] ?? 'Donor') ?>! Here is your life-saving contribution overview.</p>
+                <p>Greetings,
+                    <?= htmlspecialchars($donor_data['first_name'] ?? 'Donor') ?>! Here is your life-saving contribution
+                    overview.
+                </p>
             </div>
 
         </div>
@@ -127,6 +132,46 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 </div>
                                 <?= htmlspecialchars($in_progress_donation['hospital_name'] ?? 'Assigned Hospital') ?>
                             </div>
+                            <style>
+                                @keyframes pulse {
+                                    0% {
+                                        transform: scale(1);
+                                        opacity: 1;
+                                        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+                                    }
+
+                                    70% {
+                                        transform: scale(1.2);
+                                        opacity: 0.4;
+                                        box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+                                    }
+
+                                    100% {
+                                        transform: scale(1);
+                                        opacity: 1;
+                                        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+                                    }
+                                }
+                            </style>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (($stats['total'] ?? 0) > 0): ?>
+                        <div style="margin: 0.5rem 0 1rem; padding: 0 1.5rem;">
+                            <button class="d-btn d-btn--primary d-btn--sm" style="width:100%; border-radius:10px;"
+                                onclick="window.location.href='<?= ROOT ?>/donor/documents'">
+                                <i class="fas fa-id-card"></i> Digital ID Card
+                            </button>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="d-stats-mini-grid" style="grid-template-columns: 1fr;">
+                        <div class="d-stat-mini-card">
+                            <i class="fas fa-hand-holding-heart"></i>
+                            <span>
+                                <?= count($pledged_organs ?? []) ?>
+                            </span>
+                            <label>Total Pledges</label>
                         </div>
                         <style>
                             @keyframes pulse {
@@ -332,122 +377,151 @@ include __DIR__ . '/inc/sidebar.view.php';
 </main>
 
 <?php if ($is_first_login): ?>
-<!-- First Login: Role Selection Overlay -->
-<div id="firstLoginOverlay" class="d-modal active" style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);">
-    <div class="d-modal__body" style="max-width: 900px; padding: 3rem; background: transparent; box-shadow: none; width: 100%;">
-        <div style="text-align: center; margin-bottom: 3rem;">
-            <h1 style="font-size: 2.5rem; color: var(--blue-800); font-weight: 800; margin-bottom: 1rem;">Choose how you want to participate</h1>
-            <p style="font-size: 1.1rem; color: var(--g500);">You can select one or more roles. You can add more roles later anytime.</p>
-        </div>
+    <!-- First Login: Role Selection Overlay -->
+    <div id="firstLoginOverlay" class="d-modal active"
+        style="background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(8px);">
+        <div class="d-modal__body"
+            style="max-width: 900px; padding: 3rem; background: transparent; box-shadow: none; width: 100%;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <h1 style="font-size: 2.5rem; color: var(--blue-800); font-weight: 800; margin-bottom: 1rem;">Choose how you
+                    want to participate</h1>
+                <p style="font-size: 1.1rem; color: var(--g500);">You can select one or more roles. You can add more roles
+                    later anytime.</p>
+            </div>
 
-        <div class="selection-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
-            <!-- Organ Donor Card -->
-            <div class="role-select-card" data-role="organ" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
-                <div class="role-select-card__icon" style="margin-bottom: 1.5rem;"><i class="fas fa-hand-holding-heart"></i></div>
-                <h3 style="margin-bottom: 1rem; color: var(--blue-800);">Organ Donor</h3>
-                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Donate organs or tissues in life</li>
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Pledge body for medical research</li>
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: var(--blue-500); margin-right: 8px;"></i> Manage legal representatives</li>
-                </ul>
-                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
-            </div>
- 
-            <!-- Financial Donor Card -->
-            <div class="role-select-card" data-role="financial" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
-                <div class="role-select-card__icon" style="background: #dcfce7; color: #10b981; margin-bottom: 1.5rem;"><i class="fas fa-hand-holding-dollar"></i></div>
-                <h3 style="margin-bottom: 1rem; color: #166534;">Financial Donor</h3>
-                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Support patient medical costs</li>
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Fund transplant infrastructure</li>
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle" style="color: #10b981; margin-right: 8px;"></i> Track your donation impact</li>
-                </ul>
-                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
-            </div>
- 
-            <!-- Non-Donor Card -->
-            <div class="role-select-card" data-role="non" onclick="toggleRoleCard(this)" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px dashed var(--g300);">
-                <div class="role-select-card__icon" style="background: var(--g100); color: var(--g500); margin-bottom: 1.5rem;"><i class="fas fa-user-slash"></i></div>
-                <h3 style="margin-bottom: 1rem; color: var(--g700);">Non-Donor</h3>
-                <div style="background: #fff1f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <p style="font-size: 0.8rem; color: #be123c; font-weight: 600; line-height: 1.4; margin: 0;">
-                        I do not wish to be a donor. I opt out of all organ and tissue recovery efforts, even after death.
-                    </p>
+            <div class="selection-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+                <!-- Organ Donor Card -->
+                <div class="role-select-card" data-role="organ" onclick="toggleRoleCard(this)"
+                    style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <div class="role-select-card__icon" style="margin-bottom: 1.5rem;"><i
+                            class="fas fa-hand-holding-heart"></i></div>
+                    <h3 style="margin-bottom: 1rem; color: var(--blue-800);">Organ Donor</h3>
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: var(--blue-500); margin-right: 8px;"></i> Donate organs or tissues in life
+                        </li>
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: var(--blue-500); margin-right: 8px;"></i> Pledge body for medical research
+                        </li>
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: var(--blue-500); margin-right: 8px;"></i> Manage legal representatives</li>
+                    </ul>
+                    <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
                 </div>
-                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-times-circle" style="color: var(--g400); margin-right: 8px;"></i> No personal donation impact</li>
-                    <li style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle" style="color: var(--g400); margin-right: 8px;"></i> Support through awareness only</li>
-                </ul>
-                <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
-            </div>
-        </div>
 
-        <div style="text-align: center;">
-            <button class="d-btn d-btn--primary" id="continueToDashboardBtn" style="padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 91, 170, 0.2);" onclick="saveInitialRoles()">
-                Continue to Dashboard <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
-            </button>
+                <!-- Financial Donor Card -->
+                <div class="role-select-card" data-role="financial" onclick="toggleRoleCard(this)"
+                    style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    <div class="role-select-card__icon" style="background: #dcfce7; color: #10b981; margin-bottom: 1.5rem;">
+                        <i class="fas fa-hand-holding-dollar"></i></div>
+                    <h3 style="margin-bottom: 1rem; color: #166534;">Financial Donor</h3>
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: #10b981; margin-right: 8px;"></i> Support patient medical costs</li>
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: #10b981; margin-right: 8px;"></i> Fund transplant infrastructure</li>
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-check-circle"
+                                style="color: #10b981; margin-right: 8px;"></i> Track your donation impact</li>
+                    </ul>
+                    <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
+                </div>
+
+                <!-- Non-Donor Card -->
+                <div class="role-select-card" data-role="non" onclick="toggleRoleCard(this)"
+                    style="padding: 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; border: 1px dashed var(--g300);">
+                    <div class="role-select-card__icon"
+                        style="background: var(--g100); color: var(--g500); margin-bottom: 1.5rem;"><i
+                            class="fas fa-user-slash"></i></div>
+                    <h3 style="margin-bottom: 1rem; color: var(--g700);">Non-Donor</h3>
+                    <div
+                        style="background: #fff1f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <p style="font-size: 0.8rem; color: #be123c; font-weight: 600; line-height: 1.4; margin: 0;">
+                            I do not wish to be a donor. I opt out of all organ and tissue recovery efforts, even after
+                            death.
+                        </p>
+                    </div>
+                    <ul
+                        style="list-style: none; padding: 0; margin: 0; font-size: 0.85rem; color: var(--g600); line-height: 1.6; text-align: left;">
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-times-circle"
+                                style="color: var(--g400); margin-right: 8px;"></i> No personal donation impact</li>
+                        <li style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle"
+                                style="color: var(--g400); margin-right: 8px;"></i> Support through awareness only</li>
+                    </ul>
+                    <div class="role-select-card__check"><i class="fas fa-check-circle"></i></div>
+                </div>
+            </div>
+
+            <div style="text-align: center;">
+                <button class="d-btn d-btn--primary" id="continueToDashboardBtn"
+                    style="padding: 1.25rem 3rem; font-size: 1.1rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 91, 170, 0.2);"
+                    onclick="saveInitialRoles()">
+                    Continue to Dashboard <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-function toggleRoleCard(card) {
-    const role = card.dataset.role;
-    const isSelected = card.classList.contains('selected');
-    
-    if (!isSelected) {
-        if (role === 'non') {
-            // If selecting Non-Donor, deselect Organ Donor ONLY
-            document.querySelectorAll('.role-select-card.selected[data-role="organ"]').forEach(c => {
-                c.classList.remove('selected');
-            });
-        } else if (role === 'organ') {
-            // If selecting Organ Donor, deselect Non-Donor if it was selected
-            const nonCard = document.querySelector('.role-select-card.selected[data-role="non"]');
-            if (nonCard) nonCard.classList.remove('selected');
+    <script>
+        function toggleRoleCard(card) {
+            const role = card.dataset.role;
+            const isSelected = card.classList.contains('selected');
+
+            if (!isSelected) {
+                if (role === 'non') {
+                    // If selecting Non-Donor, deselect Organ Donor ONLY
+                    document.querySelectorAll('.role-select-card.selected[data-role="organ"]').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                } else if (role === 'organ') {
+                    // If selecting Organ Donor, deselect Non-Donor if it was selected
+                    const nonCard = document.querySelector('.role-select-card.selected[data-role="non"]');
+                    if (nonCard) nonCard.classList.remove('selected');
+                }
+            }
+
+            card.classList.toggle('selected');
         }
-    }
-    
-    card.classList.toggle('selected');
-}
 
-async function saveInitialRoles() {
-    const selected = document.querySelectorAll('.role-select-card.selected');
-    const roles = Array.from(selected).map(c => c.dataset.role);
-    
-    if (roles.length === 0) {
-        alert("Please select at least one role to continue.");
-        return;
-    }
+        async function saveInitialRoles() {
+            const selected = document.querySelectorAll('.role-select-card.selected');
+            const roles = Array.from(selected).map(c => c.dataset.role);
 
-    const btn = document.getElementById('continueToDashboardBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up your portal...';
+            if (roles.length === 0) {
+                alert("Please select at least one role to continue.");
+                return;
+            }
 
-    const formData = new FormData();
-    roles.forEach(r => formData.append('roles[]', r));
+            const btn = document.getElementById('continueToDashboardBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Setting up your portal...';
 
-    try {
-        const response = await fetch('<?= ROOT ?>/donor/update-roles', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        if (data.success) {
-            window.location.reload();
-        } else {
-            alert(data.message || "Failed to save roles.");
-            btn.disabled = false;
-            btn.innerText = 'Continue to Dashboard';
+            const formData = new FormData();
+            roles.forEach(r => formData.append('roles[]', r));
+
+            try {
+                const response = await fetch('<?= ROOT ?>/donor/update-roles', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || "Failed to save roles.");
+                    btn.disabled = false;
+                    btn.innerText = 'Continue to Dashboard';
+                }
+            } catch (e) {
+                console.error(e);
+                alert("An error occurred. Please try again.");
+                btn.disabled = false;
+                btn.innerText = 'Continue to Dashboard';
+            }
         }
-    } catch (e) {
-        console.error(e);
-        alert("An error occurred. Please try again.");
-        btn.disabled = false;
-        btn.innerText = 'Continue to Dashboard';
-    }
-}
-</script>
+    </script>
 <?php endif; ?>
 
 <?php include __DIR__ . '/inc/footer.view.php'; ?>
