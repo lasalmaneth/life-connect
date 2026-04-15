@@ -387,7 +387,7 @@
                 <div id="donor-organs" class="content-section" style="display: none;">
                     <div class="content-header">
                         <h2>Donor Organs Management</h2>
-                        <p>View and manage all organs pledged by donors for donation</p>
+                        <p>Monitor and audit all pledged biological contributions, ensuring accurate categorization for medical review.</p>
                     </div>
                         <div style="display: flex; gap: 12px; align-items: center; margin-top: 32px; margin-bottom: 32px; justify-content: space-between; padding: 0 4px;">
                             <div class="search-bar" style="margin-bottom: 0; flex: 1; max-width: 400px;">
@@ -468,9 +468,9 @@
 
                 <!-- Matching Section -->
                 <div id="matching" class="content-section" style="display: none;">
-                    <div class="content-header" style="padding: 1.5rem 2rem;">
+                    <div class="content-header">
                         <h2>Donor-Recipient Matching</h2>
-                        <p>Manage organ matching between donors and recipients</p>
+                        <p>Analyze medical compatibility and oversee the coordination of organ transfers between donors and hospitals.</p>
                     </div>
                     <div class="content-body">
                         <div style="display: flex; gap: 12px; align-items: center; margin-top: 16px; margin-bottom: 24px; justify-content: space-between; padding: 0 4px;">
@@ -498,9 +498,9 @@
 
                 <!-- Hospital Requests Section -->
                 <div id="hospital-requests" class="content-section" style="display: none;">
-                    <div class="content-header" style="padding: 1.5rem 2rem;">
+                    <div class="content-header">
                         <h2>Hospital Organ Requests</h2>
-                        <p>View and manage organ requests submitted by hospitals</p>
+                        <p>Evaluate and prioritize medical demands from various healthcare facilities to facilitate timely organ delivery.</p>
                     </div>
                     <div class="content-body">
                         <div style="display: flex; gap: 12px; align-items: center; margin-top: 16px; margin-bottom: 24px; justify-content: space-between; padding: 0 4px;">
@@ -706,6 +706,7 @@
 <div id="tributes" class="content-section" style="display: none;">
     <div class="content-header">
         <h2>Success Stories Management</h2>
+        <p>Review and showcase inspiring donor-recipient journeys to celebrate the gift of life and promote community awareness.</p>
     </div>
     <div class="content-body">
         <!-- Search Bar + Status Filter -->

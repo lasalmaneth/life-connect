@@ -147,96 +147,74 @@ class AdminModel {
 
     public function getActivityLogs($limit = 3) {
         $activities = [];
-        
-        // 1. Fetch Latest Registrations (User activity)
+
+        // 1. Latest Registrations from users table
         $registrations = $this->query("SELECT 'USER' as category, username as title, role as detail, status, created_at as date 
                                      FROM users 
                                      ORDER BY created_at DESC LIMIT 5");
-        
+
         if ($registrations) {
             foreach ($registrations as $reg) {
                 $status = strtoupper($reg->status);
                 $icon = ($status === 'ACTIVE') ? 'circle-check' : 'circle-plus';
-                
+
                 $activities[] = [
-                    'type' => $icon,
+                    'type'     => $icon,
                     'category' => 'success',
-                    'title' => 'New User Registered',
-                    'detail' => $reg->title . ' joined as ' . strtolower($reg->detail),
-                    'status' => $status,
-                    'date' => $reg->date
+                    'title'    => 'New User Registered',
+                    'detail'   => $reg->title . ' joined as ' . strtolower($reg->detail),
+                    'status'   => $status,
+                    'date'     => $reg->date
                 ];
             }
         }
 
-        // 2. Fetch Latest Notifications (Admin activity)
-        $logs = $this->query("SELECT 'ADMIN' as category, n.type, u.username as recipient, n.title, n.created_at as date 
-                             FROM notifications n 
-                             JOIN users u ON n.user_id = u.id 
-                             ORDER BY n.created_at DESC LIMIT 5");
-        
+        // 2. Latest Admin Actions from the dedicated audit log table
+        $logs = $this->query(
+            "SELECT a.action, a.old_value, a.new_value, a.notes, a.created_at as date,
+                    u.username as admin_name, t.username as target_name
+             FROM admin_audit_logs a
+             LEFT JOIN users u ON a.admin_id = u.id
+             LEFT JOIN users t ON a.target_user_id = t.id
+             ORDER BY a.created_at DESC LIMIT 5"
+        );
+
         if ($logs) {
             foreach ($logs as $log) {
+                $newVal  = strtoupper($log->new_value ?? '');
+                $icon     = 'circle-info';
                 $category = 'info';
-                $icon = 'bell';
-                $title = $log->title;
-                $detail = 'Sent to ' . $log->recipient;
+                $detail   = 'Administrative Review: Profile record updated';
 
-                if (str_contains($title, '[ADMIN_ACTION]')) {
-                    $title = str_replace('[ADMIN_ACTION] ', '', $title);
-                    
-                    // Default Info
-                    $icon = 'circle-info';
-                    $category = 'info';
-                    $detail = 'Administrative Review: Profile record updated';
-
-                    if (stripos($title, 'ACTIVE') !== false || stripos($title, 'Approved') !== false || stripos($title, 'Activated') !== false) {
-                        $category = 'success';
-                        $icon = 'circle-check';
-                        $detail = 'Administrative Audit: Account status promoted to ACTIVE';
-                    } elseif (stripos($title, 'Rejected') !== false || stripos($title, 'Denied') !== false) {
-                        $category = 'error';
-                        $icon = 'circle-xmark';
-                        $detail = 'Administrative Audit: Account registration REJECTED';
-                    } elseif (stripos($title, 'Suspended') !== false) {
-                        $category = 'error';
-                        $icon = 'circle-xmark';
-                        $detail = 'Administrative Audit: Account access SUSPENDED';
-                    } elseif (stripos($title, 'PENDING') !== false) {
-                        $category = 'info';
-                        $icon = 'circle-info';
-                        $detail = 'Administrative Review: Account returned to PENDING';
-                    }
-                } elseif (stripos($title, 'Approved') !== false || stripos($title, 'ACTIVE') !== false) {
+                if ($newVal === 'ACTIVE') {
                     $category = 'success';
-                    $icon = 'circle-check';
-                } elseif (stripos($title, 'Rejected') !== false || stripos($title, 'Denied') !== false) {
+                    $icon     = 'circle-check';
+                    $detail   = 'Administrative Audit: Account status promoted to ACTIVE';
+                } elseif (in_array($newVal, ['SUSPENDED', 'REJECTED'])) {
                     $category = 'error';
-                    $icon = 'circle-xmark';
-                } elseif (stripos($title, 'Suspended') !== false) {
-                    $category = 'error';
-                    $icon = 'circle-xmark';
-                } else {
+                    $icon     = 'circle-xmark';
+                    $detail   = 'Administrative Audit: Account access SUSPENDED';
+                } elseif ($newVal === 'PENDING') {
                     $category = 'info';
-                    $icon = 'circle-info';
+                    $icon     = 'circle-info';
+                    $detail   = 'Administrative Review: Account returned to PENDING';
                 }
 
                 $activities[] = [
-                    'type' => $icon,
+                    'type'     => $icon,
                     'category' => $category,
-                    'title' => $title,
-                    'detail' => $detail,
-                    'date' => $log->date
+                    'title'    => ucwords(strtolower(str_replace('_', ' ', $log->action))),
+                    'detail'   => $detail,
+                    'date'     => $log->date
                 ];
             }
         }
 
-        // Sort by date DESC
+        // Sort by date DESC and slice
         usort($activities, function($a, $b) {
             return strtotime($b['date']) - strtotime($a['date']);
         });
 
-        // Slice to limit
         return array_slice($activities, 0, $limit);
     }
 
@@ -267,21 +245,84 @@ class AdminModel {
     }
 
     public function updateUserStatus($userId, $status, $message = null) {
-        $query = "UPDATE users SET status = :status, review_message = :message WHERE id = :id";
-        return $this->query($query, ['status' => $status, 'id' => $userId, 'message' => $message]);
+        // 1. Update the main users table
+        $this->query(
+            "UPDATE users SET status = :status, review_message = :message WHERE id = :id",
+            ['status' => $status, 'id' => $userId, 'message' => $message]
+        );
+
+        // 2. Sync verification_status in role-specific profile tables
+        //    Map users.status → profile table verification_status value
+        $profileStatus = match(strtoupper($status)) {
+            'ACTIVE'    => 'APPROVED',
+            'SUSPENDED' => 'SUSPENDED',
+            'PENDING'   => 'PENDING',
+            default     => null
+        };
+
+        if ($profileStatus !== null) {
+            // Donors table
+            $this->query(
+                "UPDATE donors SET verification_status = :vs WHERE user_id = :uid",
+                ['vs' => $profileStatus, 'uid' => $userId]
+            );
+            // Hospitals table
+            $this->query(
+                "UPDATE hospitals SET verification_status = :vs WHERE user_id = :uid",
+                ['vs' => $profileStatus, 'uid' => $userId]
+            );
+            // Medical schools table
+            $this->query(
+                "UPDATE medical_schools SET verification_status = :vs WHERE user_id = :uid",
+                ['vs' => $profileStatus, 'uid' => $userId]
+            );
+        }
+
+        return true;
     }
 
 
 
 
 
-    public function sendNotification($userId, $title, $message, $type = 'GENERAL') {
-        $query = "INSERT INTO notifications (user_id, title, message, type) VALUES (:user_id, :title, :message, :type)";
-        return $this->query($query, ['user_id' => $userId, 'title' => $title, 'message' => $message, 'type' => $type]);
+    public function sendNotification($userId, $title, $message, $type = 'GENERAL', $senderId = null) {
+        // user_id  = RECIPIENT (who receives the message)
+        // sender_id = who sent it (admin user_id, NULL = system-generated)
+        $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) VALUES (:user_id, :sender_id, :title, :message, :type)";
+        return $this->query($query, [
+            'user_id'   => $userId,
+            'sender_id' => $senderId,
+            'title'     => $title,
+            'message'   => $message,
+            'type'      => $type
+        ]);
+    }
+
+    public function logAdminAction($adminId, $targetUserId, $action, $oldValue = null, $newValue = null, $notes = null) {
+        // Permanent audit record — never shown to end users
+        $query = "INSERT INTO admin_audit_logs (admin_id, target_user_id, action, old_value, new_value, notes) 
+                  VALUES (:admin_id, :target_user_id, :action, :old_value, :new_value, :notes)";
+        return $this->query($query, [
+            'admin_id'       => $adminId,
+            'target_user_id' => $targetUserId,
+            'action'         => $action,
+            'old_value'      => $oldValue,
+            'new_value'      => $newValue,
+            'notes'          => $notes
+        ]);
     }
 
     public function getNotifications($limit = 50) {
-        return $this->query("SELECT n.*, u.username as recipient FROM notifications n JOIN users u ON n.user_id = u.id ORDER BY n.created_at DESC LIMIT $limit");
+        return $this->query(
+            "SELECT n.*, 
+                    u.username as recipient,
+                    s.username as sender_name
+             FROM notifications n 
+             JOIN users u ON n.user_id = u.id 
+             LEFT JOIN users s ON n.sender_id = s.id
+             ORDER BY n.created_at DESC 
+             LIMIT $limit"
+        );
     }
 
     public function getUserById($id) {
@@ -306,7 +347,7 @@ class AdminModel {
             $hosp = $this->query("SELECT *, name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
             if (!empty($hosp)) $details = (array) $hosp[0];
         } elseif ($role === 'MEDICAL_SCHOOL') {
-            $med = $this->query("SELECT name as first_name, '' as last_name, ugc_number as nic FROM medical_schools WHERE user_id = :id", ['id' => $id]);
+            $med = $this->query("SELECT school_name, university_affiliation, ugc_accreditation_number, address, district, contact_person_name, contact_person_phone FROM medical_schools WHERE user_id = :id", ['id' => $id]);
             if (!empty($med)) $details = (array) $med[0];
         } elseif ($role === 'PATIENT') {
             try {
@@ -320,9 +361,9 @@ class AdminModel {
             if (!empty($admin)) $details = (array) $admin[0];
         }
 
-        $user->first_name = $details['first_name'] ?? '';
+        $user->first_name = $details['first_name'] ?? $details['school_name'] ?? '';
         $user->last_name = $details['last_name'] ?? '';
-        $user->nic = $details['nic'] ?? $details['nic_number'] ?? '';
+        $user->nic = $details['nic'] ?? $details['nic_number'] ?? $details['ugc_accreditation_number'] ?? '';
         $user->gender = $details['gender'] ?? '';
         $user->dob = $details['dob'] ?? $details['date_of_birth'] ?? '';
         $user->active_roles = $details['active_roles'] ?? $details['active_role'] ?? '[]';
@@ -331,6 +372,13 @@ class AdminModel {
         $user->ds_division = $details['ds_division'] ?? $details['divisional_secretariat'] ?? '';
         $user->gn_division = $details['gn_division'] ?? $details['grama_niladhari_division'] ?? '';
         
+        // Medical School Specific Fields
+        $user->school_name = $details['school_name'] ?? '';
+        $user->univ_affiliation = $details['university_affiliation'] ?? '';
+        $user->ugc_number = $details['ugc_accreditation_number'] ?? '';
+        $user->contact_person = $details['contact_person_name'] ?? '';
+        $user->contact_phone = $details['contact_person_phone'] ?? '';
+
         // Hospital Specific Fields
         $user->transplant_id = $details['transplant_id'] ?? '';
         $user->facility_type = $details['facility_type'] ?? '';

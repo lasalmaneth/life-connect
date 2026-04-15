@@ -16,11 +16,11 @@ class LivingConsentModel {
     {
         $query = "INSERT INTO living_donor_consents (
             donor_pledge_id, height, weight, previous_surgeries, smoking_alcohol_status,
-            blood_compatibility, tissue_typing, medical_clearance_status,
+            is_recipient_known, blood_compatibility, tissue_typing, medical_clearance_status,
             emergency_contact_name, emergency_relationship, emergency_phone
         ) VALUES (
             :donor_pledge_id, :height, :weight, :previous_surgeries, :smoking_alcohol_status,
-            :blood_compatibility, :tissue_typing, :medical_clearance_status,
+            :is_recipient_known, :blood_compatibility, :tissue_typing, :medical_clearance_status,
             :emergency_contact_name, :emergency_relationship, :emergency_phone
         )";
 
@@ -30,6 +30,7 @@ class LivingConsentModel {
             ':weight'                 => $data['weight'] ?? null,
             ':previous_surgeries'      => $data['previous_surgeries'] ?? null,
             ':smoking_alcohol_status'  => $data['smoking_alcohol_status'] ?? null,
+            ':is_recipient_known'     => $data['is_recipient_known'] ?? 'No',
             ':blood_compatibility'    => $data['blood_compatibility'] ?? null,
             ':tissue_typing'          => $data['tissue_typing'] ?? null,
             ':medical_clearance_status' => $data['medical_clearance_status'] ?? 'Pending',
@@ -59,6 +60,7 @@ class LivingConsentModel {
             weight = :weight,
             previous_surgeries = :previous_surgeries,
             smoking_alcohol_status = :smoking_alcohol_status,
+            is_recipient_known = :is_recipient_known,
             blood_compatibility = :blood_compatibility,
             tissue_typing = :tissue_typing,
             medical_clearance_status = :medical_clearance_status,
@@ -73,9 +75,6 @@ class LivingConsentModel {
             ':previous_surgeries'      => $data['previous_surgeries'] ?? null,
             ':smoking_alcohol_status'  => $data['smoking_alcohol_status'] ?? null,
             ':is_recipient_known'     => $data['is_recipient_known'] ?? 'No',
-            ':recipient_name'         => $data['recipient_name'] ?? null,
-            ':recipient_relationship' => $data['recipient_relationship'] ?? null,
-            ':recipient_hospital'     => $data['recipient_hospital'] ?? null,
             ':blood_compatibility'    => $data['blood_compatibility'] ?? null,
             ':tissue_typing'          => $data['tissue_typing'] ?? null,
             ':medical_clearance_status' => $data['medical_clearance_status'] ?? 'Pending',

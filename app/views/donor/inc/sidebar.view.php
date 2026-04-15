@@ -60,11 +60,11 @@
     <!-- Financial Donation Specific -->
     <div class="d-menu-section section-financial">
       <div class="d-menu-section__title">Financial Donations</div>
-      <a class="d-menu-item <?= ($active_page ?? '') === 'financial-history' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/financial-history">
-        <span class="d-menu-item__icon"><i class="fas fa-history"></i></span> Donation History
-      </a>
       <a class="d-menu-item <?= ($active_page ?? '') === 'financial-donate' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/financial-donate">
         <span class="d-menu-item__icon"><i class="fas fa-hand-holding-dollar"></i></span> Make a Donation
+      </a>
+      <a class="d-menu-item <?= ($active_page ?? '') === 'financial-history' ? 'active' : '' ?>" href="<?= ROOT ?>/donor/financial-history">
+        <span class="d-menu-item__icon"><i class="fas fa-history"></i></span> Donation History
       </a>
     </div>
     

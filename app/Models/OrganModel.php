@@ -78,5 +78,15 @@ class OrganModel {
                   ORDER BY dp.pledge_date DESC";
         return $this->query($query, [':donor_id' => $donorId]);
     }
+
+    public function getCompletedPledges($donorId)
+    {
+        $query = "SELECT dp.*, o.name as organ_name 
+                  FROM donor_pledges dp 
+                  JOIN organs o ON dp.organ_id = o.id 
+                  WHERE dp.donor_id = :donor_id AND dp.status = 'COMPLETED'
+                  ORDER BY dp.pledge_date DESC";
+        return $this->query($query, [':donor_id' => $donorId]);
+    }
 }
 

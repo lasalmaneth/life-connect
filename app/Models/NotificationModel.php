@@ -4,7 +4,8 @@ namespace App\Models;
 
 use App\Core\Database;
 
-class NotificationModel {
+class NotificationModel
+{
     use Database;
 
     protected $table = 'notifications';
@@ -13,7 +14,7 @@ class NotificationModel {
     {
         static $cache = [];
         if (array_key_exists($column, $cache)) {
-            return (bool)$cache[$column];
+            return (bool) $cache[$column];
         }
 
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
@@ -28,7 +29,7 @@ class NotificationModel {
             $cache[$column] = false;
         }
 
-        return (bool)$cache[$column];
+        return (bool) $cache[$column];
     }
 
     /**
@@ -36,7 +37,7 @@ class NotificationModel {
      */
     public function getNotificationsForUser($userId, $limit = null)
     {
-        $limitStr = $limit ? " LIMIT " . (int)$limit : "";
+        $limitStr = $limit ? " LIMIT " . (int) $limit : "";
         $hasSenderId = $this->hasColumn('sender_id');
         $hasSenderType = $this->hasColumn('sender_type');
         $hasActionUrl = $this->hasColumn('action_url');
@@ -69,7 +70,7 @@ class NotificationModel {
                       ORDER BY n.created_at DESC
                       $limitStr";
         }
-        
+
         return $this->query($query, [':user_id' => $userId]);
     }
 
@@ -81,7 +82,7 @@ class NotificationModel {
         $query = "SELECT COUNT(*) as count FROM notifications 
                   WHERE user_id = :user_id AND is_read = 0";
         $result = $this->query($query, [':user_id' => $userId]);
-        return $result ? (int)$result[0]->count : 0;
+        return $result ? (int) $result[0]->count : 0;
     }
 
     /**
@@ -144,20 +145,23 @@ class NotificationModel {
         }
 
         $query = "INSERT INTO notifications (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ")";
-        
+
         $params = [
-            ':user_id'     => $data['user_id'],
-            ':type'        => $data['type'] ?? 'GENERAL',
-            ':title'       => $data['title'],
-            ':message'     => $data['message'],
-            ':sender_id'   => $data['sender_id'] ?? null,
+            ':user_id' => $data['user_id'],
+            ':type' => $data['type'] ?? 'GENERAL',
+            ':title' => $data['title'],
+            ':message' => $data['message'],
+            ':sender_id' => $data['sender_id'] ?? null,
             ':sender_type' => $data['sender_type'] ?? 'ADMIN',
-            ':action_url'  => $data['action_url'] ?? $data['link'] ?? null
+            ':action_url' => $data['action_url'] ?? $data['link'] ?? null
         ];
 
-        if (!$hasSenderId) unset($params[':sender_id']);
-        if (!$hasSenderType) unset($params[':sender_type']);
-        if (!$hasActionUrl) unset($params[':action_url']);
+        if (!$hasSenderId)
+            unset($params[':sender_id']);
+        if (!$hasSenderType)
+            unset($params[':sender_type']);
+        if (!$hasActionUrl)
+            unset($params[':action_url']);
 
         return $this->insert($query, $params);
     }

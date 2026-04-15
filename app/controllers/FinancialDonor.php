@@ -4,7 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\FinancialDonorModel;
-use App\Models\FinancialDonationModel;
+use App\Models\admin\FinancialDonationModel;
 
 class FinancialDonor
 {
