@@ -154,6 +154,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 }
                             </style>
                         </div>
+                    </div>
                     <?php endif; ?>
 
                     <?php if (($stats['total'] ?? 0) > 0): ?>
