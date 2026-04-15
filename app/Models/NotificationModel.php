@@ -15,9 +15,11 @@ class NotificationModel {
     public function getNotificationsForUser($userId, $limit = null)
     {
         $limitStr = $limit ? " LIMIT " . (int)$limit : "";
-        $query = "SELECT n.*, h.name as hospital_name 
+        $query = "SELECT n.*, 
+                         s.username as sender_name,
+                         s.role as sender_role
                   FROM notifications n
-                  LEFT JOIN hospitals h ON n.sender_id = h.id 
+                  LEFT JOIN users s ON n.sender_id = s.id 
                   WHERE n.user_id = :user_id 
                   ORDER BY n.created_at DESC 
                   $limitStr";

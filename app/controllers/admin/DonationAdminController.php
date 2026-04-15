@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\Core\Database;
@@ -73,7 +73,7 @@ class DonationAdminController {
             $query = "SELECT dp.id, dp.donor_id, dp.organ_id, dp.status, dp.pledge_date as pledged_date, 
                              d.first_name, d.last_name, o.name as organ_name, d.blood_group as blood_type
                       FROM donor_pledges dp 
-                      JOIN donors d ON dp.donor_id = d.id 
+                       JOIN donors d ON dp.donor_id = d.id 
                       JOIN organs o ON dp.organ_id = o.id 
                       ORDER BY dp.pledge_date DESC";
             

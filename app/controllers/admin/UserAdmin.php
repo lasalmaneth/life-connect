@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Controllers;
+namespace App\Controllers\admin;
 
 use App\Core\Controller;
 use App\Core\Database;
@@ -174,14 +174,34 @@ class UserAdmin {
 
             $adminModel = new AdminModel();
             
-            // Get user info for logging
+            // Get user info
             $user = $adminModel->getUserById($userId);
+            $oldStatus = $user ? strtoupper($user->status) : 'UNKNOWN';
             $message = $input['review_message'] ?? null;
             $adminModel->updateUserStatus($userId, $status, $message);
 
-            // Log activity via notification
-            $userName = is_object($user) ? ($user->username ?? 'User') : 'User';
-            $adminModel->sendNotification($userId, "[ADMIN_ACTION] Status changed for " . $userName . " to " . strtoupper($status), "Your account status has been updated to " . strtoupper($status), 'SYSTEM');
+            // ALWAYS log to admin audit trail (admin action record)
+            $adminId = $_SESSION['user_id'] ?? null;
+            $adminModel->logAdminAction(
+                $adminId,
+                $userId,
+                'STATUS_CHANGE',
+                $oldStatus,
+                strtoupper($status),
+                $message
+            );
+
+            // ONLY notify the user if they can actually log in and read it
+            $newStatusUpper = strtoupper($status);
+            if ($newStatusUpper === 'ACTIVE') {
+                $notifTitle = $newStatusUpper === 'ACTIVE' && $oldStatus === 'SUSPENDED'
+                    ? 'Account Reactivated'
+                    : 'Account Approved';
+                $notifMsg = $newStatusUpper === 'ACTIVE' && $oldStatus === 'SUSPENDED'
+                    ? 'Your account has been reactivated. You can now log in.'
+                    : 'Your account has been approved. Welcome to LifeConnect!';
+                $adminModel->sendNotification($userId, $notifTitle, $notifMsg, 'SYSTEM', $adminId);
+            }
 
             ob_clean();
             echo json_encode(['success' => true, 'message' => 'User status updated']);
@@ -189,10 +209,6 @@ class UserAdmin {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
-
-
-
 
     public function getNotifications() {
         header('Content-Type: application/json');
@@ -209,10 +225,12 @@ class UserAdmin {
         header('Content-Type: application/json');
         try {
             $input = json_decode(file_get_contents('php://input'), true);
-            $userId = $input['user_id'] ?? null;
-            $title = $input['title'] ?? null;
-            $message = $input['message'] ?? null;
-            $type = $input['type'] ?? 'GENERAL';
+            $userId  = $input['user_id']  ?? null;
+            $title   = $input['title']    ?? null;
+            $message = $input['message']  ?? null;
+            $type    = $input['type']     ?? 'GENERAL';
+            // The admin who composed this message
+            $senderId = $_SESSION['user_id'] ?? null;
 
             if (!$userId || !$title || !$message) {
                 echo json_encode(['success' => false, 'message' => 'Missing parameters']);
@@ -220,7 +238,7 @@ class UserAdmin {
             }
 
             $adminModel = new AdminModel();
-            $adminModel->sendNotification($userId, $title, $message, $type);
+            $adminModel->sendNotification($userId, $title, $message, $type, $senderId);
 
             echo json_encode(['success' => true, 'message' => 'Notification sent']);
         } catch (Exception $e) {
@@ -351,20 +369,39 @@ class UserAdmin {
             }
 
             if ($newStatus !== 'UNCHANGED') {
-                // Ensure the status matches the DB enum case (all caps)
                 $newStatus = strtoupper($newStatus);
-                
-                $updateResult = $adminModel->updateUserStatus($userId, $newStatus, $reviewMessage);
-                
-                // Get user info for logging and notifications
+
+                // Get user's current status before updating
                 $user = $adminModel->getUserById($userId);
+                $oldStatus = $user ? strtoupper($user->status) : 'UNKNOWN';
+
+                $adminModel->updateUserStatus($userId, $newStatus, $reviewMessage);
+
+                // ALWAYS write to audit log
+                $adminId = $_SESSION['user_id'] ?? null;
+                $adminModel->logAdminAction(
+                    $adminId,
+                    $userId,
+                    'ACCOUNT_REVIEW',
+                    $oldStatus,
+                    $newStatus,
+                    $reviewMessage
+                );
+
+                // ONLY notify the user when status = ACTIVE (they can now log in and read it)
+                if ($newStatus === 'ACTIVE') {
+                    $notifTitle = ($oldStatus === 'SUSPENDED')
+                        ? 'Account Reactivated'
+                        : 'Account Approved — Welcome to LifeConnect';
+                    $notifMsg = ($oldStatus === 'SUSPENDED')
+                        ? 'Your account has been reactivated following an administrative review. You can now log in.'
+                        : ($reviewMessage ?: 'Your account has been approved. Welcome aboard!');
+                    $adminModel->sendNotification($userId, $notifTitle, $notifMsg, 'SYSTEM', $adminId);
+                }
+
                 if ($user) {
-                    $userName = $user->username ?? 'User';
-                    $adminModel->sendNotification($userId, "[ADMIN_ACTION] Status changed for " . $userName . " to " . $newStatus, "Your account review is complete. Status: " . $newStatus, 'SYSTEM');
-                    
                     echo json_encode(['success' => true, 'message' => "User account set to $newStatus and details saved."]);
                 } else {
-                    // This happens if the user_id didn't exist in the users table
                     echo json_encode(['success' => false, 'message' => "Update failed: User ID $userId not found in database."]);
                 }
             } else {
@@ -376,4 +413,3 @@ class UserAdmin {
     }
 
 }
-

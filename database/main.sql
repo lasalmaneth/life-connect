@@ -881,13 +881,35 @@ CREATE TABLE `next_of_kin` (
 
 CREATE TABLE `notifications` (
   `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL COMMENT 'RECIPIENT — the user who receives the message',
+  `sender_id` int(11) DEFAULT NULL COMMENT 'SENDER — the admin user_id who sent it, NULL = system',
   `type` varchar(50) DEFAULT 'GENERAL',
   `title` varchar(255) NOT NULL,
   `message` text NOT NULL,
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_audit_logs`
+--
+
+CREATE TABLE `admin_audit_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) DEFAULT NULL COMMENT 'The admin who performed the action',
+  `target_user_id` int(11) DEFAULT NULL COMMENT 'The user who was affected',
+  `action` varchar(100) NOT NULL COMMENT 'e.g. STATUS_CHANGE, ACCOUNT_REVIEW',
+  `old_value` varchar(255) DEFAULT NULL,
+  `new_value` varchar(255) DEFAULT NULL,
+  `notes` text DEFAULT NULL COMMENT 'Review message or reason',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_admin` (`admin_id`),
+  KEY `idx_audit_target` (`target_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- --------------------------------------------------------
 
@@ -1071,10 +1093,29 @@ CREATE TABLE `support_requests` (
   `patient_type` varchar(100) NOT NULL,
   `reason` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `status` enum('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING',
+  `amount` decimal(10,2) DEFAULT 0.00,
+  `status` enum('PENDING','VERIFIED','APPROVED','REJECTED') DEFAULT 'PENDING',
   `submitted_date` date NOT NULL,
   `reviewed_date` date DEFAULT NULL,
   `reviewed_by` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `support_vouchers`
+--
+
+CREATE TABLE `support_vouchers` (
+  `id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `patient_nic` varchar(20) NOT NULL,
+  `voucher_code` varchar(50) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `issued_date` date NOT NULL,
+  `expiry_date` date NOT NULL,
+  `status` enum('ACTIVE','USED','EXPIRED') DEFAULT 'ACTIVE',
   `created_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -1547,6 +1588,14 @@ ALTER TABLE `support_requests`
   ADD KEY `patient_nic` (`patient_nic`);
 
 --
+-- Indexes for table `support_vouchers`
+--
+ALTER TABLE `support_vouchers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `voucher_code` (`voucher_code`),
+  ADD KEY `request_id` (`request_id`);
+
+--
 -- Indexes for table `sworn_statements`
 --
 ALTER TABLE `sworn_statements`
@@ -1841,6 +1890,12 @@ ALTER TABLE `support_requests`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `support_vouchers`
+--
+ALTER TABLE `support_vouchers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `sworn_statements`
 --
 ALTER TABLE `sworn_statements`
@@ -1900,6 +1955,12 @@ ALTER TABLE `body_donation_consents`
 ALTER TABLE `body_usage_logs`
   ADD CONSTRAINT `fk_usage_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_usage_school` FOREIGN KEY (`medical_school_id`) REFERENCES `medical_schools` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `support_vouchers`
+--
+ALTER TABLE `support_vouchers`
+  ADD CONSTRAINT `fk_voucher_request` FOREIGN KEY (`request_id`) REFERENCES `support_requests` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
