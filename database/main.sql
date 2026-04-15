@@ -1988,13 +1988,20 @@ ALTER TABLE `body_donation_consents`
 ALTER TABLE `body_usage_logs`
   ADD CONSTRAINT `fk_usage_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_usage_school` FOREIGN KEY (`medical_school_id`) REFERENCES `medical_schools` (`id`) ON DELETE CASCADE;
-
+--
+-- Constraints for table `donation_medical_history`
+--
+ALTER TABLE `donation_medical_history`
+  ADD CONSTRAINT `fk_dmh_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_dmh_pledge` FOREIGN KEY (`pledge_id`) REFERENCES `donor_pledges` (`id`) ON DELETE CASCADE;
 --
 -- Constraints for table `support_vouchers`
 --
 ALTER TABLE `support_vouchers`
   ADD CONSTRAINT `fk_voucher_request` FOREIGN KEY (`request_id`) REFERENCES `support_requests` (`id`) ON DELETE CASCADE;
 COMMIT;
+
+
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
