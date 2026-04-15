@@ -1,6 +1,24 @@
 <?php
-require_once 'app/Core/Database.php';
-class DBCheck { use \App\Core\Database; }
-$db = new DBCheck();
-$res = $db->query("SELECT COUNT(*) as count FROM aftercare_patients");
-echo "Count: " . ($res[0]->count ?? 'Error');
+require_once __DIR__ . '/../app/core/config.php';
+require_once __DIR__ . '/../app/core/Database.php';
+
+class Debug {
+    use App\Core\Database;
+    public function check() {
+        try {
+            $res = $this->query("SHOW TABLES LIKE 'support_vouchers'");
+            if ($res) {
+                echo "TABLE_EXISTS\n";
+                $cols = $this->query("DESCRIBE support_vouchers");
+                print_r($cols);
+            } else {
+                echo "TABLE_MISSING\n";
+            }
+        } catch (Exception $e) {
+            echo "ERROR: " . $e->getMessage() . "\n";
+        }
+    }
+}
+$d = new Debug();
+$d->check();
+?>

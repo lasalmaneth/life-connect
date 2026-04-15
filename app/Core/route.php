@@ -219,13 +219,16 @@ route('tributes-admin/bulkDeleteTributes', 'admin\TributesAdminController@bulkDe
 // Aftercare Admin
 route('aftercare-admin', 'admin\AftercareAdminController@index');
 route('aftercare-admin/handle-action', 'admin\AftercareAdminController@handleAction');
+route('aftercare-admin/updateSupportStatus', 'admin\AftercareAdminController@updateSupportStatus');
 route('aftercare-admin/getPatients', 'admin\AftercareAdminController@getPatients');
 route('aftercare-admin/getPatientDetails', 'admin\AftercareAdminController@getPatientDetails');
+route('aftercare-admin/filter-support', 'admin\AftercareAdminController@filterSupportRequests');
 
 
 // Financial Admin
 route('financial-admin', 'admin\FinancialAdminController@index');
 route('financial-admin/getAllDonations', 'admin\FinancialAdminController@getAllDonations');
+route('financial-admin/updateSupportStatus', 'admin\FinancialAdminController@updateSupportStatus');
 route('financial-admin/logout', 'admin\FinancialAdminController@logout');
 route('financial-admin/logo-logout', 'admin\FinancialAdminController@logoLogout');
 

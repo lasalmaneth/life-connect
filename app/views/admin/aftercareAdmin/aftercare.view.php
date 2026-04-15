@@ -65,33 +65,6 @@ $admin_status = 'Active';
             margin-top: 20px;
         }
 
-        /* Premium Modal Overrides */
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2);
-            padding: 0;
-            overflow: hidden;
-            max-width: 700px;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #1e56a0 0%, #003b6e 100%);
-            padding: 1.5rem 2rem;
-            border: none;
-        }
-
-        .modal-header h3 {
-            color: white;
-            font-weight: 700;
-            margin: 0;
-            font-size: 1.25rem;
-        }
-
-        .modal-body {
-            padding: 2rem;
-        }
-
         /* Review Section Styling */
         .review-section {
             background: #f8fafc;
@@ -122,7 +95,7 @@ $admin_status = 'Active';
         }
 
         .review-value {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: #1e293b;
         }
@@ -207,11 +180,8 @@ $admin_status = 'Active';
                         <span class="user-name"><?php echo $admin_full_name; ?></span>
                         <span class="user-role"><?php echo $admin_role_display; ?></span>
                     </div>
-                    <i class="fa-solid fa-chevron-down ms-2 opacity-50"></i>
                 </div>
             </div>
-        </div>
-    </div>
         </div>
     </div>
 
@@ -293,10 +263,7 @@ $admin_status = 'Active';
             <!-- Support Requests -->
             <div id="support-requests" class="content-section" style="display: none;">
                 <div class="content-header">
-                    <h2>
-                        <i class="fa-solid fa-hand-holding-heart"></i>
-                        Support Requests
-                    </h2>
+                    <h2>Support Requests</h2>
                     <p>Manage and review patient support applications and medical assistance requests.</p>
                 </div>
                 <div class="content-body">
@@ -310,15 +277,9 @@ $admin_status = 'Active';
                             <select class="filter-select" id="status-filter">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
+                                <option value="verified">Verified</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                            <select class="filter-select" id="request-type-filter">
-                                <option value="">All Types</option>
-                                <option value="patient">Patient</option>
-                                <option value="hospital">Hospital</option>
                             </select>
                         </div>
                     </div>
@@ -342,19 +303,17 @@ $admin_status = 'Active';
                         </div>
                     </div>
 
-                    <div class="data-table">
-                        <div class="table-header">
-                            <h4>Support Requests</h4>
+                    <div class="data-table" style="background: white; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); width: 100%;">
+                        <div class="table-header" style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 1.5rem 2rem;">
+                            <h4 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Support Requests Review</h4>
                         </div>
-                        <div class="table-content" id="support-requests-table">
-                            <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                <div class="table-cell">Request ID</div>
-                                <div class="table-cell">Requester</div>
-                                <div class="table-cell">Description</div>
-                                <div class="table-cell">Amount</div>
-                                <div class="table-cell">Date</div>
-                                <div class="table-cell">Status</div>
-                                <div class="table-cell">Actions</div>
+                        <div class="table-content" id="support-requests-table" style="width: 100%;">
+                            <div class="table-row" style="font-weight: 700; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; color: #475569; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; display: flex; width: 100%;">
+                                <div class="table-cell" style="padding: 1rem 1.5rem; flex: 2;">Patient Contact</div>
+                                <div class="table-cell" style="padding: 1rem 1.5rem; flex: 2;">Request Type / Reason</div>
+                                <div class="table-cell" style="padding: 1rem 1.5rem; flex: 1;">Amount Requested</div>
+                                <div class="table-cell" style="padding: 1rem 1.5rem; flex: 1;">Submitted Date</div>
+                                <div class="table-cell" style="padding: 1rem 1.5rem; flex: 1.5;">Verification Status</div>
                             </div>
                             <?php include 'requests.view.php'; ?>
                         </div>
@@ -365,10 +324,7 @@ $admin_status = 'Active';
             <!-- Aftercare Patients -->
             <div id="patients" class="content-section" style="display: none;">
                 <div class="content-header">
-                    <h2>
-                        <i class="fa-solid fa-user-injured"></i>
-                        Aftercare Patient Records
-                    </h2>
+                    <h2>Aftercare Patient Records</h2>
                     <p>Monitor and manage post-surgery patient follow-ups and long-term care records.</p>
                 </div>
                 <div class="content-body">
@@ -439,57 +395,77 @@ $admin_status = 'Active';
     </div>
 </div>
 
-<!-- Support Request Details Modal -->
+<!-- Support Request Details Modal (Premium Alignment) -->
 <div id="supportModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h3>Support Request Details</h3>
-            <button class="close-btn" onclick="closeSupportModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="payment-details">
-                <div class="detail-row">
-                    <div class="detail-label">Request ID</div>
-                    <div class="detail-value" id="modal-request-id">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Requester Type</div>
-                    <div class="detail-value" id="modal-requester-type">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Requester ID</div>
-                    <div class="detail-value" id="modal-requester-id">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Description</div>
-                    <div class="detail-value" id="modal-description">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Amount</div>
-                    <div class="detail-value amount" id="modal-amount">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Date Submitted</div>
-                    <div class="detail-value" id="modal-date">-</div>
-                </div>
-                <div class="detail-row">
-                    <div class="detail-label">Status</div>
-                    <div class="detail-value">
-                        <span class="status-badge" id="modal-status">-</span>
+        <!-- Modal Scroll Area -->
+        <div class="modal-scroll-area">
+            <!-- Modal Header with Icon -->
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                <button type="button" class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; z-index: 100;" onclick="closeSupportModal()">&times;</button>
+                
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <!-- Status Icon -->
+                    <div id="modal-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                        <i id="modal-status-icon" class="fa-solid fa-circle-xmark" style="font-size: 20px; color: #dc2626;"></i>
+                    </div>
+
+                    <!-- Title -->
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Review Support</h2>
+                        <span id="modal-status-badge" style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; display: inline-block;">PENDING</span>
                     </div>
                 </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeSupportModal()">
-                    <i class="fa-solid fa-times"></i> Close
-                </button>
-                <button class="btn btn-primary" id="approve-btn" onclick="approveRequest()" style="display: none;">
-                    <i class="fa-solid fa-check"></i> Approve
-                </button>
-                <button class="btn btn-danger" id="reject-btn" onclick="rejectRequest()" style="display: none;">
-                    <i class="fa-solid fa-times"></i> Reject
-                </button>
+
+                <p style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Review the financial aid request details below and authorize the verification status for forwarding.</p>
+
+                <!-- Grid Summary Card (#f0f7ff) -->
+                <div style="background: #f0f7ff; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border: 1px solid #e0f2fe;">
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Request ID</span>
+                        <div id="modal-request-id" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Submission Date</span>
+                        <div id="modal-date" style="font-size: 0.95rem; font-weight: 600; color: #334155;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Patient Name</span>
+                        <div id="modal-patient-name" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">National ID (NIC)</span>
+                        <div id="modal-patient-nic" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Request Type / Reason</span>
+                        <div id="modal-reason" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Requested Amount</span>
+                        <div id="modal-amount" style="font-size: 1.25rem; font-weight: 800; color: #1e3a8a;">-</div>
+                    </div>
+                </div>
+
+                <!-- Description Field -->
+                <div>
+                    <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Rationale / Description</span>
+                    <div id="modal-description" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1rem; font-size: 0.9rem; color: #475569; line-height: 1.5; min-height: 80px;">-</div>
+                </div>
+
+                <!-- Action Section -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; border-top: 1px solid #f1f5f9; padding-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupportModal()" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Cancel</button>
+                    
+                    <div id="modal-pending-actions" style="display: none; gap: 0.75rem;">
+                        <button type="button" id="reject-btn" class="btn btn-danger" style="background: #dc2626; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                            Decline
+                        </button>
+                        <button type="button" id="approve-btn" class="btn btn-primary" style="background: #005baa; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                            Verify & Forward
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -606,10 +582,240 @@ $admin_status = 'Active';
         const userInfo = document.querySelector('.user-info');
         const dropdown = document.getElementById('user-dropdown');
         
-        if (dropdown && !userInfo.contains(e.target)) {
+        if (dropdown && userInfo && !userInfo.contains(e.target)) {
             dropdown.classList.remove('show');
         }
     });
+
+    function openSupportDetails(data) {
+        // ... (data mapping stays the same) ...
+        document.getElementById('modal-request-id').innerText = `SUP${String(data.id).padStart(3, '0')}`;
+        document.getElementById('modal-date').innerText = new Date(data.submitted_date).toLocaleDateString();
+        document.getElementById('modal-patient-name').innerText = data.patient_name;
+        document.getElementById('modal-patient-nic').innerText = data.patient_nic;
+        document.getElementById('modal-reason').innerText = data.reason;
+        document.getElementById('modal-description').innerText = data.description || "No additional details provided.";
+        document.getElementById('modal-amount').innerText = `LKR ${parseFloat(data.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+        const badge = document.getElementById('modal-status-badge');
+        const iconBox = document.getElementById('modal-status-icon-box');
+        const icon = document.getElementById('modal-status-icon');
+        const status = data.status.toUpperCase();
+        
+        badge.innerText = status === 'VERIFIED' ? 'VERIFIED' : status;
+        
+        const themes = {
+            'PENDING':  { bg: '#fee2e2', text: '#dc2626', badgeBg: '#fef2f2', badgeText: '#dc2626', icon: 'fa-circle-xmark' },
+            'VERIFIED': { bg: '#ecfdf5', text: '#059669', badgeBg: '#f0fdf4', badgeText: '#059669', icon: 'fa-circle-check' },
+            'APPROVED': { bg: '#eff6ff', text: '#3b82f6', badgeBg: '#ebf5ff', badgeText: '#3b82f6', icon: 'fa-certificate' },
+            'REJECTED': { bg: '#f8fafc', text: '#64748b', badgeBg: '#f1f5f9', badgeText: '#64748b', icon: 'fa-ban' }
+        };
+        
+        const theme = themes[status] || themes['PENDING'];
+        iconBox.style.background = theme.bg;
+        icon.style.color = theme.text;
+        icon.className = `fa-solid ${theme.icon}`;
+        badge.style.background = theme.badgeBg;
+        badge.style.color = theme.badgeText;
+
+        const actions = document.getElementById('modal-pending-actions');
+        if (status === 'PENDING') {
+            actions.style.display = 'flex';
+            document.getElementById('approve-btn').onclick = () => handleSupportAction(data.id, 'approved');
+            document.getElementById('reject-btn').onclick = () => handleSupportAction(data.id, 'rejected');
+        } else {
+            actions.style.display = 'none';
+        }
+
+        document.getElementById('supportModal').classList.add('show');
+    }
+
+    function closeSupportModal() {
+        document.getElementById('supportModal').classList.remove('show');
+    }
+
+    // Patient Modal controls
+    function openPatientModal(data) {
+        if(!data) return;
+        document.getElementById('modal-patient-id').innerText = data.id || '-';
+        document.getElementById('modal-patient-name').innerText = (data.first_name || '') + ' ' + (data.last_name || '');
+        document.getElementById('modal-patient-nic').innerText = data.nic || '-';
+        document.getElementById('modal-patient-status').innerText = data.status || '-';
+        document.getElementById('modal-patient-age').innerText = data.age || '-';
+        document.getElementById('modal-patient-bloodtype').innerText = data.blood_group || '-';
+        document.getElementById('modal-patient-gender').innerText = data.gender || '-';
+        document.getElementById('modal-patient-type').innerText = data.patient_type || '-';
+        document.getElementById('modal-patient-hosp').innerText = data.associated_hospital || '-';
+        
+        document.getElementById('patientModal').classList.add('show');
+    }
+
+    function closePatientModal() {
+        document.getElementById('patientModal').classList.remove('show');
+    }
+
+    function handleSupportAction(id, action) {
+        // ... (action logic mapping stays the same) ...
+        const confirmMsg = action === 'approved' 
+            ? 'Are you sure you want to verify and forward this request to Finance?' 
+            : 'Are you sure you want to reject this request?';
+            
+        if (confirm(confirmMsg)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '<?= ROOT ?>/aftercare-admin/handle-action';
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'request_id';
+            idInput.value = id;
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            
+            form.appendChild(idInput);
+            form.appendChild(actionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Close modal on click outside
+    window.onclick = function(event) {
+        const supportModal = document.getElementById('supportModal');
+        const patientModal = document.getElementById('patientModal');
+        if (event.target == supportModal) closeSupportModal();
+        if (event.target == patientModal) closePatientModal();
+    }
+
+    // Support Request Filtering System
+    const supportSearch = document.getElementById('support-search');
+    const statusFilter = document.getElementById('status-filter');
+
+    if (supportSearch) supportSearch.addEventListener('input', debounce(applySupportFilters, 300));
+    if (statusFilter) statusFilter.addEventListener('change', applySupportFilters);
+
+    function applySupportFilters() {
+        const searchTerm = supportSearch.value;
+        const status = statusFilter.value;
+        
+        // Loader or some visual feedback could go here
+        fetch(`<?= ROOT ?>/aftercare-admin/filter-support?status=${status}&search=${searchTerm}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    refreshSupportTable(data.requests);
+                }
+            })
+            .catch(err => console.error("Filter error:", err));
+    }
+
+    function refreshSupportTable(requests) {
+        const container = document.getElementById('support-requests-table');
+        if (!container) return;
+
+        // Keep the header row
+        const header = container.querySelector('.table-row[style*="font-weight: 700"]');
+        container.innerHTML = '';
+        if (header) container.appendChild(header);
+
+        if (!requests || requests.length === 0) {
+            const emptyRow = document.createElement('div');
+            emptyRow.style.padding = '4rem 2rem';
+            emptyRow.style.textAlign = 'center';
+            emptyRow.innerHTML = `
+                <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: #e2e8f0; margin-bottom: 1rem; display: block;"></i>
+                <div style="color: #94a3b8; font-weight: 500;">No support requests found matching your filters.</div>
+            `;
+            container.appendChild(emptyRow);
+            return;
+        }
+
+        requests.forEach(request => {
+            const status = (request.status || 'PENDING').toUpperCase();
+            const colors = {
+                'PENDING':  { bg: '#fef9c3', text: '#854d0e', label: 'Pending Verification' },
+                'VERIFIED': { bg: '#dcfce7', text: '#166534', label: 'Verified (To Finance)' },
+                'APPROVED': { bg: '#dbeafe', text: '#1e40af', label: 'Approved' },
+                'REJECTED': { bg: '#fee2e2', text: '#991b1b', label: 'Rejected' }
+            };
+            const c = colors[status] || { bg: '#f1f5f9', text: '#475569', label: status };
+
+            const row = document.createElement('div');
+            row.className = 'table-row support-row';
+            row.style.cssText = 'cursor: pointer; transition: all 0.2s ease; border-bottom: 1px solid #f1f5f9; align-items: center; display: flex; width: 100%;';
+            row.onclick = () => openSupportDetails(request);
+            
+            // Mouseover effects
+            row.onmouseover = function() {
+                this.style.background = '#f8fafc';
+                this.style.transform = 'translateY(-1px)';
+                this.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)';
+            };
+            row.onmouseout = function() {
+                this.style.background = 'white';
+                this.style.transform = 'none';
+                this.style.boxShadow = 'none';
+            };
+
+            const amount = parseFloat(request.amount || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+
+            const date = new Date(request.submitted_date).toLocaleDateString('en-US', {
+                month: 'short', day: '2-digit', year: 'numeric'
+            });
+
+            row.innerHTML = `
+                <div class="table-cell" style="padding: 1.25rem 1.5rem; flex: 2;">
+                    <div style="font-weight: 600; color: #1e293b;">${request.patient_name}</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">${request.patient_nic}</div>
+                </div>
+                <div class="table-cell" style="padding: 1.25rem 1.5rem; flex: 2;">
+                    <div style="font-weight: 500; color: #334155; line-height: 1.4;">${request.reason}</div>
+                </div>
+                <div class="table-cell" style="padding: 1.25rem 1.5rem; flex: 1;">
+                    <div style="font-weight: 700; color: #0f172a; font-size: 1rem;">LKR ${amount}</div>
+                </div>
+                <div class="table-cell" style="padding: 1.25rem 1.5rem; flex: 1;">
+                    <div style="color: #64748b; font-size: 0.875rem; font-weight: 500;">${date}</div>
+                </div>
+                <div class="table-cell" style="padding: 1.25rem 1.5rem; flex: 1.5;">
+                    <span style="display: inline-block; padding: 0.4rem 0.8rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; background: ${c.bg}; color: ${c.text}; white-space: nowrap;">
+                        ${c.label}
+                    </span>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+
+    // Notification System Helper
+    function showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        const messageEl = document.getElementById('notification-message');
+        if(!notification || !messageEl) return;
+
+        messageEl.innerText = message;
+        notification.className = `notification ${type}`;
+        notification.style.display = 'block';
+
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
 </script>
 
 </body>

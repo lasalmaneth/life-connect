@@ -23,7 +23,9 @@ class AftercareAdminController {
         $requestModel = new SupportRequestModel();
         $adminModel = new AftercareAdminModel();
 
-        $requests = $requestModel->getAllRequests();
+        // Fetch ALL requests by default, or you can keep it as 'PENDING' if you want the filter to default to pending
+        // The user said "SHOW ALL THE SUPPORT REQUESTS. alll statuses.", so we load all.
+        $requests = $requestModel->getAllRequests(); 
         $supportStats = $requestModel->getStats();
         $patientStats = $adminModel->getPatientStats();
 
@@ -34,6 +36,46 @@ class AftercareAdminController {
             'requests' => $requests,
             'stats' => $stats
         ]);
+    }
+
+    /**
+     * AJAX endpoint: Filter support requests
+     */
+    public function filterSupportRequests() {
+        header('Content-Type: application/json');
+        try {
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'AC_ADMIN') {
+                throw new \Exception("Unauthorized access");
+            }
+
+            $status = $_GET['status'] ?? '';
+            $search = $_GET['search'] ?? '';
+
+            $model = new SupportRequestModel();
+            
+            // Basic filtering logic
+            $query = "SELECT * FROM support_requests WHERE 1=1";
+            $params = [];
+
+            if (!empty($status)) {
+                $query .= " AND status = :status";
+                $params[':status'] = strtoupper($status);
+            }
+
+            if (!empty($search)) {
+                $query .= " AND (patient_name LIKE :search OR patient_nic LIKE :search OR reason LIKE :search)";
+                $params[':search'] = "%$search%";
+            }
+
+            $query .= " ORDER BY created_at DESC";
+            
+            $requests = $model->query($query, $params);
+            
+            echo json_encode(['success' => true, 'requests' => $requests ? $requests : []]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -83,6 +125,35 @@ class AftercareAdminController {
     }
 
     /**
+     * AJAX endpoint: Update support status
+     */
+    public function updateSupportStatus() {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $id = $_POST['id'] ?? null;
+                $status = $_POST['status'] ?? null;
+                $reviewer = $_SESSION['username'] ?? 'Aftercare Admin';
+
+                if ($id && $status) {
+                    $model = new SupportRequestModel();
+                    $finalStatus = (strtolower($status) === 'approved') ? 'VERIFIED' : 'REJECTED';
+                    $model->updateStatus($id, $finalStatus, $reviewer);
+                    echo json_encode(['success' => true]);
+                    return;
+                }
+            } catch (\Exception $e) {
+                error_log("AftercareAdminController error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                return;
+            }
+        }
+        echo json_encode(['success' => false, 'message' => 'Invalid request']);
+    }
+
+    /**
      * Handle Approve/Reject actions via traditional form POST
      */
     public function handleAction() {
@@ -95,11 +166,12 @@ class AftercareAdminController {
             }
 
             $id = $_POST['request_id'];
-            $action = $_POST['action']; // 'approved' or 'rejected'
-            $reviewer = $_SESSION['username'] ?? 'Admin';
+            $action = $_POST['action']; // 'verified' or 'rejected'
+            $reviewer = $_SESSION['username'] ?? 'Aftercare Admin';
 
             $model = new SupportRequestModel();
-            $model->updateStatus($id, $action, $reviewer);
+            $status = ($action === 'approved') ? 'VERIFIED' : 'REJECTED'; 
+            $model->updateStatus($id, $status, $reviewer);
 
             // Redirect back to dashboard
             redirect('aftercare-admin');
