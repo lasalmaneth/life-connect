@@ -55,9 +55,23 @@ include __DIR__ . '/../inc/sidebar.view.php';
         <div class="d-widget" style="overflow: hidden;">
             <div class="d-widget__header" style="display: flex; align-items: center; justify-content: space-between;">
                 <div class="d-widget__title"><i class="fas fa-history"></i> Transaction History</div>
-                <a href="<?= ROOT ?>/donor/financial-donate" class="d-btn d-btn--primary" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
-                    <i class="fas fa-plus"></i> Donate Again
-                </a>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <?php if (!empty($history)): ?>
+                        <?php 
+                            // Find the first successful donation for the header certificate button
+                            $lastSuccessful = null;
+                            foreach($history as $h) { if($h->status === 'SUCCESS') { $lastSuccessful = $h; break; } }
+                        ?>
+                        <?php if ($lastSuccessful): ?>
+                            <button type="button" onclick="viewCertificate('<?= ROOT ?>/donor/download-pdf?type=total_financial_certificate')" class="d-btn d-btn--outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
+                                <i class="fas fa-certificate"></i> Download Certificate
+                            </button>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    <a href="<?= ROOT ?>/donor/financial-donate" class="d-btn d-btn--primary" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
+                        <i class="fas fa-plus"></i> Donate Again
+                    </a>
+                </div>
             </div>
             <div class="d-widget__body" style="padding: 0;">
 
@@ -100,9 +114,13 @@ include __DIR__ . '/../inc/sidebar.view.php';
                                 <?php endif; ?>
                             </td>
                             <td style="padding: 1rem 1.5rem; text-align: right;">
-                                <button onclick='viewCertificate(<?= json_encode($row) ?>)' class="d-btn d-btn--outline" style="font-size: 0.75rem; padding: 0.35rem 0.8rem;">
-                                    <i class="fas fa-certificate"></i> Certificate
-                                </button>
+                                <?php if (($row->status ?? '') === 'SUCCESS'): ?>
+                                    <button onclick="viewCertificate('<?= ROOT ?>/donor/download-pdf?type=financial_certificate&id=<?= $row->id ?>')" class="d-btn d-btn--outline d-btn--sm">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                <?php else: ?>
+                                    <span style="color: var(--g400); font-size: 0.75rem;">N/A</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -124,64 +142,52 @@ include __DIR__ . '/../inc/sidebar.view.php';
     </div>
 </main>
 
-<!-- Appreciation Certificate Modal -->
+<!-- Certificate Viewer Modal -->
 <div id="certificateModal" class="d-modal">
-    <div class="d-modal__body" style="max-width: 820px; padding: 0; overflow: hidden;">
-        <div id="certificateContent" style="padding: 4rem; text-align: center; background: #fffaf0;">
-            <div style="border: 2px solid #d4a017; padding: 3rem; position: relative; background: #fff;">
-                <div style="position: absolute; top: -10px; left: -10px; width: 20px; height: 20px; border: 2px solid #d4a017; background: #fff;"></div>
-                <div style="position: absolute; top: -10px; right: -10px; width: 20px; height: 20px; border: 2px solid #d4a017; background: #fff;"></div>
-                <div style="position: absolute; bottom: -10px; left: -10px; width: 20px; height: 20px; border: 2px solid #d4a017; background: #fff;"></div>
-                <div style="position: absolute; bottom: -10px; right: -10px; width: 20px; height: 20px; border: 2px solid #d4a017; background: #fff;"></div>
-
-                <div style="font-size: 2.8rem; color: #d4a017; margin-bottom: 0.5rem;"><i class="fas fa-award"></i></div>
-                <h1 style="font-size: 2.2rem; color: var(--navy); margin-bottom: 0.5rem; letter-spacing: 0.02em;">Certificate of Appreciation</h1>
-                <p style="font-size: 0.9rem; color: var(--g500); margin-bottom: 2rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">This certificate is proudly presented to</p>
-
-                <h2 style="font-size: 2rem; color: var(--blue-800); margin-bottom: 2rem; padding: 0 2rem 0.5rem; border-bottom: 2px solid #d4a017; font-style: italic; display: inline-block;">
-                    <?= htmlspecialchars($donor_data['first_name'] ?? '') . ' ' . htmlspecialchars($donor_data['last_name'] ?? '') ?>
-                </h2>
-
-                <p style="max-width: 550px; margin: 0 auto 2.5rem; line-height: 1.9; color: var(--g700); font-size: 1rem;">
-                    In recognition of your generous contribution of
-                    <strong style="color: var(--blue-600);" id="certAmount">LKR 0.00</strong>
-                    received on <strong id="certDate">—</strong>.<br>
-                    Your monumental support directly empowers our mission of saving lives.
-                </p>
-
-                <div style="display: flex; justify-content: space-around; align-items: flex-end; margin-top: 2rem;">
-                    <div style="text-align: center;">
-                        <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height: 45px; opacity: 0.9;">
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.4rem; margin-bottom: 0.25rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--slate); color: var(--navy); font-style: italic;">Dr. Sarah Perera</div>
-                        <div style="font-size: 0.7rem; color: var(--g500); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Director, LifeConnect</div>
-                    </div>
+    <div class="d-modal__body" style="max-width: 95%; width: 1150px; height: 95vh; padding: 0; display: flex; flex-direction: column; overflow: hidden; border: none;">
+        <div class="d-modal__header" style="background: var(--blue-900); color: white; padding: 1.25rem 2rem; margin-bottom: 0; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #cbd5e0;">
+                    <i class="fas fa-award"></i>
+                </div>
+                <div>
+                    <h3 style="color: white; margin: 0; font-size: 1.1rem; font-weight: 700;">Certificate of Appreciation</h3>
+                    <div style="font-size: 0.75rem; color: var(--blue-200);">Financial Donation Recognition</div>
                 </div>
             </div>
+            <button class="d-modal__close" onclick="closeModal('certificateModal')" style="color: white; opacity: 0.8; font-size: 1.5rem; background: none; border: none; cursor: pointer;">&times;</button>
         </div>
-        <div style="padding: 1.25rem 1.5rem; background: var(--g50); display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--g200);">
-            <button onclick="document.getElementById('certificateModal').classList.remove('active')" class="d-btn d-btn--outline">Close</button>
-            <button onclick="printCertificate()" class="d-btn d-btn--primary"><i class="fas fa-print"></i> Print Certificate</button>
+        <div style="flex: 1; overflow: hidden; background: #525659; position: relative;">
+            <iframe id="certificateFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+        <div style="padding: 1rem 2rem; background: var(--g50); border-top: 1px solid var(--g200); display: flex; justify-content: flex-end; gap: 12px;">
+            <button class="d-btn d-btn--outline d-btn--sm" onclick="closeModal('certificateModal')">Close Preview</button>
+            <button class="d-btn d-btn--primary d-btn--sm" onclick="document.getElementById('certificateFrame').contentWindow.print()">
+                <i class="fas fa-print"></i> Print Certificate
+            </button>
         </div>
     </div>
 </div>
 
 <script>
-function viewCertificate(donation) {
-    document.getElementById('certAmount').textContent = 'LKR ' + parseFloat(donation.amount).toLocaleString(undefined, {minimumFractionDigits: 2});
-    document.getElementById('certDate').textContent = new Date(donation.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    document.getElementById('certificateModal').classList.add('active');
-}
-function printCertificate() {
-    const c = document.getElementById('certificateContent').innerHTML;
-    const w = window.open('', '_blank');
-    w.document.write('<html><head><title>Certificate</title><style>@media print{@page{size:landscape;margin:0}body{padding:40px;background:white;-webkit-print-color-adjust:exact}}</style></head><body>' + c + '</body></html>');
-    w.document.close();
-    w.focus();
-    w.print();
-    w.close();
-}
+    function openModal(id) {
+        document.getElementById(id).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+        document.body.style.overflow = 'auto';
+        document.getElementById('certificateFrame').src = '';
+    }
+    function viewCertificate(url) {
+        document.getElementById('certificateFrame').src = url;
+        openModal('certificateModal');
+    }
+    window.onclick = function(event) {
+        if (event.target.classList.contains('d-modal')) {
+            closeModal(event.target.id);
+        }
+    }
 </script>
 
 <?php include __DIR__ . '/../inc/footer.view.php'; ?>

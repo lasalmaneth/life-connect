@@ -186,13 +186,23 @@ class DonorCustodianModel {
     private function findOrCreateCustodianUser($data)
     {
         $nic = $data['nic'] ?? '';
+        $email = $data['email'] ?? '';
         if (empty($nic)) return false;
 
-        // Check if user already exists with this NIC as username
-        $checkQuery = "SELECT id FROM users WHERE username = :nic AND role = 'CUSTODIAN'";
-        $existing = $this->query($checkQuery, [':nic' => $nic]);
-        if ($existing && count($existing) > 0) {
-            return $existing[0]->id;
+        // 1. Check if user already exists with this NIC as username
+        $checkByNic = "SELECT id FROM users WHERE username = :nic";
+        $existingNic = $this->query($checkByNic, [':nic' => $nic]);
+        if ($existingNic && count($existingNic) > 0) {
+            return $existingNic[0]->id;
+        }
+
+        // 2. Check if user already exists with this email
+        if (!empty($email)) {
+            $checkByEmail = "SELECT id FROM users WHERE email = :email";
+            $existingEmail = $this->query($checkByEmail, [':email' => $email]);
+            if ($existingEmail && count($existingEmail) > 0) {
+                return $existingEmail[0]->id;
+            }
         }
 
         // Create a new user account for the custodian
@@ -204,7 +214,7 @@ class DonorCustodianModel {
         return $this->insert($insertQuery, [
             ':username' => $nic,
             ':password' => $defaultPassword,
-            ':email'    => !empty($data['email']) ? $data['email'] : null,
+            ':email'    => !empty($email) ? $email : null,
             ':phone'    => !empty($data['phone']) ? $data['phone'] : null
         ]);
     }
