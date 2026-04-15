@@ -1879,7 +1879,7 @@ class Donor {
         $userId = $_SESSION['user_id'];
         $common = $this->getCommonData();
         
-        $donationModel = new \App\Models\FinancialDonationModel();
+        $donationModel = new \App\Models\admin\FinancialDonationModel();
         $donation = $donationModel->getDonationById($donationId);
 
         // Verification: Ensure the donation belongs to the logged-in user and is successful
@@ -1909,7 +1909,7 @@ class Donor {
         $userId = $_SESSION['user_id'];
         $common = $this->getCommonData();
         
-        $donationModel = new \App\Models\FinancialDonationModel();
+        $donationModel = new \App\Models\admin\FinancialDonationModel();
         $history = $donationModel->getDonationsByDonorId($userId);
 
         $totalAmount = 0;
