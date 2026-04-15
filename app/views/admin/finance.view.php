@@ -14,8 +14,8 @@
     if (session_status() === PHP_SESSION_NONE) session_start();
     $adminName = $_SESSION['username'] ?? ($_SESSION['user_name'] ?? 'Admin');
     
-    // Parse KPIs
-    $kpis = $data['kpis'] ?? [];
+    // Parse KPIs - ensure it is an array even if data is missing or false
+    $kpis = (isset($data['kpis']) && is_array($data['kpis'])) ? $data['kpis'] : [];
     $totalContributors = $kpis['total_contributors'] ?? 0;
     $totalAmount = $kpis['total_amount'] ?? 0;
     $thisMonthContributors = $kpis['this_month_contributors'] ?? 0;
@@ -38,8 +38,8 @@
         return 'LKR ' . number_format($n, 2);
     }
 
-    // Trend SVG Math mapping
-    $monthlyTrend = $kpis['monthly_trend'] ?? [];
+    // Trend SVG Math mapping - ensure it is an array
+    $monthlyTrend = (isset($kpis['monthly_trend']) && is_array($kpis['monthly_trend'])) ? $kpis['monthly_trend'] : [];
     if (empty($monthlyTrend)) {
         // Fallback for empty data
         $monthlyTrend = [

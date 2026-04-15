@@ -37,7 +37,7 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group">
       <label>Username <span class="req">*</span></label>
-      <input type="text" name="username" id="inst_user" placeholder="e.g. colombo_gen_hospital" maxlength="30" oninput="onUsername('inst_user','inst_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
+      <input type="text" name="username" id="inst_user" placeholder="e.g. colombo_gen_hospital" maxlength="30" oninput="onUsername('inst_user','inst_userH')" onchange="onUsername('inst_user','inst_userH')" value="<?= htmlspecialchars($_POST['username'] ?? $sessionData['username'] ?? '') ?>">
       <span class="hint" id="inst_userH">Letters, numbers and underscores only</span>
     </div>
     <div class="form-group">
@@ -52,7 +52,7 @@ require __DIR__ . '/partials/header.view.php';
     </div>
     <div class="form-group">
       <label>Official Email <span class="req">*</span></label>
-      <input type="email" name="email" id="inst_email" placeholder="admin@hospital.lk" oninput="onEmail('inst_email','inst_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
+      <input type="email" name="email" id="inst_email" placeholder="admin@hospital.lk" oninput="onEmail('inst_email','inst_emailH')" onchange="onEmail('inst_email','inst_emailH')" value="<?= htmlspecialchars($_POST['email'] ?? $sessionData['email'] ?? '') ?>">
       <span class="hint" id="inst_emailH">A confirmation OTP will be sent to verify this address upon submission.</span>
     </div>
     <div class="form-group">
@@ -78,14 +78,29 @@ require __DIR__ . '/partials/header.view.php';
       <span class="hint" id="inst_pwH">Must include uppercase, lowercase, number and special character</span>
     </div>
     <div class="form-group full">
-      <label>Terms &amp; Conditions <span class="req">*</span></label>
-      <div class="terms-row" id="instTermsRow" onclick="tToggle('inst_terms','instTermsRow','instTermsH')">
-        <input type="checkbox" name="terms" id="inst_terms" onclick="event.stopPropagation();tToggle('inst_terms','instTermsRow','instTermsH')">
-        <span>I agree to the <a href="#" onclick="return false">Terms &amp; Conditions</a> and confirm that all details provided are accurate and verifiable.</span>
+      <label>Legal Agreement <span class="req">*</span></label>
+      <div class="terms-row" id="termsRow" onclick="tToggle('inst_terms','termsRow','termsH')" style="padding: 10px 15px; border-radius: 8px;">
+            <label class="checkbox-label" style="font-size:0.85rem; line-height:1.2; display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="terms_agreed" id="inst_terms" required style="width:16px; height:16px; cursor: pointer;">
+                <span>I agree to the <a href="#" onclick="openTerms(event)">Terms & Conditions</a> and <a href="#" onclick="openPrivacy(event)">Privacy Policy</a>.</span>
+            </label>
       </div>
-      <span class="hint" id="instTermsH">You must accept the terms to continue</span>
+      <span class="hint" id="instTermsH">Institutional consent is mandatory</span>
     </div>
   </div>
+
+  <style>
+    .terms-row a {
+        color: #64748b !important;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 600;
+    }
+    .terms-row a:hover {
+        color: #3b82f6 !important;
+        text-decoration: underline;
+    }
+  </style>
   <div class="btn-group">
     <a href="<?= ROOT ?>/signup" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Back</a>
     <button type="button" class="btn btn-primary" onclick="instNext()">Review &amp; Submit <i class="fas fa-arrow-right"></i></button>

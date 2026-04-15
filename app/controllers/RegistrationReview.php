@@ -76,6 +76,7 @@ class RegistrationReview {
             $firstName = !empty($state['donor']['firstName']) ? $state['donor']['firstName'] : ($sessionData['first_name'] ?? '');
             $lastName = !empty($state['donor']['lastName']) ? $state['donor']['lastName'] : ($sessionData['last_name'] ?? '');
             $nic = !empty($state['donor']['nic']) ? $state['donor']['nic'] : ($sessionData['nic'] ?? '');
+            $district = !empty($state['donor']['district']) ? $state['donor']['district'] : ($sessionData['district'] ?? '');
             
             // Fix: Use ISO format (YYYY-MM-DD) for database compatibility
             $dob = $state['donor']['dobIso'] ?? $state['donor']['dob'] ?? null;
@@ -141,7 +142,7 @@ class RegistrationReview {
                 'gender' => strtoupper($gender),
                 'blood_group' => $state['donor']['blood_group'] ?? null, 
                 'address' => '', 
-                'district' => '',
+                'district' => $district,
                 'divisional_secretariat' => '',
                 'gn_division' => ''
             ];
@@ -156,7 +157,7 @@ class RegistrationReview {
 
             $_SESSION['submitted_username'] = $username;
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $_SESSION['reg_error'] = $e->getMessage();
             error_log("Registration Exception: " . $e->getMessage());
             return false;
@@ -251,7 +252,7 @@ class RegistrationReview {
             
             $_SESSION['submitted_username'] = $username;
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $_SESSION['reg_error'] = $e->getMessage();
             error_log("Institution Registration Exception: " . $e->getMessage());
             return false;

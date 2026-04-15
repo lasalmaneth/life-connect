@@ -5,32 +5,25 @@
     <title>Print Document - <?= htmlspecialchars($type) ?></title>
     <!-- Use system core font mapping to allow printable fonts without external fetches -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/layout.css">
-    <style>
-        body { margin:0; padding:0; background: #e2e8f0; }
-    </style>
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/print_document.css?v=<?= time() ?>">
 </head>
 <body>
 
-<div class="cp-print-hidden cp-bg-blue-800 cp-text-white" style="padding: 15px; text-align: center; position: sticky; top:0; z-index:999;">
-    <button onclick="window.print()" class="cp-btn cp-btn--primary" style="margin-right: 15px;">
-        <svg fill="currentColor" width="16" viewBox="0 0 24 24" style="display:inline-block; vertical-align:middle;"><path d="M19,8H5C3.34,8,2,9.34,2,11v6h4v4h12v-4h4v-6C22,9.34,20.66,8,19,8z M16,19H8v-5h8V19z M19,12c-0.55,0-1-0.45-1-1s0.45-1,1-1s1,0.45,1,1S19.55,12,19,12z M18,3H6v4h12V3z"></path></svg>
-        Print this Document
-    </button>
-    <a href="<?= ROOT ?>/custodian/documents" class="cp-btn cp-btn--outline" style="border-color: #fff; color: #fff;">Back to Documents</a>
-</div>
 
 <div class="cp-legal-doc-wrapper">
     <div class="cp-legal-page">
 
         <?php if ($type === 'datasheet'): ?>
 
-            <div class="cp-legal-office-use">This information is for office use only</div>
+            <div class="cp-legal-header-flex">
+                <div class="cp-legal-office-use">This information is for office use only</div>
+            </div>
             
-            <div style="text-align: center; margin-top: 15px; font-weight: bold; font-size: 1.1em; text-transform: uppercase;">
+            <div class="cp-legal-inst-banner">
                 <?= htmlspecialchars($instName ?? 'Department of Anatomy, Faculty of Medicine, University of Colombo') ?>
             </div>
 
-            <div class="cp-legal-title" style="margin-top: 15px;">Data Sheet for Cadaver Donation</div>
+            <div class="cp-legal-title">Data Sheet for Cadaver Donation</div>
 
             <div class="cp-legal-section-title">Details of the Deceased</div>
             <div class="cp-legal-row">

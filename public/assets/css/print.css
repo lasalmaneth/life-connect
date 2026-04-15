@@ -1,0 +1,145 @@
+/* ════════════════════════════════════════════════════════
+   LIFE-CONNECT GLOBAL PRINT STYLES
+   Used for Certificates, Appreciation Letters, and Reports
+   ════════════════════════════════════════════════════════ */
+
+@media print {
+    /* Reset and Page Setup */
+    @page {
+        size: A4;
+        margin: 20mm;
+    }
+
+    body {
+        background: #fff !important;
+        color: #000 !important;
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    }
+
+    /* Hide non-printable elements */
+    .no-print,
+    .cp-shell,
+    .cp-header,
+    .btn-print-actions,
+    .btn,
+    button {
+        display: none !important;
+    }
+
+    /* ── Certificate Styles ── */
+    .certificate-container {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 60px;
+        border: 20px solid var(--blue-700, #003b6e);
+        position: relative;
+        text-align: center;
+        background: #fff;
+    }
+
+    .certificate-inner {
+        padding: 30px;
+        border: 2px solid var(--gold, #d4af37);
+    }
+
+    .cert-logo {
+        height: 80px;
+        margin-bottom: 20px;
+    }
+
+    .cert-title {
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--blue-700, #003b6e);
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+
+    .cert-subtitle {
+        font-size: 24px;
+        color: var(--slate, #1e293b);
+        margin-bottom: 40px;
+    }
+
+    .cert-recipient {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 30px 0;
+        border-bottom: 2px solid #eee;
+        display: inline-block;
+        padding: 0 40px;
+    }
+
+    .cert-body {
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 60px;
+        color: #444;
+    }
+
+    .cert-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 80px;
+        padding: 0 40px;
+    }
+
+    .signature-box {
+        text-align: center;
+        width: 200px;
+    }
+
+    .signature-line {
+        border-top: 1.5px solid #000;
+        margin-bottom: 5px;
+    }
+
+    /* ── Letter Styles ── */
+    .letter-page {
+        font-size: 12pt;
+        line-height: 1.5;
+        padding: 40px;
+        color: #111;
+    }
+
+    .letter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 50px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 20px;
+    }
+
+    .letter-meta {
+        text-align: right;
+        font-size: 10pt;
+        color: #666;
+    }
+
+    .letter-body {
+        margin-bottom: 60px;
+        text-align: justify;
+    }
+
+    .letter-signature {
+        margin-top: 40px;
+    }
+
+    /* ── Watermarks ── */
+    .print-watermark {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 100px;
+        color: rgba(0,0,0,0.05);
+        z-index: -1;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+}

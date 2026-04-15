@@ -1208,6 +1208,7 @@ CREATE TABLE `users` (
   `phone` varchar(15) DEFAULT NULL,
   `role` enum('F_ADMIN','AC_ADMIN','D_ADMIN','U_ADMIN','DONOR','HOSPITAL','MEDICAL_SCHOOL','CUSTODIAN') NOT NULL,
   `status` enum('PENDING','ACTIVE','SUSPENDED') DEFAULT 'PENDING',
+  `must_change_credentials` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `review_message` text DEFAULT NULL

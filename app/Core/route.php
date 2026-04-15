@@ -59,8 +59,11 @@ route('custodian/select-institution', 'Custodian@selectInstitution');
 route('custodian/upload-document', 'Custodian@uploadDocument');
 route('custodian/documents', 'Custodian@getDocuments');
 route('custodian/submit-institution', 'Custodian@submitToInstitution');
+route('custodian/check-username', 'Custodian@checkUsername');
 route('custodian/cadaver-sheet', 'Custodian@saveCadaverSheet');
 route('custodian/cadaver-sheet-data', 'Custodian@getCadaverSheet');
+route('custodian/security-setup', 'Custodian@securitySetup');
+route('custodian/update-security', 'Custodian@updateSecurity');
 route('custodian/coordination', 'Custodian@getCoordination');
 route('custodian/timeline', 'Custodian@getTimeline');
 // ─── Custodian Portal — Page Routes ────────────────────────────────────────
@@ -83,7 +86,7 @@ route('custodian/save-document-form',   'Custodian@saveDocumentForm');
 route('custodian/print-document',       'Custodian@printDocument');
 route('custodian/submit-bundle',        'Custodian@submitBundle');
 route('custodian/certificates',         'Custodian@certificates');
-route('custodian/archive',              'Custodian@archive');
+route('custodian/activity-history', 'Custodian@activityHistory');
 
 // ─── Custodian Portal — JSON API Routes (/api/custodian/*) ─────────────────
 route('api/custodian/dashboard-data',       'Custodian@getDashboardData');
@@ -168,15 +171,15 @@ route('medical-school/certificates/generate', 'MedicalSchool@generateDonationCer
 route('medical-school/certificates/view', 'MedicalSchool@viewCertificate');
 
 route('medical-school/stories', 'MedicalSchool@stories');
-route('medical-school/stories/create', 'MedicalSchool@createStory');
+route('medical-school/createStory', 'MedicalSchool@createStory');
+route('medical-school/deleteStory', 'MedicalSchool@deleteStory');
 route('medical-school/stories/edit', 'MedicalSchool@editStory');
 
-route('medical-school/archived', 'MedicalSchool@archived');
-route('medical-school/archived/view', 'MedicalSchool@viewArchivedRecord');
-
 route('medical-school/usage-logs', 'MedicalSchool@usageLogs');
-route('medical-school/usage-logs/view', 'MedicalSchool@viewUsageLog');
-
+route('medical-school/usage-logs/submit', 'MedicalSchool@submitUsage');
+route('medical-school/issue-appreciation-letter', 'MedicalSchool@issueAppreciationLetter');
+route('medical-school/debug/reset-donor', 'MedicalSchool@resetDonor');
+route('medical-school/view-inventory-detail', 'MedicalSchool@viewInventoryDetail');
 route('medical-school/reports', 'MedicalSchool@reports');
 
 // New Registration Flow
@@ -269,7 +272,20 @@ route('live-donation', 'HomePages@liveDonation');
 route('deceased-donation', 'HomePages@deceasedDonation');
 route('our-story', 'HomePages@ourStory');
 route('reach-us', 'HomePages@reachUs');
+route('reach-us/submit', 'HomePages@submitContact');
 route('religion', 'HomePages@religion');
+route('religion/buddhism', 'HomePages@faithDetails');
+route('religion/hinduism', 'HomePages@faithDetails');
+route('religion/islam', 'HomePages@faithDetails');
+route('religion/christianity', 'HomePages@faithDetails');
+route('religion/sikhism', 'HomePages@faithDetails');
+route('religion/judaism', 'HomePages@faithDetails');
+route('religion/other', 'HomePages@faithDetails');
+
+// Educational Content Routes
+route('learn/donors', 'HomePages@donors');
+route('learn/aftercare', 'HomePages@aftercareGuide');
+route('learn/custodians', 'HomePages@custodians');
 
 // Support routes
 route('support/all', 'SupportRequestController@getAll');

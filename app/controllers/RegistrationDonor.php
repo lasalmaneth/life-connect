@@ -19,10 +19,11 @@ class RegistrationDonor {
                 'dob'        => trim($_POST['dob'] ?? ''),
                 'gender'     => trim($_POST['gender'] ?? ''),
                 'phone'      => trim($_POST['phone'] ?? ''),
+                'district'   => trim($_POST['district'] ?? ''),
                 'email'      => trim($_POST['email'] ?? ''),
                 'password'   => $_POST['password'] ?? '',
                 'confirm_password' => $_POST['confirm_password'] ?? '',
-                'terms'      => $_POST['terms'] ?? '',
+                'terms'      => $_POST['terms_agreed'] ?? '',
                 'role'       => $role
             ];
 
@@ -109,6 +110,11 @@ class RegistrationDonor {
             $errors[] = "Username is required.";
         } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $data['username'])) {
             $errors[] = "Username can contain only letters, numbers and underscores.";
+        } else {
+            $userModel = new \App\Models\UserModel();
+            if ($userModel->usernameExists($data['username'])) {
+                $errors[] = "Username is already taken.";
+            }
         }
 
         // NIC (support old and new format)
@@ -116,6 +122,11 @@ class RegistrationDonor {
             $errors[] = "NIC is required.";
         } elseif (!preg_match('/^([0-9]{9}[VvXx]|[0-9]{12})$/', $data['nic'])) {
             $errors[] = "Invalid NIC format.";
+        } else {
+            $donorModel = new \App\Models\DonorModel();
+            if ($donorModel->nicExists($data['nic'])) {
+                $errors[] = "NIC is already registered.";
+            }
         }
 
         // DOB (auto-extracted from NIC, may be empty on first POST)
@@ -129,9 +140,25 @@ class RegistrationDonor {
             $errors[] = "Phone number must be 10 digits and start with 0.";
         }
 
+        // District
+        $validDistricts = [
+            'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha', 
+            'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 
+            'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 
+            'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+        ];
+        if (empty($data['district']) || !in_array($data['district'], $validDistricts)) {
+            $errors[] = "Please select a valid district.";
+        }
+
         // Email
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             $errors[] = "Valid email address is required.";
+        } else {
+            $userModel = new \App\Models\UserModel();
+            if ($userModel->emailExists($data['email'])) {
+                $errors[] = "Email is already registered.";
+            }
         }
 
         // Password

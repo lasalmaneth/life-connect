@@ -7,32 +7,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/home.css">
-    <style>
-        .hero { padding: 100px 0 80px; background: var(--blue-50); }
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 50px; }
-        .i-card { background: var(--white); border: 1px solid var(--g200); border-radius: var(--r); padding: 30px; transition: var(--tr); }
-        .i-card:hover { border-color: var(--blue-300); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 91, 170, 0.08); }
-        .i-icon { font-size: 2rem; color: var(--blue-600); margin-bottom: 20px; }
-        .i-card h4 { margin-bottom: 15px; color: var(--slate); }
-        .i-card p { font-size: 0.9rem; color: var(--g500); line-height: 1.6; }
-        .highlight-box { background: var(--blue-900); color: var(--white); padding: 40px; border-radius: 16px; margin: 50px 0; display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
-        .h-text h2 { color: var(--white); margin-bottom: 10px; }
-        .h-text p { opacity: 0.8; font-size: 0.95rem; }
-        .h-icon { font-size: 4rem; opacity: 0.2; }
-        .warning-strip { background: #fff5f5; border-left: 4px solid #ef4444; padding: 25px; border-radius: 8px; margin-bottom: 30px; }
-        .warning-strip h4 { color: #c53030; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
-        .stat-circle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; text-align: center; margin-top: 40px; }
-        .sc-item { padding: 20px; }
-        .sc-val { font-size: 2.2rem; font-weight: 800; color: var(--blue-600); display: block; }
-        .sc-label { font-size: 0.8rem; color: var(--g500); font-weight: 600; text-transform: uppercase; }
-    </style>
 </head>
 <body>
 
 <?php include __DIR__ . '/../templates/home_header.view.php'; ?>
 
 <!-- ========== HERO ========== -->
-<section class="hero">
+<section class="page-hero">
     <div class="container hero-grid">
         <div class="hero-text">
             <h1>Live Organ Donation</h1>
@@ -50,111 +31,66 @@
         </div>
         <div class="hero-image-wrap">
             <div class="hero-shape"></div>
-            <img src="<?= ROOT ?>/public/assets/images/faq-person1.jpg" alt="Live Donation" class="hero-img">
+            <img src="<?= ROOT ?>/public/assets/images/home-live-donor.png" class="hero-img" alt="Live Donation" />
         </div>
     </div>
 </section>
 
-<!-- ========== WHAT IS LIVE DONATION ========== -->
-<section class="serve" style="background: var(--white);">
-    <div class="container">
-        <div class="sec-header">
-            <h2>What is Live Donation?</h2>
-            <div class="underline"></div>
-            <p>Donating an organ or part of an organ while you are alive to save another.</p>
+<main class="container section-padding">
+
+    <!-- Information Grid -->
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="i-icon"><i class="fa-solid fa-circle-question"></i></div>
+            <h4>What is Living Donation?</h4>
+            <p>Living organ donation involves a healthy person donating an organ (mostly a kidney) or a part of an organ (like the liver) to another person in need of a transplant.</p>
         </div>
-        
-        <div class="info-grid">
-            <div class="i-card">
-                <div class="i-icon"><i class="fa-solid fa-kidneys"></i></div>
-                <h4>One Kidney</h4>
-                <p>Most common live donation. You can live a full, healthy life with just one kidney.</p>
-            </div>
-            <div class="i-card">
-                <div class="i-icon"><i class="fa-solid fa-hospital-user"></i></div>
-                <h4>Part of Liver</h4>
-                <p>The liver regenerates to near-normal size within 3-6 months for both donor and recipient.</p>
-            </div>
-            <div class="i-card">
-                <div class="i-icon"><i class="fa-solid fa-dna"></i></div>
-                <h4>Bone Marrow</h4>
-                <p>Naturally regenerates after donation, used to treat various blood disorders.</p>
-            </div>
+        <div class="info-card">
+            <div class="i-icon"><i class="fa-solid fa-user-check"></i></div>
+            <h4>Who can be a Donor?</h4>
+            <p>Most healthy adults over the age of 21 can be considered for living donation. A thorough medical and psychological evaluation is required to ensure donor safety.</p>
         </div>
     </div>
-</section>
 
-<!-- ========== HIGHLIGHT ========== -->
-<div class="container">
+    <!-- Highlight Box -->
     <div class="highlight-box">
         <div class="h-text">
-            <h2>Your Body, Your Choice</h2>
-            <p>There is NO obligation to donate, even to family members. Your decision must be completely voluntary, free from pressure or coercion.</p>
+            <h2>Safety is our priority.</h2>
+            <p>Before any donation occurs, medical teams perform extensive tests to make sure that the donor will be able to live a healthy life with one kidney or a regenerated liver.</p>
         </div>
-        <div class="h-icon" style="flex-shrink: 0;"><i class="fa-solid fa-shield-heart"></i></div>
+        <div class="h-icon"><i class="fa-solid fa-shield-heart"></i></div>
     </div>
-</div>
 
-<!-- ========== ELIGIBILITY & RULES ========== -->
-<section class="legal" style="background: var(--g50);">
-    <div class="container">
-        <div class="sec-header">
-            <h2>Eligibility & Relationships</h2>
-            <div class="underline"></div>
-        </div>
-        
-        <div class="info-grid">
-            <div class="i-card">
-                <h4>Basic Requirements</h4>
-                <ul style="color: var(--g500); font-size: 0.9rem; padding-left: 20px;">
-                    <li style="margin-bottom: 10px;">Aged 18 years or older</li>
-                    <li style="margin-bottom: 10px;">Mentally capable of decision-making</li>
-                    <li>Excellent physical & mental health</li>
-                </ul>
-            </div>
-            <div class="i-card">
-                <h4>Close Family</h4>
-                <p>Includes parents, children, siblings, and spouses. These cases are generally simpler to process legally.</p>
-            </div>
-            <div class="i-card">
-                <h4>Non-Related Donors</h4>
-                <p>Requires HTTB approval and ethics committee review to ensure no financial benefit or coercion exists.</p>
-            </div>
-        </div>
-        
-        <div class="warning-strip" style="margin-top: 40px;">
-            <h4><i class="fa-solid fa-ban"></i> Zero Tolerance for trafficking</h4>
-            <p>Buying or selling organs is a serious crime in Sri Lanka. Any suspicion of financial exchange will lead to immediate legal action and cancellation of the donation.</p>
-        </div>
+    <!-- Warning / Legal -->
+    <div class="warning-strip">
+        <h4><i class="fa-solid fa-circle-exclamation"></i> Mandatory Legal Check</h4>
+        <p>Living donation in Sri Lanka must satisfy all requirements of the Human Tissue Transplantation Act. It must be strictly voluntary, without any financial gain or coercion.</p>
     </div>
-</section>
 
-<!-- ========== STATS & FACTS ========== -->
-<section class="stats" style="background: var(--white); border: none;">
-    <div class="container">
-        <div class="sec-header">
-            <h2>Success & Survival</h2>
-            <div class="underline"></div>
-            <p>The safety of the donor is our absolute priority.</p>
+    <!-- Stats Section -->
+    <div class="stat-circle-grid">
+        <div class="sc-item">
+            <span class="sc-val">21+</span>
+            <span class="sc-label">Minimum Age</span>
         </div>
-        
-        <div class="stat-circle-grid">
-            <div class="sc-item"><span class="sc-val">99.8%</span><span class="sc-label">Kidney survival</span></div>
-            <div class="sc-item"><span class="sc-val">90%+</span><span class="sc-label">Graft success</span></div>
-            <div class="sc-item"><span class="sc-val">4-6</span><span class="sc-label">Weeks recovery</span></div>
-            <div class="sc-item"><span class="sc-val">200+</span><span class="sc-label">Annual transplants</span></div>
+        <div class="sc-item">
+            <span class="sc-val">100%</span>
+            <span class="sc-label">Voluntary</span>
+        </div>
+        <div class="sc-item">
+            <span class="sc-val">Regen</span>
+            <span class="sc-label">Liver Capacity</span>
         </div>
     </div>
-</section>
+
+</main>
 
 <!-- ========== CTA ========== -->
-<section class="cta-section">
-    <div class="container">
-        <h2>Save a Life Today</h2>
-        <p>Talk to our specialists or your family about becoming a live donor.</p>
-        <a href="<?= ROOT ?>/signup" class="btn-hero" style="background: var(--white); color: var(--blue-900);">
-            <span>Get Started</span> <i class="fa-solid fa-arrow-right"></i>
-        </a>
+<section class="cta-box container" style="margin-bottom:80px">
+    <h2>Give the gift of life today.</h2>
+    <div class="cta-actions">
+        <a href="<?= ROOT ?>/signup" class="btn-hero"><i class="fa-solid fa-user-plus"></i> Start Your Registration</a>
+        <a href="<?= ROOT ?>/home#tributes" class="btn-outline">Success Stories</a>
     </div>
 </section>
 

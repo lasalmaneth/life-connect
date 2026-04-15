@@ -62,6 +62,15 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error'], $_SESSION['success_m
     <!-- Custodian CSS (shared design system — cp- prefix) -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/main.css?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/drawer.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/medicalschools/drawers.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/medicalschools/medicalschools.css?v=<?= time() ?>">
+    
+    <!-- Extra Page Specific CSS -->
+    <?php if (isset($extra_css) && is_array($extra_css)): ?>
+        <?php foreach ($extra_css as $css): ?>
+            <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/<?= $css ?>?v=<?= time() ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
 </head>
 <body>
 

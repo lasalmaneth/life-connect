@@ -16,26 +16,29 @@ ob_start();
             <i class="fas fa-inbox"></i> Submission Requests
         </h1>
         <p class="cp-content-header__subtitle">
-            Initial custodian outreach requests after donor death. Review and decide whether to initiate the body intake process.
+            Initial custodian outreach requests after donor death. Review and decide whether to initiate body intake.
         </p>
     </div>
     <div class="cp-content-header__actions">
         <span class="cp-badge cp-badge--info cp-badge--lg">
-            <i class="fas fa-list"></i> <?= count($requests) ?> <?= ($current_filter ?? 'PENDING') === 'PENDING' ? 'Pending Review' : 'Records Found' ?>
+            <i class="fas fa-inbox cp-mr-2"></i> Case Intake Queue
         </span>
     </div>
 </div>
 
 <div class="cp-content-body">
-    <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; background: var(--white); padding: 10px 15px; border-radius: 8px; border: 1px solid var(--g200); box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-        <i class="fas fa-filter" style="color: var(--g400);"></i>
-        <label for="statusFilter" style="font-weight: 600; color: var(--g800); font-size: 0.875rem; margin: 0;">Show Requests:</label>
-        <select id="statusFilter" class="cp-form-control" style="width: auto; min-width: 180px; padding-top: 6px; padding-bottom: 6px; border-color: var(--g300);" onchange="window.location.href='<?= ROOT ?>/medical-school/submission-requests?status=' + this.value;">
-            <option value="PENDING" <?= ($current_filter ?? 'PENDING') === 'PENDING' ? 'selected' : '' ?>>Pending / Under Review</option>
-            <option value="ACCEPTED" <?= ($current_filter ?? 'PENDING') === 'ACCEPTED' ? 'selected' : '' ?>>Accepted</option>
-            <option value="REJECTED" <?= ($current_filter ?? 'PENDING') === 'REJECTED' ? 'selected' : '' ?>>Rejected</option>
-            <option value="ALL" <?= ($current_filter ?? 'PENDING') === 'ALL' ? 'selected' : '' ?>>All Requests</option>
-        </select>
+    <!-- Premium Filter Bar -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+        <div class="cp-filter-tabs">
+            <a href="<?= ROOT ?>/medical-school/submission-requests?status=ALL" 
+               class="cp-filter-btn <?= $active_status === 'ALL' ? 'active' : '' ?>">All Requests</a>
+            <a href="<?= ROOT ?>/medical-school/submission-requests?status=PENDING" 
+               class="cp-filter-btn <?= $active_status === 'PENDING' ? 'active' : '' ?>">Pending Review</a>
+            <a href="<?= ROOT ?>/medical-school/submission-requests?status=ACCEPTED" 
+               class="cp-filter-btn <?= $active_status === 'ACCEPTED' ? 'active' : '' ?>">Accepted</a>
+            <a href="<?= ROOT ?>/medical-school/submission-requests?status=REJECTED" 
+               class="cp-filter-btn <?= $active_status === 'REJECTED' ? 'active' : '' ?>">Rejected</a>
+        </div>
     </div>
 
     <div class="cp-table-container">
@@ -77,7 +80,7 @@ ob_start();
                                     </div>
                                 </div>
                             </td>
-                            <td><?= htmlspecialchars($request->nic_number) ?></td>
+                            <td><code class="cp-nic-badge"><?= htmlspecialchars($request->nic_number) ?></code></td>
                             <td>
                                 <div class="cp-table__filename"><?= date('d M Y', strtotime($request->date_of_death)) ?></div>
                                 <div class="cp-table__subtext"><?= date('H:i', strtotime($request->date_of_death)) ?></div>
@@ -85,7 +88,7 @@ ob_start();
                             <td>
                                 <?php 
                                     $submitted = strtotime($request->request_at);
-                                    $diff = time() - $submitted;
+                                    $diff = max(0, time() - $submitted);
                                     $hours = floor($diff / 3600);
                                     $mins = floor(($diff % 3600) / 60);
                                 ?>
@@ -93,15 +96,15 @@ ob_start();
                                 <div class="cp-table__subtext">Submitted on <?= date('M d', $submitted) ?></div>
                             </td>
                             <td style="text-align: center;">
-                                <span class="cp-badge cp-badge--<?= strtolower($request->request_status) === 'pending' ? 'pending' : 'info' ?>">
+                                <span class="cp-badge cp-badge--<?= strtolower($request->request_status) === 'pending' ? 'pending' : 'active' ?>">
                                     <?= htmlspecialchars($request->request_status) ?>
                                 </span>
                             </td>
                             <td style="text-align: right;">
                                 <div class="cp-table__actions">
-                                    <button class="cp-btn cp-btn--primary cp-btn--sm"
+                                    <button class="cp-btn cp-btn--secondary cp-btn--sm"
                                             onclick="openRequestDrawer(<?= $request->cis_id ?>)">
-                                        <i class="fas fa-search"></i> Review Request
+                                        <i class="fas fa-search"></i> Request Details
                                     </button>
                                 </div>
                             </td>

@@ -61,8 +61,11 @@ class RegistrationData
                 'message' => $message
             ]);
 
-        } catch (\Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Server error']);
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'System Error: ' . $e->getMessage()
+            ]);
         }
     }
 

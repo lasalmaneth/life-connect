@@ -8,7 +8,9 @@ class Home {
     use Controller;
 
     public function index(){
+        $homeModel = new \App\Models\HomeModel();
+        $data['stats'] = $homeModel->getHomepageStats();
         
-        $this->view('home');
+        $this->view('home', $data);
     }
 }

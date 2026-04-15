@@ -6,47 +6,7 @@
     <title>Forgot Password - LifeConnect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css">
-    <style>
-        .form-section {
-            display: none;
-            animation: fadeIn 0.4s ease forwards;
-        }
-        .form-section.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .validation-msg {
-            color: #dc3545;
-            font-size: 0.813rem;
-            margin-top: 0.5rem;
-            text-align: left;
-            display: none;
-        }
-        .validation-msg.show {
-            display: block;
-        }
-        /* Make sure subtitle exactly matches login paragraph spacing */
-        .login-card p.subtitle {
-            margin-bottom: 2rem;
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background-color: rgba(40, 167, 69, 0.1);
-            color: #28a745;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 40px;
-            margin: 0 auto 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/auth.css">
 </head>
 <body class="login-page-body">
     <div class="shape shape-1"></div>
@@ -55,12 +15,12 @@
     <div class="login-wrapper">
         <div class="login-card glass-card">
             <a href="<?= ROOT ?>/">
-                <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect Logo" class="login-logo" style="transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect Logo" class="login-logo">
             </a>
 
             <!-- Global Error box matching login exactly -->
             <div id="generalErrorBox" class="error-message">
-                <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                <i class="fas fa-exclamation-circle"></i>
                 <span id="generalErrorText"></span>
             </div>
 
@@ -77,7 +37,7 @@
                             <input type="text" id="identifier" placeholder="Enter your email or username" oninput="hideValidation('identifierError')">
                         </div>
                         <div id="identifierError" class="validation-msg">
-                            <i class="fas fa-exclamation-circle" style="margin-right: 4px;"></i><span class="msg-text"></span>
+                            <i class="fas fa-exclamation-circle"></i><span class="msg-text"></span>
                         </div>
                     </div>
 
@@ -86,7 +46,7 @@
                         <i class="fas fa-paper-plane"></i>
                     </button>
 
-                    <div class="login-footer" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <div class="login-footer auth-footer-nav">
                         Remember your password? <a href="<?= ROOT ?>/login">Sign in</a>
                     </div>
                 </form>
@@ -105,7 +65,7 @@
                             <input type="text" id="otpCode" placeholder="Enter 6-digit OTP code" maxlength="6" autocomplete="off" oninput="hideValidation('otpError')">
                         </div>
                         <div id="otpError" class="validation-msg">
-                            <i class="fas fa-exclamation-circle" style="margin-right: 4px;"></i><span class="msg-text"></span>
+                            <i class="fas fa-exclamation-circle"></i><span class="msg-text"></span>
                         </div>
                     </div>
 
@@ -114,7 +74,7 @@
                         <i class="fas fa-check-circle"></i>
                     </button>
 
-                    <div class="login-footer" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <div class="login-footer auth-footer-nav">
                         <a href="#" onclick="showStep(1); return false;">Try a different email</a>
                     </div>
                 </form>
@@ -133,13 +93,13 @@
                             <input type="password" id="newPassword" placeholder="Minimum 8 characters" oninput="hideValidation('resetError'); onForgotPw()">
                             <button type="button" class="eye-btn" onclick="tPw('newPassword', this)"><i class="fas fa-eye"></i></button>
                         </div>
-                        <div class="strength-row" style="display: flex; gap: 4px; margin-top: 8px;">
-                            <div class="sbar" id="fsb1" style="height: 4px; flex: 1; background: #e2e8f0; border-radius: 2px; transition: background 0.3s;"></div>
-                            <div class="sbar" id="fsb2" style="height: 4px; flex: 1; background: #e2e8f0; border-radius: 2px; transition: background 0.3s;"></div>
-                            <div class="sbar" id="fsb3" style="height: 4px; flex: 1; background: #e2e8f0; border-radius: 2px; transition: background 0.3s;"></div>
-                            <div class="sbar" id="fsb4" style="height: 4px; flex: 1; background: #e2e8f0; border-radius: 2px; transition: background 0.3s;"></div>
+                        <div class="strength-row">
+                            <div class="sbar" id="fsb1"></div>
+                            <div class="sbar" id="fsb2"></div>
+                            <div class="sbar" id="fsb3"></div>
+                            <div class="sbar" id="fsb4"></div>
                         </div>
-                        <span class="hint" id="newPasswordH" style="font-size: 0.813rem; color: var(--text-muted); display: block; margin-top: 4px;">Must include uppercase, lowercase, number and special character</span>
+                        <span class="hint" id="newPasswordH">Must include uppercase, lowercase, number and special character</span>
                     </div>
                     <div class="form-group">
                         <label for="confirmPassword">Confirm Password</label>
@@ -150,7 +110,7 @@
                         </div>
                         <!-- Validation message under the last box -->
                         <div id="resetError" class="validation-msg">
-                            <i class="fas fa-exclamation-circle" style="margin-right: 4px;"></i><span class="msg-text"></span>
+                            <i class="fas fa-exclamation-circle"></i><span class="msg-text"></span>
                         </div>
                     </div>
 
@@ -166,7 +126,7 @@
                 <div class="success-icon">
                     <i class="fas fa-check"></i>
                 </div>
-                <h3 style="margin-bottom: 1rem; color: var(--text-main);">Reset Successful!</h3>
+                <h3 class="success-title">Reset Successful!</h3>
                 <p class="subtitle">Your password has been changed. You can now log in.</p>
                 <button class="btn-premium btn-submit" onclick="window.location.href='<?= ROOT ?>/login'">
                     <span>Proceed to Login</span>
@@ -316,11 +276,13 @@
             var hint = document.getElementById("newPasswordH");
             var value = pw.value;
             var bars = ["fsb1", "fsb2", "fsb3", "fsb4"].map(id => document.getElementById(id));
-            bars.forEach(bar => bar.style.backgroundColor = "#e2e8f0");
+            
+            // Reset state
+            bars.forEach(bar => { bar.className = 'sbar'; });
+            hint.className = 'hint';
             
             if (!value) {
                 hint.textContent = "Must include uppercase, lowercase, number and special character";
-                hint.style.color = "var(--text-muted)";
                 return;
             }
             var missing = [];
@@ -330,17 +292,18 @@
             if (!/[^A-Za-z0-9]/.test(value)) missing.push("symbol");
             
             var score = 4 - missing.length;
-            var color = score <= 1 ? "#ef4444" : score <= 2 ? "#f59e0b" : "#10b981";
+            var stateClass = score <= 1 ? "weak" : score <= 2 ? "medium" : "strong";
             
             for (var i = 0; i < score; i += 1) {
-                bars[i].style.backgroundColor = color;
+                bars[i].classList.add(stateClass);
             }
+            
             if (score === 4) {
                 hint.textContent = "Strong password";
-                hint.style.color = "#10b981";
+                hint.classList.add('success');
             } else {
                 hint.textContent = "Missing: " + missing.join(", ");
-                hint.style.color = "#ef4444";
+                hint.classList.add('error');
             }
         }
 

@@ -1,135 +1,275 @@
 <?php if (!$submission): ?>
-    <div class="cp-alert cp-alert--danger">Submission record not found.</div>
+    <div class="cp-empty">
+        <i class="fas fa-search cp-empty__icon"></i>
+        <h3 class="dr-empty-title">Submission Not Found</h3>
+        <p>The requested record could not be retrieved from the database.</p>
+    </div>
 <?php else: ?>
-    <div class="case-detail-section">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-            <div>
-                <span class="cp-status-badge cp-status-badge--<?= strtolower(str_replace('_', '-', $submission->document_status)) ?>">
-                    <?= htmlspecialchars(str_replace('_', ' ', $submission->document_status)) ?>
+    <!-- Premium Drawer Content -->
+    <div class="dr-content">
+        
+        <!-- Slimmed Premium Header -->
+        <div class="dr-header">
+            <div class="dr-header__inner">
+                <div class="dr-header__top">
+                    <span class="dr-tag">
+                        Case #<?= htmlspecialchars($submission->case_number) ?>
+                    </span>
+                    <span class="cp-status-badge dr-status-badge">
+                        <i class="fas fa-clock mr-1"></i> <?= htmlspecialchars(str_replace('_', ' ', $submission->document_status)) ?>
+                    </span>
+                </div>
+                <h3>Document Bundle Review</h3>
+                <p>Verify legal and medical paperwork for the deceased donor.</p>
+            </div>
+        </div>
+
+        <!-- Compact Donor Info -->
+        <div class="dr-card">
+            <div class="dr-section-title">
+                <i class="fas fa-id-card-alt"></i>
+                <span>Donor Information</span>
+            </div>
+            <div class="dr-grid dr-grid--1-5">
+                <div class="dr-label-group">
+                    <label class="dr-label">Name</label>
+                    <div class="dr-value"><?= htmlspecialchars($submission->first_name . ' ' . $submission->last_name) ?></div>
+                </div>
+                <div class="dr-label-group">
+                    <label class="dr-label">NIC</label>
+                    <div class="dr-value dr-value--sub"><?= htmlspecialchars($submission->nic_number) ?></div>
+                </div>
+            </div>
+            <div class="dr-grid dr-grid--2 mt-1">
+                <div class="dr-value dr-value--small"><span class="dr-label">Nationality</span> <?= htmlspecialchars($submission->nationality ?? 'Sri Lankan') ?></div>
+                <div class="dr-value dr-value--small"><span class="dr-label">Age</span> <?= $submission->date_of_birth ? floor((time() - strtotime($submission->date_of_birth)) / 31556926) : 'N/A' ?> Years</div>
+            </div>
+            <div class="dr-grid dr-grid--2 dr-divider">
+                <div class="dr-value dr-value--small"><span class="dr-label">Date of Death</span> <?= $submission->date_of_death ? date('d M, Y', strtotime($submission->date_of_death)) : 'N/A' ?></div>
+                <div class="dr-value dr-value--small"><span class="dr-label">Submission Date</span> <?= date('d M, Y', strtotime($submission->submission_date ?? $submission->created_at)) ?></div>
+            </div>
+        </div>
+
+        <!-- Family Custodians Section (Compact Style) -->
+        <div class="dr-card dr-card--blue">
+            <div class="dr-section-title">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Family Custodians</span>
+                </div>
+                <span class="dr-count-badge">
+                    <?= count($custodians) ?>
                 </span>
             </div>
-            <div style="font-size: 0.8125rem; color: var(--g500);">Case #<?= htmlspecialchars($submission->case_number) ?></div>
-        </div>
 
-        <h4 style="margin-bottom: 1rem; color: var(--g800); border-bottom: 1px solid var(--g200); padding-bottom: 0.5rem;">
-            Donor Identification
-        </h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-            <div>
-                <div style="font-size: 0.75rem; color: var(--g500);">Full Name</div>
-                <div style="font-weight: 500; font-size: 1.1rem;"><?= htmlspecialchars($submission->first_name . ' ' . $submission->last_name) ?></div>
-            </div>
-            <div>
-                <div style="font-size: 0.75rem; color: var(--g500);">Date of Birth</div>
-                <div style="font-weight: 500;"><?= $submission->date_of_birth ? date('M d, Y', strtotime($submission->date_of_birth)) : 'N/A' ?></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="case-detail-section" style="margin-top: 2rem;">
-        <h4 style="margin-bottom: 1rem; color: var(--g800); border-bottom: 1px solid var(--g200); padding-bottom: 0.5rem;">
-            Document Bundle (Pathology Requirements)
-        </h4>
-        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2.5rem;">
-            <?php if (empty($documents)): ?>
-                <div class="cp-alert cp-alert--info">No documents have been uploaded yet.</div>
-            <?php else: ?>
-                <?php foreach ($documents as $doc): ?>
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #fff; border: 1px solid var(--g200); border-radius: 8px;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <div style="width: 40px; hieght: 40px; display: flex; align-items: center; justify-content: center; background: var(--blue-50); color: var(--blue-600); border-radius: 6px; font-size: 1.25rem;">
-                                <i class="fas fa-file-pdf"></i>
+            <div class="dr-item-list">
+                <?php foreach ($custodians as $c): ?>
+                    <div class="dr-item">
+                        <span class="dr-item-marker">#</span>
+                        
+                        <div class="dr-item__header">
+                            <?= htmlspecialchars($c->name ?? 'N/A') ?>
+                            <span class="dr-item__sub">(<?= htmlspecialchars($c->relationship ?? 'N/A') ?>)</span>
+                        </div>
+                        
+                        <div class="dr-grid dr-grid--1-5 dr-divider pt-2">
+                            <div>
+                                <label class="dr-label dr-label--xs">Phone</label>
+                                <div class="dr-value dr-value--accent">
+                                    <?= !empty($c->phone) ? htmlspecialchars($c->phone) : 'N/A' ?>
+                                </div>
                             </div>
                             <div>
-                                <div style="font-weight: 600; font-size: 0.875rem;"><?= htmlspecialchars(str_replace('_', ' ', $doc->document_type)) ?></div>
-                                <div style="font-size: 0.75rem; color: var(--g500);">Uploaded on <?= date('M d, Y H:i', strtotime($doc->uploaded_at)) ?></div>
+                                <label class="dr-label dr-label--xs">Email</label>
+                                <div class="dr-value dr-value--small break-all">
+                                    <?= !empty($c->email) ? htmlspecialchars($c->email) : 'N/A' ?>
+                                </div>
                             </div>
                         </div>
-                        <a href="<?= ROOT ?>/<?= $doc->file_path ?>" target="_blank" class="cp-btn cp-btn--secondary cp-btn--sm">
-                            <i class="fas fa-eye"></i> View
-                        </a>
                     </div>
                 <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Slim Document List -->
+        <div class="mb-4">
+            <div class="flex items-center justify-between mb-2 px-1">
+                <h4 class="dr-heading-sm">
+                    <i class="fas fa-layer-group text-blue-500 mr-1"></i> Submission Bundle
+                </h4>
+            </div>
+            
+            <?php 
+            $bundleDoc = null;
+            $otherDocs = [];
+            foreach ($documents as $doc) {
+                $isBundle = (strpos(strtoupper($doc->document_type), 'BUNDLE') !== false);
+                if ($isBundle) {
+                    if (!$bundleDoc) {
+                        $bundleDoc = $doc; 
+                    }
+                } elseif (!empty($doc->file_path)) {
+                    $otherDocs[] = $doc;
+                }
+            }
+            ?>
+
+            <?php if (!$bundleDoc && empty($otherDocs)): ?>
+                <div class="dr-empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p class="dr-empty-state__title">No Valid Submission Files Found</p>
+                    <p class="dr-empty-state__sub">Wait for the custodian to upload the consolidated bundle.</p>
+                </div>
+            <?php else: ?>
+                <div class="dr-item-list">
+                    
+                    <!-- HIGH-PRIORITY BUNDLE ITEM -->
+                    <?php if ($bundleDoc): ?>
+                        <div class="dr-bundle-card">
+                            <span class="dr-tag dr-tag--primary">Primary Submission</span>
+                            <div class="flex items-center gap-4">
+                                <div class="dr-icon-box dr-icon-box--blue">
+                                    <i class="fas fa-file-archive"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h5 class="dr-bundle-title">CONSOLIDATED BUNDLE</h5>
+                                    <div class="dr-bundle-meta">
+                                        <i class="fas fa-calendar-alt mr-1"></i> Uploaded: <?= date('M d, Y • h:i A', strtotime($bundleDoc->uploaded_at)) ?>
+                                    </div>
+                                </div>
+                                <a href="<?= ROOT ?>/public/<?= $bundleDoc->file_path ?>" target="_blank" class="cp-btn cp-btn--primary dr-btn-elevated">
+                                    <i class="fas fa-download mr-2"></i> OPEN BUNDLE
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- OTHER SUPPLEMENTAL FILES -->
+                    <?php foreach ($otherDocs as $doc): ?>
+                        <div class="dr-doc-card-slim opacity-70">
+                            <div class="dr-icon-box dr-icon-box--sm">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="dr-doc-type"><?= htmlspecialchars(str_replace('_', ' ', $doc->document_type)) ?></div>
+                                <div class="dr-doc-meta"><?= date('M d • h:i A', strtotime($doc->uploaded_at)) ?></div>
+                            </div>
+                            <a href="<?= ROOT ?>/public/<?= $doc->file_path ?>" target="_blank" class="cp-btn cp-btn--outline dr-btn-xs">
+                                VIEW
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         </div>
+
+        <!-- Workflow Actions Area -->
+        <?php if ($submission->document_status === 'PENDING_REVIEW'): ?>
+            <div class="dr-workflow-box">
+                <div class="dr-tabs">
+                    <button type="button" 
+                            onclick="toggleWorkflowAction('approve')" 
+                            id="accBtn"
+                            class="dr-tab-btn dr-tab-btn--success active">
+                        APPROVE
+                    </button>
+                    <button type="button" 
+                            onclick="toggleWorkflowAction('reject')" 
+                            id="rejBtn"
+                            class="dr-tab-btn dr-tab-btn--danger">
+                        REJECT
+                    </button>
+                </div>
+
+                <!-- Accept Form Section -->
+                <div id="acceptArea" class="dr-workflow-action active">
+                    <form action="<?= ROOT ?>/medical-school/submissions/accept" method="POST">
+                        <input type="hidden" name="submission_id" value="<?= $submission->cis_id ?>">
+                        
+                        <div class="dr-form-area dr-form-area--success">
+                            <div class="dr-grid dr-grid--2 mb-4">
+                                <div>
+                                    <label class="dr-slim-label">Handover Date</label>
+                                    <input type="date" name="handover_date" value="<?= date('Y-m-d') ?>" min="<?= date('Y-m-d') ?>" class="dr-slim-input" required>
+                                </div>
+                                <div>
+                                    <label class="dr-slim-label">Arrival Time</label>
+                                    <input type="time" name="handover_time" class="dr-slim-input" required>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="dr-slim-label">Special Instructions</label>
+                                <textarea name="handover_message" class="dr-slim-textarea" placeholder="E.g. Use East Gate..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="cp-btn cp-btn--success dr-btn-full">
+                            FINALIZE APPROVAL
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Reject Form Section -->
+                <div id="rejectArea" class="dr-workflow-action">
+                    <form action="<?= ROOT ?>/medical-school/submissions/reject" method="POST">
+                        <input type="hidden" name="submission_id" value="<?= $submission->cis_id ?>">
+                        
+                        <div class="dr-form-area dr-form-area--danger">
+                            <div class="mb-4">
+                                <label class="dr-slim-label">Rejection Reason</label>
+                                <select name="rejection_reason_code" class="dr-slim-input" required onchange="document.getElementById('slimDocCheck').style.display = (this.value === 'DOCS_MISSING') ? 'block' : 'none';">
+                                    <option value="">-- Choose --</option>
+                                    <option value="DOCS_MISSING">Docs Missing</option>
+                                    <option value="DOCS_INVALID">Invalid Docs</option>
+                                    <option value="DOCS_UNREADABLE">Unreadable</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <div id="slimDocCheck" class="dr-doc-checklist">
+                                <div class="dr-grid dr-grid--1 gap-1">
+                                    <?php foreach (["Death Cert", "Medical Cert", "Custodian NIC", "Affidavit", "Cadaver Sheet"] as $docName): ?>
+                                        <label class="dr-check-label">
+                                            <input type="checkbox" name="missing_docs[]" value="<?= $docName ?>"> <?= $docName ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="dr-slim-label">Notes</label>
+                                <textarea name="reason_other" class="dr-slim-textarea h-60" placeholder="Details..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="cp-btn cp-btn--danger dr-btn-full">
+                            CONFIRM REJECTION
+                        </button>
+                    </form>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
-    <?php if ($submission->document_status === 'PENDING_REVIEW'): ?>
-        <div class="case-detail-section" style="padding-top: 1.5rem; border-top: 1px solid var(--g200);">
-            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                <form action="<?= ROOT ?>/medical-school/submissions/accept" method="POST" style="flex: 1;">
-                    <input type="hidden" name="submission_id" value="<?= $submission->id ?>">
-                    <button type="submit" class="cp-btn cp-btn--success" style="width: 100%;">
-                        <i class="fas fa-check-circle"></i> Accept Document Bundle
-                    </button>
-                    <p style="font-size: 0.6875rem; color: var(--g500); margin-top: 6px; text-align: center;">Moves case to final physical exam stage.</p>
-                </form>
+    <script>
+        function toggleWorkflowAction(action) {
+            const accArea = document.getElementById('acceptArea');
+            const rejArea = document.getElementById('rejectArea');
+            const accBtn = document.getElementById('accBtn');
+            const rejBtn = document.getElementById('rejBtn');
 
-                <button class="cp-btn cp-btn--warning" style="flex: 1;" onclick="document.getElementById('requestMoreArea').classList.toggle('cp-hidden')">
-                    <i class="fas fa-reply-all"></i> Need More Docs
-                </button>
-            </div>
-
-            <button class="cp-btn cp-btn--danger cp-btn--sm" style="width: 100%;" onclick="document.getElementById('rejectSubmissionArea').classList.toggle('cp-hidden')">
-                <i class="fas fa-ban"></i> Final Bundle Rejection
-            </button>
-
-            <!-- Need More Docs Logic -->
-            <div id="requestMoreArea" class="cp-hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: var(--warning-50); border-radius: 8px; border: 1px solid var(--warning-200);">
-                <form action="<?= ROOT ?>/medical-school/submissions/request-documents" method="POST">
-                    <input type="hidden" name="submission_id" value="<?= $submission->id ?>">
-                    
-                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--warning-900);">Missing / Incorrect Document:</label>
-                    <select name="reason_type" class="cp-form-control" style="width: 100%; margin-bottom: 1rem; border-color: var(--warning-300);" required onchange="if(this.value==='Other'){document.getElementById('otherDocReason').style.display='block';}else{document.getElementById('otherDocReason').style.display='none';}">
-                        <option value="">-- Select Document Issue --</option>
-                        <option value="Missing Death Certificate">Missing Death Certificate</option>
-                        <option value="Incorrect/Unclear ID Copy">Incorrect/Unclear ID Copy</option>
-                        <option value="Missing Sworn Statement">Missing Sworn Statement</option>
-                        <option value="Missing Cause of Death Report">Missing Cause of Death Report</option>
-                        <option value="Missing Cadaver Data Sheet">Missing Cadaver Data Sheet</option>
-                        <option value="Missing Embalming Certificate">Missing Embalming Certificate</option>
-                        <option value="Missing Police/Inquest Report">Missing Police/Inquest Report</option>
-                        <option value="Missing PCR Report">Missing PCR Report</option>
-                        <option value="Corrupted File / Cannot Open">Corrupted File / Cannot Open</option>
-                        <option value="Other">Other (Specify Below)</option>
-                    </select>
-
-                    <div id="otherDocReason" style="display: none;">
-                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--warning-900);">Additional Instructions:</label>
-                        <textarea name="reason" class="cp-textarea" style="width: 100%; height: 80px; margin-bottom: 1rem; border-color: var(--warning-300);" placeholder="Specify what is missing or needs correction..."></textarea>
-                    </div>
-
-                    <button type="submit" class="cp-btn cp-btn--warning" style="width: 100%;">Send Correction Request</button>
-                </form>
-            </div>
-
-            <!-- Full Reject Logic -->
-            <div id="rejectSubmissionArea" class="cp-hidden" style="margin-top: 1.5rem; padding: 1.5rem; background: var(--red-50); border-radius: 8px; border: 1px solid var(--red-100);">
-                <form action="<?= ROOT ?>/medical-school/submissions/reject" method="POST">
-                    <input type="hidden" name="submission_id" value="<?= $submission->cis_id ?>">
-                    
-                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--red-900);">Final Rejection Reason:</label>
-                    <select name="reason_type" class="cp-form-control" style="width: 100%; margin-bottom: 1rem; border-color: var(--red-200);" required onchange="if(this.value==='Other'){document.getElementById('rejectOtherArea').style.display='block';}else{document.getElementById('rejectOtherArea').style.display='none';}">
-                        <option value="">-- Select Rejection Reason --</option>
-                        <option value="Medical History Incompatibility">Medical History Incompatibility</option>
-                        <option value="Severe Physical Damage">Severe Physical Damage</option>
-                        <option value="Unmet Legal Requirements">Unmet Legal Requirements</option>
-                        <option value="Institution Capacity Reached">Institution Capacity Reached</option>
-                        <option value="Other">Other (Specify Below)</option>
-                    </select>
-
-                    <div id="rejectOtherArea" style="display: none;">
-                        <textarea name="reason" class="cp-textarea" style="width: 100%; height: 80px; margin-bottom: 1rem; border-color: var(--red-200);" placeholder="Provide detailed reason..."></textarea>
-                    </div>
-
-                    <button type="submit" class="cp-btn cp-btn--danger" style="width: 100%;">Confirm Permanent Rejection</button>
-                </form>
-            </div>
-
-        </div>
-    <?php endif; ?>
-
-    <style>
-        .cp-hidden { display: none; }
-    </style>
+            if (action === 'approve') {
+                accArea.classList.add('active');
+                rejArea.classList.remove('active');
+                accBtn.classList.add('active');
+                rejBtn.classList.remove('active');
+            } else {
+                rejArea.classList.add('active');
+                accArea.classList.remove('active');
+                rejBtn.classList.add('active');
+                accBtn.classList.remove('active');
+            }
+        }
+    </script>
 <?php endif; ?>

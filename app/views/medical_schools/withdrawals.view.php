@@ -17,12 +17,12 @@ ob_start();
             <i class="fas fa-user-times"></i> Withdrawal Notices
         </h1>
         <p class="cp-content-header__subtitle">
-            Legal archive of donors who formally rescinded their body donation intent. These records are read-only.
+            Legal archive of donors who formally rescinded their body donation intent.
         </p>
     </div>
     <div class="cp-content-header__actions">
         <span class="cp-badge cp-badge--danger cp-badge--lg">
-            <i class="fas fa-lock"></i> Read-Only Archive
+            <i class="fas fa-lock cp-mr-2"></i> Read-Only Legal Archive
         </span>
     </div>
 </div>
