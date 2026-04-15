@@ -180,7 +180,7 @@ class Donor {
         $districts = $this->getDistricts();
 
         // Fetch Financial Donation Stats for Overview
-        $financialModel = new \App\Models\FinancialDonationModel();
+        $financialModel = new \App\Models\admin\FinancialDonationModel();
         $totalFinancial = $financialModel->getTotalDonatedAmount($donorData['user_id']);
 
         $this->view('donor/index', [
