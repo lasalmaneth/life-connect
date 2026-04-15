@@ -174,30 +174,6 @@ include __DIR__ . '/inc/sidebar.view.php';
                             </span>
                             <label>Total Pledges</label>
                         </div>
-                        <style>
-                            @keyframes pulse {
-                                0% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0.7); }
-                                70% { transform: scale(1.2); opacity: 0.4; box-shadow: 0 0 0 6px rgba(255,255,255,0); }
-                                100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
-                            }
-                        </style>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (($stats['total'] ?? 0) > 0): ?>
-                    <div style="margin: 0.5rem 0 1rem; padding: 0 1.5rem;">
-                        <button class="d-btn d-btn--primary d-btn--sm" style="width:100%; border-radius:10px;" onclick="window.location.href='<?=ROOT?>/donor/documents'">
-                            <i class="fas fa-id-card"></i> Digital ID Card
-                        </button>
-                    </div>
-                    <?php endif; ?>
-
-                    <div class="d-stats-mini-grid" style="grid-template-columns: 1fr;">
-                        <div class="d-stat-mini-card">
-                            <i class="fas fa-hand-holding-heart"></i>
-                            <span><?= count($pledged_organs ?? []) ?></span>
-                            <label>Total Pledges</label>
-                        </div>
                     </div>
                 </div>
 
