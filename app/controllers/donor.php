@@ -4,10 +4,28 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use App\Models\FinancialDonationModel;
+use App\Models\admin\FinancialDonationModel;
 
 class Donor {
     use Controller, Database;
+
+    private function ensureSupportRequestsAmountColumn(): void
+    {
+        static $done = false;
+        if ($done) return;
+
+        try {
+            $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
+            if (empty($res)) {
+                $con = $this->connect();
+                $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+            }
+        } catch (\Throwable $e) {
+            // Ignore migration errors; downstream query will surface failure if truly blocking.
+        }
+
+        $done = true;
+    }
 
     private function usersHasAftercareAccessColumn(): bool
     {
@@ -57,6 +75,7 @@ class Donor {
         $donorId = $this->getDonorId();
         $donorModel = new \App\Models\DonorModel();
         
+
         $donorData = $donorModel->getDonorById($donorId);
         $donorData = json_decode(json_encode($donorData), true);
 
@@ -68,6 +87,14 @@ class Donor {
                 [':uid' => (int)$_SESSION['user_id']]
             );
             $donorData['aftercare_access'] = !empty($userRow) ? (int)($userRow[0]->aftercare_access ?? 0) : 0;
+        } else if (!$this->usersHasAftercareAccessColumn()) {
+            // Create the column if it doesn't exist
+            try {
+                $con = $this->connect();
+                $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
+            } catch (\Throwable $e) {
+                // Column might already exist from MySQL perspective
+            }
         }
 
         $donorFullName = htmlspecialchars(($donorData['first_name'] ?? '') . ' ' . ($donorData['last_name'] ?? ''));
@@ -114,6 +141,11 @@ class Donor {
         // Harmonize data format to associative arrays for view compatibility
         $notifications = json_decode(json_encode($notifications), true) ?: [];
 
+        // ── Organ-specific re-donation eligibility check ─────────────────
+        // Reads from donation_medical_history and applies business rules:
+        // Kidney=permanent block, Bone Marrow=6 months, Liver=12 months
+        $eligibility = $donorModel->getDonationEligibility($donorId);
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -126,7 +158,8 @@ class Donor {
             'stats' => $stats,
             'unreadCount' => $unreadCount,
             'unread_count' => $unreadCount, // Added for dual-naming compatibility
-            'notifications' => $notifications
+            'notifications' => $notifications,
+            'eligibility' => $eligibility  // Re-donation eligibility rules
         ];
     }
 
@@ -151,6 +184,7 @@ class Donor {
         // Check if first login (no roles selected yet)
         $isFirstLogin = empty($activeRoles);
 
+
         $donorModel = new \App\Models\DonorModel();
         $donorStats = $donorModel->getDonorStats($donorId);
         $pledgedOrgans = $donorModel->getPledgedOrgans($donorId);
@@ -163,6 +197,7 @@ class Donor {
 
         $notificationModel = new \App\Models\NotificationModel();
         $notifications = $notificationModel->getNotificationsForUser($donorData['user_id'], 5);
+        $notifications = json_decode(json_encode($notifications), true) ?: []; // convert stdClass → array
         
         // NEW: Fetch medical investigations for dashboard
         $investigationModel = new \App\Models\UpcomingAppointmentModel();
@@ -175,6 +210,10 @@ class Donor {
         $latest_health = !empty($test_results) ? $test_results[0] : null;
 
         $districts = $this->getDistricts();
+
+        // Fetch Financial Donation Stats for Overview
+        $financialModel = new \App\Models\admin\FinancialDonationModel();
+        $totalFinancial = $financialModel->getTotalDonatedAmount($donorData['user_id']);
 
         $this->view('donor/index', [
             'donor_data' => $donorData,
@@ -192,6 +231,8 @@ class Donor {
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
             'withdrawal' => $common['withdrawal'],
+            'eligibility' => $common['eligibility'],  // Re-donation eligibility
+            'total_financial' => $totalFinancial,
             'active_page' => 'overview',
             'page_title' => 'Overview',
             'page_css' => [],
@@ -296,44 +337,52 @@ class Donor {
             exit;
         }
 
-        $roles = $_POST['roles'] ?? [];
-        if (!is_array($roles)) $roles = [$roles];
+        try {
+            $roles = $_POST['roles'] ?? [];
+            if (!is_array($roles)) $roles = [$roles];
 
-        $donorId = $this->getDonorId();
-        $donorModel = new \App\Models\DonorModel();
+            $donorId = $this->getDonorId();
+            $donorModel = new \App\Models\DonorModel();
 
-        // Enforce role exclusivity and consent requirements
-        $isNonDonorRequested = in_array('non', $roles);
-        $isOrganDonorRequested = in_array('organ', $roles);
+            // Enforce role exclusivity and consent requirements
+            $isNonDonorRequested = in_array('non', $roles);
+            $isOrganDonorRequested = in_array('organ', $roles);
 
-        if ($isNonDonorRequested && !$isOrganDonorRequested) {
-            // If switching to Non-Donor, ensure Organ role is removed
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
-        }
-
-        // Check if Organ Donor role is being removed
-        $currentRoles = $donorModel->getActiveRoles($donorId);
-        $wasOrganDonor = in_array('organ', $currentRoles);
-        $isOrganDonorNow = in_array('organ', $roles);
-
-        if ($wasOrganDonor && !$isOrganDonorNow) {
-            $summary = $donorModel->getPledgeSummary($donorId);
-            if ($summary['total'] > 0) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
-                ]);
-                exit;
+            if ($isNonDonorRequested && !$isOrganDonorRequested) {
+                // If switching to Non-Donor, ensure Organ role is removed
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'organ'));
             }
-        } else if ($isOrganDonorRequested) {
-            // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
-            $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
-        }
-        
-        if ($donorModel->updateActiveRoles($donorId, $roles)) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Failed to update roles']);
+
+            // Check if Organ Donor role is being removed
+            $currentRoles = $donorModel->getActiveRoles($donorId);
+            $wasOrganDonor = in_array('organ', $currentRoles);
+            $isOrganDonorNow = in_array('organ', $roles);
+
+            if ($wasOrganDonor && !$isOrganDonorNow) {
+                $summary = $donorModel->getPledgeSummary($donorId);
+                if ($summary['total'] > 0) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'You have active donation pledges. Please formally withdraw all pledges via the donations page before removing the Organ Donor role.'
+                    ]);
+                    exit;
+                }
+            } else if ($isOrganDonorRequested) {
+                // If Organ Donor is requested, ensure 'non' is removed (Exclusivity)
+                $roles = array_values(array_filter($roles, fn($r) => $r !== 'non'));
+            }
+            
+            if ($donorModel->updateActiveRoles($donorId, $roles)) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update roles in database']);
+            }
+        } catch (\Throwable $e) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'A system error occurred while updating roles.',
+                'debug' => $e->getMessage() // Helpful for developers, can be removed in production
+            ]);
         }
         exit;
     }
@@ -363,6 +412,31 @@ class Donor {
             $message = "";
 
             if ($action === 'select_organ' || $action === 'submit_living_pledge') {
+                // ── Eligibility gate: block pledge if donor is in recovery ────
+                $eligibility = $common['eligibility'];
+                if ($eligibility['is_in_recovery']) {
+                    // Build a clear block message
+                    $blockMsg = 'Your donation request was blocked due to recovery rules. ';
+                    if (!empty($eligibility['permanent_blocks'])) {
+                        $blockMsg .= 'Permanently blocked from re-donating: '
+                                   . implode(', ', $eligibility['permanent_blocks']) . '. ';
+                    }
+                    if (!empty($eligibility['blocked_organs'])) {
+                        foreach ($eligibility['blocked_organs'] as $b) {
+                            $blockMsg .= $b['organ'] . ' is blocked until '
+                                       . date('d M Y', strtotime($b['eligible_on']))
+                                       . ' (' . $b['days_remaining'] . ' day(s) remaining). ';
+                        }
+                    }
+                    if (!empty($eligibility['restricted'])) {
+                        $blockMsg .= 'Restricted combinations require doctor approval: '
+                                   . implode('; ', $eligibility['restricted']) . '.';
+                    }
+                    $_SESSION['error_message'] = trim($blockMsg);
+                    redirect('donor/donations');
+                }
+                // ── End eligibility gate ──────────────────────────────────────
+
                 // Support multiple formats: organ_ids[] (checkboxes), organ_id (living modal), or id (legacy)
                 $organIdsInput = $_POST['organ_ids'] ?? $_POST['organ_id'] ?? $_POST['id'] ?? [];
                 $organIdsInput = is_array($organIdsInput) ? array_map('intval', $organIdsInput) : [(int)$organIdsInput];
@@ -727,14 +801,27 @@ class Donor {
         $existingPledges = $donorModel->getPledgedOrgans($donorId);
         $pledgedOrganIds = array_column($existingPledges, 'organ_id');
         
-        // Filter out organs that are already pledged and not withdrawn
-        $filteredOrgans = array_filter($allOrgansRaw, function($o) use ($pledgedOrganIds) {
-            return !in_array($o->id, $pledgedOrganIds);
-        });
+        // Build the list of organ IDs already pledged and still "occupied"
         
-        $allOrgans = json_decode(json_encode($filteredOrgans), true);
-        $pledgedOrgans = $donorModel->getPledgedOrgans($donorId);
-        $pledgedIds = array_column($pledgedOrgans, 'organ_id');
+        // Get recovery data from medical history (manually entered)
+        $activeRecoveries = $donorModel->getActiveRecoveries($donorId);
+        $recoveryMap = [];
+        foreach ($activeRecoveries as $rec) {
+            $recoveryMap[$rec->organ_id] = $rec->next_eligible_date;
+        }
+
+        // Identify organs occupied by ACTIVE pledges (not Completed/Withdrawn)
+        // Note: getPledgedOrgans already filters out COMPLETED now.
+        $pledgedOrgansRaw = $donorModel->getPledgedOrgans($donorId);
+        $pledgedOrgans = json_decode(json_encode($pledgedOrgansRaw), true);
+        $activePledges = array_column($pledgedOrgans, 'organ_id');
+
+        // Build the filtered list of available organs (not occupied by active pledges)
+        $availableOrgansRaw = array_filter($allOrgansRaw, function($o) use ($activePledges) {
+            return !in_array($o->id, $activePledges);
+        });
+        $allOrgans = json_decode(json_encode($availableOrgansRaw), true);
+
 
         $availableLiving     = [];
         $availableAfterDeath = [];
@@ -746,15 +833,16 @@ class Donor {
 
         foreach ($allOrgans as $organ) {
             $icon = $this->getOrganIcon($organ['name']);
+            $isSuspended = isset($recoveryMap[$organ['id']]);
             $item = [
-                'organ_id'      => $organ['id'],
-                'organ_name'    => $organ['name'],
-                'organ_icon'    => $icon,
-                'description'   => $organ['description'] ?? '',
+                'organ_id'           => $organ['id'],
+                'organ_name'         => $organ['name'],
+                'organ_icon'         => $icon,
+                'description'        => $organ['description'] ?? '',
+                'is_suspended'       => $isSuspended,
+                'next_eligible_date' => $recoveryMap[$organ['id']] ?? null,
             ];
 
-            if (in_array($organ['id'], $pledgedIds)) continue;
-            
             if (stripos($item['description'], 'living donor') !== false) {
                 $availableLiving[] = $item;
             } elseif (stripos($item['description'], 'educational') !== false) {
@@ -867,12 +955,45 @@ class Donor {
         $currentMode = $common['currentMode'];
 
         $appointmentModel = new \App\Models\UpcomingAppointmentModel();
+        $donorModel = new \App\Models\DonorModel();
 
         // All appointments (history + upcoming) for the list/calendar
         $all_appointments  = $appointmentModel->getAppointmentsByDonorId($donorId) ?: [];
 
         // Only future-dated appointments for the "Upcoming" panel
         $upcoming_appointments = $appointmentModel->getUpcomingByDonorId($donorId);
+
+        // Get requested aftercare appointments and add them to upcoming appointments
+        $nicNumber = $donorData->nic_number ?? null;
+        if ($nicNumber) {
+            $requested_aftercare = $donorModel->getRequestedAftercareAppointments($nicNumber) ?: [];
+            
+            // Normalize aftercare appointments to match the structure of upcoming appointments
+            foreach ($requested_aftercare as $apt) {
+                // Normalize ID field for aftercare appointments
+                if (!isset($apt->id) && isset($apt->appointment_id)) {
+                    $apt->id = $apt->appointment_id;
+                }
+                // Convert appointment_date to test_date format for compatibility with view
+                if (!isset($apt->test_date)) {
+                    $apt->test_date = $apt->appointment_date ?? date('Y-m-d');
+                }
+                // Ensure status is set to "Requested"
+                $apt->status = 'Requested';
+                // Add appointment type if not already set
+                if (!isset($apt->test_type) && isset($apt->appointment_type)) {
+                    $apt->test_type = $apt->appointment_type;
+                }
+                $upcoming_appointments[] = $apt;
+            }
+            
+            // Sort by test_date (appointment_date)
+            usort($upcoming_appointments, function($a, $b) {
+                $dateA = strtotime($a->test_date ?? $a->appointment_date ?? '0');
+                $dateB = strtotime($b->test_date ?? $b->appointment_date ?? '0');
+                return $dateA <=> $dateB;
+            });
+        }
 
         $this->view('donor/appointments', [
             'donor_data'            => $donorData,
@@ -1317,6 +1438,7 @@ class Donor {
         $medicalSchools = $medicalSchoolModel->getAllApprovedMedicalSchools();
         $bodyUsageStatus = $donorModel->getBodyUsageStatus($donorId);
         $uploadedPledges = $organModel->getUploadedPledges($donorId);
+        $completedPledges = $organModel->getCompletedPledges($donorId);
         $districts = $this->getDistricts();
 
         $this->view('donor/documents', [
@@ -1330,8 +1452,10 @@ class Donor {
             'medical_schools' => $medicalSchools,
             'body_usage_status' => $bodyUsageStatus,
             'uploaded_pledges' => $uploadedPledges,
+            'completed_pledges' => $completedPledges,
             'districts' => $districts,
             'withdrawal' => $common['withdrawal'],
+            'stats'      => $common['stats'],
             'active_page' => 'documents',
             'page_title' => 'Documents',
             'page_css' => ['document.css'],
@@ -1348,13 +1472,36 @@ class Donor {
         $type = $_GET['type'] ?? '';
         
         if ($type === 'body_donation_consent') {
-            // PDF generation disabled (no external libraries allowed).
             // Render a printable HTML version instead.
             $this->downloadConsentPDF($donorId);
         } else if ($type === 'donor_card') {
+            // Restrict download to active pledgers
+            $donorModel = new \App\Models\DonorModel();
+            $stats = $donorModel->getPledgeSummary($donorId);
+            if (($stats['total'] ?? 0) <= 0) {
+                $_SESSION['error_message'] = "Access Denied: You must have at least one active pledge to download the Digital ID Card.";
+                redirect('donor/donations');
+            }
             $this->viewDigitalCard();
+        } else if ($type === 'certificate') {
+            $pledgeId = (int)($_GET['pledge_id'] ?? 0);
+            if ($pledgeId > 0) {
+                $this->viewCertificate($pledgeId);
+            } else {
+                $_SESSION['error_message'] = "Missing Pledge ID for certificate download.";
+                redirect('donor/documents');
+            }
+        } else if ($type === 'financial_certificate') {
+            $donationId = (int)($_GET['id'] ?? 0);
+            if ($donationId > 0) {
+                $this->viewFinancialCertificate($donationId);
+            } else {
+                $_SESSION['error_message'] = "Missing Donation ID for certificate.";
+                redirect('donor/financial-history');
+            }
+        } else if ($type === 'total_financial_certificate') {
+            $this->viewTotalFinancialCertificate();
         } else if ($type === 'lab_report') {
-            // Lab report download logic if implemented
             $this->redirect('donor/test-results');
         }
         exit;
@@ -1413,6 +1560,17 @@ class Donor {
         $hospitalModel = new \App\Models\HospitalModel();
         $approvedHospitals = $hospitalModel->getAllHospitals() ?: [];
 
+        // Default hospital: last used in a support request, otherwise latest appointment
+        $defaultHospitalRegNo = '';
+        if (!empty($supportRequests)) {
+            $defaultHospitalRegNo = trim((string)($supportRequests[0]->hospital_registration_no ?? ''));
+        }
+        if ($defaultHospitalRegNo === '' && !empty($appointments)) {
+            // appointments are ordered ASC, so the last entry is the latest
+            $last = $appointments[count($appointments) - 1] ?? null;
+            $defaultHospitalRegNo = trim((string)($last->hospital_registration_no ?? ''));
+        }
+
         $this->view('donor/aftercare', [
             'donor_data' => $donorData,
             'donor_full_name' => $donorFullName,
@@ -1422,6 +1580,8 @@ class Donor {
             'current_mode' => $currentMode,
             'appointments' => $appointments,
             'support_requests' => $supportRequests,
+            'hospitals' => $approvedHospitals,
+            'default_hospital_registration_no' => $defaultHospitalRegNo,
             'withdrawal' => $common['withdrawal'],
             'active_page' => 'aftercare',
             'page_title' => 'Aftercare Support',
@@ -1440,7 +1600,9 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
 
             $date = $_POST['appointment_date'] ?? '';
@@ -1483,10 +1645,16 @@ class Donor {
         }
 
         try {
-            [$donorId, $donorData, $donorFullName] = $this->getCommonData();
+            $this->ensureSupportRequestsAmountColumn();
+
+            $common = $this->getCommonData();
+            $donorData = $common['donorData'] ?? [];
+            $donorFullName = $common['donorFullName'] ?? '';
             $nic = $donorData['nic_number'] ?? '';
 
             $reason = $_POST['reason'] ?? '';
+            $amountRaw = trim((string)($_POST['amount'] ?? ''));
+            $amountRawNorm = str_replace([',', ' '], '', $amountRaw);
             $desc = $_POST['description'] ?? '';
             $hospitalRegistrationNo = $_POST['hospital_registration_no'] ?? '';
             $today = date('Y-m-d');
@@ -1496,14 +1664,29 @@ class Donor {
                 exit;
             }
 
+            $amount = null;
+            if ($amountRawNorm !== '') {
+                if (!is_numeric($amountRawNorm)) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amountNum = (float)$amountRawNorm;
+                if ($amountNum < 0) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                    exit;
+                }
+                $amount = number_format($amountNum, 2, '.', '');
+            }
+
             $this->query(
-                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, description, status, submitted_date) 
-                 VALUES (:nic, :name, 'DONOR', :host, :reason, :desc, 'PENDING', :today)",
+                "INSERT INTO support_requests (patient_nic, patient_name, patient_type, hospital_registration_no, reason, amount, description, status, submitted_date) 
+                 VALUES (:nic, :name, 'DONOR', :host, :reason, :amount, :desc, 'PENDING', :today)",
                 [
                     ':nic' => $nic,
                     ':name' => $donorFullName,
                     ':host' => $hospitalRegistrationNo,
                     ':reason' => $reason,
+                    ':amount' => $amount,
                     ':desc' => $desc,
                     ':today' => $today
                 ]
@@ -1751,6 +1934,13 @@ class Donor {
 
         $common = $this->getCommonData();
         $donorId = $common['donorId'];
+        
+        // Final backend security check: restrict to active pledgers
+        if (($common['stats']['total'] ?? 0) <= 0) {
+            $_SESSION['error_message'] = "Access Denied: You must have at least one active pledge to view the Digital ID Card.";
+            redirect('donor/donations');
+        }
+
         $donorData = $common['donorData'];
         $donorFullName = $common['donorFullName'];
         $donorIdDisplay = $common['donorIdDisplay'];
@@ -1765,6 +1955,116 @@ class Donor {
             'donor_role' => $donorRole,
             'active_roles' => $activeRoles,
             'current_mode' => $currentMode,
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Certificate of Appreciation as printable HTML
+     */
+    public function viewCertificate($pledgeId)
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $common = $this->getCommonData();
+        $donorId = $common['donorId'];
+        
+        $pledge = $this->query("SELECT dp.*, o.name as organ_name 
+                                FROM donor_pledges dp 
+                                JOIN organs o ON dp.organ_id = o.id 
+                                WHERE dp.id = :id AND dp.donor_id = :donor_id AND dp.status = 'COMPLETED'", 
+                                [':id' => $pledgeId, ':donor_id' => $donorId]);
+        
+        if (!$pledge) {
+            $_SESSION['error_message'] = "Certificate not found or pledge not completed.";
+            redirect('donor/documents');
+        }
+
+        $pledgeData = $pledge[0];
+        $donorData = $common['donorData'];
+        
+        $this->view('donor/certificate', [
+            'donor_data' => $donorData,
+            'donor_full_name' => $common['donorFullName'],
+            'pledge' => $pledgeData,
+            'donation_type' => 'organ',
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Financial Donation Certificate as printable HTML
+     */
+    public function viewFinancialCertificate($donationId)
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $common = $this->getCommonData();
+        
+        $donationModel = new \App\Models\admin\FinancialDonationModel();
+        $donation = $donationModel->getDonationById($donationId);
+
+        // Verification: Ensure the donation belongs to the logged-in user and is successful
+        if (!$donation || (int)$donation->user_id !== (int)$userId || $donation->status !== 'SUCCESS') {
+            $_SESSION['error_message'] = "Certificate not found or unauthorized access.";
+            redirect('donor/financial-history');
+        }
+
+        $this->view('donor/certificate', [
+            'donor_data' => $common['donorData'],
+            'donor_full_name' => $common['donorFullName'],
+            'donation' => $donation,
+            'donation_type' => 'financial',
+            'ROOT' => ROOT
+        ]);
+        exit;
+    }
+
+    /**
+     * View Cumulative Financial Donation Certificate (Total Contributed)
+     */
+    public function viewTotalFinancialCertificate()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $common = $this->getCommonData();
+        
+        $donationModel = new \App\Models\admin\FinancialDonationModel();
+        $history = $donationModel->getDonationsByDonorId($userId);
+
+        $totalAmount = 0;
+        if ($history) {
+            foreach ($history as $d) {
+                if ($d->status === 'SUCCESS' || $d->status === 'COMPLETED') {
+                    $totalAmount += (float)$d->amount;
+                }
+            }
+        }
+
+        if ($totalAmount <= 0) {
+            $_SESSION['error_message'] = "You haven't made any successful donations yet.";
+            redirect('donor/financial-history');
+        }
+
+        // We create a dummy donation object for the shared template
+        $donation = (object)[
+            'amount' => $totalAmount,
+            'created_at' => date('Y-m-d H:i:s'),
+            'id' => 0 // Special flag for total
+        ];
+
+        $this->view('donor/certificate', [
+            'donor_data' => $common['donorData'],
+            'donor_full_name' => $common['donorFullName'],
+            'donation' => $donation,
+            'donation_type' => 'total_financial',
             'ROOT' => ROOT
         ]);
         exit;

@@ -10,6 +10,10 @@ if (!$user_id) {
 }
 
 // Try to build basic names if not injected
+if (isset($donor_data) && is_object($donor_data)) {
+  $donor_data = (array)$donor_data;
+}
+
 if (!isset($donor_full_name) && isset($donor_data)) {
   $donor_full_name = htmlspecialchars(($donor_data['first_name'] ?? '') . ' ' . ($donor_data['last_name'] ?? ''));
 }
@@ -18,12 +22,23 @@ if (!isset($donor_id_display) && isset($donor_data)) {
   $donor_id_display = 'D_' . str_pad($did, 5, '0', STR_PAD_LEFT);
 }
 
+$donor_avatar_initial = 'D';
+if (isset($donor_data) && is_array($donor_data)) {
+  $firstName = (string)($donor_data['first_name'] ?? '');
+  if ($firstName !== '') {
+    $donor_avatar_initial = strtoupper(substr($firstName, 0, 1));
+  }
+}
+
 // Handle notification messages
 $success_message = $_SESSION['success_message'] ?? null;
 $error_message = $_SESSION['error_message'] ?? null;
 unset($_SESSION['success_message'], $_SESSION['error_message']);
 $donorModelForHeader = new \App\Models\DonorModel();
-$targetDonorIdForPledges = $donor_data['id'] ?? $donor_data['donor_id'] ?? $user_id;
+$targetDonorIdForPledges = $user_id;
+if (isset($donor_data) && is_array($donor_data)) {
+  $targetDonorIdForPledges = $donor_data['id'] ?? $donor_data['donor_id'] ?? $user_id;
+}
 $pledgeSummary = $donorModelForHeader->getPledgeSummary($targetDonorIdForPledges);
 $activePledgeCount = $pledgeSummary['total'];
 $finalizedPledgeCount = $pledgeSummary['finalized'];
@@ -80,13 +95,45 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
       <div class="header-right">
         <nav style="display: flex; align-items: center; gap: 1rem;">
           <a href="<?= ROOT ?>" class="nav-link"><i class="fas fa-home"></i> Home</a>
-        </nav>
-
-        <div class="notification-container">
-          <button class="notification-bell" id="notificationBell">
-            <i class="fas fa-bell"></i>
-            <?php if (isset($unread_count) && $unread_count > 0): ?>
-              <span class="notification-badge"><?= $unread_count ?></span>
+      </nav>
+      
+      <div class="notification-container">
+        <button class="notification-bell" id="notificationBell">
+          <i class="fas fa-bell"></i>
+          <?php if(isset($unread_count) && $unread_count > 0): ?>
+            <span class="notification-badge"><?= $unread_count ?></span>
+          <?php endif; ?>
+        </button>
+        
+        <div class="notification-dropdown" id="notificationDropdown">
+          <div class="dropdown-header">
+            <span>Recent Notifications</span>
+            <a href="<?= ROOT ?>/donor/notifications?mark_all_read=1">Mark all read</a>
+          </div>
+          <div class="dropdown-body">
+            <?php if(isset($notifications) && !empty($notifications)): ?>
+              <?php foreach($notifications as $n): ?>
+                <?php
+                  $nActionUrl = is_array($n) ? ($n['action_url'] ?? '') : (is_object($n) ? ($n->action_url ?? '') : '');
+                  $nIsRead = is_array($n) ? (bool)($n['is_read'] ?? false) : (is_object($n) ? (bool)($n->is_read ?? false) : false);
+                  $nTitle = is_array($n) ? ($n['title'] ?? '') : (is_object($n) ? ($n->title ?? '') : '');
+                  $nCreatedAt = is_array($n) ? ($n['created_at'] ?? '') : (is_object($n) ? ($n->created_at ?? '') : '');
+                ?>
+                <a href="<?= !empty($nActionUrl) ? ROOT . '/' . ltrim($nActionUrl, '/') : ROOT . '/donor/notifications' ?>" class="notification-item <?= !$nIsRead ? 'unread' : '' ?>">
+                  <div class="notification-icon">
+                    <i class="fa-solid fa-circle-info"></i>
+                  </div>
+                  <div class="notification-content">
+                    <p class="notification-title"><?= htmlspecialchars($nTitle) ?></p>
+                    <p class="notification-time"><?= !empty($nCreatedAt) ? date('M d, H:i', strtotime($nCreatedAt)) : '' ?></p>
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="no-notifications">
+                <i class="fas fa-bell-slash"></i>
+                <p>No new notifications</p>
+              </div>
             <?php endif; ?>
           </button>
 
@@ -135,42 +182,11 @@ $finalizedPledgeCount = $pledgeSummary['finalized'];
     </div>
   </header>
 
-  <div class="donor-mode-container">
-    <div class="mode-switcher-wrapper">
-      <div class="mode-switcher">
-        <div class="mode-indicator" id="modeIndicator"></div>
-
-        <?php
-        $has_organ = in_array('organ', $active_roles ?? []);
-        $has_financial = in_array('financial', $active_roles ?? []);
-        $has_non = in_array('non', $active_roles ?? []);
-        ?>
-
-        <div
-          class="mode-tab <?= $current_mode === 'mode-organ-donation' ? 'active' : '' ?> <?= !$has_organ ? 'inactive' : '' ?>"
-          data-mode="mode-organ-donation"
-          onclick="<?= $has_organ ? "setDonorMode('mode-organ-donation', this)" : "promptAddRole('organ', 'Organ Donor')" ?>"
-          title="<?= !$has_organ ? 'Add this role to your profile' : '' ?>">
-          <i class="fas fa-hand-holding-heart"></i>
-          <span>Organ Donation</span>
-        </div>
-
-        <div
-          class="mode-tab <?= $current_mode === 'mode-financial-donation' ? 'active' : '' ?> <?= !$has_financial ? 'inactive' : '' ?>"
-          data-mode="mode-financial-donation"
-          onclick="<?= $has_financial ? "setDonorMode('mode-financial-donation', this)" : "promptAddRole('financial', 'Financial Donor')" ?>"
-          title="<?= !$has_financial ? 'Add this role to your profile' : '' ?>">
-          <i class="fas fa-hand-holding-dollar"></i>
-          <span>Financial Donation</span>
-        </div>
-
-        <div
-          class="mode-tab <?= $current_mode === 'mode-non-donor' ? 'active' : '' ?> <?= !$has_non ? 'inactive' : '' ?>"
-          data-mode="mode-non-donor"
-          onclick="<?= $has_non ? "setDonorMode('mode-non-donor', this)" : "promptAddRole('non', 'Non-Donor')" ?>"
-          title="<?= !$has_non ? 'Add this role to your profile' : '' ?>">
-          <i class="fas fa-user-slash"></i>
-          <span>Non-Donor</span>
+      <div class="user-info" onclick="toggleSettingsModal()">
+        <div class="user-avatar"><?= $donor_avatar_initial ?></div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 0.9rem; font-weight: 600; color: var(--blue-900);"><?= htmlspecialchars($donor_full_name ?? 'Donor') ?></div>
+          <div class="user-id-pill"><i class="fas fa-id-card"></i> <?= htmlspecialchars($donor_id_display ?? 'Donor') ?></div>
         </div>
       </div>
 

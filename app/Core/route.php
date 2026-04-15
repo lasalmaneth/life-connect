@@ -20,7 +20,7 @@ route('forgot-password/sendOtp', 'ForgotPassword@sendOtp');
 route('forgot-password/verifyOtp', 'ForgotPassword@verifyOtp');
 route('forgot-password/reset', 'ForgotPassword@reset');
 
-route('user-admin', 'UserAdmin@index');
+route('user-admin', 'admin\UserAdmin@index');
 route('donor', 'Donor@index');
 route('donor/approved-labs', 'Donor@approvedLabs');
 route('donor/donations', 'Donor@donations');
@@ -101,13 +101,25 @@ route('api/custodian/submit-institution',   'Custodian@submitToInstitution');
 
 
 route('hospital', 'Hospital@index');
-route('hospital/organ-requests', 'Hospital@organRequests');
-route('hospital/eligibility', 'Hospital@eligibility');
-route('hospital/recipients', 'Hospital@recipients');
-route('hospital/stories', 'Hospital@stories');
+route('hospital/notifications', 'Hospital@notifications');
+route('hospital/markAllNotificationsRead', 'Hospital@markAllNotificationsRead');
+route('hospital/markNotificationRead', 'Hospital@markNotificationRead');
+route('hospital/deleteNotification', 'Hospital@deleteNotification');
+// Hospital dashboard sub-routes (clean URLs, same output as index)
+route('hospital/organ-requests', 'Hospital@index');
+// Legacy alias (avoid .view.php in the URL)
+route('hospital/organ_request.view.php', 'Hospital@organRequestsLegacy');
+// Donor-style route for Upcoming Appointments
+route('hospital/appointments', 'Hospital@index');
+// Clean section routes (render the same dashboard and open the correct section)
+route('hospital/eligibility', 'Hospital@index');
+route('hospital/recipients', 'Hospital@index');
+route('hospital/stories', 'Hospital@index');
+route('hospital/test-results', 'Hospital@index');
 route('hospital/search-recipients', 'Hospital@searchRecipients');
 route('hospital/export-recipients', 'Hospital@exportRecipients');
-route('hospital/lab-reports', 'Hospital@labReports');
+// Backward-compatible path (Upcoming Appointments section)
+route('hospital/lab-reports', 'Hospital@index');
 route('hospital/search-donors', 'Hospital@searchDonors');
 route('hospital/addpatient', 'Hospital@addpatient');
 route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
@@ -184,55 +196,56 @@ route('registrationData/verifyOtp', 'RegistrationData@verifyOtp');
 route('registrationData/checkStatus', 'RegistrationData@checkStatus');
 
 // Admin & Verification
-route('user-admin/getPend ingDocuments', 'UserAdmin@getPendingDocuments');
-route('user-admin/updateEntityVerification', 'UserAdmin@updateEntityVerification');
-route('user-admin/getDashboardStats', 'UserAdmin@getDashboardStats');
-route('user-admin/getUsers', 'UserAdmin@getUsers');
-route('user-admin/updateUserStatus', 'UserAdmin@updateUserStatus');
-route('user-admin/getNotifications', 'UserAdmin@getNotifications');
-route('user-admin/sendNotification', 'UserAdmin@sendNotification');
-route('user-admin/bulkUpdateUserStatus', 'UserAdmin@bulkUpdateUserStatus');
-route('user-admin/getUser', 'UserAdmin@getUser');
-route('user-admin/getDetailedUser', 'UserAdmin@getDetailedUser');
-route('user-admin/updateUser', 'UserAdmin@updateUser');
-route('user-admin/reviewUser', 'UserAdmin@reviewUser');
-route('user-admin/profile', 'UserAdmin@profile');
-route('user-admin/checkUsername', 'UserAdmin@checkUsername');
-route('user-admin/bulkUpdateEntityVerification', 'UserAdmin@bulkUpdateEntityVerification');
+route('user-admin/getPendingDocuments', 'admin\UserAdmin@getPendingDocuments');
+route('user-admin/updateEntityVerification', 'admin\UserAdmin@updateEntityVerification');
+route('user-admin/getDashboardStats', 'admin\UserAdmin@getDashboardStats');
+route('user-admin/getUsers', 'admin\UserAdmin@getUsers');
+route('user-admin/updateUserStatus', 'admin\UserAdmin@updateUserStatus');
+route('user-admin/getNotifications', 'admin\UserAdmin@getNotifications');
+route('user-admin/sendNotification', 'admin\UserAdmin@sendNotification');
+route('user-admin/bulkUpdateUserStatus', 'admin\UserAdmin@bulkUpdateUserStatus');
+route('user-admin/getUser', 'admin\UserAdmin@getUser');
+route('user-admin/getDetailedUser', 'admin\UserAdmin@getDetailedUser');
+route('user-admin/updateUser', 'admin\UserAdmin@updateUser');
+route('user-admin/reviewUser', 'admin\UserAdmin@reviewUser');
+route('user-admin/profile', 'admin\UserAdmin@profile');
+route('user-admin/checkUsername', 'admin\UserAdmin@checkUsername');
+route('user-admin/bulkUpdateEntityVerification', 'admin\UserAdmin@bulkUpdateEntityVerification');
 
 // Donation Admin Routes
-route('donation-admin', 'DonationAdminController@index');
-route('donation-admin/getDashboardStats', 'DonationAdminController@getDashboardStats');
-route('donation-admin/getOrganDetails', 'DonationAdminController@getOrganDetails');
-route('donation-admin/updateOrganStatus', 'DonationAdminController@updateOrganStatus');
-route('donation-admin/getPledges', 'DonationAdminController@getPledges');
-route('donation-admin/getHospitalRequests', 'DonationAdminController@getHospitalRequests');
-route('donation-admin/runAlgorithm', 'DonationAdminController@runAlgorithm');
+route('donation-admin', 'admin\DonationAdminController@index');
+route('donation-admin/getDashboardStats', 'admin\DonationAdminController@getDashboardStats');
+route('donation-admin/getOrganDetails', 'admin\DonationAdminController@getOrganDetails');
+route('donation-admin/updateOrganStatus', 'admin\DonationAdminController@updateOrganStatus');
+route('donation-admin/getPledges', 'admin\DonationAdminController@getPledges');
+route('donation-admin/getHospitalRequests', 'admin\DonationAdminController@getHospitalRequests');
+route('donation-admin/runAlgorithm', 'admin\DonationAdminController@runAlgorithm');
 
 // Tributes Admin Routes
-route('tributes-admin/getHospitals', 'TributesAdminController@getHospitals');
-route('tributes-admin/getStories', 'TributesAdminController@getStories');
-route('tributes-admin/getTributeDetails', 'TributesAdminController@getTributeDetails');
-route('tributes-admin/deleteTribute', 'TributesAdminController@deleteTribute');
-route('tributes-admin/saveStory', 'TributesAdminController@saveStory');
-route('tributes-admin/updateStatus', 'TributesAdminController@updateStatus');
-route('tributes-admin/getPendingCount', 'TributesAdminController@getPendingCount');
-route('tributes-admin/bulkDeleteTributes', 'TributesAdminController@bulkDeleteTributes');
+route('tributes-admin/getHospitals', 'admin\TributesAdminController@getHospitals');
+route('tributes-admin/getStories', 'admin\TributesAdminController@getStories');
+route('tributes-admin/getTributeDetails', 'admin\TributesAdminController@getTributeDetails');
+route('tributes-admin/deleteTribute', 'admin\TributesAdminController@deleteTribute');
+route('tributes-admin/saveStory', 'admin\TributesAdminController@saveStory');
+route('tributes-admin/updateStatus', 'admin\TributesAdminController@updateStatus');
+route('tributes-admin/getPendingCount', 'admin\TributesAdminController@getPendingCount');
+route('tributes-admin/bulkDeleteTributes', 'admin\TributesAdminController@bulkDeleteTributes');
 
 // Aftercare Admin
-route('aftercare-admin', 'AftercareAdminController@index');
-route('aftercare-admin/handle-action', 'AftercareAdminController@handleAction');
-route('aftercare-admin/get-support-requests', 'AftercareAdminController@getSupportRequests');
-route('aftercare-admin/get-aftercare-patients', 'AftercareAdminController@getAftercarePatients');
-route('aftercare-admin/approve-support-request', 'AftercareAdminController@approveSupportRequest');
-route('aftercare-admin/reject-support-request', 'AftercareAdminController@rejectSupportRequest');
+route('aftercare-admin', 'admin\AftercareAdminController@index');
+route('aftercare-admin/handle-action', 'admin\AftercareAdminController@handleAction');
+route('aftercare-admin/updateSupportStatus', 'admin\AftercareAdminController@updateSupportStatus');
+route('aftercare-admin/getPatients', 'admin\AftercareAdminController@getPatients');
+route('aftercare-admin/getPatientDetails', 'admin\AftercareAdminController@getPatientDetails');
+route('aftercare-admin/filter-support', 'admin\AftercareAdminController@filterSupportRequests');
 
 
 // Financial Admin
-route('financial-admin', 'FinancialAdminController@index');
-route('financial-admin/getAllDonations', 'FinancialAdminController@getAllDonations');
-route('financial-admin/logout', 'FinancialAdminController@logout');
-route('financial-admin/logo-logout', 'FinancialAdminController@logoLogout');
+route('financial-admin', 'admin\FinancialAdminController@index');
+route('financial-admin/getAllDonations', 'admin\FinancialAdminController@getAllDonations');
+route('financial-admin/updateSupportStatus', 'admin\FinancialAdminController@updateSupportStatus');
+route('financial-admin/logout', 'admin\FinancialAdminController@logout');
+route('financial-admin/logo-logout', 'admin\FinancialAdminController@logoLogout');
 
 // Financial Donor Portal (Legacy redirects - now merged into DONOR)
 route('financial-donor', 'Donor@financialRedirect');

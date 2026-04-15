@@ -7,6 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?php echo ROOT; ?>/assets/css/hospital/hospital.css">
     <title>Patient Aftercare Portal - LifeConnect</title>
     <style>
@@ -101,8 +102,15 @@
                 <div class="menu-section">
                     <div class="menu-section-title">NAVIGATION</div>
                     <a href="<?php echo ROOT; ?>/hospital" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"></span>
+                        <span class="icon"><i class="fas fa-chart-line"></i></span>
                         <span>Main Dashboard</span>
+                    </a>
+                </div>
+
+                <div class="menu-section menu-section--footer">
+                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration:none; display:block;">
+                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
+                        <span>Logout</span>
                     </a>
                 </div>
             </div>

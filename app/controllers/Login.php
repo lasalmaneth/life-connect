@@ -9,6 +9,112 @@ use App\Models\LoginModel;
 class Login {
     use Controller;
 
+    private function ensureCustodianProfileForUser(object $user): void
+    {
+        try {
+            $role = strtoupper((string)($user->role ?? ''));
+            if ($role !== 'CUSTODIAN') {
+                return;
+            }
+
+            $username = trim((string)($user->username ?? ''));
+            if ($username === '') {
+                return;
+            }
+
+            $db = new class {
+                use \App\Core\Database;
+            };
+
+            $existing = $db->query(
+                "SELECT id FROM custodians WHERE user_id = :uid LIMIT 1",
+                [':uid' => (int)$user->id]
+            );
+            if ($existing) {
+                return;
+            }
+
+            // Try to infer donor linkage from sworn statements (stores relation NICs in JSON form_data)
+            $rows = $db->query(
+                "SELECT ss.form_data, ss.created_at, dc.donor_id
+                 FROM sworn_statements ss
+                 JOIN donation_cases dc ON dc.id = ss.donation_case_id
+                 WHERE ss.form_data LIKE :needle
+                 ORDER BY ss.created_at DESC
+                 LIMIT 1",
+                [':needle' => '%' . $username . '%']
+            );
+
+            if (!$rows) {
+                return;
+            }
+
+            $row = $rows[0];
+            $donorId = (int)($row->donor_id ?? 0);
+            if ($donorId <= 0) {
+                return;
+            }
+
+            $name = $username;
+            $relationship = 'Family';
+            $form = json_decode((string)($row->form_data ?? ''), true);
+            if (is_array($form)) {
+                $nics = $form['relations_nic'] ?? null;
+                $names = $form['relations_name'] ?? null;
+                $rels = $form['relations_rel'] ?? null;
+
+                if (is_array($nics)) {
+                    $matchIndex = null;
+                    foreach ($nics as $i => $nic) {
+                        if (trim((string)$nic) === $username) {
+                            $matchIndex = $i;
+                            break;
+                        }
+                    }
+
+                    if ($matchIndex !== null) {
+                        if (is_array($names) && isset($names[$matchIndex]) && trim((string)$names[$matchIndex]) !== '') {
+                            $name = trim((string)$names[$matchIndex]);
+                        }
+                        if (is_array($rels) && isset($rels[$matchIndex]) && trim((string)$rels[$matchIndex]) !== '') {
+                            $relationship = trim((string)$rels[$matchIndex]);
+                        }
+                    }
+                }
+            }
+
+            $maxRow = $db->query(
+                "SELECT MAX(COALESCE(custodian_number, 0)) AS max_num FROM custodians WHERE donor_id = :did",
+                [':did' => $donorId]
+            );
+            $nextNumber = (int)(($maxRow && isset($maxRow[0]->max_num)) ? $maxRow[0]->max_num : 0) + 1;
+            if ($nextNumber < 1) $nextNumber = 1;
+
+            $db->insert(
+                "INSERT INTO custodians (
+                    user_id, donor_id, organ_id, relationship, custodian_number, status,
+                    name, nic_number, phone, email, address
+                ) VALUES (
+                    :uid, :did, NULL, :rel, :num, 'PENDING',
+                    :name, :nic, :phone, :email, NULL
+                )",
+                [
+                    ':uid' => (int)$user->id,
+                    ':did' => $donorId,
+                    ':rel' => $relationship,
+                    ':num' => $nextNumber,
+                    ':name' => $name,
+                    ':nic' => $username,
+                    ':phone' => $user->phone ?? null,
+                    ':email' => $user->email ?? null,
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Best-effort only; never block login because of linkage heuristics.
+            return;
+        }
+    }
+
     public function index() {
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
         header('Cache-Control: post-check=0, pre-check=0', false);
@@ -83,6 +189,9 @@ class Login {
             unset($_SESSION['donor_id']);
             unset($_SESSION['hospital_id']);
             unset($_SESSION['school_id']);
+
+            // For custodian accounts, ensure a matching custodians row exists so the portal won't bounce back to login.
+            $this->ensureCustodianProfileForUser($user);
 
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;

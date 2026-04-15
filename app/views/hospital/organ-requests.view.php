@@ -142,7 +142,94 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label">HLA-typing</label>
-                    <input class="form-input" id="recipient-hla-typing" type="text" placeholder="e.g., HLA-A*02:01, HLA-B*07:02">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;">
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-A (A1)</div>
+                            <select class="form-select" id="recipient-hla-a1">
+                                <option value="">Select Allele</option>
+                                <option value="A*01">A*01</option>
+                                <option value="A*02">A*02</option>
+                                <option value="A*03">A*03</option>
+                                <option value="A*11">A*11</option>
+                                <option value="A*24">A*24</option>
+                                <option value="A*33">A*33</option>
+                                <option value="A*68">A*68</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-A (A2)</div>
+                            <select class="form-select" id="recipient-hla-a2">
+                                <option value="">Select Allele</option>
+                                <option value="A*01">A*01</option>
+                                <option value="A*02">A*02</option>
+                                <option value="A*03">A*03</option>
+                                <option value="A*11">A*11</option>
+                                <option value="A*24">A*24</option>
+                                <option value="A*33">A*33</option>
+                                <option value="A*68">A*68</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-B (B1)</div>
+                            <select class="form-select" id="recipient-hla-b1">
+                                <option value="">Select Allele</option>
+                                <option value="B*07">B*07</option>
+                                <option value="B*08">B*08</option>
+                                <option value="B*15">B*15</option>
+                                <option value="B*35">B*35</option>
+                                <option value="B*38">B*38</option>
+                                <option value="B*44">B*44</option>
+                                <option value="B*51">B*51</option>
+                                <option value="B*52">B*52</option>
+                                <option value="B*57">B*57</option>
+                                <option value="B*58">B*58</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-B (B2)</div>
+                            <select class="form-select" id="recipient-hla-b2">
+                                <option value="">Select Allele</option>
+                                <option value="B*07">B*07</option>
+                                <option value="B*08">B*08</option>
+                                <option value="B*15">B*15</option>
+                                <option value="B*35">B*35</option>
+                                <option value="B*38">B*38</option>
+                                <option value="B*44">B*44</option>
+                                <option value="B*51">B*51</option>
+                                <option value="B*52">B*52</option>
+                                <option value="B*57">B*57</option>
+                                <option value="B*58">B*58</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-DRB1 (DR1)</div>
+                            <select class="form-select" id="recipient-hla-dr1">
+                                <option value="">Select Allele</option>
+                                <option value="DRB1*01">DRB1*01</option>
+                                <option value="DRB1*03">DRB1*03</option>
+                                <option value="DRB1*04">DRB1*04</option>
+                                <option value="DRB1*07">DRB1*07</option>
+                                <option value="DRB1*11">DRB1*11</option>
+                                <option value="DRB1*13">DRB1*13</option>
+                                <option value="DRB1*14">DRB1*14</option>
+                                <option value="DRB1*15">DRB1*15</option>
+                            </select>
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; margin-bottom: .35rem;">HLA-DRB1 (DR2)</div>
+                            <select class="form-select" id="recipient-hla-dr2">
+                                <option value="">Select Allele</option>
+                                <option value="DRB1*01">DRB1*01</option>
+                                <option value="DRB1*03">DRB1*03</option>
+                                <option value="DRB1*04">DRB1*04</option>
+                                <option value="DRB1*07">DRB1*07</option>
+                                <option value="DRB1*11">DRB1*11</option>
+                                <option value="DRB1*13">DRB1*13</option>
+                                <option value="DRB1*14">DRB1*14</option>
+                                <option value="DRB1*15">DRB1*15</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Reason for Transplant</label>
@@ -180,8 +267,43 @@
     </footer>
 
     <script>
-                function openRequestModal() { document.getElementById('request-modal').classList.add('show'); }
-        function closeRequestModal() { document.getElementById('request-modal').classList.remove('show'); }
+        function openRequestModal() {
+            document.getElementById('request-modal').classList.add('show');
+        }
+        function closeRequestModal() {
+            document.getElementById('request-modal').classList.remove('show');
+            clearHlaAllelesUi();
+        }
+
+        function clearHlaAllelesUi() {
+            ['recipient-hla-a1','recipient-hla-a2','recipient-hla-b1','recipient-hla-b2','recipient-hla-dr1','recipient-hla-dr2']
+                .forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+        }
+
+        function getHlaAllelesUiValue() {
+            const a1 = document.getElementById('recipient-hla-a1');
+            const a2 = document.getElementById('recipient-hla-a2');
+            const b1 = document.getElementById('recipient-hla-b1');
+            const b2 = document.getElementById('recipient-hla-b2');
+            const dr1 = document.getElementById('recipient-hla-dr1');
+            const dr2 = document.getElementById('recipient-hla-dr2');
+            const v = (el) => String(el ? el.value : '').trim();
+
+            const parts = [
+                `A1=${v(a1)}`,
+                `A2=${v(a2)}`,
+                `B1=${v(b1)}`,
+                `B2=${v(b2)}`,
+                `DR1=${v(dr1)}`,
+                `DR2=${v(dr2)}`,
+            ];
+
+            if (parts.every(p => p.endsWith('='))) return '';
+            return parts.join('; ');
+        }
         
                 function selectOrganType(organId, organName) {
             document.querySelectorAll('.organ-option-card').forEach(card => {
@@ -204,7 +326,7 @@
             const age = document.getElementById('recipient-age') ? document.getElementById('recipient-age').value : '';
             const bloodGroup = document.getElementById('recipient-blood-group') ? document.getElementById('recipient-blood-group').value : '';
             const gender = document.getElementById('recipient-gender') ? document.getElementById('recipient-gender').value : '';
-            const hlaTyping = document.getElementById('recipient-hla-typing') ? document.getElementById('recipient-hla-typing').value : '';
+            const hlaTyping = getHlaAllelesUiValue();
             const transplantReason = document.getElementById('transplant-reason') ? document.getElementById('transplant-reason').value : '';
             
             if (!organId || !urgency) {
@@ -293,27 +415,28 @@
             showServerMessage('Opening edit form for organ request ID: ' + requestId, 'info'); 
         }
 
-        function deleteRequest(requestId) { 
-            if (confirm('Are you sure you want to delete this organ request?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.style.display = 'none';
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'delete_organ_request';
-                form.appendChild(actionInput);
-                
-                const requestIdInput = document.createElement('input');
-                requestIdInput.type = 'hidden';
-                requestIdInput.name = 'request_id';
-                requestIdInput.value = requestId;
-                form.appendChild(requestIdInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
+        async function deleteRequest(requestId) { 
+            const ok = await hcConfirm('Are you sure you want to delete this organ request?', { danger: true });
+            if (!ok) return;
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_organ_request';
+            form.appendChild(actionInput);
+            
+            const requestIdInput = document.createElement('input');
+            requestIdInput.type = 'hidden';
+            requestIdInput.name = 'request_id';
+            requestIdInput.value = requestId;
+            form.appendChild(requestIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
         
         function loadOrganRequests() {

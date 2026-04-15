@@ -63,6 +63,8 @@ class SupportRequestController {
         $patient_name = isset($_POST['patient_name']) ? trim($_POST['patient_name']) : '';
         $patient_type = isset($_POST['patient_type']) ? trim($_POST['patient_type']) : '';
         $reason = isset($_POST['reason']) ? trim($_POST['reason']) : '';
+        $amountRaw = isset($_POST['amount']) ? trim((string)$_POST['amount']) : '';
+        $amountRawNorm = str_replace([',', ' '], '', $amountRaw);
         $description = isset($_POST['description']) ? trim($_POST['description']) : '';
         
         // Validation
@@ -70,14 +72,40 @@ class SupportRequestController {
             echo json_encode(['success' => false, 'message' => 'Please fill all required fields']);
             return;
         }
+
+        $amount = null;
+        if ($amountRawNorm !== '') {
+            if (!is_numeric($amountRawNorm)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                return;
+            }
+            $amountNum = (float)$amountRawNorm;
+            if ($amountNum < 0) {
+                echo json_encode(['success' => false, 'message' => 'Invalid amount']);
+                return;
+            }
+            $amount = number_format($amountNum, 2, '.', '');
+        }
         
         try {
-            $query = "INSERT INTO support_requests (patient_nic, patient_name, patient_type, reason, description, status, submitted_date) VALUES (:patient_nic, :patient_name, :patient_type, :reason, :description, 'PENDING', CURDATE())";
+            // Ensure optional support_requests.amount column exists
+            try {
+                $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
+                if (empty($res)) {
+                    $con = $this->connect();
+                    $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                }
+            } catch (\Throwable $e) {
+                // Ignore migration errors; insert will fail if blocking
+            }
+
+            $query = "INSERT INTO support_requests (patient_nic, patient_name, patient_type, reason, amount, description, status, submitted_date) VALUES (:patient_nic, :patient_name, :patient_type, :reason, :amount, :description, 'PENDING', CURDATE())";
             $data = [
                 'patient_nic' => $patient_nic,
                 'patient_name' => $patient_name,
                 'patient_type' => $patient_type,
                 'reason' => $reason,
+                'amount' => $amount,
                 'description' => $description
             ];
             

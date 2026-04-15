@@ -78,19 +78,31 @@
 
     function parseNicValue(value) {
         var raw = (value || "").trim().toUpperCase();
-        var isNew = /^\d{12}$/.test(raw);
-        var isOld = /^\d{9}[VX]$/.test(raw);
-        if (!isNew && !isOld) {
+        var isNew10 = /^\d{10}$/.test(raw);
+        var isNew12 = /^\d{12}$/.test(raw);
+        var isOld = /^\d{8,9}[VX]$/.test(raw);
+        
+        if (!isNew10 && !isNew12 && !isOld) {
             return null;
         }
+        
         var birthYear;
         var dayOfYear;
-        if (isNew) {
+        
+        if (isNew12) {
+            // 12-digit format: YYYYDDDXXXXXX
+            birthYear = parseInt(raw.substring(0, 4), 10);
+            dayOfYear = parseInt(raw.substring(4, 7), 10);
+        } else if (isNew10) {
+            // 10-digit format: YYYYDDDXXX
             birthYear = parseInt(raw.substring(0, 4), 10);
             dayOfYear = parseInt(raw.substring(4, 7), 10);
         } else {
-            birthYear = 1900 + parseInt(raw.substring(0, 2), 10);
-            dayOfYear = parseInt(raw.substring(2, 5), 10);
+            // Old format: YYDDXXXXVX or YDDXXXXVX (8-9 digits + V/X)
+            var yearPart = raw.substring(0, raw.length - 1);
+            var yearDigits = yearPart.substring(0, 2);
+            birthYear = 1900 + parseInt(yearDigits, 10);
+            dayOfYear = parseInt(yearPart.substring(2, 5), 10);
         }
 
         var gender = "Male";
@@ -98,13 +110,16 @@
             dayOfYear -= 500;
             gender = "Female";
         }
+        
         if (dayOfYear < 1 || dayOfYear > 366) {
             return null;
         }
+        
         // Sri Lankan NIC system always assumes 29 days for February for index calculation
         var monthDays = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
         var month = 0;
         var remaining = dayOfYear;
+        
         while (remaining > monthDays[month]) {
             remaining -= monthDays[month];
             month += 1;
@@ -112,6 +127,7 @@
                 return null;
             }
         }
+        
         var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         var display = ("0" + remaining).slice(-2) + " " + monthNames[month] + " " + birthYear;
         var isoMonth = ("0" + (month + 1)).slice(-2);
@@ -775,12 +791,16 @@
             clearNICFields();
             return;
         }
-        if (/^\d{9}[VXvx]$/.test(value) || /^\d{12}$/.test(value)) {
+        // Updated: Accept 10 digits, 8-9 digits + V (old format)
+        if (/^(\d{10}|\d{8,9}[VXvx])$/.test(value)) {
+            // Extract date of birth and gender immediately
+            window.parseNIC();
+            // Then check availability
             checkAvailability('nic', value, 'd_nic', 'd_nicH');
         } else {
             el.classList.add("err");
             el.classList.remove("ok");
-            h.textContent = "Enter a valid NIC (12 digits or 9 digits + V/X)";
+            h.textContent = "Enter a valid NIC (10 digits or 8-9 digits + V/X)";
             h.className = "hint err";
             clearNICFields();
         }
@@ -814,8 +834,8 @@
             return;
         }
         var val = nic.value.trim();
-        // Only run logic if format is valid (10 or 12 chars)
-        if (!/^\d{9}[VXvx]$/.test(val) && !/^\d{12}$/.test(val)) {
+        // Only run logic if format is valid (10, 12 digits or 8-9 digits + V)
+        if (!/^(\d{10}|\d{12}|\d{8,9}[VXvx])$/.test(val)) {
             // Let onNIC handle strict regex errors
             return;
         }
