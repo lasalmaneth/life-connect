@@ -2253,4 +2253,6 @@ body {
   background: #ef4444;
   color: var(--white);
   transform: scale(1.1);
-}
+}
+/* Dropdown Toggle State */
+.d-user-chip .show { display: block !important; }

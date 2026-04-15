@@ -62,6 +62,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
     <!-- Custodian CSS -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/main.css?v=<?= time() ?>">
+    
+    <!-- Extra Page Specific CSS -->
+    <?php if (isset($extra_css) && is_array($extra_css)): ?>
+        <?php foreach ($extra_css as $css): ?>
+            <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/<?= $css ?>?v=<?= time() ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
 </head>
 <body>
 

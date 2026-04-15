@@ -5,6 +5,7 @@
 
 $page_title = 'Body Usage';
 $active_page = 'usage-logs';
+$extra_css = ['medicalschools/usagelogs.css'];
 
 ob_start();
 ?>
@@ -586,44 +587,6 @@ ob_start();
     });
 </script>
 
-<style>
-    .tab-content {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    .tab-content.active {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    .transition-fade {
-        transition: all 0.3s ease-out;
-    }
-    .usage-row:hover {
-        background: #f8fafc !important;
-    }
-    .drawer-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.4);
-        z-index: 1500;
-        display: none;
-        justify-content: flex-end;
-        backdrop-filter: blur(4px);
-    }
-    .drawer-content {
-        background: #fff;
-        width: 500px;
-        height: 100vh;
-        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
-        display: flex;
-        flex-direction: column;
-        transform: translateX(100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 0;
-        border-radius: 0;
-        overflow: hidden;
-    }
-</style>
 
 <?php
 $page_content = ob_get_clean();

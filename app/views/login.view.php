@@ -6,7 +6,8 @@
     <title>LifeConnect Login - Sri Lanka</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css">
-    </head>
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/auth.css">
+</head>
 <body class="login-page-body">
     <div class="shape shape-1"></div>
     <div class="shape shape-2"></div>
@@ -14,13 +15,13 @@
     <div class="login-wrapper">
         <div class="login-card glass-card">
             <a href="<?= ROOT ?>/">
-                <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect Logo" class="login-logo" style="transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect Logo" class="login-logo">
             </a>
             <h1 class="text-gradient">Welcome back</h1>
             <p>Enter your credentials to access the portal</p>
 
             <div id="errorBox" class="error-message">
-                <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                <i class="fas fa-exclamation-circle"></i>
                 <span id="errorText"></span>
             </div>
 
@@ -42,8 +43,8 @@
                     </div>
                 </div>
 
-                <div style="text-align: right; margin-bottom: 1rem;">
-                    <a href="<?= ROOT ?>/forgot-password" style="font-size: 0.813rem; color: var(--text-muted); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='var(--text-muted)'">Forgot password?</a>
+                <div class="forgot-pw-wrapper">
+                    <a href="<?= ROOT ?>/forgot-password" class="forgot-pw-link">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="btn-premium btn-submit">
@@ -54,7 +55,7 @@
 
             <div class="login-footer">
                 Don't have an account? <a href="<?= ROOT ?>/signup">Create an account</a><br>
-                <div style="margin-top: 10px; display: flex; gap: 15px; justify-content: center;">
+                <div class="auth-footer-links">
                     <a href="javascript:void(0)" onclick="openTerms()" class="legal-link-footer">Terms and Conditions</a>
                     <a href="javascript:void(0)" onclick="openPrivacy()" class="legal-link-footer">Privacy Policy</a>
                 </div>
@@ -133,7 +134,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-premium" onclick="closeTerms()" style="padding: 10px 30px;">
+                <button class="btn-premium" onclick="closeTerms()">
                     <span>I Understand</span>
                 </button>
             </div>
@@ -201,98 +202,29 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-premium" onclick="closePrivacy()" style="padding: 10px 30px;">
+                <button class="btn-premium" onclick="closePrivacy()">
                     <span>I Understand</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <style>
-    /* Footer Legal Links */
-    .legal-link-footer {
-        font-size: 0.75rem;
-        color: #a0aec0;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-    .legal-link-footer:hover {
-        color: #3b82f6;
-        text-decoration: underline;
-    }
-    /* Modal Styles */
-    .modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(8px);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease;
-    }
-    .modal-container {
-        background: white;
-        width: 90%;
-        max-width: 600px;
-        max-height: 80vh;
-        border-radius: 20px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .modal-header {
-        padding: 20px 30px;
-        border-bottom: 1px solid #edf2f7;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .modal-header h2 { font-size: 1.25rem; font-weight: 700; color: #1a202c; }
-    .modal-close { background: none; border: none; font-size: 1.5rem; color: #a0aec0; cursor: pointer; }
-    .modal-body {
-        padding: 30px;
-        overflow-y: auto;
-        flex: 1;
-    }
-    .terms-content section { margin-bottom: 25px; }
-    .terms-content h3 { font-size: 0.95rem; font-weight: 700; color: #2d3748; margin-bottom: 10px; }
-    .terms-content p { font-size: 0.875rem; color: #4a5568; line-height: 1.6; text-align: justify; }
-    .modal-footer {
-        padding: 20px 30px;
-        border-top: 1px solid #edf2f7;
-        display: flex;
-        justify-content: center;
-        background: #f8fafc;
-    }
-
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    /* Custom Scrollbar */
-    .modal-body::-webkit-scrollbar { width: 6px; }
-    .modal-body::-webkit-scrollbar-track { background: #f7fafc; }
-    .modal-body::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
-    </style>
 
     <script>
     function openTerms() {
-        document.getElementById('termsModal').style.display = 'flex';
+        document.getElementById('termsModal').classList.add('show');
         document.body.style.overflow = 'hidden';
     }
     function closeTerms() {
-        document.getElementById('termsModal').style.display = 'none';
+        document.getElementById('termsModal').classList.remove('show');
         document.body.style.overflow = 'auto';
     }
     function openPrivacy() {
-        document.getElementById('privacyModal').style.display = 'flex';
+        document.getElementById('privacyModal').classList.add('show');
         document.body.style.overflow = 'hidden';
     }
     function closePrivacy() {
-        document.getElementById('privacyModal').style.display = 'none';
+        document.getElementById('privacyModal').classList.remove('show');
         document.body.style.overflow = 'auto';
     }
     window.onclick = function(event) {

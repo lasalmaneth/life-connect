@@ -7,6 +7,7 @@
 $page_icon     = 'fa-heart-crack';
 $page_heading  = 'Report Donor Death';
 $page_subtitle = 'The entry point for initiating post-death donation protocols.';
+$extra_css     = ['custodian/report_death.css'];
 
 ob_start();
 ?>
@@ -96,27 +97,6 @@ ob_start();
             </div>
         </div>
 
-        <style>
-            .cp-btn-dashboard {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                color: white !important;
-                padding: 12px 24px;
-                border-radius: 12px;
-                font-size: 0.9rem;
-                font-weight: 700;
-                text-decoration: none;
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
-            }
-            .cp-btn-dashboard:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
-                background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            }
-        </style>
     <?php else: ?>
 
         <div class="cp-section-card cp-max-w-xl">
@@ -233,42 +213,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.flatpickr-padded {
-    padding-left: 45px !important;
-    background: white !important;
-    cursor: pointer !important;
-}
-
-.cp-submit-elegant {
-    width: 100%;
-    max-width: 320px;
-    padding: 14px 24px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
-    color: white;
-    border: 1px solid #fda4af;
-    box-shadow: 0 8px 24px rgba(225, 29, 72, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.3);
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-.cp-submit-elegant:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 28px rgba(225, 29, 72, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.45);
-}
-.cp-submit-elegant:active {
-    transform: translateY(1px);
-    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
-}
-</style>
 
 <!-- Flatpickr Library for elegant dateTime inputs -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">

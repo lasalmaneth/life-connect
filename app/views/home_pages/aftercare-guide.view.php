@@ -7,51 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/home.css">
-    <style>
-        .page-hero{padding:110px 0 80px;background:linear-gradient(135deg, var(--blue-100) 0%, var(--blue-50) 35%, var(--white) 70%, var(--blue-50) 100%)}
-        .page-hero h1{font-size:3rem;color:var(--slate);margin-bottom:12px;letter-spacing:-0.02em}
-        .page-hero p{color:var(--g500);font-size:1.1rem;max-width:900px}
-        
-        .section-padding{padding:60px 0}
-        .content-p{font-size:.95rem;color:var(--g500);line-height:1.8;margin-bottom:20px}
-        .sec-h3{font-size:1.5rem;font-weight:700;color:var(--slate);margin-bottom:20px;display:flex;align-items:center;gap:12px}
-        .sec-h3 i{color:var(--blue-600);font-size:1.3rem}
-        
-        .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:30px}
-        .info-card{background:var(--white);border:1px solid var(--g200);padding:24px;border-radius:16px;transition:all var(--tr)}
-        .info-card:hover{border-color:var(--blue-300);transform:translateY(-4px);box-shadow:0 10px 20px rgba(0,0,0,0.05)}
-        .info-card h4{font-size:1.05rem;color:var(--slate);margin-bottom:10px;font-weight:700}
-        .info-card p{font-size:.88rem;color:var(--g500);line-height:1.6;margin:0}
-        
-        /* ── Timeline ── */
-        .timeline{position:relative;margin-top:40px;padding-left:30px;border-left:2px solid var(--blue-100)}
-        .timeline-item{position:relative;margin-bottom:30px}
-        .timeline-item::before{content:'';position:absolute;left:-37px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--blue-600);border:3px solid var(--white)}
-        .timeline-item h4{font-size:.95rem;color:var(--slate);font-weight:700;margin-bottom:5px}
-        .timeline-item p{font-size:.88rem;color:var(--g500);margin:0}
-
-        .notice-box{background:var(--blue-50);border:1px solid var(--blue-200);color:var(--blue-800);padding:30px;border-radius:20px;margin-top:40px;display:flex;align-items:center;gap:20px}
-        .notice-box i{font-size:2rem;color:var(--blue-600)}
-        .notice-box div h5{font-size:1.1rem;margin-bottom:5px;font-weight:700}
-        .notice-box div p{font-size:.92rem;line-height:1.5;margin:0}
-
-        /* ── CTA box ── */
-        .cta-box{background:linear-gradient(135deg,var(--blue-600),var(--blue-800));color:var(--white);border-radius:20px;padding:50px 36px;text-align:center;margin-top:60px}
-        .cta-box h2{color:var(--white);margin-bottom:24px;font-size:2rem}
-        .cta-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-        .cta-actions .btn-hero{background:#10b981;padding:14px 28px;border-radius:50px;color:var(--white);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:10px}
-        .cta-actions .btn-hero:hover{background:#059669;transform:translateY(-2px)}
-        .btn-outline{display:inline-flex;align-items:center;gap:10px;border:2px solid rgba(255,255,255,.4);color:var(--white);background:transparent;padding:14px 28px;border-radius:50px;font-weight:600;font-size:.95rem;transition:all var(--tr);text-decoration:none}
-        .btn-outline:hover{background:rgba(255,255,255,.15);border-color:var(--white);transform:translateY(-2px)}
-
-        .back-link{display:inline-flex;align-items:center;gap:8px;color:var(--blue-600);text-decoration:none;font-weight:600;margin-bottom:30px;font-size:.9rem;transition:transform var(--tr)}
-        .back-link:hover{transform:translateX(-5px)}
-
-        @media(max-width:768px){
-            .page-hero h1{font-size:2rem}
-            .notice-box{flex-direction:column;text-align:center}
-        }
-    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../templates/home_header.view.php'; ?>

@@ -6,60 +6,7 @@
     <title><?= $page_title ?> - LifeConnect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css">
-    <style>
-        /* Specific overrides for long form on small screens */
-        .login-card {
-            max-width: 500px;
-            width: 100%;
-            padding: 2.5rem;
-            margin: 20px auto;
-        }
-        .login-page-body {
-            height: auto;
-            min-height: 100vh;
-            overflow-y: auto;
-        }
-        .password-requirements {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            background: rgba(0, 91, 170, 0.05);
-            padding: 15px;
-            border-radius: var(--radius-md);
-            margin-bottom: 20px;
-            border: 1px solid var(--glass-border);
-            text-align: left;
-        }
-        .requirement-item {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-        }
-        .requirement-item.valid {
-            color: var(--success);
-            font-weight: 600;
-        }
-        .requirement-item i {
-            font-size: 0.5rem;
-        }
-        #username-status {
-            font-size: 0.75rem;
-            margin-top: 4px;
-            display: block;
-            text-align: left;
-        }
-        .status-available { color: var(--success); }
-        .status-taken { color: var(--danger); }
-        .btn-submit:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-    </style>
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/security.css?v=<?= time() ?>">
 </head>
 <body class="login-page-body">
     <div class="shape shape-1"></div>
@@ -74,9 +21,9 @@
             <p>Please update your credentials to continue </p>
 
             <?php if (!empty($_SESSION['security_errors'])): ?>
-                <div class="error-message show" style="display: block;">
+                <div class="error-message show security-error-container">
                     <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
-                    <ul style="margin: 0; padding-left: 20px; font-size: 0.813rem;">
+                    <ul class="security-error-list">
                         <?php foreach ($_SESSION['security_errors'] as $err): ?>
                             <li><?= htmlspecialchars($err) ?></li>
                         <?php endforeach; ?>

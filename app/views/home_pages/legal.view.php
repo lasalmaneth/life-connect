@@ -7,49 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/home.css">
-    <style>
-        /* ── Page hero override ── */
-        .page-hero{padding:80px 0 60px;background:linear-gradient(135deg, var(--blue-100) 0%, var(--blue-50) 30%, var(--white) 65%, var(--blue-50) 100%)}
-        .page-hero .hero-text h1{font-size:2.8rem}
-        .page-hero .hero-img{height:360px}
-
-        /* ── Accordion (expanding FAQ items) ── */
-        .accord .faq-a{max-height:800px}
-
-        /* ── Bullet list ── */
-        .bl{list-style:none;padding:0}
-        .bl li{position:relative;padding-left:22px;margin-bottom:12px;line-height:1.7;color:var(--g500);font-size:.9rem}
-        .bl li::before{content:'•';position:absolute;left:0;color:var(--blue-600);font-weight:700;font-size:1.2rem}
-        .bl li strong{color:var(--slate);font-weight:600}
-
-        /* ── Note/callout ── */
-        .note-danger{padding:16px 18px;border-radius:10px;margin:14px 0;display:flex;align-items:flex-start;gap:10px;font-size:.9rem;line-height:1.6;background:#fef2f2;border-left:4px solid #ef4444;color:#991b1b}
-        .note-info{padding:16px 18px;border-radius:10px;margin:14px 0;display:flex;align-items:flex-start;gap:10px;font-size:.9rem;line-height:1.6;background:var(--blue-50);border-left:4px solid var(--blue-600);color:var(--blue-700)}
-        .note-danger i,.note-info i{font-size:1.1rem;margin-top:2px;flex-shrink:0}
-
-        /* ── Doc list card ── */
-        .doc-card{background:var(--g50);padding:20px;border-radius:10px;margin:14px 0;border-left:4px solid var(--g400)}
-        .doc-card h4{color:var(--slate);margin-bottom:12px;font-size:.95rem;font-weight:600}
-        .doc-card ul{list-style:none;padding:0}
-        .doc-card li{position:relative;padding-left:20px;margin-bottom:8px;color:var(--g500);font-size:.88rem}
-        .doc-card li::before{content:'✓';position:absolute;left:0;color:var(--blue-600);font-weight:700}
-
-        /* ── Resource grid ── */
-        .res-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
-        .res-item{background:var(--white);padding:14px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--g500);transition:all var(--tr);border:1px solid var(--g200)}
-        .res-item:hover{border-color:var(--blue-300);transform:translateY(-2px);color:var(--slate)}
-        .res-item i{color:var(--blue-600);font-size:1rem}
-
-        /* ── Section content paragraph ── */
-        .content-p{font-size:.92rem;color:var(--g500);line-height:1.7;margin-bottom:14px}
-
-        @media(max-width:768px){
-            .page-hero .hero-grid{text-align:center;display:flex;flex-direction:column-reverse;gap:30px}
-            .page-hero .hero-text>p{margin:0 auto 20px}
-            .page-hero .btn-hero{margin:0 auto}
-            .res-grid{grid-template-columns:1fr}
-        }
-    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../templates/home_header.view.php'; ?>
@@ -82,7 +39,7 @@
                 <div class="faq-list" id="legalAccordion">
                     <!-- 1. Legal Overview -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-scale-balanced" style="margin-right:10px;color:var(--blue-600)"></i> Legal Overview (Sri Lanka)</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-scale-balanced"></i> Legal Overview (Sri Lanka)</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <ul class="bl">
                                 <li>Organ and body donation in Sri Lanka is regulated under the <strong>Human Tissue Transplantation Act (2008, amended 2018)</strong>.</li>
@@ -97,7 +54,7 @@
 
                     <!-- 2. Donor Rights & Responsibilities -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-user-shield" style="margin-right:10px;color:var(--blue-600)"></i> Donor Rights & Responsibilities</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-user-shield"></i> Donor Rights & Responsibilities</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <ul class="bl">
                                 <li>Donors retain the <strong>right to withdraw consent</strong> at any time before the procedure.</li>
@@ -110,7 +67,7 @@
 
                     <!-- 3. Illegal Organ Requests & Public Awareness -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-ban" style="margin-right:10px;color:var(--blue-600)"></i> Illegal Organ Requests & Public Awareness</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-ban"></i> Illegal Organ Requests & Public Awareness</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <div class="note-danger"><i class="fas fa-triangle-exclamation"></i> <span><strong>Public posts or social media requests for organs are illegal</strong> in Sri Lanka.</span></div>
                             <ul class="bl">
@@ -124,7 +81,7 @@
 
                     <!-- 4. Post-Donation & Family Communication -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-heart" style="margin-right:10px;color:var(--blue-600)"></i> Post-Donation & Family Communication</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-heart"></i> Post-Donation & Family Communication</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <ul class="bl">
                                 <li>After donation, families receive <strong>appreciation certificates</strong> and <strong>updates</strong> about how organs or tissues were used.</li>
@@ -136,7 +93,7 @@
 
                     <!-- 5. Age & Eligibility Guidelines -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-calendar-check" style="margin-right:10px;color:var(--blue-600)"></i> Age & Eligibility Guidelines</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-calendar-check"></i> Age & Eligibility Guidelines</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <ul class="bl">
                                 <li><strong>Minimum age:</strong> 21 years for live donation; younger donors may not legally consent.</li>
@@ -149,7 +106,7 @@
 
                     <!-- 6. Consent Process -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-file-signature" style="margin-right:10px;color:var(--blue-600)"></i> Consent Process</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-file-signature"></i> Consent Process</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <ul class="bl">
                                 <li>Donor consent must be <strong>explicit, recorded, and legally verifiable</strong>.</li>
@@ -162,7 +119,7 @@
 
                     <!-- 7. Hospital & Legal Verification -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-hospital" style="margin-right:10px;color:var(--blue-600)"></i> Hospital & Legal Verification</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-hospital"></i> Hospital & Legal Verification</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <p class="content-p">Hospitals verify <strong>medical suitability, consent, and legal documents</strong> before proceeding.</p>
                             <div class="doc-card">
@@ -179,7 +136,7 @@
 
                     <!-- 8. Awareness & Education -->
                     <div class="faq-item">
-                        <button class="faq-q"><span><i class="fas fa-book-open" style="margin-right:10px;color:var(--blue-600)"></i> Awareness & Education</span><i class="fa-solid fa-plus"></i></button>
+                        <button class="faq-q"><span><i class="fas fa-book-open"></i> Awareness & Education</span><i class="fa-solid fa-plus"></i></button>
                         <div class="faq-a accord">
                             <p class="content-p">LifeConnect educates the public about:</p>
                             <ul class="bl">

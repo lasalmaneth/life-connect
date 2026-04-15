@@ -1,0 +1,75 @@
+/* =============================================================================
+   MEDICAL SCHOOL PORTAL — SUCCESS STORIES STYLES
+   ============================================================================= */
+
+.story-type-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.badge--impact { background: #e0f2fe; color: #0369a1; }
+.badge--inspo { background: #fef3c7; color: #92400e; }
+.badge--case { background: #f3e8ff; color: #6b21a8; }
+
+.story-stats-preview {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+.story-stats-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Filter Styles */
+.ms-filter-wrapper {
+    margin-bottom: 2rem;
+}
+.ms-filter-group {
+    display: flex;
+    gap: 8px;
+    background: var(--g100, #f3f4f6);
+    padding: 6px;
+    border-radius: 12px;
+    width: fit-content;
+}
+.ms-filter-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--g500, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ms-filter-btn:hover {
+    color: var(--blue-600, #005baa);
+}
+.ms-filter-btn.active {
+    background: white;
+    color: var(--blue-600, #005baa);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Modal and Drawer Adjustments */
+.ms-modal {
+    max-width: 600px;
+    width: 90%;
+}
+#story-preview-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

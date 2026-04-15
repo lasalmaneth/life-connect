@@ -51,63 +51,7 @@ if (isset($_SESSION['role'])) {
 
             <div class="nav-right">
                 <a href="#" class="nav-search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></a>
-                <?php if(isset($_SESSION['username'])): ?>
-                    <style>
-                        .user-avatar-dropdown {
-                            position: relative;
-                            display: inline-block;
-                            margin-left: 15px;
-                        }
-                        .user-avatar {
-                            width: 40px;
-                            height: 40px;
-                            border-radius: 50%;
-                            background-color: var(--primary, #0fa57f);
-                            color: white;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-weight: bold;
-                            font-size: 1.2rem;
-                            cursor: pointer;
-                            text-transform: uppercase;
-                            border: 2px solid white;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        }
-                        .user-dropdown-menu {
-                            display: none;
-                            position: absolute;
-                            right: 0;
-                            top: 50px;
-                            background-color: white;
-                            min-width: 160px;
-                            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-                            border-radius: 8px;
-                            z-index: 1000;
-                            overflow: hidden;
-                        }
-                        .user-avatar-dropdown:hover .user-dropdown-menu,
-                        .user-avatar-dropdown:focus-within .user-dropdown-menu {
-                            display: block;
-                        }
-                        .user-dropdown-menu a {
-                            color: #333;
-                            padding: 12px 16px;
-                            text-decoration: none;
-                            display: block;
-                            transition: background-color 0.2s;
-                        }
-                        .user-dropdown-menu a:hover {
-                            background-color: #f1f1f1;
-                        }
-                        .user-dropdown-menu .user-info {
-                            padding: 12px 16px;
-                            border-bottom: 1px solid #eee;
-                            font-weight: bold;
-                            background-color: #fafafa;
-                            color: #333;
-                        }
-                    </style>
+                 <?php if(isset($_SESSION['username'])): ?>
                     <div class="user-avatar-dropdown" tabindex="0">
                         <?php $initial = strtoupper(substr($_SESSION['username'], 0, 1)); ?>
                         <div class="user-avatar" title="<?= htmlspecialchars($_SESSION['username']) ?>">
@@ -117,9 +61,7 @@ if (isset($_SESSION['role'])) {
                             <div class="user-info">
                                 <?= htmlspecialchars($_SESSION['username']) ?>
                                 <?php if(isset($_SESSION['role'])): ?>
-                                    <div style="font-size: 0.8em; font-weight: normal; color: #666; margin-top: 4px;">
-                                        <?= htmlspecialchars(ucwords(strtolower(str_replace('_', ' ', $_SESSION['role'])))) ?>
-                                    </div>
+                                    <small><?= htmlspecialchars(ucwords(strtolower(str_replace('_', ' ', $_SESSION['role'])))) ?></small>
                                 <?php endif; ?>
                             </div>
                             <a href="<?= ROOT ?>/<?= $dashboardUrl ?>">Dashboard</a>

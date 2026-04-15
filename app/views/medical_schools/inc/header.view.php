@@ -63,9 +63,6 @@
             </div>
         </div>
       </div>
-      <style>
-          .d-user-chip .show { display: block !important; }
-      </style>
     </div>
   </div>
 </header>

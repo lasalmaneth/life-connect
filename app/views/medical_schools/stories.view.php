@@ -5,37 +5,11 @@
 
 $page_title    = 'Success Stories';
 $active_page   = 'stories';
+$extra_css     = ['medicalschools/stories_portal.css'];
 
 ob_start();
 ?>
 
-<style>
-    .story-type-badge {
-        padding: 0.25rem 0.75rem;
-        border-radius: 50px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .badge--impact { background: #e0f2fe; color: #0369a1; }
-    .badge--inspo { background: #fef3c7; color: #92400e; }
-    .badge--case { background: #f3e8ff; color: #6b21a8; }
-    
-    .story-stats-preview {
-        display: flex;
-        gap: 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: #64748b;
-    }
-    .story-stats-item {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-</style>
 
 <div class="cp-content-header">
     <div class="cp-content-header__content">

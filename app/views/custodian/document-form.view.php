@@ -5,6 +5,7 @@
 $isSaved = !empty($formData);
 $isEditMode = isset($_GET['edit']) && $_GET['edit'] == '1';
 $isReadOnly = ($isSaved && !$isEditMode) || !$isLeader;
+$extra_css  = ['custodian/document_form.css'];
 
 ob_start();
 ?>
@@ -29,7 +30,7 @@ ob_start();
                 </div>
                 
                 <div class="px-5 pt-4">
-                    <div style="background: var(--blue-50); border: 1px solid var(--blue-100); padding: 1rem 1.25rem; border-radius: 12px; display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <div class="cp-form-info-bar">
                         <i class="fas fa-info-circle mt-1" style="color: var(--blue-600); font-size: 1.1rem;"></i>
                         <p style="margin: 0; font-size: 0.875rem; color: var(--blue-800); line-height: 1.5; font-weight: 500;">
                             <?php if ($type === 'sworn'): ?>
@@ -189,12 +190,10 @@ ob_start();
                     <?php endif; ?>
 
                 </div>
-            </div>
-
-            <!-- Footer Actions -->
-            <div class="cp-form-footer bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-8" style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            </div>            <!-- Footer Actions -->
+            <div class="cp-form-footer-alt mt-8">
                 <div style="flex: 1;">
-                    <a href="<?= ROOT ?>/custodian/documents" class="cp-btn cp-btn--secondary" style="height: 48px; padding: 0 24px; display: inline-flex; align-items: center; border-radius: 12px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-weight: 600;">
+                    <a href="<?= ROOT ?>/custodian/documents" class="cp-btn-back-alt">
                         <i class="fas fa-arrow-left mr-2"></i> Back to Checklist
                     </a>
                 </div>
@@ -202,63 +201,28 @@ ob_start();
                 <div style="display: flex; gap: 1rem; align-items: center;">
                     <button type="button" 
                             onclick="openDocumentModal('<?= ROOT ?>/custodian/print-document?type=<?= urlencode($type) ?>', '<?= $type === 'sworn' ? 'Sworn Statement' : 'Cadaver Data Sheet' ?> Preview')" 
-                            class="cp-btn" style="height: 48px; padding: 0 24px; border-radius: 12px; background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; font-weight: 700;">
+                            class="cp-btn-preview-alt">
                         <i class="fas fa-eye mr-2"></i> Preview Official Form
                     </button>
 
                     <?php if ($isReadOnly): ?>
-                        <a href="<?= ROOT ?>/custodian/document-form?type=<?= urlencode($type) ?>&edit=1" class="cp-btn" style="height: 48px; padding: 0 32px; border-radius: 12px; background: #1e293b; color: white; border: none; font-weight: 700; display: inline-flex; align-items: center; text-decoration: none;">
+                        <a href="<?= ROOT ?>/custodian/document-form?type=<?= urlencode($type) ?>&edit=1" class="cp-btn-edit-alt">
                             <i class="fas fa-edit mr-2"></i> Edit Information
                         </a>
                     <?php else: ?>
-                        <button type="submit" class="cp-btn" style="height: 48px; padding: 0 40px; border-radius: 12px; background: #0284c7; color: white; border: none; font-weight: 800; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); letter-spacing: 0.02em;">
+                        <button type="submit" class="cp-btn-save-alt">
                             <i class="fas fa-save mr-2"></i> Save Information
                         </button>
                     <?php endif; ?>
                 </div>
             </div>
+>
         </form>
     </div>
 </div>
 
 <?php include __DIR__ . '/partials/recognition-viewer.php'; ?>
 
-<style>
-    .cp-card-centered-container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-    .cp-divider {
-        height: 1px;
-        background: linear-gradient(to right, #e2e8f0 0%, #cbd5e1 50%, #e2e8f0 100%);
-    }
-    .cp-btn--info {
-        background: #f0f9ff;
-        color: #0369a1;
-        border: 1px solid #bae6fd;
-    }
-    .cp-profile-input {
-        border-color: #94a3b8 !important; /* Darker border for better recognition */
-        background-color: #fbfcfe !important;
-        transition: all 0.2s ease-in-out;
-    }
-    .cp-profile-input:hover:not([readonly]) {
-        border-color: #3b82f6 !important;
-        background-color: #fff !important;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
-    }
-    .cp-profile-input:focus:not([readonly]) {
-        border-color: #2563eb !important;
-        background-color: #fff !important;
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-        outline: none;
-    }
-    .cp-profile-input[readonly] {
-        border-color: #e2e8f0 !important;
-        background-color: #f8fafc !important;
-        color: #64748b !important;
-    }
-</style>
 
 <script>
     function addRelationRow() {

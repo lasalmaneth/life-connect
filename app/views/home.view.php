@@ -11,28 +11,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/home.css">
-    <style>
-        .hero {
-            background: linear-gradient(135deg, var(--blue-100) 0%, var(--blue-50) 30%, var(--white) 65%, var(--blue-50) 100%) !important;
-        }
-
-        .home-hero-blend {
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            mix-blend-mode: multiply;
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25%), linear-gradient(to bottom, transparent 0%, black 25%);
-            -webkit-mask-composite: source-in;
-            mask-image: linear-gradient(to right, transparent 0%, black 25%), linear-gradient(to bottom, transparent 0%, black 25%);
-            mask-composite: intersect;
-            height: auto !important;
-            max-height: 700px !important;
-            max-width: 160% !important;
-            width: 150% !important;
-            transform: translateX(12%);
-            object-fit: contain !important;
-            pointer-events: none;
-        }
-    </style>
 </head>
 
 <body>
@@ -88,7 +66,7 @@
             </div>
             <div class="serve-cards">
                 <!-- Card 1: Donors -->
-                <a href="<?= ROOT ?>/learn/donors" class="s-card" style="text-decoration: none; display: block;">
+                <a href="<?= ROOT ?>/learn/donors" class="s-card">
                     <div class="s-icon"><i class="fa-solid fa-hand-holding-heart"></i></div>
                     <h3>For Donors</h3>
                     <p>Learn about living organ donation, deceased donation, and whole-body donation, including
@@ -96,7 +74,7 @@
                 </a>
 
                 <!-- Card 2: Aftercare -->
-                <a href="<?= ROOT ?>/learn/aftercare" class="s-card" style="text-decoration: none; display: block;">
+                <a href="<?= ROOT ?>/learn/aftercare" class="s-card">
                     <div class="s-icon"><i class="fa-solid fa-kit-medical"></i></div>
                     <h3>Aftercare</h3>
                     <p>Understand recovery, follow-up, long-term monitoring, and the support needed by both living
@@ -104,7 +82,7 @@
                 </a>
 
                 <!-- Card 3: Custodians -->
-                <a href="<?= ROOT ?>/learn/custodians" class="s-card" style="text-decoration: none; display: block;">
+                <a href="<?= ROOT ?>/learn/custodians" class="s-card">
                     <div class="s-icon"><i class="fa-solid fa-file-signature"></i></div>
                     <h3>For Custodians</h3>
                     <p>Learn the role of custodians after death, including documentation, coordination with hospitals or
