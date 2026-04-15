@@ -175,7 +175,7 @@ class AdminModel {
                     u.username as admin_name, t.username as target_name
              FROM admin_audit_logs a
              LEFT JOIN users u ON a.admin_id = u.id
-             LEFT JOIN users t ON a.target_user_id = u.id
+             LEFT JOIN users t ON a.target_user_id = t.id
              ORDER BY a.created_at DESC LIMIT 5"
         );
 
