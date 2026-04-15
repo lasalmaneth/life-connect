@@ -195,6 +195,9 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 <h4>Life-Saving Contribution Completed</h4>
                                 <span><i class="far fa-calendar-check"></i> Finalized on <?= !empty($o['consent_date']) ? date('M d, Y', strtotime($o['consent_date'])) : 'Recent' ?></span>
                             </div>
+                            <button onclick="this.closest('.d-feed-card').style.display='none';" style="margin-left: auto; background: none; border: none; cursor: pointer; color: #10b981; font-size: 1.1rem; padding: 4px; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" title="Dismiss">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                         <div class="d-feed-card__content">
                             <p style="font-weight: 700; color: #166534; font-size: 1.1rem; margin-bottom: 0.5rem;">Thank You, Hero!</p>
@@ -222,6 +225,9 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 <h4>Life-Saving Financial Contribution</h4>
                                 <span><i class="far fa-heart"></i> Total Impact Recorded</span>
                             </div>
+                            <button onclick="this.closest('.d-feed-card').style.display='none';" style="margin-left: auto; background: none; border: none; cursor: pointer; color: #3b82f6; font-size: 1.1rem; padding: 4px; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'" title="Dismiss">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                         <div class="d-feed-card__content">
                             <p style="font-weight: 700; color: #1e40af; font-size: 1.1rem; margin-bottom: 0.1rem;">Thank You for Your Generosity!</p>
