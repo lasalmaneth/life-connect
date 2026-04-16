@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Controllers;
 
@@ -6,10 +6,12 @@ use App\Core\Controller;
 use App\Models\AftercarePatientModel;
 use App\Models\HospitalModel;
 
-class Hospital {
+class Hospital
+{
     use Controller;
 
-    public function organRequestsLegacy() {
+    public function organRequestsLegacy()
+    {
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
             redirect('login');
         }
@@ -18,7 +20,8 @@ class Hospital {
         redirect('hospital/organ-requests');
     }
 
-    public function index(){
+    public function index()
+    {
         // Session check
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
@@ -26,11 +29,11 @@ class Hospital {
 
         $hospitalModel = new HospitalModel();
         $userId = $_SESSION['user_id'];
-        
+
         // Get hospital details
         $hospital = $hospitalModel->getHospitalByUserId($userId);
-        $hospitalId = $hospital ? (int)$hospital->id : 0;
-        
+        $hospitalId = $hospital ? (int) $hospital->id : 0;
+
         if (!$hospital) {
             $hospital_registration = $_SESSION['hospital_registration'] ?? 'HOSP001';
             $hospital_name = $_SESSION['hospital_name'] ?? 'Hospital';
@@ -79,20 +82,22 @@ class Hospital {
         $stats = [
             'total_organ_requests' => count($organ_requests),
             // Treat PENDING (and legacy OPEN) as "pending" requests
-            'pending_requests' => count(array_filter($organ_requests, function($req) {
-                $s = strtoupper(trim((string)($req->status ?? '')));
+            'pending_requests' => count(array_filter($organ_requests, function ($req) {
+                $s = strtoupper(trim((string) ($req->status ?? '')));
                 return $s === 'PENDING' || $s === 'OPEN';
             })),
             // Treat MATCHED as "approved" for existing UI counters
-            'approved_requests' => count(array_filter($organ_requests, function($req) {
-                $s = strtoupper(trim((string)($req->status ?? '')));
+            'approved_requests' => count(array_filter($organ_requests, function ($req) {
+                $s = strtoupper(trim((string) ($req->status ?? '')));
                 return $s === 'MATCHED';
             })),
             'total_aftercare_recipients' => count($aftercare_recipients),
             'total_success_stories' => count($success_stories),
-            'approved_stories' => count(array_filter($success_stories, function($story) { return $story->status === 'Approved'; })),
+            'approved_stories' => count(array_filter($success_stories, function ($story) {
+                return $story->status === 'Approved'; })),
             'total_appointments' => count($aftercare_appointments),
-            'scheduled_appointments' => count(array_filter($aftercare_appointments, function($apt) { return $apt->status === 'Scheduled'; }))
+            'scheduled_appointments' => count(array_filter($aftercare_appointments, function ($apt) {
+                return $apt->status === 'Scheduled'; }))
         ];
 
         $data = [
@@ -146,14 +151,15 @@ class Hospital {
 
     public function notifications()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
 
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
             redirect('login');
         }
 
         $hospitalModel = new HospitalModel();
-        $userId = (int)$_SESSION['user_id'];
+        $userId = (int) $_SESSION['user_id'];
         $hospital = $hospitalModel->getHospitalByUserId($userId);
 
         $hospital_registration = $hospital->registration_number ?? ($_SESSION['hospital_registration'] ?? 'HOSP001');
@@ -179,7 +185,7 @@ class Hospital {
 
         $notifications = $notificationModel->getNotificationsForUser($userId);
         $notifications = json_decode(json_encode($notifications), true) ?: [];
-        $unread_count = (int)$notificationModel->getUnreadCount($userId);
+        $unread_count = (int) $notificationModel->getUnreadCount($userId);
 
         $data = [
             'hospital_name' => $hospital_name,
@@ -195,13 +201,14 @@ class Hospital {
 
     public function markAllNotificationsRead()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
 
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
             redirect('login');
         }
 
-        $userId = (int)$_SESSION['user_id'];
+        $userId = (int) $_SESSION['user_id'];
         $notificationModel = new \App\Models\NotificationModel();
         $notificationModel->markAllAsRead($userId);
 
@@ -212,7 +219,8 @@ class Hospital {
 
     public function markNotificationRead()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
 
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
             header('Content-Type: application/json');
@@ -220,8 +228,8 @@ class Hospital {
             exit;
         }
 
-        $userId = (int)$_SESSION['user_id'];
-        $id = (int)($_POST['id'] ?? 0);
+        $userId = (int) $_SESSION['user_id'];
+        $id = (int) ($_POST['id'] ?? 0);
 
         header('Content-Type: application/json');
         if ($id <= 0) {
@@ -231,19 +239,20 @@ class Hospital {
 
         $notificationModel = new \App\Models\NotificationModel();
         $row = $notificationModel->query("SELECT user_id FROM notifications WHERE id = :id LIMIT 1", [':id' => $id]);
-        if (!$row || (int)($row[0]->user_id ?? 0) !== $userId) {
+        if (!$row || (int) ($row[0]->user_id ?? 0) !== $userId) {
             echo json_encode(['success' => false, 'message' => 'Not found']);
             exit;
         }
 
-        $ok = (bool)$notificationModel->markAsRead($id);
+        $ok = (bool) $notificationModel->markAsRead($id);
         echo json_encode(['success' => $ok]);
         exit;
     }
 
     public function deleteNotification()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
 
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'HOSPITAL') {
             header('Content-Type: application/json');
@@ -251,8 +260,8 @@ class Hospital {
             exit;
         }
 
-        $userId = (int)$_SESSION['user_id'];
-        $id = (int)($_POST['id'] ?? 0);
+        $userId = (int) $_SESSION['user_id'];
+        $id = (int) ($_POST['id'] ?? 0);
 
         header('Content-Type: application/json');
         if ($id <= 0) {
@@ -262,26 +271,27 @@ class Hospital {
 
         $notificationModel = new \App\Models\NotificationModel();
         $row = $notificationModel->query("SELECT user_id FROM notifications WHERE id = :id LIMIT 1", [':id' => $id]);
-        if (!$row || (int)($row[0]->user_id ?? 0) !== $userId) {
+        if (!$row || (int) ($row[0]->user_id ?? 0) !== $userId) {
             echo json_encode(['success' => false, 'message' => 'Not found']);
             exit;
         }
 
-        $ok = (bool)$notificationModel->deleteNotification($id);
+        $ok = (bool) $notificationModel->deleteNotification($id);
         echo json_encode(['success' => $ok]);
         exit;
     }
 
-    private function handlePost($regNo) {
+    private function handlePost($regNo)
+    {
         $hospitalModel = new HospitalModel();
         $action = $_POST['action'] ?? '';
 
-        $allowedBloodGroups = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+        $allowedBloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
         $allowedGenders = ['Male', 'Female', 'Other'];
 
         switch ($action) {
             case 'accept_aftercare_appointment':
-                $appointmentId = (int)($_POST['appointment_id'] ?? 0);
+                $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
                 if ($appointmentId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid appointment.';
                     break;
@@ -292,13 +302,14 @@ class Hospital {
                         "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $patientNic = $apt ? (string)($apt[0]->patient_id ?? '') : '';
-                    $when = $apt ? (string)($apt[0]->appointment_date ?? '') : '';
+                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
+                    $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
                     if ($patientNic !== '') {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $msg = 'Your aftercare appointment request was accepted by ' . $hName . '.';
-                        if ($when) $msg .= ' Scheduled for: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
+                        if ($when)
+                            $msg .= ' Scheduled for: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
                         $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment accepted', $msg, 'INFO');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment accepted.';
@@ -308,8 +319,8 @@ class Hospital {
                 break;
 
             case 'reject_aftercare_appointment':
-                $appointmentId = (int)($_POST['appointment_id'] ?? 0);
-                $reason = trim((string)($_POST['reason'] ?? ''));
+                $appointmentId = (int) ($_POST['appointment_id'] ?? 0);
+                $reason = trim((string) ($_POST['reason'] ?? ''));
                 if ($appointmentId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid appointment.';
                     break;
@@ -324,16 +335,18 @@ class Hospital {
                         "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $patientNic = $apt ? (string)($apt[0]->patient_id ?? '') : '';
-                    $when = $apt ? (string)($apt[0]->appointment_date ?? '') : '';
+                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
+                    $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
                     if ($patientNic !== '') {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $phone = $hospital->contact_number ?? '';
                         $msg = 'Your aftercare appointment request was rejected by ' . $hName . '.';
-                        if ($when) $msg .= ' Requested time: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
+                        if ($when)
+                            $msg .= ' Requested time: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
                         $msg .= ' Reason: ' . $reason . '.';
-                        if ($phone) $msg .= ' Contact: ' . $phone . '.';
+                        if ($phone)
+                            $msg .= ' Contact: ' . $phone . '.';
                         $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment rejected', $msg, 'WARNING');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment rejected.';
@@ -342,13 +355,13 @@ class Hospital {
                 }
                 break;
             case 'approve_eligibility':
-                $pledgeId = (int)($_POST['pledge_id'] ?? 0);
+                $pledgeId = (int) ($_POST['pledge_id'] ?? 0);
                 if ($pledgeId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid pledge.';
                     break;
                 }
 
-                $hospitalId = (int)$hospitalModel->getHospitalIdByRegistrationNo($regNo);
+                $hospitalId = (int) $hospitalModel->getHospitalIdByRegistrationNo($regNo);
                 if ($hospitalId <= 0) {
                     $_SESSION['flash_error'] = 'Hospital account not found.';
                     break;
@@ -362,13 +375,13 @@ class Hospital {
                 break;
 
             case 'reject_eligibility':
-                $pledgeId = (int)($_POST['pledge_id'] ?? 0);
+                $pledgeId = (int) ($_POST['pledge_id'] ?? 0);
                 if ($pledgeId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid pledge.';
                     break;
                 }
 
-                $hospitalId = (int)$hospitalModel->getHospitalIdByRegistrationNo($regNo);
+                $hospitalId = (int) $hospitalModel->getHospitalIdByRegistrationNo($regNo);
                 if ($hospitalId <= 0) {
                     $_SESSION['flash_error'] = 'Hospital account not found.';
                     break;
@@ -382,13 +395,13 @@ class Hospital {
                 break;
 
             case 'approve_support_request':
-                $requestId = (int)($_POST['support_request_id'] ?? 0);
+                $requestId = (int) ($_POST['support_request_id'] ?? 0);
                 if ($requestId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid support request.';
                     break;
                 }
 
-                if ($hospitalModel->approveSupportRequest($requestId, $regNo, 'Hospital ' . (string)$regNo)) {
+                if ($hospitalModel->approveSupportRequest($requestId, $regNo, 'Hospital ' . (string) $regNo)) {
                     $_SESSION['flash_success'] = 'Support request approved.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to approve support request.';
@@ -396,8 +409,8 @@ class Hospital {
                 break;
 
             case 'reject_support_request':
-                $requestId = (int)($_POST['support_request_id'] ?? 0);
-                $reason = trim((string)($_POST['reject_reason'] ?? ''));
+                $requestId = (int) ($_POST['support_request_id'] ?? 0);
+                $reason = trim((string) ($_POST['reject_reason'] ?? ''));
                 if ($requestId <= 0) {
                     $_SESSION['flash_error'] = 'Invalid support request.';
                     break;
@@ -407,7 +420,7 @@ class Hospital {
                     break;
                 }
 
-                if ($hospitalModel->rejectSupportRequest($requestId, $regNo, $reason, 'Hospital ' . (string)$regNo)) {
+                if ($hospitalModel->rejectSupportRequest($requestId, $regNo, $reason, 'Hospital ' . (string) $regNo)) {
                     $_SESSION['flash_success'] = 'Support request rejected.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to reject support request.';
@@ -416,16 +429,16 @@ class Hospital {
 
             case 'add_organ_request':
                 $recipientAge = $_POST['recipient_age'] ?? null;
-                $bloodGroup = trim((string)($_POST['blood_group'] ?? ''));
-                $gender = trim((string)($_POST['gender'] ?? ''));
+                $bloodGroup = trim((string) ($_POST['blood_group'] ?? ''));
+                $gender = trim((string) ($_POST['gender'] ?? ''));
 
                 // Prefer split HLA fields (new schema), but keep legacy packed field as a fallback.
-                $hlaA1 = trim((string)($_POST['hla_a1'] ?? ''));
-                $hlaA2 = trim((string)($_POST['hla_a2'] ?? ''));
-                $hlaB1 = trim((string)($_POST['hla_b1'] ?? ''));
-                $hlaB2 = trim((string)($_POST['hla_b2'] ?? ''));
-                $hlaDr1 = trim((string)($_POST['hla_dr1'] ?? ''));
-                $hlaDr2 = trim((string)($_POST['hla_dr2'] ?? ''));
+                $hlaA1 = trim((string) ($_POST['hla_a1'] ?? ''));
+                $hlaA2 = trim((string) ($_POST['hla_a2'] ?? ''));
+                $hlaB1 = trim((string) ($_POST['hla_b1'] ?? ''));
+                $hlaB2 = trim((string) ($_POST['hla_b2'] ?? ''));
+                $hlaDr1 = trim((string) ($_POST['hla_dr1'] ?? ''));
+                $hlaDr2 = trim((string) ($_POST['hla_dr2'] ?? ''));
 
                 $hlaTypingFromParts = '';
                 if ($hlaA1 !== '' || $hlaA2 !== '' || $hlaB1 !== '' || $hlaB2 !== '' || $hlaDr1 !== '' || $hlaDr2 !== '') {
@@ -433,9 +446,9 @@ class Hospital {
                 }
                 $hlaTyping = $hlaTypingFromParts !== ''
                     ? $hlaTypingFromParts
-                    : trim((string)($_POST['hla_typing'] ?? ''));
+                    : trim((string) ($_POST['hla_typing'] ?? ''));
 
-                $transplantReason = trim((string)($_POST['transplant_reason'] ?? ''));
+                $transplantReason = trim((string) ($_POST['transplant_reason'] ?? ''));
 
                 $ageNum = filter_var($recipientAge, FILTER_VALIDATE_INT);
                 if ($ageNum === false || $ageNum < 18 || $ageNum > 80) {
@@ -483,16 +496,16 @@ class Hospital {
             case 'edit_organ_request':
                 $requestId = $_POST['request_id'] ?? null;
                 $recipientAge = $_POST['recipient_age'] ?? null;
-                $bloodGroup = trim((string)($_POST['blood_group'] ?? ''));
-                $gender = trim((string)($_POST['gender'] ?? ''));
+                $bloodGroup = trim((string) ($_POST['blood_group'] ?? ''));
+                $gender = trim((string) ($_POST['gender'] ?? ''));
 
                 // Prefer split HLA fields (new schema), but keep legacy packed field as a fallback.
-                $hlaA1 = trim((string)($_POST['hla_a1'] ?? ''));
-                $hlaA2 = trim((string)($_POST['hla_a2'] ?? ''));
-                $hlaB1 = trim((string)($_POST['hla_b1'] ?? ''));
-                $hlaB2 = trim((string)($_POST['hla_b2'] ?? ''));
-                $hlaDr1 = trim((string)($_POST['hla_dr1'] ?? ''));
-                $hlaDr2 = trim((string)($_POST['hla_dr2'] ?? ''));
+                $hlaA1 = trim((string) ($_POST['hla_a1'] ?? ''));
+                $hlaA2 = trim((string) ($_POST['hla_a2'] ?? ''));
+                $hlaB1 = trim((string) ($_POST['hla_b1'] ?? ''));
+                $hlaB2 = trim((string) ($_POST['hla_b2'] ?? ''));
+                $hlaDr1 = trim((string) ($_POST['hla_dr1'] ?? ''));
+                $hlaDr2 = trim((string) ($_POST['hla_dr2'] ?? ''));
 
                 $hlaTypingFromParts = '';
                 if ($hlaA1 !== '' || $hlaA2 !== '' || $hlaB1 !== '' || $hlaB2 !== '' || $hlaDr1 !== '' || $hlaDr2 !== '') {
@@ -500,10 +513,10 @@ class Hospital {
                 }
                 $hlaTyping = $hlaTypingFromParts !== ''
                     ? $hlaTypingFromParts
-                    : trim((string)($_POST['hla_typing'] ?? ''));
+                    : trim((string) ($_POST['hla_typing'] ?? ''));
 
-                $transplantReason = trim((string)($_POST['transplant_reason'] ?? ''));
-                $editedReason = trim((string)($_POST['edited_reason'] ?? ($_POST['urgency_reason'] ?? '')));
+                $transplantReason = trim((string) ($_POST['transplant_reason'] ?? ''));
+                $editedReason = trim((string) ($_POST['edited_reason'] ?? ($_POST['urgency_reason'] ?? '')));
 
                 $ageNum = filter_var($recipientAge, FILTER_VALIDATE_INT);
                 if ($ageNum === false || $ageNum < 18 || $ageNum > 80) {
@@ -620,16 +633,16 @@ class Hospital {
                     $_SESSION['flash_success'] = "Lab report updated successfully.";
 
                     // Notify donor when schedule is edited
-                    $donorIdForNotify = (int)($data['donor_id'] ?? 0);
+                    $donorIdForNotify = (int) ($data['donor_id'] ?? 0);
                     if ($donorIdForNotify <= 0 && $before && !empty($before->donor_id)) {
-                        $donorIdForNotify = (int)$before->donor_id;
+                        $donorIdForNotify = (int) $before->donor_id;
                     }
 
                     if ($donorIdForNotify > 0) {
-                        $oldType = $before ? (string)($before->test_type ?? '') : '';
-                        $oldDate = $before ? (string)($before->test_date ?? '') : '';
-                        $newType = (string)($data['test_type'] ?? '');
-                        $newDate = (string)($data['test_date'] ?? '');
+                        $oldType = $before ? (string) ($before->test_type ?? '') : '';
+                        $oldDate = $before ? (string) ($before->test_date ?? '') : '';
+                        $newType = (string) ($data['test_type'] ?? '');
+                        $newDate = (string) ($data['test_date'] ?? '');
 
                         $msg = "Your appointment schedule was updated by the hospital.";
                         if ($oldType !== '' || $oldDate !== '') {
@@ -648,7 +661,7 @@ class Hospital {
                 break;
 
             case 'delete_lab_report':
-                $rid = (int)($_POST['report_id'] ?? 0);
+                $rid = (int) ($_POST['report_id'] ?? 0);
                 if ($rid > 0 && $hospitalModel->softDeleteLabReport($rid)) {
                     $_SESSION['flash_success'] = "Schedule deleted successfully.";
                 } else {
@@ -665,14 +678,15 @@ class Hospital {
                 break;
 
             case 'schedule_appointment':
-                $donorId = (int)($_POST['donor_id'] ?? 0);
-                $organId = (int)($_POST['organ_id'] ?? 0);
+                $donorId = (int) ($_POST['donor_id'] ?? 0);
+                $organId = (int) ($_POST['organ_id'] ?? 0);
                 $tests = $_POST['tests'] ?? [];
-                if (!is_array($tests)) $tests = [];
+                if (!is_array($tests))
+                    $tests = [];
                 $tests = array_values(array_filter(array_map('trim', $tests), fn($t) => $t !== ''));
 
-                $testDate = trim((string)($_POST['test_date'] ?? ''));
-                $notes = trim((string)($_POST['notes'] ?? ''));
+                $testDate = trim((string) ($_POST['test_date'] ?? ''));
+                $notes = trim((string) ($_POST['notes'] ?? ''));
 
                 if ($donorId <= 0 || $organId <= 0 || empty($tests) || $testDate === '') {
                     $_SESSION['flash_error'] = 'Please select donor, organ, at least one test, and a date.';
@@ -709,12 +723,12 @@ class Hospital {
                 break;
 
             case 'submit_test_result':
-                $patientType = strtoupper(trim((string)($_POST['patient_type'] ?? 'DONOR')));
-                $donorId = (int)($_POST['donor_id'] ?? 0);
-                $recipientId = (int)($_POST['recipient_id'] ?? 0);
-                $testName = trim((string)($_POST['test_name'] ?? ''));
-                $testDate = trim((string)($_POST['test_date'] ?? ''));
-                $resultValue = trim((string)($_POST['result_value'] ?? ''));
+                $patientType = strtoupper(trim((string) ($_POST['patient_type'] ?? 'DONOR')));
+                $donorId = (int) ($_POST['donor_id'] ?? 0);
+                $recipientId = (int) ($_POST['recipient_id'] ?? 0);
+                $testName = trim((string) ($_POST['test_name'] ?? ''));
+                $testDate = trim((string) ($_POST['test_date'] ?? ''));
+                $resultValue = trim((string) ($_POST['result_value'] ?? ''));
 
                 if (!in_array($patientType, ['DONOR', 'RECIPIENT'], true)) {
                     $_SESSION['flash_error'] = 'Invalid patient type.';
@@ -742,7 +756,7 @@ class Hospital {
                     if (!is_dir($uploadDir)) {
                         @mkdir($uploadDir, 0775, true);
                     }
-                    $originalName = (string)($_FILES['document']['name'] ?? '');
+                    $originalName = (string) ($_FILES['document']['name'] ?? '');
                     $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
                     $allowed = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
                     if ($ext && in_array($ext, $allowed, true)) {
@@ -758,9 +772,9 @@ class Hospital {
 
                 $hospitalIdForVerification = null;
                 if (!empty($_SESSION['user_id'])) {
-                    $h = $hospitalModel->getHospitalByUserId((int)$_SESSION['user_id']);
+                    $h = $hospitalModel->getHospitalByUserId((int) $_SESSION['user_id']);
                     if ($h && !empty($h->id)) {
-                        $hospitalIdForVerification = (int)$h->id;
+                        $hospitalIdForVerification = (int) $h->id;
                     }
                 }
 
@@ -801,19 +815,19 @@ class Hospital {
                 break;
 
             case 'apply_reschedule_request':
-                $rid = (int)($_POST['report_id'] ?? 0);
+                $rid = (int) ($_POST['report_id'] ?? 0);
                 if ($rid <= 0) {
                     $_SESSION['flash_error'] = 'Invalid appointment.';
                     break;
                 }
 
                 $apt = $hospitalModel->getLabReportById($rid);
-                if (!$apt || (string)($apt->hospital_registration_no ?? '') !== (string)$regNo) {
+                if (!$apt || (string) ($apt->hospital_registration_no ?? '') !== (string) $regNo) {
                     $_SESSION['flash_error'] = 'Appointment not found.';
                     break;
                 }
 
-                $notesText = (string)($apt->notes ?? '');
+                $notesText = (string) ($apt->notes ?? '');
                 $proposed = null;
                 if (preg_match_all('/Proposed date:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i', $notesText, $m) && !empty($m[1])) {
                     $proposed = end($m[1]) ?: null;
@@ -839,7 +853,7 @@ class Hospital {
 
                 if ($hospitalModel->updateLabReport($rid, $data)) {
                     $hospitalModel->notifyDonor(
-                        (int)($apt->donor_id ?? 0),
+                        (int) ($apt->donor_id ?? 0),
                         'Reschedule approved',
                         'Your reschedule request was approved. New appointment date: ' . $proposed . '.',
                         'INFO'
@@ -851,15 +865,15 @@ class Hospital {
                 break;
 
             case 'decline_reschedule_request':
-                $rid = (int)($_POST['report_id'] ?? 0);
-                $reason = trim((string)($_POST['reason'] ?? ''));
+                $rid = (int) ($_POST['report_id'] ?? 0);
+                $reason = trim((string) ($_POST['reason'] ?? ''));
                 if ($rid <= 0 || $reason === '') {
                     $_SESSION['flash_error'] = 'Please provide a reason to decline.';
                     break;
                 }
 
                 $apt = $hospitalModel->getLabReportById($rid);
-                if (!$apt || (string)($apt->hospital_registration_no ?? '') !== (string)$regNo) {
+                if (!$apt || (string) ($apt->hospital_registration_no ?? '') !== (string) $regNo) {
                     $_SESSION['flash_error'] = 'Appointment not found.';
                     break;
                 }
@@ -868,10 +882,10 @@ class Hospital {
                 $contact = '';
                 $h = null;
                 if (!empty($_SESSION['user_id'])) {
-                    $h = $hospitalModel->getHospitalByUserId((int)$_SESSION['user_id']);
-                    $contact = trim((string)($h->contact_number ?? ''));
+                    $h = $hospitalModel->getHospitalByUserId((int) $_SESSION['user_id']);
+                    $contact = trim((string) ($h->contact_number ?? ''));
                 }
-                $hospitalName = $h ? (string)($h->name ?? 'Hospital') : 'Hospital';
+                $hospitalName = $h ? (string) ($h->name ?? 'Hospital') : 'Hospital';
 
                 $stamp = date('Y-m-d H:i');
                 $respBlock = "[Hospital Response] Unable to reschedule. Reason: {$reason} | Responded at: {$stamp}";
@@ -881,7 +895,7 @@ class Hospital {
                     $respBlock .= " | Please contact {$hospitalName} ({$regNo}).";
                 }
 
-                $notesText = (string)($apt->notes ?? '');
+                $notesText = (string) ($apt->notes ?? '');
                 $newNotes = $notesText ? ($notesText . "\n" . $respBlock) : $respBlock;
 
                 $data = [
@@ -901,7 +915,7 @@ class Hospital {
                         $msg .= "\nPlease contact {$hospitalName} ({$regNo}).";
                     }
                     $hospitalModel->notifyDonor(
-                        (int)($apt->donor_id ?? 0),
+                        (int) ($apt->donor_id ?? 0),
                         'Reschedule declined',
                         $msg,
                         'WARNING'
@@ -936,7 +950,8 @@ class Hospital {
         redirect('hospital');
     }
 
-    public function organRequests() {
+    public function organRequests()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -976,7 +991,8 @@ class Hospital {
         $this->view('hospital/organ_request', $data);
     }
 
-    public function eligibility() {
+    public function eligibility()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -984,7 +1000,7 @@ class Hospital {
         $hospitalModel = new HospitalModel();
         $userId = $_SESSION['user_id'];
         $hospital = $hospitalModel->getHospitalByUserId($userId);
-        $hospitalId = $hospital ? (int)$hospital->id : 0;
+        $hospitalId = $hospital ? (int) $hospital->id : 0;
         $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1019,7 +1035,8 @@ class Hospital {
     }
 
 
-    public function stories() {
+    public function stories()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -1055,7 +1072,8 @@ class Hospital {
         $this->view('hospital/stories', $data);
     }
 
-    public function addpatient() {
+    public function addpatient()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -1083,7 +1101,8 @@ class Hospital {
 
     public function addpatientRecipient()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -1094,9 +1113,9 @@ class Hospital {
         $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $name = trim((string)($_POST['recipient_name'] ?? ''));
-            $nic = trim((string)($_POST['recipient_nic'] ?? ''));
-            $requestedReg = trim((string)($_POST['registration_number'] ?? ''));
+            $name = trim((string) ($_POST['recipient_name'] ?? ''));
+            $nic = trim((string) ($_POST['recipient_nic'] ?? ''));
+            $requestedReg = trim((string) ($_POST['registration_number'] ?? ''));
 
             if ($name === '' || $nic === '') {
                 $_SESSION['flash_error'] = 'Full name and NIC are required.';
@@ -1111,13 +1130,13 @@ class Hospital {
                     'nic' => $nic,
                     'hospital_registration_no' => $hospital_registration,
                     'registration_number' => $requestedReg,
-                    'age' => !empty($_POST['recipient_age']) ? (int)$_POST['recipient_age'] : null,
-                    'gender' => !empty($_POST['recipient_gender']) ? trim((string)$_POST['recipient_gender']) : null,
-                    'blood_group' => !empty($_POST['recipient_blood_group']) ? trim((string)$_POST['recipient_blood_group']) : null,
-                    'contact_details' => !empty($_POST['recipient_contact']) ? trim((string)$_POST['recipient_contact']) : null,
-                    'medical_details' => !empty($_POST['recipient_medical']) ? trim((string)$_POST['recipient_medical']) : null,
-                    'surgery_type' => !empty($_POST['surgery_type']) ? trim((string)$_POST['surgery_type']) : null,
-                    'surgery_date' => !empty($_POST['surgery_date']) ? trim((string)$_POST['surgery_date']) : null,
+                    'age' => !empty($_POST['recipient_age']) ? (int) $_POST['recipient_age'] : null,
+                    'gender' => !empty($_POST['recipient_gender']) ? trim((string) $_POST['recipient_gender']) : null,
+                    'blood_group' => !empty($_POST['recipient_blood_group']) ? trim((string) $_POST['recipient_blood_group']) : null,
+                    'contact_details' => !empty($_POST['recipient_contact']) ? trim((string) $_POST['recipient_contact']) : null,
+                    'medical_details' => !empty($_POST['recipient_medical']) ? trim((string) $_POST['recipient_medical']) : null,
+                    'surgery_type' => !empty($_POST['surgery_type']) ? trim((string) $_POST['surgery_type']) : null,
+                    'surgery_date' => !empty($_POST['surgery_date']) ? trim((string) $_POST['surgery_date']) : null,
                 ]);
 
                 $_SESSION['flash_success'] = 'Recipient aftercare account created successfully.';
@@ -1126,7 +1145,7 @@ class Hospital {
                     'password' => $nic,
                 ];
             } catch (\Throwable $e) {
-                $msg = (string)($e->getMessage() ?? '');
+                $msg = (string) ($e->getMessage() ?? '');
                 if (stripos($msg, 'aftercare_patients') !== false && (stripos($msg, 'doesn\'t exist') !== false || stripos($msg, 'Base table or view not found') !== false)) {
                     $_SESSION['flash_error'] = 'Aftercare tables not found. Please import/apply the latest database schema (main.sql) and try again.';
                 } else {
@@ -1153,7 +1172,8 @@ class Hospital {
 
     public function addpatientDonor()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -1164,7 +1184,7 @@ class Hospital {
         $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $nic = trim((string)($_POST['donor_nic'] ?? ''));
+            $nic = trim((string) ($_POST['donor_nic'] ?? ''));
             if ($nic === '') {
                 $_SESSION['flash_error'] = 'Donor NIC is required.';
                 redirect('hospital/addpatient/donor');
@@ -1181,7 +1201,7 @@ class Hospital {
             );
 
             if (!empty($donorUser)) {
-                $uid = (int)$donorUser[0]->user_id;
+                $uid = (int) $donorUser[0]->user_id;
                 try {
                     // Ensure aftercare_access column exists
                     $hasCol = $hospitalModel->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
@@ -1190,7 +1210,7 @@ class Hospital {
                         $con = $hospitalModel->connect();
                         $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
                     }
-                    
+
                     // Now update the aftercare_access flag
                     $hospitalModel->query(
                         "UPDATE users SET aftercare_access = 1 WHERE id = :uid",
@@ -1212,13 +1232,13 @@ class Hospital {
 
                     if (!empty($donorRow)) {
                         $d = $donorRow[0];
-                        $fullName = trim((string)($d->first_name ?? '') . ' ' . (string)($d->last_name ?? ''));
+                        $fullName = trim((string) ($d->first_name ?? '') . ' ' . (string) ($d->last_name ?? ''));
 
                         $aftercarePatientModel = new AftercarePatientModel();
                         $aftercarePatientModel->upsertDonorPatient([
                             'full_name' => $fullName !== '' ? $fullName : $nic,
-                            'nic' => (string)($d->nic_number ?? $nic),
-                            'hospital_registration_no' => (string)$hospital_registration,
+                            'nic' => (string) ($d->nic_number ?? $nic),
+                            'hospital_registration_no' => (string) $hospital_registration,
                         ], $uid);
                     }
                 } catch (\Throwable $e) {
@@ -1242,7 +1262,7 @@ class Hospital {
 
         $donors = [];
         try {
-            $hospitalId = !empty($hospital->id) ? (int)$hospital->id : 0;
+            $hospitalId = !empty($hospital->id) ? (int) $hospital->id : 0;
             if ($hospitalId > 0) {
                 $donors = $hospitalModel->searchDonorsForHospital($hospitalId, '') ?: [];
             }
@@ -1264,7 +1284,8 @@ class Hospital {
     /**
      * Lab Reports page
      */
-    public function labReports() {
+    public function labReports()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             redirect('login');
         }
@@ -1283,7 +1304,7 @@ class Hospital {
 
         // Aftercare appointments (donor-initiated requests + accepted/rejected history)
         $aftercare_appointments = $hospitalModel->getAftercareAppointments($hospital_registration) ?: [];
-        
+
         $hospital_details = [
             'name' => $hospital->name,
             'registration' => $hospital->registration_number,
@@ -1309,7 +1330,8 @@ class Hospital {
     /**
      * Search donors API endpoint
      */
-    public function searchDonors() {
+    public function searchDonors()
+    {
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -1324,11 +1346,11 @@ class Hospital {
 
             $hospitalModel = new HospitalModel();
             $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
-            $hospitalId = $hospital ? (int)$hospital->id : 0;
-            
+            $hospitalId = $hospital ? (int) $hospital->id : 0;
+
             $results = $hospitalModel->searchDonorsForHospital($hospitalId, $searchQuery);
             echo json_encode($results ?: []);
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
@@ -1337,8 +1359,10 @@ class Hospital {
     /**
      * API endpoint to get donor details directly for the Add Patient form
      */
-    public function fetchDonorDetails() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+    public function fetchDonorDetails()
+    {
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
         if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -1361,7 +1385,7 @@ class Hospital {
 
             if (!empty($donor)) {
                 echo json_encode([
-                    'success' => true, 
+                    'success' => true,
                     'donor' => $donor[0]
                 ]);
             } else {
@@ -1380,8 +1404,9 @@ class Hospital {
     public function searchPatientByNIC()
     {
         header('Content-Type: application/json');
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+
         try {
             if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -1397,18 +1422,18 @@ class Hospital {
             }
 
             $hospitalModel = new HospitalModel();
-            
+
             // Search in donors table first
             $patient = $hospitalModel->query(
                 "SELECT id, first_name, last_name, gender, blood_group, CONCAT(first_name, ' ', last_name) as name 
-                 FROM donors WHERE nic_number = :nic LIMIT 1", 
+                 FROM donors WHERE nic_number = :nic LIMIT 1",
                 [':nic' => $nic]
             );
 
             if (!empty($patient)) {
                 echo json_encode([
-                    'success' => true, 
-                    'patient' => (array)$patient[0]
+                    'success' => true,
+                    'patient' => (array) $patient[0]
                 ]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Patient not found with this NIC']);
