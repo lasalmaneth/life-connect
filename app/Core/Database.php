@@ -6,7 +6,7 @@ use PDO;
 
 trait Database
 {
-    private function connect()
+    public function connect()
     {
         $string = "mysql:host=" . DBHOST . ";dbname=" . DBNAME;
         $con = new PDO($string, DBUSER, DBPASS);

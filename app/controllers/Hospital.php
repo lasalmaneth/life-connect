@@ -1207,8 +1207,7 @@ class Hospital
                     $hasCol = $hospitalModel->query("SHOW COLUMNS FROM users LIKE 'aftercare_access'");
                     if (empty($hasCol)) {
                         // Column doesn't exist, create it
-                        $con = $hospitalModel->connect();
-                        $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
+                        $hospitalModel->query("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
                     }
 
                     // Now update the aftercare_access flag

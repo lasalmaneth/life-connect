@@ -17,8 +17,7 @@ class Donor {
         try {
             $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
             if (empty($res)) {
-                $con = $this->connect();
-                $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                $this->query("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
             }
         } catch (\Throwable $e) {
             // Ignore migration errors; downstream query will surface failure if truly blocking.
@@ -90,8 +89,7 @@ class Donor {
         } else if (!$this->usersHasAftercareAccessColumn()) {
             // Create the column if it doesn't exist
             try {
-                $con = $this->connect();
-                $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
+                $this->query("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
             } catch (\Throwable $e) {
                 // Column might already exist from MySQL perspective
             }
