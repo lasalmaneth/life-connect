@@ -150,6 +150,7 @@
             d_user: donor.username,
             d_nic: donor.nic,
             d_phone: donor.phone,
+            d_dist: donor.district,
             d_email: donor.email
         };
         Object.keys(fields).forEach(function (key) {
@@ -266,6 +267,7 @@
         setText("sv_dob", donor.dobDisplay);
         setText("sv_gender", donor.gender);
         setText("sv_phone", donor.phone);
+        setText("sv_dist", donor.district);
         setText("sv_email", donor.email);
         var labels = [];
         // For the simplified informational flow, we display a placeholder
@@ -739,6 +741,20 @@
         });
     };
 
+    window.handleOtpPaste = function (event) {
+        var data = (event.clipboardData || window.clipboardData).getData('text');
+        var digits = data.trim().replace(/\D/g, '').split('');
+        if (digits.length === 6) {
+            for (var i = 1; i <= 6; i++) {
+                var el = document.getElementById('otp_' + i);
+                if (el) el.value = digits[i - 1];
+            }
+            // Focus the last one
+            document.getElementById('otp_6').focus();
+            event.preventDefault();
+        }
+    };
+
     window.moveOtpFocus = function(el, idx, event) {
         el.classList.remove('err');
         document.getElementById('otpModalErr').style.display = 'none';
@@ -1039,16 +1055,25 @@
         var user = getValue("d_user");
         var nic = getValue("d_nic");
         var phone = getValue("d_phone");
+        var district = getValue("d_dist");
         var email = getValue("d_email");
         var pw = getValue("d_pw");
         var cpw = getValue("d_cpw");
         var terms = document.getElementById("d_terms");
+
+        const validDistricts = [
+            "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
+            "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala",
+            "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa",
+            "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
+        ];
 
         if (!fname) errs.push("First name is required");
         if (!lname) errs.push("Last name is required");
         if (!user || !/^[a-zA-Z0-9_]{3,30}$/.test(user)) errs.push("A valid username is required (3–30 chars, letters/numbers/underscores)");
         if (!nic || !(/^\d{9}[VXvx]$/.test(nic) || /^\d{12}$/.test(nic))) errs.push("A valid NIC number is required");
         if (!phone || !/^0\d{9}$/.test(phone)) errs.push("A valid 10-digit phone number is required");
+        if (!district || !validDistricts.includes(district)) errs.push("Please select a valid district from the list");
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.push("A valid email address is required");
         if (!pw || pw.length < 8) errs.push("Password must be at least 8 characters");
         else {
@@ -1104,6 +1129,7 @@
             dobIso: parsed ? parsed.iso : "",
             gender: parsed ? parsed.gender : getValue("d_gender"),
             phone: phone,
+            district: district,
             email: email
         });
 
@@ -1258,9 +1284,9 @@
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if(d.success) {
-                var colors = { 'PENDING': '#d97706', 'ACTIVE': '#16a34a', 'REJECTED': '#dc2626' };
+                var colors = { 'PENDING': '#d97706', 'ACTIVE': '#16a34a', 'REJECTED': '#dc2626', 'SUSPENDED': '#dc2626' };
                 var msg = "Status: " + d.status;
-                if(d.status === 'REJECTED' && d.review_message) {
+                if((d.status === 'REJECTED' || d.status === 'SUSPENDED') && d.review_message) {
                     msg += " (Reason: " + d.review_message + ")";
                 }
                 resEl.textContent = msg;
@@ -1309,6 +1335,7 @@
         if (page === "donor") {
             mergeState({ role: "donor" });
             populateDonorFromState();
+            initDistrictAutocomplete();
         }
 
         if (page === "donation") {
@@ -1361,6 +1388,121 @@
         adjustProgressForRole();
     });
 
+    function initDistrictAutocomplete() {
+        const input = document.getElementById('d_dist');
+        const menu = document.getElementById('d_dist_menu');
+        if (!input || !menu) return;
+
+        const districts = [
+            "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha",
+            "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala",
+            "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa",
+            "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
+        ];
+
+        let currentIndex = -1;
+
+        input.addEventListener('input', function() {
+            const val = this.value.trim().toLowerCase();
+            const filtered = districts.filter(d => d.toLowerCase().includes(val));
+            renderMenu(filtered, val);
+            if (val) {
+                menu.classList.add('show');
+            } else {
+                menu.classList.remove('show');
+            }
+        });
+
+        input.addEventListener('focus', function() {
+            const val = this.value.trim().toLowerCase();
+            const filtered = districts.filter(d => d.toLowerCase().includes(val));
+            renderMenu(filtered, val);
+            menu.classList.add('show');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.remove('show');
+                validateDistrictOnBlur();
+            }
+        });
+
+        function renderMenu(list, query) {
+            menu.innerHTML = '';
+            if (list.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'no-results';
+                li.textContent = 'No matching district found';
+                menu.appendChild(li);
+                return;
+            }
+
+            list.forEach((item, idx) => {
+                const li = document.createElement('li');
+                li.className = 'dropdown-item';
+                li.innerHTML = highlight(item, query);
+                li.onclick = function() {
+                    input.value = item;
+                    menu.classList.remove('show');
+                    input.classList.remove('err');
+                    input.classList.add('ok');
+                };
+                menu.appendChild(li);
+            });
+        }
+
+        function highlight(text, query) {
+            if (!query) return text;
+            const idx = text.toLowerCase().indexOf(query);
+            if (idx === -1) return text;
+            return text.substring(0, idx) + '<span class="match-highlight">' + text.substring(idx, idx + query.length) + '</span>' + text.substring(idx + query.length);
+        }
+
+        function validateDistrictOnBlur() {
+            const val = input.value.trim();
+            if (val && !districts.some(d => d.toLowerCase() === val.toLowerCase())) {
+                input.classList.add('err');
+                input.classList.remove('ok');
+                document.getElementById('d_distH').textContent = 'Please select a valid district';
+                document.getElementById('d_distH').className = 'hint err';
+            } else if (val) {
+                const matched = districts.find(d => d.toLowerCase() === val.toLowerCase());
+                input.value = matched;
+                input.classList.remove('err');
+                input.classList.add('ok');
+                document.getElementById('d_distH').textContent = 'Looks good';
+                document.getElementById('d_distH').className = 'hint ok';
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            const items = menu.querySelectorAll('.dropdown-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentIndex = (currentIndex + 1) % items.length;
+                setActive(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentIndex = (currentIndex - 1 + items.length) % items.length;
+                setActive(items);
+            } else if (e.key === 'Enter' && currentIndex > -1) {
+                e.preventDefault();
+                items[currentIndex].click();
+                currentIndex = -1;
+            } else if (e.key === 'Escape') {
+                menu.classList.remove('show');
+            }
+        });
+
+        function setActive(items) {
+            items.forEach(it => it.classList.remove('active'));
+            if (items[currentIndex]) {
+                items[currentIndex].classList.add('active');
+                items[currentIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }
+
     // Expose for Bridge
     window.mergeState = mergeState;
     window.readState = readState;
@@ -1370,4 +1512,34 @@
     if (typeof populateInstitutionFromState === 'function') {
         window.populateInstitutionFromState = populateInstitutionFromState;
     }
+    // ─── Initialization for Pre-filled Fields (Auto-fill fix) ────────────────
+    function checkPreFilled() {
+        // Donor Fields
+        if (getRole() === 'donor') {
+            if (document.getElementById("d_user") && document.getElementById("d_user").value.trim() !== '') {
+                onUsername('d_user', 'd_userH');
+            }
+            if (document.getElementById("d_email") && document.getElementById("d_email").value.trim() !== '') {
+                onEmail('d_email', 'd_emailH');
+            }
+            if (document.getElementById("d_nic") && document.getElementById("d_nic").value.trim() !== '') {
+                onNIC();
+            }
+        }
+        // Institution Fields
+        if (getRole() === 'institution') {
+            if (document.getElementById("inst_user") && document.getElementById("inst_user").value.trim() !== '') {
+                onUsername('inst_user', 'inst_userH');
+            }
+            if (document.getElementById("inst_email") && document.getElementById("inst_email").value.trim() !== '') {
+                onEmail('inst_email', 'inst_emailH');
+            }
+        }
+    }
+
+    // Run slightly delayed to ensure browser auto-fill has settled
+    window.addEventListener("load", function() {
+        setTimeout(checkPreFilled, 500);
+    });
+
 })();

@@ -24,6 +24,25 @@ require __DIR__ . '/partials/header.view.php';
       <a href="#" onclick="event.preventDefault(); openStatusModal();" style="font-weight: 500; font-size: 0.95rem;">Already submitted an application? Check status</a>
   </div>
   
-  <div class="login-link" style="margin-top:10px;">Already have an account? <a href="<?= ROOT ?>/login">Sign in</a></div>
+  <div class="login-link" style="margin-top:20px; text-align: center;">
+      <div style="margin-bottom: 10px; display: flex; gap: 15px; justify-content: center;">
+          <a href="javascript:void(0)" onclick="openTerms()" class="legal-link-footer">Terms and Conditions</a>
+          <a href="javascript:void(0)" onclick="openPrivacy()" class="legal-link-footer">Privacy Policy</a>
+      </div>
+      <span>Already have an account? <a href="<?= ROOT ?>/login">Sign in</a></span>
+  </div>
 </div>
+
+<style>
+.legal-link-footer {
+    font-size: 0.8rem;
+    color: #a0aec0; /* gray */
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+.legal-link-footer:hover {
+    color: #3b82f6; /* blue */
+    text-decoration: underline;
+}
+</style>
 <?php require __DIR__ . '/partials/footer.view.php'; ?>

@@ -31,6 +31,47 @@ class RegistrationController
         }
     }
 
+    public function checkAvailability()
+    {
+        header('Content-Type: application/json');
+        
+        $type = $_GET['type'] ?? '';
+        $value = trim($_GET['value'] ?? '');
+
+        if (empty($type) || empty($value)) {
+            echo json_encode(['success' => false, 'message' => 'Missing arguments']);
+            return;
+        }
+
+        try {
+            $userModel = new UserModel();
+            if ($type === 'username') {
+                if ($userModel->usernameExists($value)) {
+                    echo json_encode(['success' => true, 'available' => false, 'message' => 'Username already taken']);
+                } else {
+                    echo json_encode(['success' => true, 'available' => true, 'message' => 'Username available']);
+                }
+            } elseif ($type === 'email') {
+                if ($userModel->emailExists($value)) {
+                    echo json_encode(['success' => true, 'available' => false, 'message' => 'Email already registered']);
+                } else {
+                    echo json_encode(['success' => true, 'available' => true, 'message' => 'Email available']);
+                }
+            } elseif ($type === 'nic') {
+                $donorModel = new DonorModel();
+                if ($donorModel->nicExists($value)) {
+                    echo json_encode(['success' => true, 'available' => false, 'message' => 'NIC already registered']);
+                } else {
+                    echo json_encode(['success' => true, 'available' => true, 'message' => 'NIC available']);
+                }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Invalid check type']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Server error']);
+        }
+    }
+
     private function calculateAge($dob)
     {
         $birthDate = new DateTime($dob);
@@ -111,6 +152,7 @@ class RegistrationController
 
             $userModel = new UserModel();
             if ($userModel->usernameExists($_POST['username'] ?? '')) throw new Exception("Username taken.");
+            if ($userModel->emailExists($_POST['email'] ?? '')) throw new Exception("Email already registered.");
 
             $hashedPassword = password_hash($_POST['password'] ?? '', PASSWORD_DEFAULT);
             $userId = $userModel->createUser(trim($_POST['username']), $hashedPassword, 'DONOR', trim($_POST['email'] ?? ''), trim($_POST['phone']), 'PENDING');
@@ -150,7 +192,8 @@ class RegistrationController
         $this->validatePost();
         try {
             $userModel = new UserModel();
-            if ($userModel->usernameExists($_POST['username'])) throw new Exception("Username taken.");
+            if ($userModel->usernameExists($_POST['username'] ?? '')) throw new Exception("Username taken.");
+            if ($userModel->emailExists($_POST['instEmail'] ?? '')) throw new Exception("Institutional email already registered.");
 
             $userId = $userModel->createUser(trim($_POST['username']), password_hash($_POST['password'], PASSWORD_DEFAULT), 'HOSPITAL', trim($_POST['instEmail']), trim($_POST['instPhone']), 'PENDING');
 
@@ -172,6 +215,9 @@ class RegistrationController
         $this->validatePost();
         try {
             $userModel = new UserModel();
+            if ($userModel->usernameExists($_POST['username'] ?? '')) throw new Exception("Username taken.");
+            if ($userModel->emailExists($_POST['contactEmail'] ?? '')) throw new Exception("Contact email already registered.");
+
             $userId = $userModel->createUser(trim($_POST['username']), password_hash($_POST['password'], PASSWORD_DEFAULT), 'MEDICAL_SCHOOL', trim($_POST['contactEmail']), trim($_POST['contactPhone']), 'PENDING');
 
             $medModel = new MedicalSchoolModel();
@@ -192,6 +238,9 @@ class RegistrationController
         $this->validatePost();
         try {
             $userModel = new UserModel();
+            if ($userModel->usernameExists($_POST['username'] ?? '')) throw new Exception("Username taken.");
+            if ($userModel->emailExists($_POST['email'] ?? '')) throw new Exception("Email already registered.");
+
             $userId = $userModel->createUser(
                 trim($_POST['username']),
                 password_hash($_POST['password'], PASSWORD_DEFAULT),
@@ -228,6 +277,9 @@ class RegistrationController
         $this->validatePost();
         try {
             $userModel = new UserModel();
+            if ($userModel->usernameExists($_POST['username'] ?? '')) throw new Exception("Username taken.");
+            if ($userModel->emailExists($_POST['email'] ?? '')) throw new Exception("Email already registered.");
+
             $userId = $userModel->createUser(trim($_POST['username']), password_hash($_POST['password'], PASSWORD_DEFAULT), 'DONOR', trim($_POST['email']), trim($_POST['phone']), 'ACTIVE');
 
             $donorModel = new DonorModel();

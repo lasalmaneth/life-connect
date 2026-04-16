@@ -35,19 +35,7 @@
         <span class="d-menu-item__icon"><i class="fas fa-hand-holding-medical"></i></span> Body Acceptance
       </a>
       <a class="d-menu-item <?= ($activePage ?? '') === 'usage-logs' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/usage-logs">
-        <span class="d-menu-item__icon"><i class="fas fa-clipboard-list"></i></span> Usage Logs
-      </a>
-    </div>
-    <div class="d-menu-section">
-      <div class="d-menu-section__title">Records</div>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'certificates' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/certificates">
-        <span class="d-menu-item__icon"><i class="fas fa-file-certificate"></i></span> Certificates
-      </a>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'archived' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/archived">
-        <span class="d-menu-item__icon"><i class="fas fa-archive"></i></span> Archived
-      </a>
-      <a class="d-menu-item <?= ($activePage ?? '') === 'reports' ? 'active' : '' ?>" href="<?= ROOT ?>/medical-school/reports">
-        <span class="d-menu-item__icon"><i class="fas fa-chart-bar"></i></span> Reports
+        <span class="d-menu-item__icon"><i class="fas fa-clipboard-list"></i></span> Cadaver Usage Logs
       </a>
     </div>
   </nav>

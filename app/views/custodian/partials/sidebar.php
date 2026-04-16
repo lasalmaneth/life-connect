@@ -7,26 +7,25 @@
 $nav_items = [
     'general' => [
         'title' => 'Overview',
-        'items' => [
-            ['href' => ROOT . '/custodian/dashboard',   'icon' => 'fa-chart-line',    'label' => 'Dashboard',   'key' => 'dashboard'],
-            ['href' => ROOT . '/custodian/donor-profile',   'icon' => 'fa-id-card',         'label' => 'Donor Profile',      'key' => 'donor-profile'],
-            ['href' => ROOT . '/custodian/profile',        'icon' => 'fa-users-line',      'label' => 'Custodians',        'key' => 'profile'],
-            ['href' => ROOT . '/custodian/report-death',    'icon' => 'fa-heart-crack',     'label' => 'Report Death',       'key' => 'report-death'],
-            ['href' => ROOT . '/custodian/consent',          'icon' => 'fa-file-signature',  'label' => 'Registered Consents','key' => 'consent'],
-        ],
+        'items' => array_filter([
+            ['href' => ROOT . '/custodian/dashboard',     'icon' => 'fa-chart-line',      'label' => 'Dashboard',   'key' => 'dashboard'],
+            ['href' => ROOT . '/custodian/donor-profile', 'icon' => 'fa-id-card',           'label' => 'Donor Profile',      'key' => 'donor-profile'],
+            ['href' => ROOT . '/custodian/profile',       'icon' => 'fa-users-line',      'label' => 'Custodians',        'key' => 'profile'],
+            ['href' => ROOT . '/custodian/report-death', 'icon' => 'fa-heart-crack', 'label' => (!empty($death_declaration) ? 'Death Details' : 'Report Death'), 'key' => 'report-death'],
+        ]),
     ],
     'case' => [
         'title' => 'Case Operations',
-        'items' => [
+        'items' => array_filter([
             ['href' => ROOT . '/custodian/institution-requests', 'icon' => 'fa-network-wired',   'label' => 'Institution Requests', 'key' => 'institution-requests'],
             ['href' => ROOT . '/custodian/documents',       'icon' => 'fa-folder-open',     'label' => 'Documents',          'key' => 'documents'],
-            ['href' => ROOT . '/custodian/certificates',    'icon' => 'fa-certificate',     'label' => 'Certificates',       'key' => 'certificates'],
-        ],
+            ['href' => ROOT . '/custodian/certificates',    'icon' => 'fa-award',     'label' => 'Appreciation & Recognition',       'key' => 'certificates'],
+        ]),
     ],
     'history' => [
         'title' => 'History',
         'items' => [
-            ['href' => ROOT . '/custodian/archive',    'icon' => 'fa-box-archive',     'label' => 'Archive',       'key' => 'archive'],
+            ['href' => ROOT . '/custodian/activity-history', 'icon' => 'fa-clock-rotate-left', 'label' => 'Activity History', 'key' => 'activity-history'],
         ],
     ],
 ];

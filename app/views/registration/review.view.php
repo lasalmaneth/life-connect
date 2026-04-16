@@ -143,20 +143,21 @@ function toggleEditInst() {
 
 
 
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
     var reviewForm = document.getElementById('reviewForm');
+    if (!reviewForm) return;
     
     // Inject Institution Data
     var phpInst = <?= json_encode($jsInstData) ?>;
     if(phpInst.name) {
         setTimeout(function(){
             if(window.mergeSection) {
-                mergeSection('institution', phpInst);
+                window.mergeSection('institution', phpInst);
                   
                   // Fix: don't forcefully overwrite the role if they are actively registering as a donor
                   var currState = typeof window.readState === 'function' ? window.readState() : {};
                   if (currState.role !== 'donor') {
-                      mergeState({role: 'institution'});
+                      if (window.mergeState) window.mergeState({role: 'institution'});
                   }
                   
                   if (typeof window.buildReviewFromState === 'function') window.buildReviewFromState(); // Refresh UI
@@ -166,45 +167,52 @@ window.onload = function() {
                   
     // Attach submit handler to populate hidden input and intercept for OTP
     reviewForm.onsubmit = function(e) {
-        // If already OTP-verified, fullStateInput was pre-populated in the OTP callback — just submit.
-        if (reviewForm.dataset.otpVerified === "true") {
-            // Safety: ensure fullStateInput has a value; if somehow empty, still populate it
-            var si = document.getElementById('fullStateInput');
-            if (si && (!si.value || si.value === '{}') && typeof readState === 'function') {
-                si.value = JSON.stringify(readState());
+        try {
+            // If already OTP-verified, fullStateInput was pre-populated in the OTP callback — just submit.
+            if (reviewForm.dataset.otpVerified === "true") {
+                // Safety: ensure fullStateInput has a value; if somehow empty, still populate it
+                var si = document.getElementById('fullStateInput');
+                if (si && (!si.value || si.value === '{}') && typeof window.readState === 'function') {
+                    si.value = JSON.stringify(window.readState());
+                }
+                return true;
             }
-            return true;
-        }
 
-        e.preventDefault();
-        
-        var state = readState();
-        var role = state.role || (phpInst.name ? 'institution' : 'donor');
-        var phpEmail = '<?= $_SESSION['donor_registration']['email'] ?? $_SESSION['institution_registration']['email'] ?? '' ?>';
-        var email = phpEmail || (role === 'institution' ? (state.institution && state.institution.email) : (state.donor && state.donor.email));
+            e.preventDefault();
+            
+            var state = typeof window.readState === 'function' ? window.readState() : {};
+            var role = state.role || (phpInst.name ? 'institution' : 'donor');
+            var phpEmail = <?= json_encode($_SESSION['donor_registration']['email'] ?? $_SESSION['institution_registration']['email'] ?? '') ?>;
+            var email = phpEmail || (role === 'institution' ? (state.institution ? state.institution.email : '') : (state.donor ? state.donor.email : ''));
 
-        if (typeof openOtpModal === 'function') {
-            openOtpModal(role, email);
-        } else {
-            alert("Verifying your email is required, but the module failed to load.");
+            if (typeof window.openOtpModal === 'function') {
+                window.openOtpModal(role, String(email));
+            } else {
+                alert("Verifying your email is required, but the module failed to load.");
+            }
+            
+            return false;
+        } catch (error) {
+            console.error("Error in onsubmit:", error);
+            alert("A JavaScript error occurred: " + error.message);
+            e.preventDefault();
+            return false;
         }
-        
-        return false;
     };
 
     // Auto-trigger OTP if directed back with OTP error
     <?php if (!empty($autoTriggerOtp)): ?>
     setTimeout(function() {
-        var state = readState();
+        var state = typeof window.readState === 'function' ? window.readState() : {};
         var role = state.role || (phpInst.name ? 'institution' : 'donor');
-        var phpEmail = '<?= $_SESSION['donor_registration']['email'] ?? $_SESSION['institution_registration']['email'] ?? '' ?>';
-        var email = phpEmail || (role === 'institution' ? (state.institution && state.institution.email) : (state.donor && state.donor.email));
-        if (typeof openOtpModal === 'function') {
-            openOtpModal(role, email);
+        var phpEmail = <?= json_encode($_SESSION['donor_registration']['email'] ?? $_SESSION['institution_registration']['email'] ?? '') ?>;
+        var email = phpEmail || (role === 'institution' ? (state.institution ? state.institution.email : '') : (state.donor ? state.donor.email : ''));
+        if (typeof window.openOtpModal === 'function') {
+            window.openOtpModal(role, String(email));
         }
     }, 1000);
     <?php endif; ?>
-};
+});
 </script>
 
 <?php require __DIR__ . '/partials/footer.view.php'; ?>

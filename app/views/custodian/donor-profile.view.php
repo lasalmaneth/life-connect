@@ -1,6 +1,6 @@
-<?php
+﻿<?php
 /**
- * Custodian Portal � Donor Profile View
+ * Custodian Portal — Donor Profile View
  * Route: GET /custodian/donor-profile
  * Active page key: donor-profile
  */
@@ -96,6 +96,73 @@ ob_start();
             </div>
         </div>
 
+        </div>
+
+    <!-- -- Donation Consent History ------------------------------------------ -->
+    <div class="cp-section-card mt-4">
+        <div class="cp-section-card__header">
+            <div class="cp-section-card__title">
+                <i class="fas fa-file-signature"></i> Donation Consent History Timeline
+            </div>
+        </div>
+        <div class="cp-section-card__body p-0">
+            <?php 
+                $timeline = [];
+                if (!empty($consent)) {
+                    foreach ($consent["body_consents"] ?? [] as $bc) {
+                        $timeline[] = (object)[
+                            "type"   => "BODY DONATION",
+                            "date"   => $bc->consent_date,
+                            "status" => "ACTIVE", 
+                            "details"=> ($bc->school_name ?? "Medical School")
+                        ];
+                    }
+                    foreach ($consent["organ_pledges"] ?? [] as $op) {
+                        $timeline[] = (object)[
+                            "type"   => "ORGAN PLEDGE",
+                            "date"   => $op->created_at,
+                            "status" => $op->status,
+                            "details"=> $op->organ_name
+                        ];
+                    }
+                    usort($timeline, fn($a, $b) => strtotime($b->date ?: "2000-01-01") - strtotime($a->date ?: "2000-01-01"));
+                }
+            ?>
+            
+            <?php if (empty($timeline)): ?>
+                <div class="p-5 text-center cp-text-g500">No documented consent history available for this donor.</div>
+            <?php else: ?>
+                <table class="cp-table w-100 text-left">
+                    <thead>
+                        <tr class="cp-bg-g50 border-bottom">
+                            <th class="p-3">Type</th>
+                            <th class="p-3">Description</th>
+                            <th class="p-3">Registered Date</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($timeline as $t): ?>
+                            <tr class="border-bottom">
+                                <td class="p-3 cp-font-semibold" style="font-size: 0.85rem;"><?= $t->type ?></td>
+                                <td class="p-3" style="font-size: 0.85rem; color: var(--g600);"><?= htmlspecialchars($t->details) ?></td>
+                                <td class="p-3" style="font-size: 0.85rem;"><?= !empty($t->date) ? date("M j, Y", strtotime($t->date)) : "N/A" ?></td>
+                                <td class="p-3">
+                                    <?php 
+                                        $pillClass = "pending";
+                                        if ($t->status === "ACTIVE" || $t->status === "GIVEN") $pillClass = "approved";
+                                        if ($t->status === "WITHDRAWN") $pillClass = "rejected";
+                                    ?>
+                                    <span class="cp-status-pill cp-status-pill--<?= $pillClass ?>" style="padding: 2px 10px; font-size: 0.75rem;">
+                                        <?= htmlspecialchars($t->status) ?>
+                                    </span>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
     </div>
 
 </div><!-- /.cp-content__body -->

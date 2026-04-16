@@ -209,8 +209,8 @@ class DonorCustodianModel {
         // Default password is the NIC number (they should change it on first login)
         $defaultPassword = password_hash($nic, PASSWORD_DEFAULT);
 
-        $insertQuery = "INSERT INTO users (username, password_hash, email, phone, role, status)
-                        VALUES (:username, :password, :email, :phone, 'CUSTODIAN', 'PENDING')";
+        $insertQuery = "INSERT INTO users (username, password_hash, email, phone, role, status, must_change_credentials)
+                        VALUES (:username, :password, :email, :phone, 'CUSTODIAN', 'PENDING', 1)";
         return $this->insert($insertQuery, [
             ':username' => $nic,
             ':password' => $defaultPassword,

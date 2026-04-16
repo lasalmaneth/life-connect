@@ -62,6 +62,13 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
 
     <!-- Custodian CSS -->
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/custodian/main.css?v=<?= time() ?>">
+    
+    <!-- Extra Page Specific CSS -->
+    <?php if (isset($extra_css) && is_array($extra_css)): ?>
+        <?php foreach ($extra_css as $css): ?>
+            <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/<?= $css ?>?v=<?= time() ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
 </head>
 <body>
 
@@ -120,6 +127,100 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     </main>
 
 </div><!-- /.cp-shell -->
+
+<!-- ════════════════════════════════════════════════════════
+     PREMIUM NOTIFICATION MODAL (cpNotify)
+════════════════════════════════════════════════════════ -->
+<div class="cp-notify-overlay" id="cp-notify-overlay">
+    <div class="cp-notify-card">
+        <div class="cp-notify-icon" id="cp-notify-icon">
+            <i class="fas fa-info"></i>
+        </div>
+        <h3 class="cp-notify-title" id="cp-notify-title">Notification</h3>
+        <p class="cp-notify-msg" id="cp-notify-msg">Message goes here.</p>
+        <div class="cp-notify-btns">
+            <button class="cp-notify-btn cp-notify-btn--cancel" id="cp-notify-cancel-btn" style="display:none;">Cancel</button>
+            <button class="cp-notify-btn cp-notify-btn--confirm" id="cp-notify-confirm-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * cpNotify: Shared Notification Singleton
+ */
+const cpNotify = {
+    overlay: document.getElementById('cp-notify-overlay'),
+    icon: document.getElementById('cp-notify-icon'),
+    iconI: document.querySelector('#cp-notify-icon i'),
+    title: document.getElementById('cp-notify-title'),
+    msg: document.getElementById('cp-notify-msg'),
+    confirmBtn: document.getElementById('cp-notify-confirm-btn'),
+    cancelBtn: document.getElementById('cp-notify-cancel-btn'),
+    resolve: null,
+
+    init() {
+        this.confirmBtn.addEventListener('click', () => this.close(true));
+        this.cancelBtn.addEventListener('click', () => this.close(false));
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) this.close(false);
+        });
+    },
+
+    show({ title, message, type = 'confirm', confirmText = 'OK', cancelText = 'Cancel', icon = 'fa-info' }) {
+        return new Promise((res) => {
+            this.resolve = res;
+            
+            this.title.innerText = title;
+            this.msg.innerText = message;
+            this.confirmBtn.innerText = confirmText;
+            this.cancelBtn.innerText = cancelText;
+            
+            // Set icon and style
+            this.iconI.className = 'fas ' + icon;
+            this.icon.className = 'cp-notify-icon cp-notify-icon--' + type;
+            
+            // Buttons visibility
+            this.cancelBtn.style.display = (type === 'confirm') ? 'block' : 'none';
+            this.confirmBtn.className = 'cp-notify-btn cp-notify-btn--' + (type === 'error' ? 'danger' : 'confirm');
+
+            this.overlay.classList.add('show');
+        });
+    },
+
+    alert(title, message, type = 'success') {
+        const iconMap = { 'success': 'fa-check', 'error': 'fa-exclamation-triangle', 'warning': 'fa-exclamation-circle' };
+        return this.show({ 
+            title, 
+            message, 
+            type, 
+            confirmText: 'Dismiss', 
+            icon: iconMap[type] || 'fa-info' 
+        });
+    },
+
+    confirm(title, message, isDanger = false) {
+        return this.show({ 
+            title, 
+            message, 
+            type: 'confirm', 
+            confirmText: 'Yes, Proceed', 
+            cancelText: 'Cancel',
+            icon: isDanger ? 'fa-heart-crack' : 'fa-question-circle'
+        });
+    },
+
+    close(val) {
+        this.overlay.classList.remove('show');
+        if (this.resolve) {
+            this.resolve(val);
+            this.resolve = null;
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => cpNotify.init());
+</script>
 
 <!-- ════════════════════════════════════════════════════════
      FOOTER / SCRIPTS

@@ -1,0 +1,261 @@
+/* =============================================================================
+   LIFE-CONNECT — CUSTODIAN PORTAL — DOCUMENT VIEWER & RECOGNITION
+   ============================================================================= */
+
+/* Recognition Completion Banner */
+.cp-completion-banner {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 25px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-left: 5px solid #22c55e;
+}
+
+.cp-completion-icon {
+    width: 60px;
+    height: 60px;
+    background: #22c55e;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
+}
+
+.cp-completion-title {
+    color: #166534;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.cp-completion-text {
+    color: #15803d;
+    font-size: 0.85rem;
+    max-width: 400px;
+    margin: 0 auto 20px;
+    line-height: 1.5;
+}
+
+.cp-completion-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.cp-btn-bundle {
+    text-decoration: none;
+    background: #0f172a;
+    color: white;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+    transition: all 0.3s;
+    border: none;
+}
+
+.cp-btn-bundle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
+}
+
+/* Document Box Modal Styles */
+.doc-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 40px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.doc-modal-backdrop.active {
+    display: flex;
+    opacity: 1;
+}
+
+.doc-modal-container {
+    background: #f1f5f9;
+    width: 100%;
+    max-width: 1100px;
+    height: 90vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: translateY(20px);
+    transition: transform 0.3s;
+}
+
+.doc-modal-backdrop.active .doc-modal-container {
+    transform: translateY(0);
+}
+
+.doc-modal-header {
+    padding: 16px 24px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.doc-modal-title {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.doc-modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.doc-modal-iframe {
+    flex: 1;
+    border: none;
+    width: 100%;
+    background: #f1f5f9;
+}
+
+.btn-modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.btn-modal-close:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.btn-modal-print {
+    padding: 8px 16px;
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Split View Sidebar */
+.doc-modal-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.doc-modal-sidebar {
+    width: 280px;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    display: none; /* Only show if multiple docs */
+    flex-direction: column;
+    padding: 20px;
+}
+
+.doc-modal-sidebar.active {
+    display: flex;
+}
+
+.sidebar-section-title {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+}
+
+.doc-tab {
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.doc-tab i {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.doc-tab:hover {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.doc-tab.active {
+    background: #f1f5f9;
+    color: #1a56db;
+    box-shadow: inset 0 0 0 1px rgba(26, 86, 219, 0.1);
+}
+
+.doc-tab.active i {
+    color: #1a56db;
+}
+
+.doc-modal-viewer {
+    flex: 1;
+    background: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Recognition Card Styles */
+.cp-card-cert {
+    border-top: 4px solid #d4af37 !important;
+}
+.cp-card-cert .cp-info-card__header {
+    background: #fffdf5 !important;
+}
+.cp-card-cert .cp-info-card__title {
+    color: #b8860b !important;
+}
+
+.cp-card-appreciation {
+    border-top: 4px solid var(--blue-500) !important;
+}
+.cp-card-appreciation .cp-info-card__header {
+    background: var(--blue-50) !important;
+}

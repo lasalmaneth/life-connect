@@ -2,57 +2,65 @@
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Core\Model;
 
 class DonorModel {
-    use Database;
+    use Model;
 
     protected $table = 'donors';
 
+    protected $allowedColumns = [
+        'user_id',
+        'category_id',
+        'pledge_type',
+        'first_name',
+        'last_name',
+        'gender',
+        'date_of_birth',
+        'blood_group',
+        'nic_number',
+        'nationality',
+        'address',
+        'district',
+        'divisional_secretariat',
+        'grama_niladhari_division',
+        'verification_status',
+        'consent_status',
+        'consent_date',
+        'active_roles',
+        'opt_out_reason'
+    ];
+
     public function createDonor($userId, $personalData, $categoryId, $pledgeType = 'NONE')
     {
-        $query = "INSERT INTO donors (
-            user_id, category_id, pledge_type, first_name, last_name, gender, date_of_birth, 
-            blood_group, nic_number, nationality, address, district, divisional_secretariat, 
-            grama_niladhari_division, verification_status, consent_status, consent_date
-        ) VALUES (
-            :user_id, :category_id, :pledge_type, :first_name, :last_name, :gender, :dob,
-            :blood_group, :nic, :nationality, :address, :district, :div_sec,
-            :gn_div, 'PENDING', 'PENDING', NULL
-        )";
-        
-        $params = [
-            ':user_id' => $userId,
-            ':category_id' => $categoryId,
-            ':pledge_type' => $pledgeType,
-            ':first_name' => $personalData['first_name'] ?? '',
-            ':last_name' => $personalData['last_name'] ?? '',
-            ':gender' => $personalData['gender'],
-            ':dob' => $personalData['dob'],
-            ':blood_group' => $personalData['blood_group'] ?? null,
-            ':nic' => $personalData['nic'],
-            ':nationality' => $personalData['nationality'] ?? 'Sri Lankan',
-            ':address' => $personalData['address'] ?? '',
-            ':district' => $personalData['district'] ?? '',
-            ':div_sec' => $personalData['divisional_secretariat'] ?? '',
-            ':gn_div' => $personalData['gn_division'] ?? ''
-        ];
-        
-        return $this->insert($query, $params);
+        return $this->insert([
+            'user_id' => $userId,
+            'category_id' => $categoryId,
+            'pledge_type' => $pledgeType,
+            'first_name' => $personalData['first_name'] ?? '',
+            'last_name' => $personalData['last_name'] ?? '',
+            'gender' => $personalData['gender'],
+            'date_of_birth' => $personalData['dob'],
+            'blood_group' => $personalData['blood_group'] ?? null,
+            'nic_number' => $personalData['nic'],
+            'nationality' => $personalData['nationality'] ?? 'Sri Lankan',
+            'address' => $personalData['address'] ?? '',
+            'district' => $personalData['district'] ?? '',
+            'divisional_secretariat' => $personalData['divisional_secretariat'] ?? '',
+            'grama_niladhari_division' => $personalData['gn_division'] ?? '',
+            'verification_status' => 'PENDING',
+            'consent_status' => 'PENDING'
+        ]);
     }
 
     public function nicExists($nic)
     {
-        $query = "SELECT COUNT(*) as count FROM donors WHERE nic_number = :nic";
-        $result = $this->query($query, [':nic' => $nic]);
-        return $result && $result[0]->count > 0;
+        return $this->count(['nic_number' => $nic]) > 0;
     }
 
     public function getDonorByUserId($userId)
     {
-        $query = "SELECT * FROM donors WHERE user_id = :user_id";
-        $result = $this->query($query, [':user_id' => $userId]);
-        return $result ? $result[0] : null;
+        return $this->first(['user_id' => $userId]);
     }
 
     public function getDonorById($id)

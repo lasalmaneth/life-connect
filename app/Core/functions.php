@@ -11,7 +11,11 @@ function esc($str){
 }
 
 function redirect($path){
-    header("Location:".ROOT."/".$path);
+    if (strpos($path, 'http') === 0) {
+        header("Location: " . $path);
+    } else {
+        header("Location: " . ROOT . "/" . trim($path, '/'));
+    }
     die;
 }
 

@@ -9,9 +9,8 @@
 
         <!-- Left: Mobile toggle + Logo -->
         <div class="cp-header__left">
-            <button class="cp-mobile-toggle" id="cp-mobile-toggle"
-                    onclick="toggleSidebar()"
-                    aria-label="Toggle sidebar">
+            <button class="cp-mobile-toggle" id="cp-mobile-toggle" onclick="toggleSidebar()"
+                aria-label="Toggle sidebar">
                 <i class="fas fa-bars"></i>
             </button>
 
@@ -36,6 +35,9 @@
 
             <div class="cp-bell" title="Notifications" id="cp-bell-btn">
                 <i class="fas fa-bell"></i>
+                <?php if (isset($stats) && ($stats['pending_requests'] > 0 || $stats['active_submissions'] > 0)): ?>
+                    <span class="cp-bell__dot"></span>
+                <?php endif; ?>
             </div>
 
             <div class="cp-user-chip" id="cp-user-chip">

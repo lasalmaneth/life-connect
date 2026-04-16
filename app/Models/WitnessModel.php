@@ -2,23 +2,30 @@
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Core\Model;
 
 class WitnessModel {
-    use Database;
+    use Model;
 
     protected $table = 'witnesses';
 
+    protected $allowedColumns = [
+        'donor_id',
+        'organ_id',
+        'witness_number',
+        'name',
+        'nic_number',
+        'contact_number',
+        'address'
+    ];
+
     public function addWitness($donorId, $data) {
-        $query = "INSERT INTO witnesses (donor_id, name, nic_number, contact_number, address) 
-                  VALUES (:donor_id, :name, :nic, :phone, :address)";
-        
-        return $this->insert($query, [
-            ':donor_id' => $donorId,
-            ':name' => $data['name'],
-            ':nic' => $data['nic'],
-            ':phone' => $data['phone'],
-            ':address' => $data['address'] ?? null
+        return $this->insert([
+            'donor_id' => $donorId,
+            'name' => $data['name'],
+            'nic_number' => $data['nic'],
+            'contact_number' => $data['phone'],
+            'address' => $data['address'] ?? null
         ]);
     }
 
@@ -82,9 +89,7 @@ class WitnessModel {
     }
 
     public function countWitnessesByDonorId($donorId) {
-        $query = "SELECT COUNT(*) as count FROM witnesses WHERE donor_id = :donor_id";
-        $result = $this->query($query, [':donor_id' => $donorId]);
-        return $result ? $result[0]->count : 0;
+        return $this->count(['donor_id' => $donorId]);
     }
 
     public function deleteWitnessesByOrganPledge($donorId, $organId)

@@ -4,9 +4,11 @@
  */
 $certs = $certificates ?? [];
 ?>
-<div class="cp-section-card h-100">
+<div class="cp-section-card h-full">
     <div class="cp-section-card__header">
-        <div class="cp-section-card__title"><i class="fas fa-certificate cp-text-blue-600"></i> Certification Status</div>
+        <div class="cp-section-card__title">
+            <i class="fas fa-certificate cp-text-blue-600"></i> Certification Status
+        </div>
     </div>
     <div class="cp-section-card__body">
         <?php if (!empty($certs)): ?>
@@ -17,7 +19,9 @@ $certs = $certificates ?? [];
                     <p>Final donation certificate is available for download.</p>
                 </div>
             </div>
-            <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn cp-btn--primary cp-btn--fw">View Certificates</a>
+            <div class="mt-auto">
+                <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn cp-btn--primary cp-btn--fw">View Certificates</a>
+            </div>
         <?php else: ?>
             <div class="cp-notice cp-notice--info mb-4">
                 <i class="fas fa-clock"></i>
@@ -26,7 +30,9 @@ $certs = $certificates ?? [];
                     <p>Certification will be generated once the host institution completes the case.</p>
                 </div>
             </div>
-            <button class="cp-btn cp-btn--outline cp-btn--fw" disabled>No Certificates Yet</button>
+            <div class="mt-auto">
+                <button class="cp-btn cp-btn--outline cp-btn--fw cp-btn--locked" disabled>No Certificates Yet</button>
+            </div>
         <?php endif; ?>
     </div>
 </div>

@@ -1,0 +1,683 @@
+/* =============================================================================
+   MEDICAL SCHOOL PORTAL — DRAWER SYSTEM STYLES
+   Prefix: .dr-
+   ============================================================================= */
+
+.dr-content {
+    padding: 0;
+}
+
+/* Base Structural Components */
+.dr-drawer-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--g100);
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dr-drawer-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--blue-900);
+}
+
+.dr-drawer-header p {
+    margin: 4px 0 0;
+    font-size: 0.75rem;
+    color: var(--g400);
+    font-weight: 600;
+}
+
+.dr-drawer-body {
+    padding: 2rem;
+    overflow-y: auto;
+    flex: 1;
+    background: #fafbfc;
+}
+
+.dr-drawer-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--g100);
+    background: #fff;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.dr-close-btn {
+    border: none;
+    background: var(--g50);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--g400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.dr-close-btn:hover {
+    background: var(--g100);
+    color: var(--slate);
+}
+
+/* Empty States */
+.dr-empty-title {
+    color: var(--slate);
+    font-weight: 700;
+}
+
+.dr-empty-state {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    background: #fffcf0;
+    border: 2px dashed #fef3c7;
+    border-radius: 16px;
+}
+
+.dr-empty-state i {
+    color: #d97706;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.dr-empty-state__title {
+    color: #92400e;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.dr-empty-state__sub {
+    color: #b45309;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+/* Base Drawer Layout Section */
+.dr-section {
+    margin-bottom: 2rem;
+}
+
+/* Premium Drawer Header (Blue Gradient) */
+.dr-header {
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-900));
+    padding: 1.25rem;
+    border-radius: 12px;
+    color: white;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 15px rgba(0, 91, 170, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.dr-header__inner {
+    position: relative;
+    z-index: 1;
+}
+
+.dr-header__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.dr-tag {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.dr-tag--primary {
+    background: var(--blue-600);
+    color: white;
+}
+
+.dr-status-badge {
+    background: white !important;
+    color: var(--blue-700) !important;
+    border: none !important;
+    padding: 4px 12px !important;
+    font-size: 0.7rem !important;
+    font-weight: 800 !important;
+}
+
+.dr-header h3 {
+    font-weight: 800;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+    color: white !important;
+}
+
+.dr-header p {
+    opacity: 0.8;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+/* Info Blocks (White Cards) */
+.dr-card {
+    background: white;
+    border: 1px solid var(--g200);
+    border-radius: 12px;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+}
+
+.dr-card--blue {
+    border-color: var(--blue-100);
+    box-shadow: 0 2px 8px rgba(0, 91, 170, 0.02);
+}
+
+.dr-card--dashed {
+    border: 1px dashed var(--g300);
+    background: #f8fafc;
+}
+
+.dr-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--g100);
+    padding-bottom: 0.5rem;
+}
+
+.dr-section-title i {
+    color: var(--blue-600);
+    font-size: 0.85rem;
+}
+
+.dr-section-title span {
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: var(--g500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dr-card--blue .dr-section-title {
+    border-bottom-color: var(--blue-50);
+}
+
+.dr-card--blue .dr-section-title span {
+    color: var(--blue-700);
+}
+
+.dr-count-badge {
+    font-size: 0.65rem;
+    color: var(--g500);
+    font-weight: 700;
+    background: var(--g50);
+    padding: 2px 10px;
+    border-radius: 50px;
+}
+
+.dr-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border-radius: 50px;
+    border: 1px solid transparent;
+}
+
+.dr-badge--success {
+    background: #ecfdf4;
+    color: #059669;
+    border-color: #dcfce7;
+}
+
+.dr-badge--pending {
+    background: #fffbeb;
+    color: #d97706;
+    border-color: #fef3c7;
+}
+
+.dr-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.dr-grid--2 { grid-template-columns: 1fr 1fr; }
+.dr-grid--1-5 { grid-template-columns: 1.5fr 1fr; }
+.dr-grid--1 { grid-template-columns: 1fr; }
+
+.dr-label-group {
+    margin-bottom: 0.75rem;
+}
+
+.dr-label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--g500);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.dr-label--xs {
+    font-size: 0.55rem;
+    color: var(--g400);
+}
+
+.dr-value {
+    font-weight: 800;
+    color: var(--slate);
+    font-size: 1rem;
+}
+
+.dr-value--sub {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.dr-value--small {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.dr-value--accent {
+    font-weight: 700;
+    color: var(--blue-600);
+    font-size: 0.8rem;
+}
+
+.dr-divider {
+    border-top: 1px solid var(--g50);
+    padding-top: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.dr-heading-sm {
+    font-weight: 800;
+    color: var(--slate);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Banners (Phase Verification, Issued Certificates) */
+.dr-banner {
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--blue-100);
+    background: var(--blue-50);
+    margin-bottom: 2rem;
+}
+
+.dr-banner--info {
+    border-color: #dbeafe;
+    background: #eff6ff;
+}
+
+.dr-banner__content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.dr-banner__main {
+    flex: 1;
+}
+
+.dr-banner__title-sm {
+    font-size: 0.75rem;
+    color: var(--blue-600);
+    margin-bottom: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.dr-banner__title {
+    font-weight: 600;
+    color: var(--blue-900);
+    font-size: 1.1rem;
+}
+
+.dr-banner__msg {
+    margin-top: 8px;
+    color: var(--blue-700);
+    font-size: 0.8125rem;
+}
+
+/* Alerts (Anatomical Rejections, Errors) */
+.dr-alert-box {
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.dr-alert-box--danger {
+    background: #fff1f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.dr-alert-box--warning {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+}
+
+.dr-alert-box__title {
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dr-alert-box__main {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.dr-alert-box__notes {
+    font-style: italic;
+    font-size: 0.8125rem;
+}
+
+.dr-alert-box__meta {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Items List (Custodians, etc) */
+.dr-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dr-item {
+    background: #f8fafc;
+    padding: 0.875rem;
+    border-radius: 10px;
+    border: 1px solid var(--g100);
+    position: relative;
+}
+
+.dr-item-marker {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    color: var(--blue-500);
+    font-weight: 800;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.dr-item__header {
+    font-weight: 800;
+    color: var(--blue-900);
+    font-size: 0.875rem;
+    margin-bottom: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dr-item__sub {
+    font-weight: 400;
+    color: var(--g400);
+    font-size: 0.75rem;
+}
+
+/* Document & Bundle Cards */
+.dr-bundle-card {
+    background: linear-gradient(to right, #f0f9ff, white);
+    border: 2px solid var(--blue-200);
+    padding: 1.25rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    position: relative;
+    margin-top: 10px;
+}
+
+.dr-bundle-card .dr-tag--primary {
+    position: absolute;
+    top: -10px;
+    right: 20px;
+}
+
+.dr-bundle-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--blue-900);
+    margin: 0 0 4px 0;
+}
+
+.dr-bundle-meta {
+    font-size: 0.75rem;
+    color: var(--blue-600);
+    font-weight: 700;
+}
+
+/* Icon Box Utilities */
+.dr-icon-box {
+    width: 48px;
+    height: 48px;
+    background: #e0f2fe;
+    color: var(--blue-600);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.dr-icon-box--blue {
+    background: #e0f2fe;
+    color: var(--blue-600);
+}
+
+.dr-icon-box--sm {
+    width: 32px;
+    height: 32px;
+    background: var(--g100);
+    color: var(--g500);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.dr-doc-card-slim {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--g200);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.2s;
+}
+
+.dr-doc-card-slim:hover {
+    border-color: var(--blue-300);
+    background: var(--blue-50);
+}
+
+.dr-doc-type {
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--g600);
+    text-transform: uppercase;
+}
+
+.dr-doc-meta {
+    font-size: 0.65rem;
+    color: var(--g400);
+}
+
+/* Action Workflow Area */
+.dr-workflow-box {
+    background: #f8fafc;
+    border: 1px solid var(--g200);
+    border-radius: 16px;
+    padding: 1.25rem;
+}
+
+.dr-tabs {
+    display: flex;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+    margin-bottom: 1.25rem;
+}
+
+.dr-tab-btn {
+    flex: 1;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.8rem;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.dr-tab-btn.active {
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.dr-tab-btn--success.active { color: var(--green-600); }
+.dr-tab-btn--danger.active { color: var(--red-600); }
+
+.dr-workflow-action {
+    display: none;
+    animation: drSlideDown 0.2s ease;
+}
+
+.dr-workflow-action.active {
+    display: block;
+}
+
+.dr-form-area {
+    background: white;
+    border: 1px solid var(--g100);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.dr-form-area--success { border-color: var(--green-100); }
+.dr-form-area--danger { border-color: var(--red-100); }
+
+.dr-doc-checklist {
+    background: #fff5f5;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: none; /* Controlled by JS in submission.view.php */
+}
+
+.dr-check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #475569;
+    cursor: pointer;
+}
+
+.dr-check-label input {
+    width: 15px;
+    height: 15px;
+}
+
+/* Slim Form Controls */
+.dr-slim-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--g500);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.dr-slim-input, 
+.dr-slim-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--g200);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--slate);
+    font-family: inherit;
+}
+
+.dr-slim-textarea {
+    height: 70px;
+    resize: none;
+}
+
+/* Button Utilities */
+.dr-btn-elevated {
+    border-radius: 10px !important;
+    padding: 10px 22px !important;
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 10px rgba(0, 91, 170, 0.2);
+}
+
+.dr-btn-xs {
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+}
+
+.dr-btn-full {
+    width: 100% !important;
+    height: 44px !important;
+    font-weight: 800 !important;
+    font-size: 0.9rem !important;
+    border-radius: 10px !important;
+}
+
+/* Utility classes used in drawers */
+.mt-1 { margin-top: 0.25rem; }
+.pt-2 { padding-top: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+.opacity-70 { opacity: 0.7; }
+.break-all { word-break: break-all; }
+.h-60 { height: 60px !important; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.flex-1 { flex: 1; }
+.text-blue-500 { color: var(--blue-500) !important; }
+.mr-1 { margin-right: 0.25rem; }
+.mr-2 { margin-right: 0.5rem; }
+
+@keyframes drSlideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
