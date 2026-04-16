@@ -113,11 +113,9 @@ route('hospital/organ_request.view.php', 'Hospital@organRequestsLegacy');
 route('hospital/appointments', 'Hospital@index');
 // Clean section routes (render the same dashboard and open the correct section)
 route('hospital/eligibility', 'Hospital@index');
-route('hospital/recipients', 'Hospital@index');
+route('hospital/aftercare-recipients', 'Hospital@aftercareRecipients');
 route('hospital/stories', 'Hospital@index');
 route('hospital/test-results', 'Hospital@index');
-route('hospital/search-recipients', 'Hospital@searchRecipients');
-route('hospital/export-recipients', 'Hospital@exportRecipients');
 // Backward-compatible path (Upcoming Appointments section)
 route('hospital/lab-reports', 'Hospital@index');
 route('hospital/search-donors', 'Hospital@searchDonors');

@@ -283,6 +283,7 @@
                     const userRole = (data.role || '').trim().toUpperCase();
                     switch (userRole) {
                         case 'AFTERCARE_PATIENT':
+                        case 'RECIPIENT_PATIENT':
                             window.location.href = baseUrl + 'aftercare';
                             break;
                         case 'U_ADMIN':

@@ -97,7 +97,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                     <div class="d-profile-card__banner"></div>
                     <div class="d-profile-card__avatar">
                         <?php if(!empty($donor_data['profile_image'])): ?>
-                            <img src="<?= ROOT ?>/uploads/profile/<?= $donor_data['profile_image'] ?>" alt="Profile" style="width:100%; height:100%; object-fit:cover;">
+                            <img src="<?= ROOT ?>/assets/uploads/profile/<?= $donor_data['profile_image'] ?>" alt="Profile" style="width:100%; height:100%; object-fit:cover;">
                         <?php else: ?>
                             <?= strtoupper(substr($donor_data['first_name'] ?? '?', 0, 1)) ?>
                         <?php endif; ?>

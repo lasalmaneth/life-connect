@@ -21,8 +21,6 @@ if ($requested === 'hospital/appointments' || $requested === 'hospital/lab-repor
     $initialSection = 'organ-requests';
 } elseif ($requested === 'hospital/eligibility') {
     $initialSection = 'eligibility';
-} elseif ($requested === 'hospital/recipients') {
-    $initialSection = 'recipients';
 } elseif ($requested === 'hospital/stories') {
     $initialSection = 'stories';
 } elseif ($requested === 'hospital/test-results') {
@@ -245,10 +243,6 @@ if (!isset($notifications) || !isset($unread_count)) {
                         <span class="icon"><i class="fas fa-check-circle"></i></span>
                         <span>Update Eligibility</span>
                     </div>
-                    <div class="menu-item" onclick="showContent('recipients', this)" data-section="recipients" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-user"></i></span>
-                        <span>Recipient Patients</span>
-                    </div>
                     <div class="menu-item" onclick="showContent('stories', this)" data-section="stories" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
                         <span class="icon"><i class="fas fa-star"></i></span>
                         <span>Success Stories</span>
@@ -285,7 +279,6 @@ if (!isset($notifications) || !isset($unread_count)) {
 
                 <?php require __DIR__ . '/eligibility.view.php'; ?>
 
-                <?php require __DIR__ . '/recipients.view.php'; ?>
 
                 <?php require __DIR__ . '/lab_reports.view.php'; ?>
 
@@ -299,8 +292,6 @@ if (!isset($notifications) || !isset($unread_count)) {
     <!-- Profile Modal -->
     <?php require __DIR__ . '/profile_modal.view.php'; ?>
 
-    <!-- Recipient Modal -->
-    <?php require __DIR__ . '/recipient_modal.view.php'; ?>
 
     <!-- Story Modal -->
     <?php require __DIR__ . '/story_modal.view.php'; ?>
@@ -326,7 +317,6 @@ if (!isset($notifications) || !isset($unread_count)) {
                 'overview': '',
                 'organ-requests': 'organ-requests',
                 'eligibility': 'eligibility',
-                'recipients': 'recipients',
                 'stories': 'stories',
                 'lab-reports': 'appointments',
                 'test-results': 'test-results'
@@ -345,7 +335,6 @@ if (!isset($notifications) || !isset($unread_count)) {
 
             if (rest === 'organ-requests') return 'organ-requests';
             if (rest === 'eligibility') return 'eligibility';
-            if (rest === 'recipients') return 'recipients';
             if (rest === 'stories') return 'stories';
             if (rest === 'appointments' || rest === 'lab-reports') return 'lab-reports';
             if (rest === 'test-results') return 'test-results';
@@ -395,8 +384,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Load data for specific sections
-            if (id === 'recipients') loadRecipients();
-            else if (id === 'organ-requests') loadOrganRequests();
+            if (id === 'organ-requests') loadOrganRequests();
             else if (id === 'stories') loadStories();
             else if (id === 'lab-reports') loadLabReports();
             else if (id === 'test-results') loadTestResults();
@@ -491,6 +479,56 @@ if (!isset($notifications) || !isset($unread_count)) {
             return parts.join('; ');
         }
 
+        function formatHlaFromRequest(request) {
+            if (!request) return '';
+
+            const keys = ['hla_a1','hla_a2','hla_b1','hla_b2','hla_dr1','hla_dr2'];
+            const hasSplitColumns = keys.some(k => request[k] !== undefined);
+            const hasAnySplitValue = keys.some(k => String(request[k] ?? '').trim() !== '');
+
+            if (hasSplitColumns && hasAnySplitValue) {
+                const a1 = String(request.hla_a1 ?? '').trim();
+                const a2 = String(request.hla_a2 ?? '').trim();
+                const b1 = String(request.hla_b1 ?? '').trim();
+                const b2 = String(request.hla_b2 ?? '').trim();
+                const dr1 = String(request.hla_dr1 ?? '').trim();
+                const dr2 = String(request.hla_dr2 ?? '').trim();
+                return `A1=${a1}; A2=${a2}; B1=${b1}; B2=${b2}; DR1=${dr1}; DR2=${dr2}`;
+            }
+
+            return String(request.hla_typing || '');
+        }
+
+        function setHlaAllelesUiFromRequest(request) {
+            if (!request) {
+                clearHlaAllelesUi();
+                return;
+            }
+
+            const keys = ['hla_a1','hla_a2','hla_b1','hla_b2','hla_dr1','hla_dr2'];
+            const hasSplitColumns = keys.some(k => request[k] !== undefined);
+
+            if (hasSplitColumns) {
+                const a1 = document.getElementById('recipient-hla-a1');
+                const a2 = document.getElementById('recipient-hla-a2');
+                const b1 = document.getElementById('recipient-hla-b1');
+                const b2 = document.getElementById('recipient-hla-b2');
+                const dr1 = document.getElementById('recipient-hla-dr1');
+                const dr2 = document.getElementById('recipient-hla-dr2');
+                if (!a1 || !a2 || !b1 || !b2 || !dr1 || !dr2) return;
+
+                a1.value = String(request.hla_a1 || '');
+                a2.value = String(request.hla_a2 || '');
+                b1.value = String(request.hla_b1 || '');
+                b2.value = String(request.hla_b2 || '');
+                dr1.value = String(request.hla_dr1 || '');
+                dr2.value = String(request.hla_dr2 || '');
+                return;
+            }
+
+            setHlaAllelesUiValue(request.hla_typing || '');
+        }
+
         // Organ Type Selection Function
         function selectOrganType(organId, organName) {
             // Remove selected class from all cards
@@ -539,7 +577,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             if (ageEl) ageEl.value = request.recipient_age ?? '';
             if (bgEl) bgEl.value = request.blood_group || '';
             if (genderEl) genderEl.value = request.gender || '';
-            setHlaAllelesUiValue(request.hla_typing || '');
+            setHlaAllelesUiFromRequest(request);
             if (transplantReasonEl) transplantReasonEl.value = request.transplant_reason || '';
 
             // Show reason field during edit
@@ -706,6 +744,23 @@ if (!isset($notifications) || !isset($unread_count)) {
             genderInput.value = gender;
             form.appendChild(genderInput);
 
+            const hlaParts = {
+                hla_a1: document.getElementById('recipient-hla-a1') ? document.getElementById('recipient-hla-a1').value : '',
+                hla_a2: document.getElementById('recipient-hla-a2') ? document.getElementById('recipient-hla-a2').value : '',
+                hla_b1: document.getElementById('recipient-hla-b1') ? document.getElementById('recipient-hla-b1').value : '',
+                hla_b2: document.getElementById('recipient-hla-b2') ? document.getElementById('recipient-hla-b2').value : '',
+                hla_dr1: document.getElementById('recipient-hla-dr1') ? document.getElementById('recipient-hla-dr1').value : '',
+                hla_dr2: document.getElementById('recipient-hla-dr2') ? document.getElementById('recipient-hla-dr2').value : '',
+            };
+            Object.keys(hlaParts).forEach((k) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = String(hlaParts[k] || '');
+                form.appendChild(input);
+            });
+
+            // Legacy packed field (used only if the DB schema still has single-column HLA)
             const hlaInput = document.createElement('input');
             hlaInput.type = 'hidden';
             hlaInput.name = 'hla_typing';
@@ -845,7 +900,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             document.getElementById('details-age').textContent = request.recipient_age ?? 'N/A';
             document.getElementById('details-blood').textContent = request.blood_group || 'N/A';
             document.getElementById('details-gender').textContent = request.gender || 'N/A';
-            document.getElementById('details-hla').textContent = request.hla_typing || 'N/A';
+            document.getElementById('details-hla').textContent = formatHlaFromRequest(request) || 'N/A';
             document.getElementById('details-reason').textContent = request.transplant_reason || 'N/A';
 
             document.getElementById('request-details-modal').classList.add('show');
@@ -903,359 +958,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             postEligibilityAction('reject_eligibility', id);
         }
 
-        // Recipient Functions
-        function openRecipientModal() { document.getElementById('recipient-modal').classList.add('show'); }
 
-        function normalizeOrganValue(val) {
-            const v = String(val || '').trim();
-            const lower = v.toLowerCase();
-            const map = {
-                'kidney': 'Kidney',
-                'bone marrow': 'Bone Marrow',
-                'bonemarrow': 'Bone Marrow',
-                'cornea': 'Cornea',
-                'skin': 'Skin',
-                'skin graft': 'Skin',
-                'bones': 'Bones',
-                'heart valves': 'Heart Valves',
-                'tendons': 'Tendons',
-            };
-            if (['liver','heart','lung','eye'].includes(lower)) return '';
-            return map[lower] || v;
-        }
-
-        function validateAndFetchNIC() {
-            const nicInput = document.getElementById('recipient-nic');
-            const nicValue = nicInput.value.trim();
-            const nicError = document.getElementById('nic-error');
-            const nicLoading = document.getElementById('nic-loading');
-            const nameField = document.getElementById('recipient-name');
-            const genderField = document.getElementById('recipient-gender');
-
-            // Clear previous messages
-            nicError.style.display = 'none';
-            nicLoading.style.display = 'none';
-            nameField.value = '';
-            genderField.value = '';
-
-            // Simple validation: accept any combination of digits and V/X
-            if (!nicValue) return;
-
-            // Basic check: must contain digits and optionally V/X at the end
-            if (!/^[0-9]{8,12}[Vv]?$/.test(nicValue)) {
-                nicError.textContent = '⚠️ Invalid NIC format. Use 10-12 digits or 8-9 digits + V';
-                nicError.style.display = 'block';
-                return;
-            }
-
-            // Extract gender from NIC
-            // For both old and new formats, the day-of-year is typically at positions 4-6 (0-indexed: 4-7 for 10-digit, 4-7 for 12-digit)
-            let dayOfYear = 0;
-            if (nicValue.length === 10 || nicValue.length === 12) {
-                // 10 or 12 digit format: YYYYDDDXXXX or YYYYDDDXXXXXX
-                dayOfYear = parseInt(nicValue.substring(4, 7), 10);
-            } else if ((nicValue.length === 9 || nicValue.length === 11) && /[Vv]$/.test(nicValue)) {
-                // Old format 8-9 digits + V: YYDDXXXV or YDDXXXV
-                // Day of year is at positions 2-5 (0-indexed)
-                dayOfYear = parseInt(nicValue.substring(2, 5), 10);
-            }
-
-            // Determine gender from day of year
-            let gender = 'Male';
-            if (dayOfYear > 500) {
-                gender = 'Female';
-            }
-            
-            // Set gender field
-            genderField.value = gender;
-
-            // Show loading message for patient lookup
-            nicLoading.style.display = 'block';
-
-            // Fetch patient data via AJAX for name
-            fetch('<?= ROOT ?>/hospital/searchPatientByNIC', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nic: nicValue })
-            })
-            .then(response => response.json())
-            .then(data => {
-                nicLoading.style.display = 'none';
-                
-                if (data.success && data.patient) {
-                    // Auto-populate name from database
-                    nameField.value = data.patient.name || data.patient.first_name + ' ' + data.patient.last_name || '';
-                    nicError.style.display = 'none';
-                } else {
-                    // Don't show error - allow manual name entry
-                    nameField.value = '';
-                    nicError.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                nicLoading.style.display = 'none';
-                // Don't show error on fetch failure - allow manual entry
-                nameField.value = '';
-                nicError.style.display = 'none';
-                console.error('Error:', error);
-            });
-        }
-
-        function closeRecipientModal() {
-            document.getElementById('recipient-modal').classList.remove('show');
-            // Reset modal to add mode
-            document.querySelector('#recipient-modal .modal-header h3').textContent = 'Add Recipient Patient';
-            document.getElementById('recipient-nic').value = '';
-            document.getElementById('recipient-name').value = '';
-            document.getElementById('recipient-gender').value = '';
-            document.getElementById('recipient-organ').value = '';
-            document.getElementById('surgery-date').value = '';
-            document.getElementById('treatment-notes').value = '';
-            document.getElementById('nic-error').style.display = 'none';
-            document.getElementById('nic-loading').style.display = 'none';
-
-            // Reset button
-            const saveButton = document.querySelector('#recipient-modal button[onclick*="updateRecipient"]');
-            if (saveButton) {
-                saveButton.textContent = 'Save Recipient';
-                saveButton.setAttribute('onclick', 'saveRecipient()');
-            }
-        }
-        function saveRecipient() {
-            const nic = document.getElementById('recipient-nic').value;
-            const name = document.getElementById('recipient-name').value;
-            const gender = document.getElementById('recipient-gender').value;
-            const organ = document.getElementById('recipient-organ').value;
-            const date = document.getElementById('surgery-date').value;
-            const notes = document.getElementById('treatment-notes').value;
-
-            if (!nic || !name || !organ || !date) {
-                showServerMessage('Please fill all required fields', 'error');
-                return;
-            }
-
-            // Submit form to same page
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'add_recipient';
-            form.appendChild(actionInput);
-
-            const nicInput = document.createElement('input');
-            nicInput.type = 'hidden';
-            nicInput.name = 'nic';
-            nicInput.value = nic;
-            form.appendChild(nicInput);
-
-            const nameInput = document.createElement('input');
-            nameInput.type = 'hidden';
-            nameInput.name = 'name';
-            nameInput.value = name;
-            form.appendChild(nameInput);
-
-            const genderInput = document.createElement('input');
-            genderInput.type = 'hidden';
-            genderInput.name = 'gender';
-            genderInput.value = gender;
-            form.appendChild(genderInput);
-
-            const organInput = document.createElement('input');
-            organInput.type = 'hidden';
-            organInput.name = 'organ_received';
-            organInput.value = organ;
-            form.appendChild(organInput);
-
-            const dateInput = document.createElement('input');
-            dateInput.type = 'hidden';
-            dateInput.name = 'surgery_date';
-            dateInput.value = date;
-            form.appendChild(dateInput);
-
-            const notesInput = document.createElement('input');
-            notesInput.type = 'hidden';
-            notesInput.name = 'treatment_notes';
-            notesInput.value = notes;
-            form.appendChild(notesInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-        function editRecipient(recipientId) {
-            // Get recipient data and populate edit form
-            const recipients = <?php echo json_encode($recipients); ?>;
-            const recipient = recipients.find(r => r.recipient_id == recipientId);
-
-            if (recipient) {
-                // Update modal header
-                document.querySelector('#recipient-modal .modal-header h3').textContent = 'Edit Recipient Patient';
-
-                // Populate form fields
-                document.getElementById('recipient-nic').value = recipient.nic;
-                document.getElementById('recipient-name').value = recipient.name;
-                
-                // Extract and set gender from NIC
-                const nicValue = recipient.nic;
-                let dayOfYear = 0;
-                if (nicValue.length === 10 || nicValue.length === 12) {
-                    dayOfYear = parseInt(nicValue.substring(4, 7), 10);
-                } else if ((nicValue.length === 9 || nicValue.length === 11) && /[Vv]$/.test(nicValue)) {
-                    dayOfYear = parseInt(nicValue.substring(2, 5), 10);
-                }
-                let gender = 'Male';
-                if (dayOfYear > 500) {
-                    gender = 'Female';
-                }
-                document.getElementById('recipient-gender').value = gender;
-                
-                document.getElementById('recipient-organ').value = normalizeOrganValue(recipient.organ_received);
-                document.getElementById('surgery-date').value = recipient.surgery_date;
-                document.getElementById('treatment-notes').value = recipient.treatment_notes;
-
-                // Change the save button to update button
-                const saveButton = document.querySelector('#recipient-modal button[onclick="saveRecipient()"]');
-                if (saveButton) {
-                    saveButton.textContent = 'Update Recipient';
-                    saveButton.setAttribute('onclick', 'updateRecipient(' + recipientId + ')');
-                }
-
-                // Show the modal
-                document.getElementById('recipient-modal').classList.add('show');
-            }
-        }
-        function updateRecipient(recipientId) {
-            const nic = document.getElementById('recipient-nic').value;
-            const name = document.getElementById('recipient-name').value;
-            const organ = document.getElementById('recipient-organ').value;
-            const surgery_date = document.getElementById('surgery-date').value;
-            const notes = document.getElementById('treatment-notes').value;
-
-            if (!nic || !name || !organ || !surgery_date) {
-                showServerMessage('localhost: Error - Please fill all required fields', 'error');
-                return;
-            }
-
-            // Submit form to same page
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'update_recipient';
-            form.appendChild(actionInput);
-
-            const recipientIdInput = document.createElement('input');
-            recipientIdInput.type = 'hidden';
-            recipientIdInput.name = 'recipient_id';
-            recipientIdInput.value = recipientId;
-            form.appendChild(recipientIdInput);
-
-            const nicInput = document.createElement('input');
-            nicInput.type = 'hidden';
-            nicInput.name = 'nic';
-            nicInput.value = nic;
-            form.appendChild(nicInput);
-
-            const nameInput = document.createElement('input');
-            nameInput.type = 'hidden';
-            nameInput.name = 'name';
-            nameInput.value = name;
-            form.appendChild(nameInput);
-
-            const organInput = document.createElement('input');
-            organInput.type = 'hidden';
-            organInput.name = 'organ_received';
-            organInput.value = organ;
-            form.appendChild(organInput);
-
-            const dateInput = document.createElement('input');
-            dateInput.type = 'hidden';
-            dateInput.name = 'surgery_date';
-            dateInput.value = surgery_date;
-            form.appendChild(dateInput);
-
-            const notesInput = document.createElement('input');
-            notesInput.type = 'hidden';
-            notesInput.name = 'treatment_notes';
-            notesInput.value = notes;
-            form.appendChild(notesInput);
-
-            const statusInput = document.createElement('input');
-            statusInput.type = 'hidden';
-            statusInput.name = 'status';
-            statusInput.value = 'Active'; // Default status
-            form.appendChild(statusInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        async function deleteRecipient(recipientId) {
-            const ok = await hcConfirm('Are you sure you want to delete this recipient?', { danger: true });
-            if (!ok) return;
-
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'delete_recipient';
-            form.appendChild(actionInput);
-
-            const recipientIdInput = document.createElement('input');
-            recipientIdInput.type = 'hidden';
-            recipientIdInput.name = 'recipient_id';
-            recipientIdInput.value = recipientId;
-            form.appendChild(recipientIdInput);
-
-            document.body.appendChild(form);
-            form.submit();
-        }
-        function viewTreatmentLog() { showServerMessage('localhost: Loading treatment log from database', 'success'); }
-        function exportRecipients() { showServerMessage('localhost: Exporting recipient data to Excel file', 'success'); }
-
-        function loadRecipients() {
-            // Use PHP data directly
-            const recipients = <?php echo json_encode($recipients); ?>;
-            // Load recipients data
-            updateRecipientsTable(recipients);
-        }
-
-        function updateRecipientsTable(recipients) {
-            const tableContent = document.querySelector('#recipients .table-content');
-            if (!tableContent) return;
-
-            // Clear existing rows (except header)
-            const existingRows = tableContent.querySelectorAll('.table-row:not(:first-child)');
-            existingRows.forEach(row => row.remove());
-
-            // Add new rows
-            recipients.forEach(recipient => {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-                    <div class="table-cell name" data-label="NIC">${recipient.nic}</div>
-                    <div class="table-cell" data-label="Name">${recipient.name}</div>
-                    <div class="table-cell" data-label="Organ">${recipient.organ_received}</div>
-                    <div class="table-cell" data-label="Surgery Date">${new Date(recipient.surgery_date).toLocaleDateString('en-GB')}</div>
-                    <div class="table-cell" data-label="Status">
-                        <span class="status-badge ${recipient.status === 'Active' ? 'status-active' : recipient.status === 'Discharged' ? 'status-success' : 'status-pending'}">${recipient.status}</span>
-                    </div>
-                    <div class="table-cell" data-label="Actions">
-                        <button class="btn btn-secondary btn-small" onclick="editRecipient(${recipient.recipient_id})">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteRecipient(${recipient.recipient_id})">Delete</button>
-                    </div>
-                `;
-                tableContent.appendChild(row);
-            });
-        }
 
         // Story Functions
         function openStoryModal() { document.getElementById('story-modal').classList.add('show'); }
@@ -3374,7 +3077,6 @@ if (!isset($notifications) || !isset($unread_count)) {
         // Load initial data
         document.addEventListener('DOMContentLoaded', function () {
             loadOrganRequests();
-            loadRecipients();
             loadStories();
         });
 
@@ -3408,18 +3110,18 @@ if (!isset($notifications) || !isset($unread_count)) {
             // Show loading message
             showServerMessage('Preparing export file...', 'info');
 
-            const recipients = <?php echo json_encode($recipients ?? []); ?>;
+            const recipients = <?php echo json_encode($aftercare_recipients ?? []); ?>;
 
             setTimeout(() => {
                 if (format === 'csv') {
-                    let csvContent = "NIC,Name,Organ Received,Surgery Date,Treatment Notes,Status\n";
+                    let csvContent = "NIC,Name,Surgery Type,Surgery Date,Medical Details,Status\n";
                     recipients.forEach(r => {
                         const row = [
                             `"${(r.nic || '').replace(/"/g, '""')}"`,
-                            `"${(r.name || '').replace(/"/g, '""')}"`,
-                            `"${(r.organ_received || '').replace(/"/g, '""')}"`,
+                            `"${(r.full_name || '').replace(/"/g, '""')}"`,
+                            `"${(r.surgery_type || '').replace(/"/g, '""')}"`,
                             `"${(r.surgery_date || '').replace(/"/g, '""')}"`,
-                            `"${(r.treatment_notes || '').replace(/"/g, '""')}"`,
+                            `"${(r.medical_details || '').replace(/"/g, '""')}"`,
                             `"${(r.status || '').replace(/"/g, '""')}"`
                         ];
                         csvContent += row.join(",") + "\n";
@@ -3437,9 +3139,9 @@ if (!isset($notifications) || !isset($unread_count)) {
                 } else if (format === 'xlsx') {
                     let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
                     html += '<head><meta charset="utf-8"></head><body><table>';
-                    html += '<tr><th>NIC</th><th>Name</th><th>Organ Received</th><th>Surgery Date</th><th>Treatment Notes</th><th>Status</th></tr>';
+                    html += '<tr><th>NIC</th><th>Name</th><th>Surgery Type</th><th>Surgery Date</th><th>Medical Details</th><th>Status</th></tr>';
                     recipients.forEach(r => {
-                        html += `<tr><td>${r.nic}</td><td>${r.name}</td><td>${r.organ_received}</td><td>${r.surgery_date}</td><td>${r.treatment_notes}</td><td>${r.status}</td></tr>`;
+                        html += `<tr><td>${r.nic}</td><td>${r.full_name}</td><td>${r.surgery_type}</td><td>${r.surgery_date}</td><td>${r.medical_details}</td><td>${r.status}</td></tr>`;
                     });
                     html += '</table></body></html>';
 
@@ -3479,9 +3181,9 @@ if (!isset($notifications) || !isset($unread_count)) {
                     html += '<div><div class="report-title">Recipient Patients Report</div><div class="report-sub">LifeConnect Sri Lanka</div></div>';
                     html += '</div>';
                     html += '<table>';
-                    html += '<tr><th>NIC</th><th>Name</th><th>Organ Received</th><th>Surgery Date</th><th>Status</th></tr>';
+                    html += '<tr><th>NIC</th><th>Name</th><th>Surgery Type</th><th>Surgery Date</th><th>Status</th></tr>';
                     recipients.forEach(r => {
-                        html += `<tr><td>${r.nic}</td><td>${r.name}</td><td>${r.organ_received}</td><td>${r.surgery_date}</td><td>${r.status}</td></tr>`;
+                        html += `<tr><td>${r.nic}</td><td>${r.full_name}</td><td>${r.surgery_type}</td><td>${r.surgery_date}</td><td>${r.status}</td></tr>`;
                     });
                     html += '</table>';
                     html += '</div></body></html>';
@@ -3496,6 +3198,27 @@ if (!isset($notifications) || !isset($unread_count)) {
                     }, 500);
                 }
             }, 800);
+        }
+
+        function viewRecipientDetails(nic) {
+            // Fetch recipient from the PHP-passed array
+            const recipients = <?php echo json_encode($aftercare_recipients ?? []); ?>;
+            const recipient = recipients.find(r => r.nic === nic);
+
+            if (recipient) {
+                // For now, let's just show a simple alert or use a custom modal if available
+                let details = `Recipient: ${recipient.full_name}\n`;
+                details += `NIC: ${recipient.nic}\n`;
+                details += `Reg: ${recipient.registration_number}\n`;
+                details += `Surgery Type: ${recipient.surgery_type || 'N/A'}\n`;
+                details += `Surgery Date: ${recipient.surgery_date || 'N/A'}\n`;
+                details += `Contact: ${recipient.contact_details || 'N/A'}\n`;
+                details += `Medical: ${recipient.medical_details || 'N/A'}`;
+                
+                alert(details);
+            } else {
+                showServerMessage('Recipient details not found locally.', 'error');
+            }
         }
 
     </script>

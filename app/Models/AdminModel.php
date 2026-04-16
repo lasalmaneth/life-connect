@@ -241,7 +241,7 @@ class AdminModel {
 
         $query .= " ORDER BY u.created_at DESC";
 
-        return $this->query($query, $params);
+        return $this->query($query, $params) ?: [];
     }
 
     public function updateUserStatus($userId, $status, $message = null) {
@@ -276,6 +276,21 @@ class AdminModel {
                 "UPDATE medical_schools SET verification_status = :vs WHERE user_id = :uid",
                 ['vs' => $profileStatus, 'uid' => $userId]
             );
+            // Aftercare Patients summary table (HAS user_id)
+            $this->query(
+                "UPDATE aftercare_patients SET status = :s WHERE user_id = :uid",
+                ['s' => strtoupper($status), 'uid' => $userId]
+            );
+            
+            // Recipient Patients table (NO user_id, use registration_number from aftercare_patients)
+            $res = $this->query("SELECT registration_number FROM aftercare_patients WHERE user_id = :uid", ['uid' => $userId]);
+            if (!empty($res) && !empty($res[0]->registration_number)) {
+                $regNo = $res[0]->registration_number;
+                $this->query(
+                    "UPDATE recipient_patient SET status = :s WHERE registration_number = :rn",
+                    ['s' => strtoupper($status), ':rn' => $regNo]
+                );
+            }
         }
 
         return true;
@@ -325,8 +340,29 @@ class AdminModel {
         );
     }
 
+    private function usersHasColumn(string $column): bool
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) return false;
+        try {
+            // SHOW ... LIKE cannot reliably use placeholders in some drivers.
+            $res = $this->query("SHOW COLUMNS FROM users LIKE '{$column}'");
+            return !empty($res);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
     public function getUserById($id) {
-        $res = $this->query("SELECT id, username, email, phone, role, status, created_at FROM users WHERE id = :id", ['id' => $id]);
+        $cols = ['id', 'username', 'email', 'role', 'created_at'];
+        if ($this->usersHasColumn('phone')) $cols[] = 'phone';
+        if ($this->usersHasColumn('status')) $cols[] = 'status';
+        if ($this->usersHasColumn('review_message')) $cols[] = 'review_message';
+
+        $select = implode(', ', array_map(function ($c) {
+            return "`{$c}`";
+        }, $cols));
+
+        $res = $this->query("SELECT {$select} FROM users WHERE id = :id", ['id' => (int)$id]);
         return $res[0] ?? null;
     }
 
@@ -337,28 +373,54 @@ class AdminModel {
         $details = [];
         $role = strtoupper($role);
 
-        if ($role === 'DONOR') {
-            $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
-            if (!empty($donor)) $details = (array) $donor[0];
-        } elseif ($role === 'FINANCIAL_DONOR') {
-            $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
-            if (!empty($donor)) $details = (array) $donor[0];
+        if ($role === 'DONOR' || $role === 'FINANCIAL_DONOR') {
+            try {
+                $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
+                if (!empty($donor)) $details = (array) $donor[0];
+            } catch (\Throwable $e) {
+                // ignore
+            }
         } elseif ($role === 'HOSPITAL') {
-            $hosp = $this->query("SELECT *, name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
-            if (!empty($hosp)) $details = (array) $hosp[0];
+            try {
+                $hosp = $this->query("SELECT *, name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
+                if (!empty($hosp)) $details = (array) $hosp[0];
+            } catch (\Throwable $e) {
+                // ignore
+            }
         } elseif ($role === 'MEDICAL_SCHOOL') {
-            $med = $this->query("SELECT school_name, university_affiliation, ugc_accreditation_number, address, district, contact_person_name, contact_person_phone FROM medical_schools WHERE user_id = :id", ['id' => $id]);
-            if (!empty($med)) $details = (array) $med[0];
+            try {
+                $med = $this->query("SELECT school_name, university_affiliation, ugc_accreditation_number, address, district, contact_person_name, contact_person_phone FROM medical_schools WHERE user_id = :id", ['id' => $id]);
+                if (!empty($med)) $details = (array) $med[0];
+            } catch (\Throwable $e) {
+                // ignore
+            }
         } elseif ($role === 'PATIENT') {
             try {
                 $pat = $this->query("SELECT first_name, last_name, nic, gender FROM patients WHERE user_id = :id", ['id' => $id]);
                 if (!empty($pat)) $details = (array) $pat[0];
-            } catch (Exception $e) {
+            } catch (\Throwable $e) {
                 // Ignore if patient table schema is incomplete
             }
-        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'])) {
-            $admin = $this->query("SELECT * FROM admins WHERE user_id = :id", ['id' => $id]);
-            if (!empty($admin)) $details = (array) $admin[0];
+        } elseif ($role === 'RECIPIENT_PATIENT' || $role === 'AFTERCARE_PATIENT') {
+            try {
+                // Fetch from aftercare_patients summary table for type, user_id, reg_no, etc.
+                $summary = $this->query("SELECT * FROM aftercare_patients WHERE user_id = :id", ['id' => $id]);
+                if (!empty($summary)) {
+                    $details = (array) $summary[0];
+                    // Also join with recipient_patient if needed, but the user specifically asked for these summary fields
+                    $details['first_name'] = $details['full_name'] ?? '';
+                    $details['last_name'] = '';
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'], true)) {
+            try {
+                $admin = $this->query("SELECT * FROM admins WHERE user_id = :id", ['id' => $id]);
+                if (!empty($admin)) $details = (array) $admin[0];
+            } catch (\Throwable $e) {
+                // ignore
+            }
         }
 
         $user->first_name = $details['first_name'] ?? $details['school_name'] ?? '';
@@ -378,6 +440,11 @@ class AdminModel {
         $user->ugc_number = $details['ugc_accreditation_number'] ?? '';
         $user->contact_person = $details['contact_person_name'] ?? '';
         $user->contact_phone = $details['contact_person_phone'] ?? '';
+
+        // Recipient Specific Fields
+        $user->registration_number = $details['registration_number'] ?? '';
+        $user->patient_type = $details['patient_type'] ?? '';
+        $user->full_name = $details['full_name'] ?? '';
 
         // Hospital Specific Fields
         $user->transplant_id = $details['transplant_id'] ?? '';

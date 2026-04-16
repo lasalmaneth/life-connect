@@ -74,6 +74,10 @@
                         <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
                         <span>Aftercare Accounts</span>
                     </a>
+                    <a href="<?php echo ROOT; ?>/hospital/aftercare-recipients" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
+                        <span class="icon"><i class="fas fa-user-friends"></i></span>
+                        <span>Recipient Patients</span>
+                    </a>
                 </div>
 
                 <div class="menu-section menu-section--footer">
@@ -161,6 +165,17 @@
                                 <div style="margin-bottom: 1.5rem;">
                                     <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Contact Details</label>
                                     <input type="text" name="recipient_contact" placeholder="Phone or Address" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                    <div>
+                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Surgery Type</label>
+                                        <input type="text" name="surgery_type" placeholder="e.g., Kidney Transplant" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Date of Surgery</label>
+                                        <input type="date" name="surgery_date" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
                                 </div>
 
                                 <div style="margin-bottom: 1.5rem;">

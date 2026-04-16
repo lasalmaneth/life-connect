@@ -11,6 +11,50 @@ class AftercarePatientModel
     protected $table = 'aftercare_patients';
     private string $recipientTable = 'recipient_patient';
 
+    private function aftercareHasColumn(string $column): bool
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return (bool)$cache[$column];
+        }
+
+        $res = $this->query("SHOW COLUMNS FROM {$this->table} LIKE :col", [':col' => $column]);
+        $cache[$column] = !empty($res);
+        return (bool)$cache[$column];
+    }
+
+    private function aftercareColumnIsNullable(string $column): bool
+    {
+        static $cache = [];
+        $key = $column . ':nullable';
+        if (array_key_exists($key, $cache)) {
+            return (bool)$cache[$key];
+        }
+
+        $res = $this->query("SHOW COLUMNS FROM {$this->table} LIKE :col", [':col' => $column]);
+        if (empty($res)) {
+            $cache[$key] = false;
+            return false;
+        }
+
+        $nullFlag = strtoupper((string)($res[0]->Null ?? ''));
+        $cache[$key] = ($nullFlag === 'YES');
+        return (bool)$cache[$key];
+    }
+
+    private function usersRoleSupportsAftercare(): bool
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return (bool)$cache;
+        }
+
+        $res = $this->query("SHOW COLUMNS FROM users LIKE 'role'");
+        $type = $res ? (string)($res[0]->Type ?? '') : '';
+        $cache = (stripos($type, 'AFTERCARE_PATIENT') !== false || stripos($type, 'RECIPIENT_PATIENT') !== false);
+        return (bool)$cache;
+    }
+
     public function getByRegistrationNumber(string $registrationNumber)
     {
         $registrationNumber = trim($registrationNumber);
@@ -48,170 +92,113 @@ class AftercarePatientModel
             throw new \InvalidArgumentException('Missing required fields');
         }
 
+        if (!$this->usersRoleSupportsAftercare()) {
+            throw new \RuntimeException("Database schema is missing users.role value AFTERCARE_PATIENT. Please apply the latest main.sql / run the migration.");
+        }
+
         $existing = $this->getByNic($nic);
         if ($existing) {
             throw new \RuntimeException('A recipient aftercare account already exists for this NIC.');
         }
 
+        $userModel = new UserModel();
         $passwordHash = password_hash($nic, PASSWORD_DEFAULT);
 
+        $create = function (string $registrationNumber) use ($userModel, $passwordHash, $nic, $fullName, $hospitalReg, $data): string {
+            if ($userModel->usernameExists($registrationNumber)) {
+                throw new \RuntimeException('That registration number is already in use.');
+            }
+
+            $userId = $userModel->insert([
+                'username' => $registrationNumber,
+                'password_hash' => $passwordHash,
+                'role' => 'RECIPIENT_PATIENT',
+                'status' => 'PENDING',
+                'must_change_credentials' => 1,
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            if (!$userId) {
+                throw new \RuntimeException('Failed to create user account.');
+            }
+
+            $userIdInt = (int)$userId;
+
+            try {
+                $aftercareRow = [
+                    'registration_number' => $registrationNumber,
+                    'nic' => $nic,
+                    'full_name' => $fullName,
+                    'patient_type' => 'RECIPIENT',
+                    'hospital_registration_no' => $hospitalReg,
+                    'status' => 'PENDING',
+                ];
+
+                if ($this->aftercareHasColumn('user_id')) {
+                    $aftercareRow['user_id'] = $userIdInt;
+                }
+
+
+                $aftercareId = $this->insert($aftercareRow, $this->table);
+                if (!$aftercareId) {
+                    throw new \RuntimeException('Failed to create aftercare patient profile.');
+                }
+
+                $this->insertRecipientPatientRow($registrationNumber, $nic, $fullName, $hospitalReg, $data);
+
+                return $registrationNumber;
+            } catch (\Throwable $e) {
+                // Best-effort cleanup
+                $this->query(
+                    "DELETE FROM {$this->table} WHERE registration_number = :rn LIMIT 1",
+                    [':rn' => $registrationNumber]
+                );
+                $userModel->query(
+                    "DELETE FROM users WHERE id = :id LIMIT 1",
+                    [':id' => $userIdInt]
+                );
+
+                if ($e instanceof \PDOException && (string)$e->getCode() === '23000') {
+                    throw $e;
+                }
+                throw $e;
+            }
+        };
+
         $year = (int)date('Y');
-        $attempts = 0;
 
         if ($requestedReg !== '') {
-            // Basic format validation: REG-YYYY-0001
             if (!preg_match('/^REG-\d{4}-\d{4}$/', $requestedReg)) {
                 throw new \RuntimeException('Invalid registration number format. Use REG-YYYY-0001.');
             }
-
             if ($this->getByRegistrationNumber($requestedReg)) {
                 throw new \RuntimeException('That registration number is already in use.');
             }
 
             try {
-                $this->query(
-                    "INSERT INTO {$this->table} (
-                        registration_number,
-                        nic,
-                        full_name,
-                        patient_type,
-                        hospital_registration_no,
-                        password_hash,
-                        must_change_password,
-                        age,
-                        gender,
-                        blood_group,
-                        contact_details,
-                        medical_details,
-                        status,
-                        created_at
-                    ) VALUES (
-                        :rn,
-                        :nic,
-                        :full_name,
-                        'RECIPIENT',
-                        :hosp,
-                        :ph,
-                        1,
-                        :age,
-                        :gender,
-                        :blood_group,
-                        :contact_details,
-                        :medical_details,
-                        'ACTIVE',
-                        NOW()
-                    )",
-                    [
-                        ':rn' => $requestedReg,
-                        ':nic' => $nic,
-                        ':full_name' => $fullName,
-                        ':hosp' => $hospitalReg,
-                        ':ph' => $passwordHash,
-                        ':age' => $data['age'] ?? null,
-                        ':gender' => $data['gender'] ?? null,
-                        ':blood_group' => $data['blood_group'] ?? null,
-                        ':contact_details' => $data['contact_details'] ?? null,
-                        ':medical_details' => $data['medical_details'] ?? null,
-                    ]
-                );
-
-                try {
-                    $this->insertRecipientPatientRow($requestedReg, $nic, $fullName, $hospitalReg, $data);
-                } catch (\PDOException $e2) {
-                    // Roll back the aftercare row if we can't record recipient details
-                    $this->query(
-                        "DELETE FROM {$this->table} WHERE registration_number = :rn AND nic = :nic LIMIT 1",
-                        [':rn' => $requestedReg, ':nic' => $nic]
-                    );
-                    $code2 = (string)$e2->getCode();
-                    if ($code2 === '23000') {
-                        throw new \RuntimeException('Recipient details already exist for this NIC/registration number.');
-                    }
-                    throw $e2;
-                }
-
-                return $requestedReg;
+                return $create($requestedReg);
             } catch (\PDOException $e) {
-                $code = (string)$e->getCode();
-                if ($code === '23000') {
+                if ((string)$e->getCode() === '23000') {
                     throw new \RuntimeException('That registration number or NIC is already in use.');
                 }
                 throw $e;
             }
         }
 
+        $attempts = 0;
         while ($attempts < 10) {
             $attempts++;
             $registrationNumber = $this->generateNextRegistrationNumber($year);
 
+            // Avoid collisions with existing users usernames
+            if ($userModel->usernameExists($registrationNumber)) {
+                continue;
+            }
+
             try {
-                $this->query(
-                    "INSERT INTO {$this->table} (
-                        registration_number,
-                        nic,
-                        full_name,
-                        patient_type,
-                        hospital_registration_no,
-                        password_hash,
-                        must_change_password,
-                        age,
-                        gender,
-                        blood_group,
-                        contact_details,
-                        medical_details,
-                        status,
-                        created_at
-                    ) VALUES (
-                        :rn,
-                        :nic,
-                        :full_name,
-                        'RECIPIENT',
-                        :hosp,
-                        :ph,
-                        1,
-                        :age,
-                        :gender,
-                        :blood_group,
-                        :contact_details,
-                        :medical_details,
-                        'ACTIVE',
-                        NOW()
-                    )",
-                    [
-                        ':rn' => $registrationNumber,
-                        ':nic' => $nic,
-                        ':full_name' => $fullName,
-                        ':hosp' => $hospitalReg,
-                        ':ph' => $passwordHash,
-                        ':age' => $data['age'] ?? null,
-                        ':gender' => $data['gender'] ?? null,
-                        ':blood_group' => $data['blood_group'] ?? null,
-                        ':contact_details' => $data['contact_details'] ?? null,
-                        ':medical_details' => $data['medical_details'] ?? null,
-                    ]
-                );
-
-                try {
-                    $this->insertRecipientPatientRow($registrationNumber, $nic, $fullName, $hospitalReg, $data);
-                } catch (\PDOException $e2) {
-                    // Roll back the aftercare row if we can't record recipient details
-                    $this->query(
-                        "DELETE FROM {$this->table} WHERE registration_number = :rn AND nic = :nic LIMIT 1",
-                        [':rn' => $registrationNumber, ':nic' => $nic]
-                    );
-                    $code2 = (string)$e2->getCode();
-                    if ($code2 === '23000') {
-                        throw new \RuntimeException('Recipient details already exist for this NIC/registration number.');
-                    }
-                    throw $e2;
-                }
-
-                return $registrationNumber;
+                return $create($registrationNumber);
             } catch (\PDOException $e) {
-                // If unique constraint fails (registration_number or nic), retry.
-                // Otherwise rethrow.
-                $code = (string)$e->getCode();
-                if ($code === '23000') {
+                if ((string)$e->getCode() === '23000') {
                     continue;
                 }
                 throw $e;
@@ -221,18 +208,12 @@ class AftercarePatientModel
         throw new \RuntimeException('Could not generate a unique registration number. Please try again.');
     }
 
-    public function updatePassword(int $patientId, string $newPasswordHash): bool
+    public function updateStatus(int $userId, string $status): bool
     {
-        $patientId = (int)$patientId;
-        if ($patientId <= 0) return false;
-
         $this->query(
-            "UPDATE {$this->table}
-             SET password_hash = :ph, must_change_password = 0, updated_at = NOW()
-             WHERE id = :id LIMIT 1",
-            [':ph' => $newPasswordHash, ':id' => $patientId]
+            "UPDATE {$this->table} SET status = :status WHERE user_id = :uid LIMIT 1",
+            [':status' => $status, ':uid' => $userId]
         );
-
         return true;
     }
 
@@ -274,6 +255,8 @@ class AftercarePatientModel
                 blood_group,
                 contact_details,
                 medical_details,
+                surgery_type,
+                surgery_date,
                 status,
                 created_at
             ) VALUES (
@@ -286,7 +269,9 @@ class AftercarePatientModel
                 :blood_group,
                 :contact_details,
                 :medical_details,
-                'ACTIVE',
+                :surgery_type,
+                :surgery_date,
+                'PENDING',
                 NOW()
             )",
             [
@@ -299,6 +284,8 @@ class AftercarePatientModel
                 ':blood_group' => $data['blood_group'] ?? null,
                 ':contact_details' => $data['contact_details'] ?? null,
                 ':medical_details' => $data['medical_details'] ?? null,
+                ':surgery_type' => $data['surgery_type'] ?? null,
+                ':surgery_date' => $data['surgery_date'] ?? null,
             ]
         );
     }
@@ -307,7 +294,7 @@ class AftercarePatientModel
      * Save donor patient details into aftercare_patients (no login intended).
      * If donor already exists by NIC, updates their profile fields.
      */
-    public function upsertDonorPatient(array $data): string
+    public function upsertDonorPatient(array $data, ?int $userId = null): string
     {
         $fullName = trim((string)($data['full_name'] ?? ''));
         $nic = trim((string)($data['nic'] ?? ''));
@@ -319,29 +306,26 @@ class AftercarePatientModel
 
         $existing = $this->getByNic($nic);
         if ($existing) {
-            $this->query(
-                "UPDATE {$this->table}
-                 SET full_name = :full_name,
-                     hospital_registration_no = :hosp,
-                     age = :age,
-                     gender = :gender,
-                     blood_group = :blood_group,
-                     contact_details = :contact_details,
-                     medical_details = :medical_details,
-                     updated_at = NOW()
-                 WHERE nic = :nic
-                 LIMIT 1",
-                [
-                    ':full_name' => $fullName,
-                    ':hosp' => $hospitalReg,
-                    ':age' => $data['age'] ?? null,
-                    ':gender' => $data['gender'] ?? null,
-                    ':blood_group' => $data['blood_group'] ?? null,
-                    ':contact_details' => $data['contact_details'] ?? null,
-                    ':medical_details' => $data['medical_details'] ?? null,
-                    ':nic' => $nic,
-                ]
-            );
+            $updateFields = [
+                'full_name' => $fullName,
+                'hospital_registration_no' => $hospitalReg,
+                'nic' => $nic,
+            ];
+            $sql = "UPDATE {$this->table} SET full_name = :full_name, hospital_registration_no = :hosp, updated_at = NOW()";
+            $params = [
+                ':full_name' => $fullName,
+                ':hosp' => $hospitalReg,
+                ':nic' => $nic,
+            ];
+
+            if ($userId !== null) {
+                $sql .= ", user_id = :uid";
+                $params[':uid'] = $userId;
+            }
+
+            $sql .= " WHERE nic = :nic LIMIT 1";
+            
+            $this->query($sql, $params);
             return (string)($existing->registration_number ?? '');
         }
 
@@ -351,53 +335,34 @@ class AftercarePatientModel
             $attempts++;
             $registrationNumber = $this->generateNextRegistrationNumber($year);
 
-            // Random password (not shared) to avoid unintended logins
-            $passwordHash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
 
             try {
                 $this->query(
                     "INSERT INTO {$this->table} (
                         registration_number,
+                        user_id,
                         nic,
                         full_name,
                         patient_type,
                         hospital_registration_no,
-                        password_hash,
-                        must_change_password,
-                        age,
-                        gender,
-                        blood_group,
-                        contact_details,
-                        medical_details,
                         status,
                         created_at
                     ) VALUES (
                         :rn,
+                        :uid,
                         :nic,
                         :full_name,
                         'DONOR',
                         :hosp,
-                        :ph,
-                        0,
-                        :age,
-                        :gender,
-                        :blood_group,
-                        :contact_details,
-                        :medical_details,
                         'ACTIVE',
                         NOW()
                     )",
                     [
                         ':rn' => $registrationNumber,
+                        ':uid' => $userId,
                         ':nic' => $nic,
                         ':full_name' => $fullName,
                         ':hosp' => $hospitalReg,
-                        ':ph' => $passwordHash,
-                        ':age' => $data['age'] ?? null,
-                        ':gender' => $data['gender'] ?? null,
-                        ':blood_group' => $data['blood_group'] ?? null,
-                        ':contact_details' => $data['contact_details'] ?? null,
-                        ':medical_details' => $data['medical_details'] ?? null,
                     ]
                 );
                 return $registrationNumber;
@@ -411,5 +376,17 @@ class AftercarePatientModel
         }
 
         throw new \RuntimeException('Could not create donor record in aftercare_patients.');
+    }
+
+    public function getRecipientsByHospital(string $hospitalReg)
+    {
+        return $this->query(
+            "SELECT a.*, r.surgery_type, r.surgery_date, r.contact_details, r.medical_details 
+             FROM {$this->table} a
+             JOIN {$this->recipientTable} r ON a.registration_number = r.registration_number
+             WHERE a.hospital_registration_no = :hosp AND a.patient_type = 'RECIPIENT' 
+             ORDER BY a.created_at DESC",
+            [':hosp' => $hospitalReg]
+        );
     }
 }

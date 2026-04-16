@@ -1,7 +1,7 @@
 <div id="overview" class="content-section" style="display: block;">
                     <div class="content-header">
                         <h2>Hospital Overview</h2>
-                        <p>Monitor organ requests, donor eligibility, and recipient management.</p>
+                        <p>Monitor organ requests, donor eligibility, and aftercare management.</p>
                     </div>
                     <div class="content-body">
                         <!-- DYNAMIC URGENT ALERTS BANNER -->
@@ -34,12 +34,13 @@
                                 <div class="stat-label">Total Organ Requests</div>
                                 <div class="stat-change neutral"><?php echo $stats['pending_requests']; ?> pending</div>
                             </div>
+
                             <div class="stat-card">
-                                <div class="stat-number"><?php echo $stats['total_recipients']; ?></div>
-                                <div class="stat-label">Total Recipients</div>
-                                <div class="stat-change positive"><?php echo $stats['active_recipients']; ?> active
-                                </div>
+                                <div class="stat-number"><?php echo $stats['total_aftercare_recipients']; ?></div>
+                                <div class="stat-label">Aftercare Recipients</div>
+                                <div class="stat-change positive">Active follow-up</div>
                             </div>
+
                             <div class="stat-card">
                                 <div class="stat-number"><?php echo $stats['total_success_stories']; ?></div>
                                 <div class="stat-label">Success Stories</div>
@@ -83,7 +84,7 @@
                                 <p>Approve or modify a donor's eligibility status after clinical evaluations.</p>
                             </div>
 
-                            <div class="feature-card" onclick="showContent('recipients')" style="cursor: pointer;">
+                            <div class="feature-card" onclick="showContent('aftercare-recipients')" style="cursor: pointer;">
                                 <div class="feature-icon"
                                     style="display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: rgba(0, 91, 170, 0.1); border-radius: 12px; margin-bottom: 1rem;">
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#005baa"
@@ -95,8 +96,10 @@
                                     </svg>
                                 </div>
                                 <h3>Recipient Patients</h3>
-                                <p>Manage priority waitlists and view records of matched recipient patients.</p>
+                                <p>Manage post-transplant aftercare for patients who received organs.</p>
                             </div>
+
+
 
                             <div class="feature-card" onclick="showContent('stories')" style="cursor: pointer;">
                                 <div class="feature-icon"

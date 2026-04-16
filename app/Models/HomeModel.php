@@ -14,9 +14,9 @@ class HomeModel {
         // 1. Registered Donors (Approved only)
         $stats->donor_count = $this->count(['verification_status' => 'APPROVED'], [], 'donors');
 
-        // 2. Lives Saved (Successful Transplants via recipients table)
+        // 2. Lives Saved (Successful Transplants via recipient_patient table)
         // We use the count of surgical entries which indicates a life impacted by donation
-        $stats->lives_saved = $this->count([], [], 'recipients');
+        $stats->lives_saved = $this->count([], [], 'recipient_patient');
 
         // 3. Partner Hospitals (Approved only)
         $stats->hospital_count = $this->count(['verification_status' => 'APPROVED'], [], 'hospitals');

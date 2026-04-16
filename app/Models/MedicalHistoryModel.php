@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class MedicalHistoryModel extends Model
+class MedicalHistoryModel
 {
+    use Model;
+
     protected $table = 'test_results';
 
     /**
@@ -25,9 +27,9 @@ class MedicalHistoryModel extends Model
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
-                h.hospital_name,
+                h.name as hospital_name,
                 h.address as hospital_address,
-                h.phone as hospital_phone,
+                h.contact_number as hospital_phone,
                 ap.registration_number,
                 ap.full_name as patient_name
             FROM test_results tr
@@ -56,9 +58,9 @@ class MedicalHistoryModel extends Model
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
-                h.hospital_name,
+                h.name as hospital_name,
                 h.address as hospital_address,
-                h.phone as hospital_phone,
+                h.contact_number as hospital_phone,
                 ap.registration_number,
                 ap.full_name as patient_name
             FROM test_results tr
@@ -88,7 +90,7 @@ class MedicalHistoryModel extends Model
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
-                h.hospital_name,
+                h.name as hospital_name,
                 h.address as hospital_address,
                 DATEDIFF(CURDATE(), tr.test_date) as days_ago
             FROM test_results tr
@@ -116,7 +118,7 @@ class MedicalHistoryModel extends Model
                 tr.test_name,
                 COUNT(*) as test_count,
                 MAX(tr.test_date) as last_test_date,
-                GROUP_CONCAT(DISTINCT h.hospital_name SEPARATOR ', ') as hospitals
+                GROUP_CONCAT(DISTINCT h.name SEPARATOR ', ') as hospitals
             FROM test_results tr
             LEFT JOIN hospitals h ON tr.verified_by_hospital_id = h.id
             LEFT JOIN aftercare_patients ap ON tr.donor_id = ap.id
@@ -141,7 +143,7 @@ class MedicalHistoryModel extends Model
             VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :hospital_id)
         ";
         
-        return $this->execute($query, [
+        return $this->query($query, [
             ':donor_id' => $data['donor_id'] ?? null,
             ':test_name' => $data['test_name'] ?? '',
             ':result_value' => $data['result_value'] ?? null,
@@ -160,7 +162,7 @@ class MedicalHistoryModel extends Model
     public function getHospitalInfo($hospitalId)
     {
         $query = "
-            SELECT id, hospital_name, address, phone, email
+            SELECT id, name AS hospital_name, address, contact_number AS phone
             FROM hospitals
             WHERE id = :id
             LIMIT 1

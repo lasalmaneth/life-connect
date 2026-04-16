@@ -73,13 +73,14 @@ CREATE TABLE `aftercare_appointments` (
 
 CREATE TABLE `aftercare_patients` (
   `id` int(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `registration_number` varchar(20) NOT NULL,
   `nic` varchar(20) NOT NULL,
   `full_name` varchar(255) NOT NULL,
   `patient_type` enum('RECIPIENT','DONOR') NOT NULL DEFAULT 'RECIPIENT',
   `hospital_registration_no` varchar(50) NOT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `must_change_password` tinyint(1) NOT NULL DEFAULT 1,
+  `password_hash` varchar(255) DEFAULT NULL,
+  `must_change_password` tinyint(1) NOT NULL DEFAULT 0,
   `age` int(11) DEFAULT NULL,
   `gender` varchar(20) DEFAULT NULL,
   `blood_group` varchar(10) DEFAULT NULL,
@@ -989,6 +990,12 @@ CREATE TABLE `organ_requests` (
   `recipient_age` tinyint(3) UNSIGNED DEFAULT NULL,
   `blood_group` varchar(3) DEFAULT NULL,
   `gender` enum('Male','Female','Other') DEFAULT NULL,
+  `hla_a1` varchar(20) DEFAULT NULL,
+  `hla_a2` varchar(20) DEFAULT NULL,
+  `hla_b1` varchar(20) DEFAULT NULL,
+  `hla_b2` varchar(20) DEFAULT NULL,
+  `hla_dr1` varchar(20) DEFAULT NULL,
+  `hla_dr2` varchar(20) DEFAULT NULL,
   `hla_typing` varchar(255) DEFAULT NULL,
   `transplant_reason` text DEFAULT NULL,
   `priority_level` enum('NORMAL','URGENT','CRITICAL') DEFAULT 'NORMAL',
@@ -1206,7 +1213,7 @@ CREATE TABLE `users` (
   `password_hash` varchar(255) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
   `phone` varchar(15) DEFAULT NULL,
-  `role` enum('F_ADMIN','AC_ADMIN','D_ADMIN','U_ADMIN','DONOR','HOSPITAL','MEDICAL_SCHOOL','CUSTODIAN') NOT NULL,
+  `role` enum('F_ADMIN','AC_ADMIN','D_ADMIN','U_ADMIN','DONOR','HOSPITAL','MEDICAL_SCHOOL','CUSTODIAN','AFTERCARE_PATIENT') NOT NULL,
   `status` enum('PENDING','ACTIVE','SUSPENDED') DEFAULT 'PENDING',
   `must_change_credentials` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -1296,7 +1303,8 @@ ALTER TABLE `aftercare_appointments`
 -- Indexes for table `aftercare_patients`
 --
 ALTER TABLE `aftercare_patients`
-  ADD PRIMARY KEY (`id`),
+  ADD PRIMARY KEY (q_aftercare_user` (`user_id`),
+  ADD UNIQUE KEY `u`id`),
   ADD UNIQUE KEY `uniq_aftercare_reg` (`registration_number`),
   ADD UNIQUE KEY `uniq_aftercare_nic` (`nic`),
   ADD KEY `idx_aftercare_hosp` (`hospital_registration_no`);

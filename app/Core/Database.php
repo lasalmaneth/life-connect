@@ -21,14 +21,17 @@ trait Database
 
         $check = $stm->execute($data);
         if ($check) {
-            if (stripos($query, 'SELECT') === 0) {
+            // Any statement that returns a result set (SELECT/SHOW/DESCRIBE/EXPLAIN, etc.)
+            // will have a non-zero column count.
+            if ($stm->columnCount() > 0) {
                 $result = $stm->fetchAll(PDO::FETCH_OBJ);
                 if (is_array($result) && count($result)) {
                     return $result;
                 }
-            } else {
-                return true;
+                return false;
             }
+
+            return true;
         }
 
         return false;

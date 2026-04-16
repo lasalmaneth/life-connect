@@ -29,10 +29,7 @@
             <span class="icon"><i class="fas fa-check-circle"></i></span>
             <span>Update Eligibility</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/recipients" class="menu-item <?php echo ($current_page === 'recipients') ? 'active' : ''; ?>">
-            <span class="icon"><i class="fas fa-user"></i></span>
-            <span>Recipient Patients</span>
-        </a>
+
         <a href="<?php echo ROOT; ?>/hospital/stories" class="menu-item <?php echo ($current_page === 'stories') ? 'active' : ''; ?>">
             <span class="icon"><i class="fas fa-star"></i></span>
             <span>Success Stories</span>
@@ -46,6 +43,10 @@
         <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item <?php echo ($current_page === 'addpatient') ? 'active' : ''; ?>">
             <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
             <span>Add Aftercare Patient</span>
+        </a>
+        <a href="<?php echo ROOT; ?>/hospital/aftercare-recipients" class="menu-item <?php echo ($current_page === 'aftercare-recipients') ? 'active' : ''; ?>">
+            <span class="icon"><i class="fas fa-user-friends"></i></span>
+            <span>View Aftercare Patients</span>
         </a>
     </div>
 

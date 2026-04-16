@@ -66,6 +66,10 @@
                         <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
                         <span>Aftercare Accounts</span>
                     </a>
+                    <a href="<?php echo ROOT; ?>/hospital/aftercare-recipients" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
+                        <span class="icon"><i class="fas fa-user-friends"></i></span>
+                        <span>Recipient Patients</span>
+                    </a>
                 </div>
 
                 <div class="menu-section menu-section--footer">

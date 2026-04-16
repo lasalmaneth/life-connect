@@ -12,11 +12,18 @@ class RegistrationOtpModel {
     public function createOtp($email, $otp, $expiresInMinutes = 10) {
         $email = strtolower(trim($email));
         
-        // Delete existing unverified OTPs for this email in registration purpose
+        // Delete existing unverified OTPs for this email for registration purpose
         $this->deleteWhere([
             'email' => $email,
             'verified' => 0,
-            'purpose' => ['registration', null]
+            'purpose' => 'registration'
+        ], 'registration_otps');
+
+        // Also delete legacy ones with NULL purpose
+        $this->deleteWhere([
+            'email' => $email,
+            'verified' => 0,
+            'purpose IS NULL' => null
         ], 'registration_otps');
         
         $expiresAt = date('Y-m-d H:i:s', strtotime("+$expiresInMinutes minutes"));
