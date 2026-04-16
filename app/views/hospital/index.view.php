@@ -313,7 +313,7 @@ if (!isset($notifications) || !isset($unread_count)) {
     <?php require __DIR__ . '/lab_report_modal.view.php'; ?>
 
     <!-- Test Result Upload Modal -->
-    <?php require __DIR__ . '/test_result_modal.view.php'; ?>
+    <?php require __DIR__ . '/test-result-modal.view.php'; ?>
 
     <!-- Export Modal -->
     <?php require __DIR__ . '/export_modal.view.php'; ?>
