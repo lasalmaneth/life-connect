@@ -178,8 +178,17 @@ trait Model
 
     public function insert($data, $table = "")
     {
+        // Support both calling styles:
+        // 1) insert(['col' => 'val'], 'table_name')  (Model helper)
+        // 2) insert('INSERT ...', [':param' => 'val']) (Database helper signature)
+        if (is_string($data)) {
+            $query = $data;
+            $params = is_array($table) ? $table : [];
+            return $this->DatabaseInsert($query, $params);
+        }
+
         $table = !empty($table) ? $table : $this->table;
-        
+
         // Filter by allowedColumns only for the primary table
         if ($table === $this->table && !empty($this->allowedColumns)) {
             foreach ($data as $key => $value) {
@@ -188,16 +197,12 @@ trait Model
                 }
             }
         }
-        
+
         if (empty($data)) return false;
 
         $keys = array_keys($data);
         $query = "insert into $table (" . implode(",", $keys) . ") values (:" . implode(",:", $keys) . ")";
-        
-        // Use Database trait's insert method but through query to maintain PDO control
-        // Better yet, just call query and return the last insert id if we can.
-        // Actually, let's use the query logic or Database::insert directly.
-        
+
         return $this->DatabaseInsert($query, $data);
     }
 

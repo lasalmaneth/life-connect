@@ -115,6 +115,56 @@
             return parts.join('; ');
         }
 
+        function formatHlaFromRequest(request) {
+            if (!request) return '';
+
+            const keys = ['hla_a1','hla_a2','hla_b1','hla_b2','hla_dr1','hla_dr2'];
+            const hasSplitColumns = keys.some(k => request[k] !== undefined);
+            const hasAnySplitValue = keys.some(k => String(request[k] ?? '').trim() !== '');
+
+            if (hasSplitColumns && hasAnySplitValue) {
+                const a1 = String(request.hla_a1 ?? '').trim();
+                const a2 = String(request.hla_a2 ?? '').trim();
+                const b1 = String(request.hla_b1 ?? '').trim();
+                const b2 = String(request.hla_b2 ?? '').trim();
+                const dr1 = String(request.hla_dr1 ?? '').trim();
+                const dr2 = String(request.hla_dr2 ?? '').trim();
+                return `A1=${a1}; A2=${a2}; B1=${b1}; B2=${b2}; DR1=${dr1}; DR2=${dr2}`;
+            }
+
+            return String(request.hla_typing || '');
+        }
+
+        function setHlaAllelesUiFromRequest(request) {
+            if (!request) {
+                clearHlaAllelesUi();
+                return;
+            }
+
+            const keys = ['hla_a1','hla_a2','hla_b1','hla_b2','hla_dr1','hla_dr2'];
+            const hasSplitColumns = keys.some(k => request[k] !== undefined);
+
+            if (hasSplitColumns) {
+                const a1 = document.getElementById('recipient-hla-a1');
+                const a2 = document.getElementById('recipient-hla-a2');
+                const b1 = document.getElementById('recipient-hla-b1');
+                const b2 = document.getElementById('recipient-hla-b2');
+                const dr1 = document.getElementById('recipient-hla-dr1');
+                const dr2 = document.getElementById('recipient-hla-dr2');
+                if (!a1 || !a2 || !b1 || !b2 || !dr1 || !dr2) return;
+
+                a1.value = String(request.hla_a1 || '');
+                a2.value = String(request.hla_a2 || '');
+                b1.value = String(request.hla_b1 || '');
+                b2.value = String(request.hla_b2 || '');
+                dr1.value = String(request.hla_dr1 || '');
+                dr2.value = String(request.hla_dr2 || '');
+                return;
+            }
+
+            setHlaAllelesUiValue(request.hla_typing || '');
+        }
+
         // Organ Type Selection Function
         function selectOrganType(organId, organName) {
             // Remove selected class from all cards
@@ -163,7 +213,7 @@
             if (ageEl) ageEl.value = request.recipient_age ?? '';
             if (bgEl) bgEl.value = request.blood_group || '';
             if (genderEl) genderEl.value = request.gender || '';
-            setHlaAllelesUiValue(request.hla_typing || '');
+            setHlaAllelesUiFromRequest(request);
             if (transplantReasonEl) transplantReasonEl.value = request.transplant_reason || '';
 
             // Show reason field during edit
@@ -330,6 +380,23 @@
             genderInput.value = gender;
             form.appendChild(genderInput);
 
+            const hlaParts = {
+                hla_a1: document.getElementById('recipient-hla-a1') ? document.getElementById('recipient-hla-a1').value : '',
+                hla_a2: document.getElementById('recipient-hla-a2') ? document.getElementById('recipient-hla-a2').value : '',
+                hla_b1: document.getElementById('recipient-hla-b1') ? document.getElementById('recipient-hla-b1').value : '',
+                hla_b2: document.getElementById('recipient-hla-b2') ? document.getElementById('recipient-hla-b2').value : '',
+                hla_dr1: document.getElementById('recipient-hla-dr1') ? document.getElementById('recipient-hla-dr1').value : '',
+                hla_dr2: document.getElementById('recipient-hla-dr2') ? document.getElementById('recipient-hla-dr2').value : '',
+            };
+            Object.keys(hlaParts).forEach((k) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = String(hlaParts[k] || '');
+                form.appendChild(input);
+            });
+
+            // Legacy packed field (used only if the DB schema still has single-column HLA)
             const hlaInput = document.createElement('input');
             hlaInput.type = 'hidden';
             hlaInput.name = 'hla_typing';
@@ -469,7 +536,7 @@
             document.getElementById('details-age').textContent = request.recipient_age ?? 'N/A';
             document.getElementById('details-blood').textContent = request.blood_group || 'N/A';
             document.getElementById('details-gender').textContent = request.gender || 'N/A';
-            document.getElementById('details-hla').textContent = request.hla_typing || 'N/A';
+            document.getElementById('details-hla').textContent = formatHlaFromRequest(request) || 'N/A';
             document.getElementById('details-reason').textContent = request.transplant_reason || 'N/A';
 
             document.getElementById('request-details-modal').classList.add('show');
@@ -554,7 +621,7 @@
             const nicError = document.getElementById('nic-error');
             const nicLoading = document.getElementById('nic-loading');
             const nameField = document.getElementById('recipient-name');
-            const genderField = document.getElementById('recipient-gender');
+            const genderField = document.getElementById('recipient-patient-gender');
 
             // Clear previous messages
             nicError.style.display = 'none';
@@ -610,7 +677,7 @@
             document.querySelector('#recipient-modal .modal-header h3').textContent = 'Add Recipient Patient';
             document.getElementById('recipient-nic').value = '';
             document.getElementById('recipient-name').value = '';
-            document.getElementById('recipient-gender').value = '';
+            document.getElementById('recipient-patient-gender').value = '';
             document.getElementById('recipient-organ').value = '';
             document.getElementById('surgery-date').value = '';
             document.getElementById('treatment-notes').value = '';
@@ -627,7 +694,7 @@
         function saveRecipient() {
             const nic = document.getElementById('recipient-nic').value;
             const name = document.getElementById('recipient-name').value;
-            const gender = document.getElementById('recipient-gender').value;
+            const gender = document.getElementById('recipient-patient-gender').value;
             const organ = document.getElementById('recipient-organ').value;
             const date = document.getElementById('surgery-date').value;
             const notes = document.getElementById('treatment-notes').value;

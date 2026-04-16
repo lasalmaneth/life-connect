@@ -145,7 +145,7 @@ class UserAdmin {
             $status = $_GET['status'] ?? '';
             
             $adminModel = new AdminModel();
-            $users = $adminModel->getUsers($searchTerm, $role, $status);
+            $users = $adminModel->getUsers($searchTerm, $role, $status) ?: [];
             echo json_encode(['success' => true, 'users' => $users]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -313,20 +313,37 @@ class UserAdmin {
     public function getDetailedUser() {
         header('Content-Type: application/json');
         try {
-            $id = $_GET['id'] ?? null;
-            $role = $_GET['role'] ?? null;
+            $id = (int)($_GET['id'] ?? 0);
+            $role = trim((string)($_GET['role'] ?? ''));
 
-            if (!$id || !$role) {
-                echo json_encode(['success' => false, 'message' => 'Missing user ID or role']);
+            if ($id <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Missing or invalid user ID']);
                 return;
             }
 
             $adminModel = new AdminModel();
+            $base = $adminModel->getUserById($id);
+            if (!$base) {
+                echo json_encode(['success' => false, 'message' => 'User not found']);
+                return;
+            }
+
+            $roleLower = strtolower($role);
+            if ($role === '' || $roleLower === 'undefined' || $roleLower === 'null' || $roleLower === 'nan') {
+                $role = (string)($base->role ?? '');
+            }
+
+            // Trust DB role if mismatch (prevents client-side role formatting from breaking lookups)
+            if (!empty($base->role) && strcasecmp((string)$role, (string)$base->role) !== 0) {
+                $role = (string)$base->role;
+            }
+
             $user = $adminModel->getDetailedUserById($id, $role);
             if ($user) {
                 echo json_encode(['success' => true, 'user' => $user]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'User not found']);
+                // Fallback to base user if role-specific join fails silently
+                echo json_encode(['success' => true, 'user' => $base]);
             }
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);

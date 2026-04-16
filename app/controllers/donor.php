@@ -17,8 +17,7 @@ class Donor {
         try {
             $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
             if (empty($res)) {
-                $con = $this->connect();
-                $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                $this->query("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
             }
         } catch (\Throwable $e) {
             // Ignore migration errors; downstream query will surface failure if truly blocking.
@@ -90,8 +89,7 @@ class Donor {
         } else if (!$this->usersHasAftercareAccessColumn()) {
             // Create the column if it doesn't exist
             try {
-                $con = $this->connect();
-                $con->exec("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
+                $this->query("ALTER TABLE users ADD COLUMN aftercare_access TINYINT DEFAULT 0");
             } catch (\Throwable $e) {
                 // Column might already exist from MySQL perspective
             }
@@ -761,19 +759,18 @@ class Donor {
                     } else if ($file['size'] > 5 * 1024 * 1024) {
                         $message = "File size exceeds 5MB limit.";
                     } else {
-                        $folder = "uploads/pledges/";
+                        $folder = "assets/uploads/pledges/";
                         if (!file_exists($folder)) mkdir($folder, 0777, true);
                         
                         $filename = "pledge_" . $donorId . "_" . $organId . "_" . time() . ".pdf";
                         $destination = $folder . $filename;
+                        $dbPath = "assets/uploads/pledges/" . $filename;
                         
                         if (move_uploaded_file($file['tmp_name'], $destination)) {
-                            // Update status to UPLOADED or stay PENDING depending on business rules
-                            // But user said "upload to complete the process"
                             $query = "UPDATE donor_pledges SET signed_form_path = :path, status = 'UPLOADED' 
                                      WHERE donor_id = :donor_id AND organ_id = :organ_id";
                             $this->query($query, [
-                                ':path' => $destination,
+                                ':path' => $dbPath,
                                 ':donor_id' => $donorId,
                                 ':organ_id' => $organId
                             ]);
@@ -2142,14 +2139,15 @@ class Donor {
 
                 if ($withdrawal && isset($_FILES['withdrawal_pdf']) && $_FILES['withdrawal_pdf']['error'] === UPLOAD_ERR_OK) {
                     $file = $_FILES['withdrawal_pdf'];
-                    $folder = "uploads/withdrawals/";
+                    $folder = "assets/uploads/withdrawals/";
                     if (!file_exists($folder)) mkdir($folder, 0777, true);
                     
                     $filename = "withdrawal_" . $donorId . "_" . time() . ".pdf";
                     $destination = $folder . $filename;
+                    $dbPath = "assets/uploads/withdrawals/" . $filename;
                     
                     if (move_uploaded_file($file['tmp_name'], $destination)) {
-                        $donorModel->updateWithdrawalPath($withdrawalId, $destination);
+                        $donorModel->updateWithdrawalPath($withdrawalId, $dbPath);
                         
                         if (!empty($withdrawal->organ_id)) {
                             $donorModel->deactivateSpecificPledge($donorId, $withdrawal->organ_id);

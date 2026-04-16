@@ -1157,6 +1157,30 @@
                         </div>
                     </div>
 
+                    <!-- Recipient Patient Identity Section -->
+                    <div id="recipient-identity-section" style="display: none; contents;">
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">User ID</span>
+                            <div id="review-recipient-uid" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Registration Number</span>
+                            <div id="review-recipient-reg" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">NIC Number</span>
+                            <div id="review-recipient-nic" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Full Name</span>
+                            <div id="review-recipient-fullname" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Patient Type</span>
+                            <div id="review-recipient-type" style="font-size: 1rem; font-weight: 800; color: #1e293b;">-</div>
+                        </div>
+                    </div>
+
                     <!-- Organ Donor Administrative Section (Conditional Grid Row) -->
                     <div id="organ-donor-section" style="display: contents;">
                         <div>
@@ -1857,33 +1881,65 @@
         // User Account Management Functions
         async function fetchUsers() {
             try {
-                const searchTerm = document.getElementById('user-search').value;
-                const status = document.getElementById('status-filter').value;
-                const role = document.getElementById('role-filter').value;
+                const searchEl = document.getElementById('user-search');
+                const statusEl = document.getElementById('status-filter');
+                const roleEl = document.getElementById('role-filter');
 
-                const response = await fetch(`${ROOT}/user-admin/getUsers?search=${searchTerm}&status=${status}&role=${role}`);
+                const searchTerm = searchEl ? searchEl.value : '';
+                const status = statusEl ? statusEl.value : '';
+                const role = roleEl ? roleEl.value : '';
+
+                const qs = new URLSearchParams({
+                    search: searchTerm,
+                    status: status,
+                    role: role,
+                });
+
+                const response = await fetch(`${ROOT}/user-admin/getUsers?${qs.toString()}`);
                 const data = await response.json();
-                if (data.success) {
-                    appState.users = data.users;
-                    appState.selectedUsers = [];
-                    const selectAll = document.getElementById('select-all');
-                    if (selectAll) selectAll.checked = false;
-                    updateBulkButtons();
+
+                if (!data || !data.success) {
+                    showToast('error', (data && data.message) ? data.message : 'Failed to load users.');
+                    appState.users = [];
                     renderUsersTable();
+                    return;
                 }
+
+                const users = Array.isArray(data.users)
+                    ? data.users
+                    : (data.users ? Object.values(data.users) : []);
+
+                appState.users = users;
+                appState.selectedUsers = [];
+                const selectAll = document.getElementById('select-all');
+                if (selectAll) selectAll.checked = false;
+                updateBulkButtons();
+                renderUsersTable();
             } catch (error) {
                 console.error('Error fetching users:', error);
+                showToast('error', 'Failed to load users.');
+            }
+        }
+
+        function ensureModalOnBody(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
             }
         }
 
         function renderUsersTable() {
             const tableContent = document.getElementById('users-table');
+            if (!tableContent) return;
             const headerRow = tableContent.querySelector('.table-row');
 
             tableContent.innerHTML = '';
-            tableContent.appendChild(headerRow);
+            if (headerRow) tableContent.appendChild(headerRow);
 
-            appState.users.forEach(user => {
+            const users = Array.isArray(appState.users) ? appState.users : [];
+
+            users.forEach(user => {
                 const row = document.createElement('div');
                 row.className = 'table-row';
                 row.style.cursor = 'pointer';
@@ -1943,7 +1999,21 @@
         async function viewDetailedUser(userId, role, status) {
             try {
                 showToast('info', 'Loading details...');
-                const response = await fetch(`${ROOT}/user-admin/getDetailedUser?id=${userId}&role=${role}`);
+
+                const id = encodeURIComponent(String(userId ?? ''));
+                const roleStr = (role === undefined || role === null) ? '' : String(role);
+                const roleEnc = encodeURIComponent(roleStr);
+
+                const url = (roleStr && roleStr !== 'undefined' && roleStr !== 'null')
+                    ? `${ROOT}/user-admin/getDetailedUser?id=${id}&role=${roleEnc}`
+                    : `${ROOT}/user-admin/getDetailedUser?id=${id}`;
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    showToast('error', `Failed to load details (${response.status}).`);
+                    return;
+                }
+
                 let data;
                 try {
                     data = await response.json();
@@ -1953,9 +2023,13 @@
                     return;
                 }
 
-                if (data.success) {
-                    const user = data.user;
-                    console.log("Detailed User Data Received:", user);
+                if (!data || !data.success) {
+                    showToast('error', (data && data.message) ? data.message : 'Failed to load user details.');
+                    return;
+                }
+
+                const user = data.user;
+                console.log("Detailed User Data Received:", user);
 
                     try {
                         // Hidden storage for form submission details
@@ -1979,6 +2053,7 @@
                         const isHospital = (user.role && user.role.toUpperCase() === 'HOSPITAL');
                         const isDonor = (user.role && user.role.toUpperCase() === 'DONOR');
                         const isMedSchool = (user.role && user.role.toUpperCase() === 'MEDICAL_SCHOOL');
+                        const isRecipient = (user.role && (user.role.toUpperCase() === 'RECIPIENT_PATIENT' || user.role.toUpperCase() === 'AFTERCARE_PATIENT'));
                         const isAdmin = (user.role && ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'].includes(user.role.toUpperCase()));
 
                         // Reset display
@@ -1991,6 +2066,8 @@
 
                         if (summaryPhoneGroup) summaryPhoneGroup.style.display = 'block';
                         if (organDonorSection) organDonorSection.style.display = 'none';
+                        const recipientIdentity = document.getElementById('recipient-identity-section');
+                        if (recipientIdentity) recipientIdentity.style.display = 'none';
                         if (deepDetails) deepDetails.style.display = 'none';
 
                         if (isDonor) {
@@ -2087,6 +2164,23 @@
 
                             const adminContact = document.getElementById('review-admin-contact');
                             if (adminContact) adminContact.innerText = user.admin_contact || 'N/A';
+                        } else if (isRecipient) {
+                            if (recipientIdentity) recipientIdentity.style.display = 'contents';
+
+                            const rUid = document.getElementById('review-recipient-uid');
+                            if (rUid) rUid.innerText = user.id || 'N/A';
+
+                            const rReg = document.getElementById('review-recipient-reg');
+                            if (rReg) rReg.innerText = user.registration_number || 'N/A';
+
+                            const rNic = document.getElementById('review-recipient-nic');
+                            if (rNic) rNic.innerText = user.nic || 'N/A';
+
+                            const rFullname = document.getElementById('review-recipient-fullname');
+                            if (rFullname) rFullname.innerText = user.full_name || 'N/A';
+
+                            const rType = document.getElementById('review-recipient-type');
+                            if (rType) rType.innerText = user.patient_type || 'N/A';
                         }
 
                         document.getElementById('review-firstname').value = user.first_name || user.school_name || user.name || '';
@@ -2139,12 +2233,12 @@
                         }
 
                         checkVerificationStatus();
+                        ensureModalOnBody('review-user-modal');
                         document.getElementById('review-user-modal').classList.add('show');
                     } catch (uiErr) {
                         console.error("UI Population Error:", uiErr);
                         showToast('error', 'Critical UI error. Check console.');
                     }
-                }
             } catch (error) {
                 console.error('Error fetching user details:', error);
                 showToast('error', 'Failed to load user records.');
@@ -2424,6 +2518,7 @@
                     document.getElementById('edit-username').value = user.username;
                     document.getElementById('edit-email').value = user.email;
                     document.getElementById('edit-role').value = user.role.toLowerCase();
+                    ensureModalOnBody('edit-user-modal');
                     document.getElementById('edit-user-modal').classList.add('show');
                 } else {
                     showToast('error', data.message);
@@ -2865,9 +2960,11 @@
                 'donor': 'Donor',
                 'patient': 'Patient',
                 'hospital': 'Hospital',
-                'financial': 'Financial Donor'
+                'financial': 'Financial Donor',
+                'recipient_patient': 'Aftercare Recipient',
+                'aftercare_patient': 'Aftercare Patient'
             };
-            return roleMap[role] || role;
+            return roleMap[role.toLowerCase()] || role;
         }
 
         function formatStatus(status) {

@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class ContactModel extends Model {
+class ContactModel {
+
+    use Model;
 
     protected $table = 'contact_messages';
 

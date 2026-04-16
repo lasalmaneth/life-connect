@@ -752,7 +752,7 @@ class Custodian {
         // Handle signed document uploads
         $signedPath = null;
         $coSignedPath = null;
-        $uploadDir = 'uploads/custodian/legal/' . $donationCase->case_number . '/';
+        $uploadDir = 'assets/uploads/custodian/legal/' . $donationCase->case_number . '/';
 
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
@@ -898,7 +898,7 @@ class Custodian {
             return;
         }
 
-        $uploadDir = 'uploads/custodian/docs/' . $donationCase->case_number . '/' . $statusId . '/';
+        $uploadDir = 'assets/uploads/custodian/docs/' . $donationCase->case_number . '/' . $statusId . '/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
@@ -1223,7 +1223,7 @@ class Custodian {
 
                 // Process uploaded file
                 if (isset($_FILES['bundle_file']) && $_FILES['bundle_file']['error'] === 0) {
-                    $uploadDir = 'uploads/custodian/docs/' . $activeCase->case_number . '/' . $statusId . '/';
+                    $uploadDir = 'assets/uploads/custodian/docs/' . $activeCase->case_number . '/' . $statusId . '/';
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0777, true);
                     }

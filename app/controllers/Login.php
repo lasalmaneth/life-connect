@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\AftercarePatientModel;
 use App\Models\LoginModel;
+use App\Models\UserModel;
 
 class Login {
     use Controller;
@@ -193,6 +194,41 @@ class Login {
             // For custodian accounts, ensure a matching custodians row exists so the portal won't bounce back to login.
             $this->ensureCustodianProfileForUser($user);
 
+            $role = strtoupper((string)($user->role ?? ''));
+
+            // Aftercare recipients log in via the main login, but use the Aftercare session context.
+            if ($role === 'AFTERCARE_PATIENT' || $role === 'RECIPIENT_PATIENT') {
+                $aftercareModel = new AftercarePatientModel();
+                $patient = $aftercareModel->getByRegistrationNumber((string)$user->username);
+
+                if (!$patient) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Aftercare profile not found for this account. Please contact your hospital.'
+                    ]);
+                    return;
+                }
+
+                // Clear main-auth session keys to avoid mixing contexts
+                unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['status']);
+                unset($_SESSION['donor_id'], $_SESSION['hospital_id'], $_SESSION['school_id']);
+
+                $_SESSION['aftercare_user_id'] = (int)$user->id;
+                $_SESSION['aftercare_patient_id'] = (int)$patient->id;
+                $_SESSION['aftercare_registration_number'] = (string)$patient->registration_number;
+                $_SESSION['aftercare_must_change_password'] = !empty($user->must_change_credentials) ? 1 : 0;
+
+                session_write_close();
+
+                echo json_encode([
+                    'success' => true,
+                    'role' => $role,
+                    'must_change_credentials' => !empty($user->must_change_credentials) ? 1 : 0
+                ]);
+
+                return;
+            }
+
             $_SESSION['user_id'] = $user->id;
             $_SESSION['username'] = $user->username;
             $_SESSION['role'] = $user->role;
@@ -229,16 +265,57 @@ class Login {
                 unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['status']);
                 unset($_SESSION['donor_id'], $_SESSION['hospital_id'], $_SESSION['school_id']);
 
+                // Best-effort backfill: create a users account for legacy aftercare recipients
+                $userModel = new UserModel();
+                $user = $userModel->first(['username' => $username]);
+
+                if (!$user) {
+                    try {
+                        $newUid = $userModel->insert([
+                            'username' => $username,
+                            'password_hash' => (string)$patient->password_hash,
+                            'role' => 'AFTERCARE_PATIENT',
+                            'status' => 'ACTIVE',
+                            'must_change_credentials' => !empty($patient->must_change_password) ? 1 : 0,
+                            'created_at' => date('Y-m-d H:i:s'),
+                        ]);
+
+                        if ($newUid) {
+                            $user = $userModel->first(['id' => (int)$newUid]);
+
+                            try {
+                                $hasUserIdCol = $aftercareModel->query("SHOW COLUMNS FROM aftercare_patients LIKE 'user_id'");
+                                if (!empty($hasUserIdCol)) {
+                                    $aftercareModel->query(
+                                        "UPDATE aftercare_patients SET user_id = :uid WHERE id = :pid LIMIT 1",
+                                        [':uid' => (int)$newUid, ':pid' => (int)$patient->id]
+                                    );
+                                }
+                            } catch (\Throwable $e) {
+                                // ignore
+                            }
+                        }
+                    } catch (\Throwable $e) {
+                        // If schema isn't migrated yet, legacy login should still work.
+                    }
+                }
+
+                $mustChange = !empty($user->must_change_credentials) ? 1 : (!empty($patient->must_change_password) ? 1 : 0);
+
                 // Set Aftercare session keys
+                if (!empty($user->id)) {
+                    $_SESSION['aftercare_user_id'] = (int)$user->id;
+                }
                 $_SESSION['aftercare_patient_id'] = (int)$patient->id;
                 $_SESSION['aftercare_registration_number'] = (string)$patient->registration_number;
-                $_SESSION['aftercare_must_change_password'] = !empty($patient->must_change_password) ? 1 : 0;
+                $_SESSION['aftercare_must_change_password'] = $mustChange;
 
                 session_write_close();
 
                 echo json_encode([
                     'success' => true,
-                    'role' => 'AFTERCARE_PATIENT'
+                    'role' => 'AFTERCARE_PATIENT',
+                    'must_change_credentials' => $mustChange
                 ]);
                 return;
             }

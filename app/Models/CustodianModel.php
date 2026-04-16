@@ -482,11 +482,13 @@ class CustodianModel {
     public function getLeaderId($caseId)
     {
         $res = $this->queryJoin(
-            [['table' => 'death_declarations dd', 'on' => 'donation_cases.death_declaration_id = dd.id', 'type' => 'JOIN']],
-            ['donation_cases.id' => $caseId],
+            [['table' => 'death_declarations dd', 'on' => 'dc.death_declaration_id = dd.id', 'type' => 'JOIN']],
+            ['dc.id' => $caseId],
             'dd.declared_by_custodian_id',
             '',
-            1
+            1,
+            0,
+            'donation_cases dc'
         );
         return $res ? (int)$res[0]->declared_by_custodian_id : null;
     }
@@ -548,13 +550,16 @@ class CustodianModel {
     public function getArchivedCases($donorId)
     {
         return $this->queryJoin(
-            [['table' => 'death_declarations dd', 'on' => 'donation_cases.death_declaration_id = dd.id', 'type' => 'JOIN']],
+            [['table' => 'death_declarations dd', 'on' => 'dc.death_declaration_id = dd.id', 'type' => 'JOIN']],
             [
-                'donation_cases.donor_id' => $donorId,
-                'donation_cases.overall_status IN' => "('COMPLETED', 'CANCELLED', 'ARCHIVED')"
+                'dc.donor_id' => $donorId,
+                'dc.overall_status IN' => "('COMPLETED', 'CANCELLED', 'ARCHIVED')"
             ],
-            'donation_cases.*, dd.date_of_death, dd.cause_of_death',
-            'donation_cases.created_at DESC'
+            'dc.*, dd.date_of_death, dd.cause_of_death',
+            'dc.created_at DESC',
+            100,
+            0,
+            'donation_cases dc'
         ) ?: [];
     }
 }

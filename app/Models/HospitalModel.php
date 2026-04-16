@@ -63,8 +63,12 @@ class HospitalModel {
 
     private function donorPledgeHasColumn($column)
     {
+        $column = (string)$column;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) return false;
+
         try {
-            $res = $this->query("SHOW COLUMNS FROM donor_pledges LIKE :col", [':col' => $column]);
+            // Use a literal for SHOW ... LIKE to avoid driver limitations with placeholders in SHOW statements.
+            $res = $this->query("SHOW COLUMNS FROM donor_pledges LIKE '{$column}'");
             return !empty($res);
         } catch (\Throwable $e) {
             return false;
@@ -275,39 +279,98 @@ class HospitalModel {
             }
         }
 
-        $query = "INSERT INTO organ_requests (
-                      hospital_id,
-                      organ_id,
-                      priority_level,
-                      status,
-                      recipient_age,
-                      blood_group,
-                      gender,
-                      hla_typing,
-                      transplant_reason
-                  )
-                  VALUES (
-                      (SELECT id FROM hospitals WHERE registration_number = :reg_no),
-                      :organ_id,
-                      :urgency,
-                      'PENDING',
-                      :recipient_age,
-                      :blood_group,
-                      :gender,
-                      :hla_typing,
-                      :transplant_reason
-                  )";
+        $hasSplitHla = $this->organRequestsHasColumn('hla_a1')
+            && $this->organRequestsHasColumn('hla_a2')
+            && $this->organRequestsHasColumn('hla_b1')
+            && $this->organRequestsHasColumn('hla_b2')
+            && $this->organRequestsHasColumn('hla_dr1')
+            && $this->organRequestsHasColumn('hla_dr2');
 
-        $this->query($query, [
-            ':reg_no' => $data['registration_no'],
-            ':organ_id' => $organId,
-            ':urgency' => $this->mapUrgencyToPriorityLevel($data['urgency'] ?? ''),
-            ':recipient_age' => $data['recipient_age'] ?? null,
-            ':blood_group' => $data['blood_group'] ?? null,
-            ':gender' => $data['gender'] ?? null,
-            ':hla_typing' => $data['hla_typing'] ?? null,
-            ':transplant_reason' => $data['transplant_reason'] ?? null
-        ]);
+        if ($hasSplitHla) {
+            $query = "INSERT INTO organ_requests (
+                          hospital_id,
+                          organ_id,
+                          priority_level,
+                          status,
+                          recipient_age,
+                          blood_group,
+                          gender,
+                          hla_a1,
+                          hla_a2,
+                          hla_b1,
+                          hla_b2,
+                          hla_dr1,
+                          hla_dr2,
+                          transplant_reason
+                      )
+                      VALUES (
+                          (SELECT id FROM hospitals WHERE registration_number = :reg_no),
+                          :organ_id,
+                          :urgency,
+                          'PENDING',
+                          :recipient_age,
+                          :blood_group,
+                          :gender,
+                          :hla_a1,
+                          :hla_a2,
+                          :hla_b1,
+                          :hla_b2,
+                          :hla_dr1,
+                          :hla_dr2,
+                          :transplant_reason
+                      )";
+
+            $this->query($query, [
+                ':reg_no' => $data['registration_no'],
+                ':organ_id' => $organId,
+                ':urgency' => $this->mapUrgencyToPriorityLevel($data['urgency'] ?? ''),
+                ':recipient_age' => $data['recipient_age'] ?? null,
+                ':blood_group' => $data['blood_group'] ?? null,
+                ':gender' => $data['gender'] ?? null,
+                ':hla_a1' => $data['hla_a1'] ?? null,
+                ':hla_a2' => $data['hla_a2'] ?? null,
+                ':hla_b1' => $data['hla_b1'] ?? null,
+                ':hla_b2' => $data['hla_b2'] ?? null,
+                ':hla_dr1' => $data['hla_dr1'] ?? null,
+                ':hla_dr2' => $data['hla_dr2'] ?? null,
+                ':transplant_reason' => $data['transplant_reason'] ?? null
+            ]);
+        } else {
+            // Legacy schema: store packed HLA value in a single column.
+            $query = "INSERT INTO organ_requests (
+                          hospital_id,
+                          organ_id,
+                          priority_level,
+                          status,
+                          recipient_age,
+                          blood_group,
+                          gender,
+                          hla_typing,
+                          transplant_reason
+                      )
+                      VALUES (
+                          (SELECT id FROM hospitals WHERE registration_number = :reg_no),
+                          :organ_id,
+                          :urgency,
+                          'PENDING',
+                          :recipient_age,
+                          :blood_group,
+                          :gender,
+                          :hla_typing,
+                          :transplant_reason
+                      )";
+
+            $this->query($query, [
+                ':reg_no' => $data['registration_no'],
+                ':organ_id' => $organId,
+                ':urgency' => $this->mapUrgencyToPriorityLevel($data['urgency'] ?? ''),
+                ':recipient_age' => $data['recipient_age'] ?? null,
+                ':blood_group' => $data['blood_group'] ?? null,
+                ':gender' => $data['gender'] ?? null,
+                ':hla_typing' => $data['hla_typing'] ?? null,
+                ':transplant_reason' => $data['transplant_reason'] ?? null
+            ]);
+        }
 
         return true;
     }
@@ -374,12 +437,18 @@ class HospitalModel {
 
     public function updateOrganRequest($requestId, $data)
     {
+        $hasSplitHla = $this->organRequestsHasColumn('hla_a1')
+            && $this->organRequestsHasColumn('hla_a2')
+            && $this->organRequestsHasColumn('hla_b1')
+            && $this->organRequestsHasColumn('hla_b2')
+            && $this->organRequestsHasColumn('hla_dr1')
+            && $this->organRequestsHasColumn('hla_dr2');
+
         $setParts = [
             "priority_level = :urgency",
             "recipient_age = :recipient_age",
             "blood_group = :blood_group",
             "gender = :gender",
-            "hla_typing = :hla_typing",
             "transplant_reason = :transplant_reason",
         ];
 
@@ -389,9 +458,28 @@ class HospitalModel {
             ':recipient_age' => $data['recipient_age'] ?? null,
             ':blood_group' => $data['blood_group'] ?? null,
             ':gender' => $data['gender'] ?? null,
-            ':hla_typing' => $data['hla_typing'] ?? null,
             ':transplant_reason' => $data['transplant_reason'] ?? null,
         ];
+
+        if ($hasSplitHla) {
+            $setParts[] = "hla_a1 = :hla_a1";
+            $setParts[] = "hla_a2 = :hla_a2";
+            $setParts[] = "hla_b1 = :hla_b1";
+            $setParts[] = "hla_b2 = :hla_b2";
+            $setParts[] = "hla_dr1 = :hla_dr1";
+            $setParts[] = "hla_dr2 = :hla_dr2";
+
+            $params[':hla_a1'] = $data['hla_a1'] ?? null;
+            $params[':hla_a2'] = $data['hla_a2'] ?? null;
+            $params[':hla_b1'] = $data['hla_b1'] ?? null;
+            $params[':hla_b2'] = $data['hla_b2'] ?? null;
+            $params[':hla_dr1'] = $data['hla_dr1'] ?? null;
+            $params[':hla_dr2'] = $data['hla_dr2'] ?? null;
+        } else {
+            // Legacy schema: store packed HLA value in a single column.
+            $setParts[] = "hla_typing = :hla_typing";
+            $params[':hla_typing'] = $data['hla_typing'] ?? null;
+        }
 
         // Support both column names (older/newer schema)
         if ($this->organRequestsHasColumn('edited_reason')) {
@@ -427,52 +515,6 @@ class HospitalModel {
     {
         $query = "DELETE FROM organ_requests WHERE id = :id";
         return $this->query($query, [':id' => $id]);
-    }
-
-    // Recipients
-    public function getRecipients($regNo)
-    {
-        $query = "SELECT * FROM recipients WHERE hospital_registration_no = :reg_no ORDER BY created_at DESC";
-        return $this->query($query, [':reg_no' => $regNo]);
-    }
-
-    public function addRecipient($data)
-    {
-        $query = "INSERT INTO recipients (nic, name, organ_received, surgery_date, treatment_notes, status, hospital_registration_no) 
-                  VALUES (:nic, :name, :organ_received, :surgery_date, :treatment_notes, 'Active', :reg_no)";
-        $this->query($query, [
-            ':nic' => $data['nic'],
-            ':name' => $data['name'],
-            ':organ_received' => $data['organ_received'],
-            ':surgery_date' => $data['surgery_date'],
-            ':treatment_notes' => $data['treatment_notes'],
-            ':reg_no' => $data['hospital_registration_no']
-        ]);
-        return true;
-    }
-
-    public function updateRecipient($data)
-    {
-        $query = "UPDATE recipients SET nic = :nic, name = :name, organ_received = :organ_received, 
-                  surgery_date = :surgery_date, treatment_notes = :treatment_notes, status = :status, updated_at = NOW() 
-                  WHERE recipient_id = :id";
-        $this->query($query, [
-            ':nic' => $data['nic'],
-            ':name' => $data['name'],
-            ':organ_received' => $data['organ_received'],
-            ':surgery_date' => $data['surgery_date'],
-            ':treatment_notes' => $data['treatment_notes'],
-            ':status' => $data['status'],
-            ':id' => $data['recipient_id']
-        ]);
-        return true;
-    }
-
-    public function deleteRecipient($id)
-    {
-        $query = "DELETE FROM recipients WHERE recipient_id = :id";
-        $this->query($query, [':id' => $id]);
-        return true;
     }
 
     // Success Stories
@@ -894,29 +936,12 @@ class HospitalModel {
 
     public function addTestResult($data)
     {
-        $patientType = strtoupper(trim((string)($data['patient_type'] ?? 'DONOR')));
-        if (!in_array($patientType, ['DONOR', 'RECIPIENT'], true)) $patientType = 'DONOR';
-
-        // If recipient support columns are missing, attempt to add them (dev-friendly).
-        if ($patientType === 'RECIPIENT') {
-            $this->ensureTestResultsRecipientSchema();
-        }
-
-        $hasRecipientSupport = $this->testResultsHasRecipientSupport();
-
-        if ($hasRecipientSupport) {
-            $query = "INSERT INTO test_results (patient_type, donor_id, recipient_id, test_name, result_value, document_path, test_date, verified_by_hospital_id)
-                      VALUES (:patient_type, :donor_id, :recipient_id, :test_name, :result_value, :document_path, :test_date, :verified_by_hospital_id)";
-        } else {
-            // Backwards-compatible schema (donor only)
-            $query = "INSERT INTO test_results (donor_id, test_name, result_value, document_path, test_date, verified_by_hospital_id)
-                      VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :verified_by_hospital_id)";
-        }
+        // Focus only on donor test results now that the recipients waitlist is removed.
+        $query = "INSERT INTO test_results (donor_id, test_name, result_value, document_path, test_date, verified_by_hospital_id)
+                  VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :verified_by_hospital_id)";
 
         $params = [
-            ':donor_id' => !empty($data['donor_id']) ? (int)$data['donor_id'] : null,
-            ':patient_type' => (string)$patientType,
-            ':recipient_id' => !empty($data['recipient_id']) ? (int)$data['recipient_id'] : null,
+            ':donor_id' => !empty($data['donor_id']) ? (int)$data['donor_id'] : 0,
             ':test_name' => (string)($data['test_name'] ?? ''),
             ':result_value' => $data['result_value'] ?? null,
             ':document_path' => $data['document_path'] ?? null,
@@ -924,66 +949,10 @@ class HospitalModel {
             ':verified_by_hospital_id' => !empty($data['verified_by_hospital_id']) ? (int)$data['verified_by_hospital_id'] : null,
         ];
 
-
-        if ($params[':test_name'] === '' || $params[':test_date'] === '') return false;
-
-        if ($hasRecipientSupport) {
-            if ($patientType === 'DONOR' && (int)($params[':donor_id'] ?? 0) <= 0) return false;
-            if ($patientType === 'RECIPIENT' && (int)($params[':recipient_id'] ?? 0) <= 0) return false;
-        } else {
-            // Old schema: donor only
-            if ((int)($params[':donor_id'] ?? 0) <= 0) return false;
-        }
-
-        // Only pass bound params used by the chosen query
-        if (!$hasRecipientSupport) {
-            unset($params[':patient_type'], $params[':recipient_id']);
-            // donor_id cannot be null in old schema
-            $params[':donor_id'] = (int)($data['donor_id'] ?? 0);
-        }
+        if ($params[':donor_id'] <= 0 || $params[':test_name'] === '' || $params[':test_date'] === '') return false;
 
         $this->query($query, $params);
         return true;
-    }
-
-    private function testResultsHasRecipientSupport(): bool
-    {
-        try {
-            $pt = $this->query("SHOW COLUMNS FROM test_results LIKE 'patient_type'");
-            $rid = $this->query("SHOW COLUMNS FROM test_results LIKE 'recipient_id'");
-            // donor_id nullability isn't strictly checked here; we avoid inserting recipient rows without support.
-            return !empty($pt) && !empty($rid);
-        } catch (\Throwable $e) {
-            return false;
-        }
-    }
-
-    private function ensureTestResultsRecipientSchema(): void
-    {
-        try {
-            if ($this->testResultsHasRecipientSupport()) return;
-
-            $con = $this->connect();
-            // Add columns if missing
-            $con->exec("ALTER TABLE test_results ADD COLUMN patient_type VARCHAR(20) NOT NULL DEFAULT 'DONOR'");
-        } catch (\Throwable $e) {
-            // ignore
-        }
-
-        try {
-            $con = $this->connect();
-            $con->exec("ALTER TABLE test_results ADD COLUMN recipient_id INT(11) NULL DEFAULT NULL");
-        } catch (\Throwable $e) {
-            // ignore
-        }
-
-        try {
-            // Allow donor_id to be NULL for recipient records
-            $con = $this->connect();
-            $con->exec("ALTER TABLE test_results MODIFY donor_id INT(11) NULL");
-        } catch (\Throwable $e) {
-            // ignore
-        }
     }
 
     public function getTestResultsByHospitalId($hospitalId, $limit = 200)

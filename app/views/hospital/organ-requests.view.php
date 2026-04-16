@@ -304,8 +304,28 @@
             if (parts.every(p => p.endsWith('='))) return '';
             return parts.join('; ');
         }
-        
-                function selectOrganType(organId, organName) {
+
+        function formatHlaFromRequest(request) {
+            if (!request) return '';
+
+            const keys = ['hla_a1','hla_a2','hla_b1','hla_b2','hla_dr1','hla_dr2'];
+            const hasSplitColumns = keys.some(k => request[k] !== undefined);
+            const hasAnySplitValue = keys.some(k => String(request[k] ?? '').trim() !== '');
+
+            if (hasSplitColumns && hasAnySplitValue) {
+                const a1 = String(request.hla_a1 ?? '').trim();
+                const a2 = String(request.hla_a2 ?? '').trim();
+                const b1 = String(request.hla_b1 ?? '').trim();
+                const b2 = String(request.hla_b2 ?? '').trim();
+                const dr1 = String(request.hla_dr1 ?? '').trim();
+                const dr2 = String(request.hla_dr2 ?? '').trim();
+                return `A1=${a1}; A2=${a2}; B1=${b1}; B2=${b2}; DR1=${dr1}; DR2=${dr2}`;
+            }
+
+            return String(request.hla_typing || '');
+        }
+
+        function selectOrganType(organId, organName) {
             document.querySelectorAll('.organ-option-card').forEach(card => {
                 card.classList.remove('selected');
             });
@@ -389,6 +409,23 @@
             bgInput.value = bloodGroup;
             form.appendChild(bgInput);
 
+            const hlaParts = {
+                hla_a1: document.getElementById('recipient-hla-a1') ? document.getElementById('recipient-hla-a1').value : '',
+                hla_a2: document.getElementById('recipient-hla-a2') ? document.getElementById('recipient-hla-a2').value : '',
+                hla_b1: document.getElementById('recipient-hla-b1') ? document.getElementById('recipient-hla-b1').value : '',
+                hla_b2: document.getElementById('recipient-hla-b2') ? document.getElementById('recipient-hla-b2').value : '',
+                hla_dr1: document.getElementById('recipient-hla-dr1') ? document.getElementById('recipient-hla-dr1').value : '',
+                hla_dr2: document.getElementById('recipient-hla-dr2') ? document.getElementById('recipient-hla-dr2').value : '',
+            };
+            Object.keys(hlaParts).forEach((k) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = k;
+                input.value = String(hlaParts[k] || '');
+                form.appendChild(input);
+            });
+
+            // Legacy packed field (used only if the DB schema still has single-column HLA)
             const hlaInput = document.createElement('input');
             hlaInput.type = 'hidden';
             hlaInput.name = 'hla_typing';
@@ -502,7 +539,7 @@
             document.getElementById('details-age').textContent = request.recipient_age ?? 'N/A';
             document.getElementById('details-blood').textContent = request.blood_group || 'N/A';
             document.getElementById('details-gender').textContent = request.gender || 'N/A';
-            document.getElementById('details-hla').textContent = request.hla_typing || 'N/A';
+            document.getElementById('details-hla').textContent = formatHlaFromRequest(request) || 'N/A';
             document.getElementById('details-reason').textContent = request.transplant_reason || 'N/A';
 
             document.getElementById('request-details-modal').classList.add('show');

@@ -6,6 +6,8 @@ use App\Core\Controller;
 use App\Models\AftercarePatientModel;
 use App\Models\HospitalModel;
 use App\Models\MedicalHistoryModel;
+use App\Models\LoginModel;
+use App\Models\UserModel;
 
 class Aftercare
 {
@@ -18,7 +20,7 @@ class Aftercare
         }
 
         if (empty($_SESSION['aftercare_patient_id'])) {
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         if (!empty($_SESSION['aftercare_must_change_password'])) {
@@ -37,11 +39,12 @@ class Aftercare
 
         if (!$patient) {
             unset(
+                $_SESSION['aftercare_user_id'],
                 $_SESSION['aftercare_patient_id'],
                 $_SESSION['aftercare_registration_number'],
                 $_SESSION['aftercare_must_change_password']
             );
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         $nic = (string)($patient->nic ?? '');
@@ -179,8 +182,7 @@ class Aftercare
             try {
                 $res = $patientModel->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
                 if (empty($res)) {
-                    $con = $patientModel->connect();
-                    $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                    $patientModel->query("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
                 }
             } catch (\Throwable $e) {
                 // Ignore migration errors; insert will fail if truly required
@@ -271,7 +273,7 @@ class Aftercare
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         $registrationNumber = trim((string)($_POST['registration_number'] ?? ''));
@@ -279,30 +281,62 @@ class Aftercare
 
         if ($registrationNumber === '' || $password === '') {
             $_SESSION['aftercare_flash_error'] = 'Please enter registration number and password.';
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         $patientModel = new AftercarePatientModel();
         $patient = $patientModel->getByRegistrationNumber($registrationNumber);
 
-        if (!$patient || empty($patient->password_hash) || !password_verify($password, (string)$patient->password_hash)) {
-            $_SESSION['aftercare_flash_error'] = 'Invalid registration number or password.';
-            redirect('aftercare/login');
+        if (!$patient) {
+            $_SESSION['aftercare_flash_error'] = 'Aftercare profile not found. Please contact your hospital.';
+            redirect('login');
         }
 
         if (!empty($patient->patient_type) && strtoupper((string)$patient->patient_type) !== 'RECIPIENT') {
             $_SESSION['aftercare_flash_error'] = 'Only recipient patients can sign in to the Aftercare Portal.';
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         if (!empty($patient->status) && strtoupper((string)$patient->status) !== 'ACTIVE') {
-            $_SESSION['aftercare_flash_error'] = 'Your account is not active. Please contact your hospital.';
-            redirect('aftercare/login');
+            if (strtoupper((string)$patient->status) === 'PENDING') {
+                $_SESSION['aftercare_flash_error'] = 'Your registration is pending approval from the administrator.';
+            } else {
+                $_SESSION['aftercare_flash_error'] = 'Your account is currently inactive. Please contact your hospital.';
+            }
+            redirect('login');
+        }
+
+        // Prefer users-based authentication (username = registration number)
+        $loginModel = new LoginModel();
+        $user = $loginModel->getUserByUsername($registrationNumber);
+
+        $userOk = false;
+        if (
+            $user &&
+            (strtoupper((string)($user->role ?? '')) === 'AFTERCARE_PATIENT' || strtoupper((string)($user->role ?? '')) === 'RECIPIENT_PATIENT') &&
+            strtoupper((string)($user->status ?? 'ACTIVE')) === 'ACTIVE' &&
+            !empty($user->password_hash) &&
+            password_verify($password, (string)$user->password_hash)
+        ) {
+            $userOk = true;
+        }
+
+        if (!$userOk) {
+            $_SESSION['aftercare_flash_error'] = 'Invalid registration number or password.';
+            redirect('login');
+        }
+
+        $mustChange = !empty($user->must_change_credentials) ? 1 : (!empty($patient->must_change_password) ? 1 : 0);
+
+        if (!empty($user->id)) {
+            $_SESSION['aftercare_user_id'] = (int)$user->id;
+        } else {
+            unset($_SESSION['aftercare_user_id']);
         }
 
         $_SESSION['aftercare_patient_id'] = (int)$patient->id;
         $_SESSION['aftercare_registration_number'] = (string)$patient->registration_number;
-        $_SESSION['aftercare_must_change_password'] = !empty($patient->must_change_password) ? 1 : 0;
+        $_SESSION['aftercare_must_change_password'] = $mustChange;
 
         if (!empty($_SESSION['aftercare_must_change_password'])) {
             $_SESSION['aftercare_flash_success'] = 'Please change your password before continuing.';
@@ -319,7 +353,7 @@ class Aftercare
         }
 
         if (empty($_SESSION['aftercare_patient_id'])) {
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         $this->view('aftercare/change-password', [
@@ -337,7 +371,7 @@ class Aftercare
         }
 
         if (empty($_SESSION['aftercare_patient_id'])) {
-            redirect('aftercare/login');
+            redirect('login');
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -357,9 +391,29 @@ class Aftercare
             redirect('aftercare/change-password');
         }
 
-        $patientModel = new AftercarePatientModel();
         $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $patientModel->updatePassword((int)$_SESSION['aftercare_patient_id'], $hash);
+
+        $userModel = new UserModel();
+        $userId = (int)($_SESSION['aftercare_user_id'] ?? 0);
+
+        if ($userId <= 0) {
+            $rn = (string)($_SESSION['aftercare_registration_number'] ?? '');
+            if ($rn !== '') {
+                $u = $userModel->first(['username' => $rn]);
+                if ($u && !empty($u->id)) {
+                    $userId = (int)$u->id;
+                    $_SESSION['aftercare_user_id'] = $userId;
+                }
+            }
+        }
+
+        if ($userId > 0) {
+            $userModel->updatePassword($userId, $hash);
+            $userModel->clearMustChangeFlag($userId);
+        } else {
+            $_SESSION['aftercare_flash_error'] = 'User account not found for password update.';
+            redirect('aftercare/change-password');
+        }
 
         $_SESSION['aftercare_must_change_password'] = 0;
         $_SESSION['aftercare_flash_success'] = 'Password updated successfully.';
@@ -373,11 +427,12 @@ class Aftercare
         }
 
         unset(
+            $_SESSION['aftercare_user_id'],
             $_SESSION['aftercare_patient_id'],
             $_SESSION['aftercare_registration_number'],
             $_SESSION['aftercare_must_change_password']
         );
 
-        redirect('aftercare/login');
+        redirect('login');
     }
 }

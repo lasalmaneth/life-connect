@@ -92,8 +92,7 @@ class SupportRequestController {
             try {
                 $res = $this->query("SHOW COLUMNS FROM support_requests LIKE 'amount'");
                 if (empty($res)) {
-                    $con = $this->connect();
-                    $con->exec("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
+                    $this->query("ALTER TABLE support_requests ADD COLUMN amount DECIMAL(10,2) NULL AFTER reason");
                 }
             } catch (\Throwable $e) {
                 // Ignore migration errors; insert will fail if blocking
