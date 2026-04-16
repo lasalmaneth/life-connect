@@ -289,7 +289,7 @@ if (!isset($notifications) || !isset($unread_count)) {
 
                 <?php require __DIR__ . '/lab_reports.view.php'; ?>
 
-                <?php require __DIR__ . '/test_results.view.php'; ?>
+                <?php require __DIR__ . '/test-results.view.php'; ?>
 
                 <?php require __DIR__ . '/stories.view.php'; ?>
             </div>
