@@ -74,6 +74,13 @@ class Hospital
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
         $eligibility_pledges = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
         $test_results = $hospitalModel->getTestResultsByHospitalId($hospitalId) ?: [];
+        $surgery_matches = $hospitalModel->getSurgeryMatches($hospital_registration) ?: [];
+
+        // Deceased Organ Management Data
+        $deceased_requests = $hospitalModel->getDeceasedRequests($hospitalId, $_GET['status'] ?? 'PENDING') ?: [];
+        $deceased_submissions = $hospitalModel->getDeceasedSubmissions($hospitalId, $_GET['sub_status'] ?? 'ALL') ?: [];
+        $deceased_final_flow = $hospitalModel->getDeceasedFinalFlow($hospitalId, $_GET['flow_status'] ?? 'ALL') ?: [];
+        $deceased_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: []; // Filtering by type in view if needed
 
         $aftercarePatientModel = new AftercarePatientModel();
         $aftercare_recipients = $aftercarePatientModel->getRecipientsByHospital($hospital_registration) ?: [];
@@ -97,7 +104,10 @@ class Hospital
                 return $story->status === 'Approved'; })),
             'total_appointments' => count($aftercare_appointments),
             'scheduled_appointments' => count(array_filter($aftercare_appointments, function ($apt) {
-                return $apt->status === 'Scheduled'; }))
+                return $apt->status === 'Scheduled'; })),
+            'pending_surgery_approvals' => count(array_filter($surgery_matches, function($m) {
+                return strtoupper(trim((string)($m->status ?? ''))) === 'PENDING' || strtoupper(trim((string)($m->status ?? ''))) === 'MATCH';
+            }))
         ];
 
         $data = [
@@ -113,6 +123,11 @@ class Hospital
             'lab_reports' => $lab_reports,
             'test_results' => $test_results,
             'eligibility_pledges' => $eligibility_pledges,
+            'surgery_matches' => $surgery_matches,
+            'deceased_requests' => $deceased_requests,
+            'deceased_submissions' => $deceased_submissions,
+            'deceased_final_flow' => $deceased_final_flow,
+            'deceased_stories' => $deceased_stories,
             'stats' => $stats
         ];
 
@@ -197,6 +212,139 @@ class Hospital
         ];
 
         $this->view('hospital/notifications', $data);
+    }
+
+    public function deceasedRequests()
+    {
+        // Re-use index logic or just call index()
+        // The index() method already handles initialSection based on URL
+        $this->index();
+    }
+
+    public function deceasedDocuments()
+    {
+        $this->index();
+    }
+
+    public function deceasedFinalFlow()
+    {
+        $this->index();
+    }
+
+    // --- Deceased Organ Management Handlers ---
+
+    public function viewDeceasedRequest()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'HOSPITAL') die('Unauthorized');
+        
+        $id = $_GET['id'] ?? null;
+        if (!$id) die('Missing ID');
+
+        $hospitalModel = new HospitalModel();
+        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+        
+        $request = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
+        $custodians = $request ? $hospitalModel->getCustodiansForDonor($request->donor_id) : [];
+
+        $this->view('hospital/drawers/deceased_request', [
+            'request' => $request,
+            'custodians' => $custodians
+        ]);
+    }
+
+    public function acceptDeceasedRequest()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['role'] === 'HOSPITAL') {
+            $id = $_POST['request_id'] ?? null;
+            if ($id) {
+                $hospitalModel = new HospitalModel();
+                $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
+            }
+            redirect('hospital/deceased-requests');
+        }
+    }
+
+    public function rejectDeceasedRequest()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['role'] === 'HOSPITAL') {
+            $id = $_POST['request_id'] ?? null;
+            $reason = $_POST['reason'] ?? 'Not specified';
+            if ($id) {
+                $hospitalModel = new HospitalModel();
+                $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'REJECTED', $reason, $_SESSION['user_id']);
+            }
+            redirect('hospital/deceased-requests');
+        }
+    }
+
+    public function viewDeceasedSubmission()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'HOSPITAL') die('Unauthorized');
+        
+        $id = $_GET['id'] ?? null;
+        if (!$id) die('Missing ID');
+
+        $hospitalModel = new HospitalModel();
+        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+        
+        $submission = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
+        $documents = $hospitalModel->getSubmissionDocuments($id);
+        $custodians = $submission ? $hospitalModel->getCustodiansForDonor($submission->donor_id) : [];
+
+        $this->view('hospital/drawers/deceased_submission', [
+            'submission' => $submission,
+            'documents' => $documents,
+            'custodians' => $custodians
+        ]);
+    }
+
+    public function acceptDeceasedSubmission()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['role'] === 'HOSPITAL') {
+            $id = $_POST['submission_id'] ?? null;
+            $extra = [
+                'handover_date' => $_POST['handover_date'] ?? null,
+                'handover_time' => $_POST['handover_time'] ?? null,
+                'handover_msg'  => $_POST['handover_message'] ?? ''
+            ];
+            if ($id) {
+                $hospitalModel = new HospitalModel();
+                $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                $hospitalModel->updateDocumentStatus($hospital->id, $id, 'ACCEPTED', 'Documents Verified', $_SESSION['user_id'], $extra);
+            }
+            redirect('hospital/deceased-documents');
+        }
+    }
+
+    public function viewDeceasedFinalFlow()
+    {
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'HOSPITAL') die('Unauthorized');
+        
+        $id = $_GET['id'] ?? null;
+        if (!$id) die('Missing ID');
+
+        $hospitalModel = new HospitalModel();
+        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+        
+        $flow = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
+        $this->view('hospital/drawers/deceased_final_flow', [
+            'flow' => $flow
+        ]);
+    }
+
+    public function acceptDeceasedFinalFlow()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_SESSION['role'] === 'HOSPITAL') {
+            $id = $_POST['flow_id'] ?? null;
+            if ($id) {
+                $hospitalModel = new HospitalModel();
+                $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                $hospitalModel->updateDeceasedFinalFlowStatus($hospital->id, $id, 'ACCEPTED', null, null, $_SESSION['user_id']);
+            }
+            redirect('hospital/deceased-final-flow');
+        }
     }
 
     public function markAllNotificationsRead()
@@ -576,6 +724,10 @@ class Hospital
                 $data = [
                     'title' => $_POST['title'],
                     'description' => $_POST['description'],
+                    'story_type' => $_POST['story_type'] ?? 'CASE',
+                    'author_name' => $_POST['author_name'] ?? null,
+                    'donors_count' => (int)($_POST['donors_count'] ?? 0),
+                    'students_helped' => (int)($_POST['students_helped'] ?? 0),
                     'success_date' => $_POST['success_date'],
                     'hospital_registration_no' => $regNo
                 ];
@@ -589,6 +741,10 @@ class Hospital
                     'story_id' => $_POST['story_id'],
                     'title' => $_POST['title'],
                     'description' => $_POST['description'],
+                    'story_type' => $_POST['story_type'] ?? 'CASE',
+                    'author_name' => $_POST['author_name'] ?? null,
+                    'donors_count' => (int)($_POST['donors_count'] ?? 0),
+                    'students_helped' => (int)($_POST['students_helped'] ?? 0),
                     'success_date' => $_POST['success_date'],
                     'status' => $_POST['status']
                 ];
@@ -1091,9 +1247,10 @@ class Hospital
         ];
 
         $data = [
-            'hospital_name' => $hospital->name,
+            'hospital_name' => $hospital->name ?? ($_SESSION['hospital_name'] ?? 'Hospital'),
             'hospital_details' => $hospital_details,
             'hospital_registration' => $hospital_registration,
+            'current_page' => 'addpatient'
         ];
 
         $this->view('hospital/addpatient', $data);
@@ -1167,6 +1324,7 @@ class Hospital
             'hospital_name' => $hospital->name,
             'hospital_details' => $hospital_details,
             'hospital_registration' => $hospital_registration,
+            'current_page' => 'addpatient-recipient'
         ]);
     }
 
@@ -1273,6 +1431,7 @@ class Hospital
             'hospital_name' => $hospital->name,
             'hospital_details' => $hospital_details,
             'donors' => $donors,
+            'current_page' => 'addpatient-donor'
         ]);
     }
 
@@ -1441,5 +1600,125 @@ class Hospital
             echo json_encode(['success' => false, 'message' => 'Error searching patient: ' . $e->getMessage()]);
         }
         exit;
+    }
+
+    public function getPledgeDetails()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $pledgeId = (int)($_GET['id'] ?? 0);
+        if ($pledgeId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+            exit;
+        }
+
+        $hospitalModel = new HospitalModel();
+        $details = $hospitalModel->getPledgeDetails($pledgeId);
+
+        if ($details) {
+            echo json_encode(['success' => true, 'data' => $details]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Pledge details not found']);
+        }
+        exit;
+    }
+
+    public function getSurgeryMatchDetails()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $matchId = (int)($_GET['id'] ?? 0);
+        if ($matchId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid ID']);
+            exit;
+        }
+
+        $hospitalModel = new HospitalModel();
+        $details = $hospitalModel->getSurgeryMatchDetails($matchId);
+
+        if ($details) {
+            echo json_encode(['success' => true, 'data' => $details]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Match not found']);
+        }
+        exit;
+    }
+
+    public function handleMatchAction()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $matchId = (int)($_POST['match_id'] ?? 0);
+        $action = $_POST['action'] ?? '';
+        $reason = $_POST['reason'] ?? null;
+
+        if ($matchId <= 0 || !in_array($action, ['approve', 'reject'])) {
+            echo json_encode(['success' => false, 'message' => 'Invalid request']);
+            exit;
+        }
+
+        $hospitalModel = new HospitalModel();
+        $status = ($action === 'approve') ? 'APPROVED' : 'REJECTED';
+        
+        $success = $hospitalModel->updateSurgeryMatchStatus($matchId, $status, $reason);
+
+        if ($success) {
+            echo json_encode(['success' => true, 'message' => 'Match ' . $action . 'd successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update match status']);
+        }
+        exit;
+    }
+
+    public function viewDonationCertificate()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $matchId = (int)($_GET['id'] ?? 0);
+        $hospitalModel = new HospitalModel();
+        $match = $hospitalModel->getSurgeryMatchDetails($matchId);
+
+        if (!$match || strtoupper($match->status) !== 'APPROVED') {
+            die('Certificate not available or match not approved.');
+        }
+
+        $this->view('hospital/print_certificate', ['match' => $match]);
+    }
+
+    public function viewAppreciationLetter()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $matchId = (int)($_GET['id'] ?? 0);
+        $hospitalModel = new HospitalModel();
+        $match = $hospitalModel->getSurgeryMatchDetails($matchId);
+
+        if (!$match || strtoupper($match->status) !== 'APPROVED') {
+            die('Letter not available or match not approved.');
+        }
+
+        $this->view('hospital/print_letter', ['match' => $match]);
     }
 }

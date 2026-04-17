@@ -23,7 +23,7 @@
                                     <p style="margin: 0.25rem 0 0; color: #664d03; font-size: 0.9rem;">Urgent screening results are available for pending organ requests.</p>
                                 </div>
                             </div>
-                            <button onclick="showContent('eligibility')"
+                            <button onclick="showContent('consents')"
                                 style="background: #ffc107; color: #000; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 4px rgba(255,193,7,0.3);">Initiate
                                 Transfer</button>
                         </div>
@@ -71,7 +71,19 @@
                                 <p>Create, edit, and manage urgent organ requests for patient matching.</p>
                             </div>
 
-                            <div class="feature-card" onclick="showContent('eligibility')" style="cursor: pointer;">
+                            <div class="feature-card" onclick="showContent('organ-testing')" style="cursor: pointer;">
+                                <div class="feature-icon"
+                                    style="display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; margin-bottom: 1rem;">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 2v20M2 12h20M5.45 5.45l13.1 13.1M5.45 18.55l13.1-13.1"></path>
+                                    </svg>
+                                </div>
+                                <h3>Organ Testing</h3>
+                                <p>Manage and review basic screenings for potential donors.</p>
+                            </div>
+
+                            <div class="feature-card" onclick="showContent('consents')" style="cursor: pointer;">
                                 <div class="feature-icon"
                                     style="display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; background: rgba(0, 91, 170, 0.1); border-radius: 12px; margin-bottom: 1rem;">
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#005baa"
@@ -80,8 +92,8 @@
                                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                     </svg>
                                 </div>
-                                <h3>Update Eligibility</h3>
-                                <p>Approve or modify a donor's eligibility status after clinical evaluations.</p>
+                                <h3>Donor Consents</h3>
+                                <p>Verify and maintain internal organ donation intent records.</p>
                             </div>
 
                             <div class="feature-card" onclick="showContent('aftercare-recipients')" style="cursor: pointer;">

@@ -147,6 +147,26 @@ class HospitalModel {
         return (int)($res[0]->id ?? 0);
     }
 
+    public function getPledgeDetails($pledgeId)
+    {
+        $pledgeId = (int)$pledgeId;
+        if ($pledgeId <= 0) return false;
+
+        $query = "SELECT 
+                    dp.*, 
+                    d.first_name, d.last_name, d.nic_number, d.date_of_birth, d.gender, d.nationality,
+                    u.email, u.phone,
+                    o.name AS organ_name
+                  FROM donor_pledges dp
+                  JOIN donors d ON dp.donor_id = d.id
+                  JOIN users u ON d.user_id = u.id
+                  JOIN organs o ON dp.organ_id = o.id
+                  WHERE dp.id = :pid LIMIT 1";
+
+        $res = $this->query($query, [':pid' => $pledgeId]);
+        return $res ? $res[0] : false;
+    }
+
     private function pledgeBelongsToHospital($pledgeId, $hospitalId)
     {
         $pledgeId = (int)$pledgeId;
@@ -252,6 +272,53 @@ class HospitalModel {
                   WHERE r.hospital_id = (SELECT id FROM hospitals WHERE registration_number = :reg_no) 
                   ORDER BY r.created_at DESC";
         return $this->query($query, [':reg_no' => $regNo]);
+    }
+
+    public function getSurgeryMatches($regNo)
+    {
+        $query = "SELECT m.*, 
+                         d.first_name as donor_first_name, d.last_name as donor_last_name, 
+                         o.name as organ_name,
+                         r.status as request_status
+                  FROM donor_patient_match m
+                  JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
+                  JOIN donors d ON dp.donor_id = d.id
+                  JOIN organ_requests r ON m.request_id = r.id
+                  JOIN organs o ON r.organ_id = o.id
+                  WHERE r.hospital_id = (SELECT id FROM hospitals WHERE registration_number = :reg_no)
+                  ORDER BY m.surgery_date DESC";
+        return $this->query($query, [':reg_no' => $regNo]) ?: [];
+    }
+
+    public function getSurgeryMatchDetails($matchId)
+    {
+        $query = "SELECT m.*, 
+                         d.first_name as donor_first_name, d.last_name as donor_last_name, d.nic_number as donor_nic,
+                         d.blood_group as donor_blood_group, d.gender as donor_gender,
+                         o.name as organ_name,
+                         r.blood_group as recipient_blood_group, r.recipient_age, r.gender as recipient_gender,
+                         h.name as hospital_name
+                  FROM donor_patient_match m
+                  JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
+                  JOIN donors d ON dp.donor_id = d.id
+                  JOIN organ_requests r ON m.request_id = r.id
+                  JOIN organs o ON r.organ_id = o.id
+                  JOIN hospitals h ON r.hospital_id = h.id
+                  WHERE m.match_id = :mid LIMIT 1";
+        $res = $this->query($query, [':mid' => $matchId]);
+        return $res ? $res[0] : null;
+    }
+
+    public function updateSurgeryMatchStatus($matchId, $status, $reason = null)
+    {
+        $query = "UPDATE donor_patient_match 
+                  SET status = :status, rejection_reason = :reason, match_date = NOW()
+                  WHERE match_id = :mid";
+        return $this->query($query, [
+            ':status' => strtoupper($status),
+            ':reason' => $reason,
+            ':mid' => $matchId
+        ]);
     }
 
     public function addOrganRequest($data)
@@ -530,39 +597,68 @@ class HospitalModel {
 
     public function addSuccessStory($data)
     {
-        $query = "INSERT INTO success_stories (title, description, success_date, user_id, status) 
-                  VALUES (:title, :description, :success_date, 
-                      (SELECT user_id FROM hospitals WHERE registration_number = :reg_no LIMIT 1), 
-                      'Pending')";
-        $this->query($query, [
+        // Get the actual hospital ID for institution_id
+        $hRes = $this->query("SELECT id, user_id FROM hospitals WHERE registration_number = :reg_no LIMIT 1", [':reg_no' => $data['hospital_registration_no']]);
+        $hospitalId = $hRes ? (int)$hRes[0]->id : null;
+        $userId = $hRes ? (int)$hRes[0]->user_id : null;
+
+        $query = "INSERT INTO success_stories (
+                    title, description, story_type, author_name, donors_count, students_helped, 
+                    success_date, user_id, institution_id, institution_type, status, created_at
+                  ) 
+                  VALUES (
+                    :title, :description, :story_type, :author_name, :donors_count, :students_helped, 
+                    :success_date, :user_id, :institution_id, 'HOSPITAL', 'Pending', NOW()
+                  )";
+        
+        $params = [
             ':title' => $data['title'],
             ':description' => $data['description'],
+            ':story_type' => $data['story_type'] ?? 'CASE',
+            ':author_name' => $data['author_name'] ?? null,
+            ':donors_count' => (int)($data['donors_count'] ?? 0),
+            ':students_helped' => (int)($data['students_helped'] ?? 0),
             ':success_date' => $data['success_date'],
-            ':reg_no' => $data['hospital_registration_no']
-        ]);
-        return true;
+            ':user_id' => $userId,
+            ':institution_id' => $hospitalId
+        ];
+
+        return (bool)$this->query($query, $params);
     }
 
     public function updateSuccessStory($data)
     {
-        $query = "UPDATE success_stories SET title = :title, description = :description, 
-                  success_date = :success_date, status = :status, updated_at = NOW() 
+        $query = "UPDATE success_stories 
+                  SET title = :title, 
+                      description = :description, 
+                      story_type = :story_type,
+                      author_name = :author_name,
+                      donors_count = :donors_count,
+                      students_helped = :students_helped,
+                      success_date = :success_date, 
+                      status = :status, 
+                      updated_at = NOW() 
                   WHERE story_id = :id";
-        $this->query($query, [
+        
+        $params = [
             ':title' => $data['title'],
             ':description' => $data['description'],
+            ':story_type' => $data['story_type'] ?? 'CASE',
+            ':author_name' => $data['author_name'] ?? null,
+            ':donors_count' => (int)($data['donors_count'] ?? 0),
+            ':students_helped' => (int)($data['students_helped'] ?? 0),
             ':success_date' => $data['success_date'],
             ':status' => $data['status'],
             ':id' => $data['story_id']
-        ]);
-        return true;
+        ];
+        
+        return (bool)$this->query($query, $params);
     }
 
     public function deleteSuccessStory($id)
     {
         $query = "DELETE FROM success_stories WHERE story_id = :id";
-        $this->query($query, [':id' => $id]);
-        return true;
+        return (bool)$this->query($query, [':id' => $id]);
     }
 
     // Aftercare Appointments
@@ -870,8 +966,8 @@ class HospitalModel {
                                     FROM donors d
                                     JOIN donor_pledges dp ON dp.donor_id = d.id
                                     JOIN organs o ON o.id = dp.organ_id
-                                    WHERE UPPER(TRIM(d.verification_status)) IN ('APPROVED','PENDING')
-                                        AND UPPER(TRIM(dp.status)) != 'WITHDRAWN'
+                                    WHERE UPPER(TRIM(d.verification_status)) = 'APPROVED'
+                                        AND UPPER(TRIM(dp.status)) = 'APPROVED'
                                         AND $whereHospital
                                         $whereSearch
                                     GROUP BY d.id
@@ -900,7 +996,8 @@ class HospitalModel {
                                     FROM donors d
                                     LEFT JOIN donor_pledges dp ON dp.donor_id = d.id AND UPPER(TRIM(dp.status)) != 'WITHDRAWN'
                                     LEFT JOIN organs o ON o.id = dp.organ_id
-                                    WHERE UPPER(TRIM(d.verification_status)) IN ('APPROVED','PENDING')
+                                    WHERE UPPER(TRIM(d.verification_status)) = 'APPROVED'
+                                        AND UPPER(TRIM(dp.status)) = 'APPROVED'
                                         $fallbackWhereSearch
                                     GROUP BY d.id
                                     ORDER BY d.first_name, d.last_name
@@ -1006,4 +1103,172 @@ class HospitalModel {
         
         return true;
     }
+
+    // --- Deceased Organ Management (Case Institution Status Integration) ---
+
+    public function getDeceasedRequests($hospitalId, $filter = 'PENDING')
+    {
+        $statusConditions = [
+            'REJECTED' => "cis.request_status = 'REJECTED'",
+            'ACCEPTED' => "cis.request_status = 'ACCEPTED'",
+            'ALL' => "cis.request_status IN ('PENDING', 'UNDER_REVIEW', 'ACCEPTED', 'REJECTED')"
+        ];
+        $statusCondition = $statusConditions[$filter] ?? "cis.request_status IN ('PENDING', 'UNDER_REVIEW')";
+
+        return $this->queryJoin(
+            [
+                ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
+                ['table' => 'donors d', 'on' => 'dc.donor_id = d.id'],
+                ['table' => 'death_declarations dd', 'on' => 'dc.death_declaration_id = dd.id']
+            ],
+            [
+                'cis.institution_id' => $hospitalId,
+                'cis.institution_type' => 'HOSPITAL',
+                'cis.track' => 'ORGAN',
+                $statusCondition
+            ],
+            "dc.id as case_id, dc.case_number, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
+            "COALESCE(cis.submission_date, cis.created_at) DESC",
+            50, 0, "case_institution_status cis"
+        ) ?: [];
+    }
+
+    public function getDeceasedRequestDetails($hospitalId, $cisId)
+    {
+        return $this->queryJoin(
+            [
+                ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
+                ['table' => 'donors d', 'on' => 'dc.donor_id = d.id'],
+                ['table' => 'death_declarations dd', 'on' => 'dc.death_declaration_id = dd.id'],
+                ['table' => 'custodians c', 'on' => 'd.id = c.donor_id AND (c.custodian_number = 1 OR c.custodian_number IS NULL)', 'type' => 'LEFT JOIN']
+            ],
+            ['cis.id' => $cisId, 'cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
+            "cis.*, cis.id as cis_id, dc.case_number, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
+            "", 1, 0, "case_institution_status cis"
+        )[0] ?? false;
+    }
+
+    public function updateDeceasedRequestStatus($hospitalId, $cisId, $status, $reason, $userId)
+    {
+        $data = [
+            'request_status' => $status, 
+            'request_action_reason' => $reason, 
+            'request_action_at' => date('Y-m-d H:i:s'), 
+            'request_action_by' => $userId
+        ];
+        
+        if ($status === 'REJECTED') {
+            $data['institution_status'] = 'REJECTED';
+            $data['rejection_message'] = $reason;
+        } elseif ($status === 'ACCEPTED') {
+            $data['institution_status'] = 'ACCEPTED';
+        }
+        
+        $this->updateWhere($data, ['id' => $cisId, 'institution_id' => $hospitalId, 'institution_type' => 'HOSPITAL'], "case_institution_status");
+
+        if ($status === 'ACCEPTED') {
+            $info = $this->first(['id' => $cisId], [], "donation_case_id, track", "", "case_institution_status");
+            if ($info) {
+                // For organ donation, multiple hospitals might be involved initially, but once one accepts, others might be invalidated or it depends on specific logic.
+                // For now, follow the medical school logic.
+                $this->updateWhere(
+                    ['request_status' => 'INVALID', 'request_action_reason' => 'Accepted by another hospital', 'request_action_at' => date('Y-m-d H:i:s')],
+                    ['donation_case_id' => $info->donation_case_id, 'track' => $info->track, "id != $cisId", "request_status IN ('PENDING', 'UNDER_REVIEW')"],
+                    "case_institution_status"
+                );
+                $this->updateWhere(['overall_status' => 'IN_PROGRESS'], ['id' => $info->donation_case_id], "donation_cases");
+            }
+        }
+        return true;
+    }
+
+    public function getDeceasedSubmissions($hospitalId, $filter = 'ALL')
+    {
+        $statusConditions = [
+            'PENDING' => "cis.document_status = 'PENDING_REVIEW'",
+            'ACCEPTED' => "cis.document_status = 'ACCEPTED'",
+            'REJECTED' => "cis.document_status IN ('REJECTED', 'NEED_MORE_DOCS')"
+        ];
+        $statusCondition = $statusConditions[$filter] ?? "cis.document_status != 'NOT_STARTED'";
+
+        return $this->queryJoin(
+            [
+                ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
+                ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
+            ],
+            [
+                'cis.institution_id' => $hospitalId,
+                'cis.institution_type' => 'HOSPITAL',
+                'cis.request_status' => 'ACCEPTED',
+                $statusCondition
+            ],
+            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "cis.document_action_at DESC",
+            50, 0, "case_institution_status cis"
+        ) ?: [];
+    }
+
+    public function getDeceasedFinalFlow($hospitalId, $status = 'ALL')
+    {
+        $where = [
+            'cis.institution_id' => $hospitalId, 
+            'cis.institution_type' => 'HOSPITAL',
+            'cis.document_status' => 'ACCEPTED'
+        ];
+        if ($status !== 'ALL') {
+            $where['cis.final_exam_status'] = $status;
+        }
+
+        return $this->queryJoin(
+            [
+                ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
+                ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
+            ],
+            $where,
+            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "cis.final_exam_at DESC",
+            50, 0, "case_institution_status cis"
+        ) ?: [];
+    }
+
+    public function updateDeceasedFinalFlowStatus($hospitalId, $cisId, $status, $reason, $notes, $userId)
+    {
+        $this->updateWhere([
+            'final_exam_status' => $status, 
+            'final_exam_reason' => $reason, 
+            'final_exam_notes' => $notes,
+            'final_exam_at' => date('Y-m-d H:i:s'), 
+            'final_exam_by' => $userId
+        ], ['id' => $cisId, 'institution_id' => $hospitalId, 'institution_type' => 'HOSPITAL'], "case_institution_status");
+        
+        if($status === 'ACCEPTED') {
+            $this->updateWhere(['institution_status' => 'ACCEPTED'], ['id' => $cisId], "case_institution_status");
+            
+            $caseRec = $this->first(['id' => $cisId], [], "donation_case_id", "", "case_institution_status");
+            if ($caseRec) {
+                $caseId = $caseRec->donation_case_id;
+                $this->update($caseId, ['overall_status' => 'SUCCESSFUL'], 'id', 'donation_cases');
+                
+                // Issue certificate
+                $this->issueDonationCertificate($cisId, $hospitalId);
+            }
+        }
+        return true;
+    }
+
+    public function getDonationCertificatesForHospital($hospitalId)
+    {
+        return $this->queryJoin(
+            [
+                ['table' => 'case_institution_status cis', 'on' => 'dc.case_institution_request_id = cis.id'],
+                ['table' => 'donation_cases d_case', 'on' => 'dc.donation_case_id = d_case.id'],
+                ['table' => 'donors d', 'on' => 'd_case.donor_id = d.id']
+            ],
+            ['cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
+            "dc.*, d.first_name, d.last_name, cis.final_exam_at",
+            "dc.issued_at DESC",
+            50, 0, "donation_certificates dc"
+        ) ?: [];
+    }
 }
+

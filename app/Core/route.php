@@ -107,12 +107,29 @@ route('hospital/markNotificationRead', 'Hospital@markNotificationRead');
 route('hospital/deleteNotification', 'Hospital@deleteNotification');
 // Hospital dashboard sub-routes (clean URLs, same output as index)
 route('hospital/organ-requests', 'Hospital@index');
+route('hospital/consents', 'Hospital@index');
+route('hospital/organ-testing', 'Hospital@index');
+route('hospital/matching', 'Hospital@index');
+route('hospital/surgery-prep', 'Hospital@index');
+route('hospital/aftercare', 'Hospital@index');
+route('hospital/deceased-requests', 'Hospital@index');
+route('hospital/deceased-documents', 'Hospital@index');
+route('hospital/deceased-final-flow', 'Hospital@index');
+
+// Deceased Organ Management AJAX & Actions
+route('hospital/deceased-requests/view', 'Hospital@viewDeceasedRequest');
+route('hospital/deceased-requests/accept', 'Hospital@acceptDeceasedRequest');
+route('hospital/deceased-requests/reject', 'Hospital@rejectDeceasedRequest');
+route('hospital/deceased-submissions/view', 'Hospital@viewDeceasedSubmission');
+route('hospital/deceased-submissions/accept', 'Hospital@acceptDeceasedSubmission');
+route('hospital/deceased-final-flow/view', 'Hospital@viewDeceasedFinalFlow');
+route('hospital/deceased-final-flow/accept', 'Hospital@acceptDeceasedFinalFlow');
 // Legacy alias (avoid .view.php in the URL)
 route('hospital/organ_request.view.php', 'Hospital@organRequestsLegacy');
 // Donor-style route for Upcoming Appointments
 route('hospital/appointments', 'Hospital@index');
 // Clean section routes (render the same dashboard and open the correct section)
-route('hospital/eligibility', 'Hospital@index');
+route('hospital/eligibility', 'Hospital@index'); // Keep for backward compatibility
 route('hospital/aftercare-recipients', 'Hospital@aftercareRecipients');
 route('hospital/stories', 'Hospital@index');
 route('hospital/test-results', 'Hospital@index');
@@ -123,6 +140,11 @@ route('hospital/addpatient', 'Hospital@addpatient');
 route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
 route('hospital/addpatient/donor', 'Hospital@addpatientDonor');
 route('hospital/fetch-donor-details', 'Hospital@fetchDonorDetails');
+route('hospital/get-pledge-details', 'Hospital@getPledgeDetails');
+route('hospital/get-surgery-match-details', 'Hospital@getSurgeryMatchDetails');
+route('hospital/handle-match-action', 'Hospital@handleMatchAction');
+route('hospital/view-donation-certificate', 'Hospital@viewDonationCertificate');
+route('hospital/view-appreciation-letter', 'Hospital@viewAppreciationLetter');
 route('medical-school', 'MedicalSchool@index');
 route('medical-school', 'MedicalSchool@dashboard');
 route('medical-school/dashboard', 'MedicalSchool@dashboard');
