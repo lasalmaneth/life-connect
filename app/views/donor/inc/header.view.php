@@ -71,7 +71,35 @@ $has_non = in_array('non', $active_roles, true);
     <?php endforeach; endif; ?>
 </head>
 
-<body class="<?= $current_mode ?? 'mode-organ-donation' ?>">
+<?php
+$user_status = $_SESSION['status'] ?? 'ACTIVE';
+$is_withdrawing = (strtoupper($user_status) === 'WITHDRAW_REQUEST');
+?>
+<body class="<?= $current_mode ?? 'mode-organ-donation' ?> <?= $is_withdrawing ? 'status-withdrawal-pending' : '' ?>">
+
+  <?php if ($is_withdrawing): ?>
+    <div class="d-modal active" style="z-index: 9999; display: flex !important; background: rgba(10, 22, 40, 0.92); backdrop-filter: blur(4px);">
+      <div class="d-modal__body" style="max-width: 500px; text-align: center; border: 2px solid var(--blue-400); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        <div style="width: 80px; height: 80px; background: var(--blue-50); color: var(--blue-600); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 1.5rem;">
+          <i class="fas fa-user-clock"></i>
+        </div>
+        <h2 style="color: var(--blue-900); font-weight: 800; margin-bottom: 1rem;">Account Withdrawal Pending</h2>
+        <p style="color: var(--g600); line-height: 1.6; margin-bottom: 2rem; font-size: 0.95rem; text-align: left; padding: 0 10px;">
+          Your request to withdraw your account is currently <strong>Pending Review</strong>. 
+          <br><br>
+          For security and data integrity, your profile access is restricted until the process is finalized by the administration or cancelled by you.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <a href="<?= ROOT ?>/donor/cancel_withdraw_account" class="d-btn d-btn--primary" style="justify-content: center; padding: 1rem; width: 100%; text-decoration: none;">
+            <i class="fas fa-undo"></i> Cancel Withdrawal Request
+          </a>
+          <a href="<?= ROOT ?>/logout" class="d-btn d-btn--outline" style="justify-content: center; border-color: var(--g300); color: var(--g600); width: 100%; text-decoration: none;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <?php if ($success_message): ?>
     <div class="d-status d-alert d-status--success"
