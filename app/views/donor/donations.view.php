@@ -157,6 +157,35 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
         <?php endif; ?>
 
         <div style="display: grid; gap: 2rem;">
+
+            <!-- Header: Completed Contributions (Icons) -->
+            <?php 
+            // Unified completed list: from pledged_organs (status=COMPLETED) OR recovery_status=RECOVERED
+            $completed_list = array_filter($pledged_organs ?? [], function($o) {
+                $status = strtoupper($o['status'] ?? '');
+                $recovery = strtoupper($o['recovery_status'] ?? '');
+                return $status === 'COMPLETED' || $recovery === 'RECOVERED';
+            });
+            if (!empty($completed_list)): ?>
+            <div onclick="openModal('completedHistoryModal')" style="display:flex; align-items:center; gap:10px; margin-top:15px; padding:12px 20px; background:linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05)); border-radius:14px; width:fit-content; border:1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.05); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;" class="completed-summary-btn">
+                <style>
+                    .completed-summary-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.12); }
+                </style>
+                <div style="display:flex; align-items:center; gap:8px; border-right: 1px solid rgba(16, 185, 129, 0.2); padding-right: 15px; margin-right: 5px;">
+                    <i class="fas fa-award" style="color:#10b981; font-size: 1.1rem;"></i>
+                    <span style="font-size:0.75rem; font-weight:800; color:#065f46; text-transform:uppercase; letter-spacing:0.8px;">Completed Contributions:</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <?php foreach($completed_list as $cp): ?>
+                        <div title="Completed: <?= htmlspecialchars($cp['organ_name']) ?>" style="width:36px; height:36px; border-radius:50%; background:#10b981; color:white; display:flex; align-items:center; justify-content:center; font-size:1rem; box-shadow:0 4px 10px rgba(16, 185, 129, 0.2); position:relative;">
+                            <?= $cp['organ_icon'] ?>
+                            <i class="fas fa-check-circle" style="position:absolute; bottom:-2px; right:-2px; font-size:0.7rem; color:#fff; background:#10b981; border-radius:50%; border:1.5px solid #fff;"></i>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div style="margin-left: 10px; color: #10b981; font-size: 0.8rem;"><i class="fas fa-chevron-right"></i></div>
+            </div>
+            <?php endif; ?>
             
             <!-- Section: Your Pledged Donations (ORIGINAL UNITARY GRID) -->
             <div class="d-widget shadow-sm">
@@ -184,16 +213,28 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                         /**
                          * Render a single organ pledge card.
                          */
-                        function renderOrganCard(array $o, string $baseColor, string $baseTextColor, string $baseBg, string $defaultStatusClass): void {
-                            $status           = $o['status'] ?? 'PENDING';
+                        function renderOrganCard(array $o, string $baseColor, string $baseTextColor, string $baseBg, string $defaultStatusClass, $supersededInfo = null): void {
+                            $status           = strtoupper($o['status'] ?? 'PENDING');
                             $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
                             $isSuspended      = ($status === 'SUSPENDED');
                             $isInProgress     = ($status === 'IN_PROGRESS');
                             $isCompleted      = ($status === 'COMPLETED');
                             $isPending        = ($status === 'PENDING' && empty($o['signed_form_path']));
+                            
+                            // Check for virtual deactivation (Superseded by newer Body intent)
+                            $isSuperseded = ($supersededInfo && $supersededInfo['type'] === 'ORGAN' && ($status === 'ACTIVE' || $status === 'UPLOADED' || $status === 'PENDING'));
 
                             // --- Card styles ---
-                            if ($isWithdrawPending) {
+                            if ($isSuperseded) {
+                                $boxStyle    = 'border: 1.5px dashed #64748b; background: #f8fafc; opacity: 0.7;';
+                                $iconColor   = '#94a3b8';
+                                $nameColor   = '#64748b';
+                                $statusClass = 'd-status--suspended';
+                                $statusText  = 'WITHDRAWN (REPLACED)';
+                                $clickHandler = "";
+                                $extraCardClass = '';
+                                $dataTip      = ' title="' . htmlspecialchars($supersededInfo['reason']) . '"';
+                            } elseif ($isWithdrawPending) {
                                 $boxStyle    = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                 $iconColor   = '#ef4444';
                                 $nameColor   = '#991b1b';
@@ -211,6 +252,33 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                                 $clickHandler = "openPledgeActionModal(" . (int)$o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
                                 $extraCardClass = '';
                                 $dataTip      = '';
+                            } elseif ($isCompleted) {
+                                $boxStyle    = 'border: 1.5px solid #10b981; background: #f0fdf4;';
+                                $iconColor   = '#10b981';
+                                $nameColor   = '#166534';
+                                $statusClass = 'd-status--success';
+                                $statusText  = 'Completed';
+                                $clickHandler = "";
+                                $extraCardClass = '';
+                                $dataTip      = '';
+                            } elseif ($isInProgress) {
+                                $boxStyle    = 'border: 1.5px solid #3b82f6; background: #eff6ff;';
+                                $iconColor   = '#3b82f6';
+                                $nameColor   = '#1e40af';
+                                $statusClass = 'd-status--inprogress';
+                                $statusText  = 'In Progress';
+                                $clickHandler = "";
+                                $extraCardClass = '';
+                                $dataTip      = '';
+                            } elseif ($isSuspended) {
+                                $boxStyle    = 'border: 1.5px solid #64748b; background: #f8fafc; opacity: 0.8;';
+                                $iconColor   = '#64748b';
+                                $nameColor   = '#334155';
+                                $statusClass = 'd-status--suspended';
+                                $statusText  = 'Suspended';
+                                $clickHandler = "";
+                                $extraCardClass = 'has-suspension-tip';
+                                $dataTip      = ' data-tip="' . htmlspecialchars(buildSuspensionTip($o), ENT_QUOTES) . '"';
                             } else {
                                 // APPROVED / UPLOADED
                                 $boxStyle    = 'border: 1.5px solid ' . $baseColor . '; background: ' . $baseBg . ';';
@@ -236,35 +304,51 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
 
                         <?php if(!empty($selected_living) || !empty($selected_after_death) || !empty($selected_full_body)): ?>
                             <?php foreach($selected_living as $o): ?>
-                                <?php renderOrganCard($o, 'var(--accent)', '#166534', '#f0fdf4', 'd-status--success'); ?>
+                                <?php if(strtoupper($o['status'] ?? '') === 'COMPLETED') continue; ?>
+                                <?php renderOrganCard($o, 'var(--accent)', '#166534', '#f0fdf4', 'd-status--success', $deceased_superseded); ?>
                             <?php endforeach; ?>
 
                             <?php foreach($selected_after_death as $o): ?>
-                                <?php renderOrganCard($o, 'var(--blue-500)', 'var(--blue-800)', 'var(--blue-50)', 'd-status--info'); ?>
+                                <?php if(strtoupper($o['status'] ?? '') === 'COMPLETED') continue; ?>
+                                <?php renderOrganCard($o, 'var(--blue-500)', 'var(--blue-800)', 'var(--blue-50)', 'd-status--info', $deceased_superseded); ?>
                             <?php endforeach; ?>
 
                             <?php if(!empty($selected_full_body)):
                                 $o = $selected_full_body[0];
+                                $isCompleted = (strtoupper($o['status'] ?? '') === 'COMPLETED');
+                                if ($isCompleted) goto skip_body;
+
                                 $isPending = ($o['status'] === 'PENDING' && empty($o['signed_form_path']));
                                 $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
-                                if ($isWithdrawPending) {
+                                $isSuperseded = ($deceased_superseded && $deceased_superseded['type'] === 'BODY');
+
+                                if ($isSuperseded) {
+                                    $boxStyle = 'border: 1.5px dashed #64748b; background: #f8fafc; opacity: 0.7;';
+                                    $statusClass = 'd-status--suspended'; $statusStyle = ''; $statusText = 'WITHDRAWN (REPLACED)';
+                                    $clickHandler = "";
+                                    $iconColor = '#94a3b8'; $nameColor = '#64748b';
+                                    $dataTip = ' title="' . htmlspecialchars($deceased_superseded['reason']) . '"';
+                                } elseif ($isWithdrawPending) {
                                     $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                     $statusClass = 'd-status--danger'; $statusStyle = ''; $statusText = 'Withdrawal Pending';
                                     $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=9'";
                                     $iconColor = '#ef4444'; $nameColor = '#991b1b';
+                                    $dataTip = '';
                                 } else {
                                     $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
                                     $statusClass = $isPending ? 'd-status--pending' : ''; $statusStyle = $isPending ? '' : 'background:#8b5cf6; color:white;';
                                     $statusText = $isPending ? 'Pending Upload' : 'Pledged';
                                     $clickHandler = $isPending ? "openPledgeActionModal(9, 'Full Body')" : "openUnselectWarning(9, 'Full Body')";
                                     $iconColor = ($isPending || $isWithdrawPending) ? '#d97706' : '#8b5cf6'; $nameColor = ($isPending || $isWithdrawPending) ? '#92400e' : '#5b21b6';
+                                    $dataTip = '';
                                 }
                             ?>
-                                <div class="d-stat" style="<?= $boxStyle ?> cursor: pointer; text-align:center;" onclick="<?= $clickHandler ?>">
+                                <div class="d-stat" style="<?= $boxStyle ?> <?= $clickHandler ? 'cursor: pointer;' : '' ?> text-align:center;" onclick="<?= $clickHandler ?>" <?= $dataTip ?>>
                                     <div style="color:<?= $iconColor ?>; font-size: 1.5rem; margin-bottom: 0.5rem;"><i class="fas fa-university"></i></div>
                                     <div style="font-weight: 700; font-size: 0.9rem; color:<?= $nameColor ?>;">Full Body</div>
                                     <span class="d-status <?= $statusClass ?>" style="font-size: 0.6rem; margin-top: 5px; <?= $statusStyle ?>"><?= $statusText ?></span>
                                 </div>
+                                <?php skip_body: ?>
                             <?php endif; ?>
                         <?php else: ?>
                             <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; border: 1px dashed var(--g300); border-radius: var(--r); background: var(--g50);">
@@ -282,18 +366,103 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                     <div class="d-widget__title"><i class="fas fa-plus-circle text-accent"></i> New Donation Opportunities</div>
                 </div>
                 <div class="d-widget__body">
+                    
+                    <?php if(!empty($eligibility['is_in_recovery'])): ?>
+                        <!-- Eligibility Restriction Banner -->
+                        <div id="eligibility-alert-banner" style="margin-bottom: 2rem; padding: 1.25rem 1.75rem; background: #fff5f5; border: 1.5px solid #feb2b2; border-radius: 16px; display: flex; align-items: center; gap: 1.25rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.05);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #991b1b;">Donation Restriction Active</h4>
+                                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #b91c1c; line-height: 1.4; font-weight: 600;">
+                                    <?= htmlspecialchars($eligibility['message']) ?>
+                                </p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Unified Deceased Donation Mode Banner (Sri Lankan Practice) -->
+                    <?php 
+                        $modeMeta = [
+                            'NONE' => ['title' => 'No Intent Recorded', 'icon' => 'fa-clipboard-list', 'color' => '#64748b', 'bg' => '#f1f5f9'],
+                            'EYE_ONLY' => ['title' => 'Cornea/Eye Donation Only', 'icon' => 'fa-eye', 'color' => '#0ea5e9', 'bg' => '#f0f9ff'],
+                            'BODY_ONLY' => ['title' => 'Whole Body Donation', 'icon' => 'fa-university', 'color' => '#8b5cf6', 'bg' => '#f5f3ff'],
+                            'BODY_PLUS_CORNEA' => ['title' => 'Whole Body + Cornea Donation', 'icon' => 'fa-graduation-cap', 'color' => '#8b5cf6', 'bg' => '#f5f3ff'],
+                            'ORGAN_ONLY' => ['title' => 'Specified Deceased Organs', 'icon' => 'fa-dna', 'color' => '#3b82f6', 'bg' => '#eff6ff'],
+                            'ORGANS_PLUS_CORNEA' => ['title' => 'Organs + Cornea Donation', 'icon' => 'fa-heartbeat', 'color' => '#3b82f6', 'bg' => '#eff6ff']
+                        ];
+                        $curr = $modeMeta[$deceased_mode ?? 'NONE'] ?? $modeMeta['NONE'];
+                    ?>
+<?php
+function isBlockedStatus($organName, $eligibility) {
+    if (!$eligibility['is_in_recovery']) return false;
+    $lowerName = strtolower($organName);
+    
+    // 1. Check Permanent
+    foreach ($eligibility['permanent_blocks'] as $pb) {
+        if (strpos($lowerName, strtolower($pb)) !== false) return 'PERMANENT';
+    }
+    
+    // 2. Check Specific or Global recovery
+    foreach ($eligibility['blocked_organs'] as $bo) {
+        if (strpos($lowerName, strtolower($bo['organ'])) !== false || strpos(strtolower($bo['organ']), 'all major donations') !== false) {
+            return $bo['eligible_on'];
+        }
+    }
+    return false;
+}
+?>
+
+                    <div style="margin-bottom: 2rem; padding: 1.25rem 1.75rem; background: <?= $curr['bg'] ?>; border: 1.5px solid <?= $curr['color'] ?>33; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; overflow: hidden; position: relative;">
+                        <div style="position: absolute; right: -20px; top: -10px; font-size: 5rem; opacity: 0.05; color: <?= $curr['color'] ?>;"><i class="fas <?= $curr['icon'] ?>"></i></div>
+                        <div style="display: flex; align-items: center; gap: 1.25rem;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: <?= $curr['color'] ?>; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px <?= $curr['color'] ?>44;">
+                                <i class="fas <?= $curr['icon'] ?>"></i>
+                            </div>
+                            <div>
+                                <span style="display: block; font-size: 0.75rem; font-weight: 800; color: <?= $curr['color'] ?>; text-transform: uppercase; letter-spacing: 1px;">Active Deceased Donation Mode</span>
+                                <h4 style="margin: 0; font-size: 1.2rem; font-weight: 800; color: #1e293b;"><?= $curr['title'] ?></h4>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: white; border-radius: 100px; font-size: 0.7rem; font-weight: 700; color: #64748b; border: 1px solid #e2e8f0;">
+                                <i class="fas fa-shield-alt" style="color: #10b981;"></i> Legally Standardized
+                            </span>
+                        </div>
+                    </div>
                     <h3 style="font-size:0.9rem; color:var(--g500); text-transform:uppercase; margin-bottom:1rem; display:flex; align-items:center; gap:8px;">Donate While Living</h3>
                     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:1.25rem; margin-bottom:2.5rem;">
                         <?php if(!empty($available_living)): foreach($available_living as $o): 
                             $isSuspended = $o['is_suspended'] ?? false;
-                            $boxStyle = $isSuspended ? 'background: #f1f5f9; border-color: #cbd5e1; opacity: 0.7; cursor: not-allowed;' : 'border: 1px solid var(--g200); cursor: pointer;';
-                            $onclick = $isSuspended ? '' : "openLivingModal(" . $o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
-                            $tip = $isSuspended ? ' data-tip="' . htmlspecialchars(buildSuspensionTip($o), ENT_QUOTES) . '"' : '';
+                            $blockedDay = isBlockedStatus($o['organ_name'], $eligibility);
+                            
+                            if ($blockedDay) {
+                                $boxStyle = 'background: #fff1f2; border-color: #fca5a5; opacity: 0.85; cursor: pointer;';
+                                $onclick = "showBlockedModal('" . addslashes($o['organ_name']) . "', '" . $blockedDay . "')";
+                                $tip = ' data-tip="' . ($blockedDay === 'PERMANENT' ? 'Permanently restricted' : 'Blocked until ' . $blockedDay) . '"';
+                                $iconColor = '#ef4444';
+                                $nameColor = '#991b1b';
+                            } elseif ($isSuspended) {
+                                $boxStyle = 'background: #f1f5f9; border-color: #cbd5e1; opacity: 0.7; cursor: not-allowed;';
+                                $onclick = '';
+                                $tip = ' data-tip="' . htmlspecialchars(buildSuspensionTip($o), ENT_QUOTES) . '"';
+                                $iconColor = '#94a3b8';
+                                $nameColor = '#64748b';
+                            } else {
+                                $boxStyle = 'border: 1px solid var(--g200); cursor: pointer;';
+                                $onclick = "openLivingModal(" . $o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                $tip = '';
+                                $iconColor = 'var(--accent)';
+                                $nameColor = 'inherit';
+                            }
                         ?>
-                            <div class="d-stat d-stat--interactive <?= $isSuspended ? 'has-suspension-tip' : '' ?>" style="padding:1.25rem; <?= $boxStyle ?> text-align:center;" onclick="<?= $onclick ?>" <?= $tip ?>>
-                                <div style="color:<?= $isSuspended ? '#94a3b8' : 'var(--accent)' ?>; font-size:1.5rem; margin-bottom:0.75rem;"><?= $o['organ_icon'] ?></div>
-                                <div style="font-weight:700; font-size:0.85rem; color:<?= $isSuspended ? '#64748b' : 'inherit' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
-                                <?php if($isSuspended): ?>
+                            <div class="d-stat d-stat--interactive <?= ($isSuspended || $blockedDay) ? 'has-suspension-tip' : '' ?>" style="padding:1.25rem; <?= $boxStyle ?> text-align:center;" onclick="<?= $onclick ?>" <?= $tip ?>>
+                                <div style="color:<?= $iconColor ?>; font-size:1.5rem; margin-bottom:0.75rem;"><?= $o['organ_icon'] ?></div>
+                                <div style="font-weight:700; font-size:0.85rem; color:<?= $nameColor ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
+                                <?php if($blockedDay): ?>
+                                    <span class="d-status d-status--danger" style="font-size:0.6rem; margin-top:5px; background:#ef4444; color:white;"><?= ($blockedDay === 'PERMANENT' ? 'Permanently Restricted' : 'Recovery Block') ?></span>
+                                <?php elseif($isSuspended): ?>
                                     <span class="d-status d-status--suspended" style="font-size:0.6rem; margin-top:5px;">Suspended</span>
                                 <?php endif; ?>
                             </div>
@@ -303,13 +472,24 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:1.25rem; margin-bottom:2.5rem;">
                         <?php if(!empty($available_after_death)): foreach($available_after_death as $o): 
                             $isSuspended = $o['is_suspended'] ?? false;
-                            $boxStyle = $isSuspended ? 'background: #f1f5f9; border-color: #cbd5e1; opacity: 0.7; cursor: not-allowed;' : 'border: 1px solid var(--g200); cursor: pointer;';
-                            $onclick = $isSuspended ? '' : "openAfterDeathModal(" . $o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
-                            $tip = $isSuspended ? ' data-tip="' . htmlspecialchars(buildSuspensionTip($o), ENT_QUOTES) . '"' : '';
+                            
+                            if ($isSuspended) {
+                                $boxStyle = 'background: #f1f5f9; border-color: #cbd5e1; opacity: 0.7; cursor: not-allowed;';
+                                $onclick = '';
+                                $tip = ' data-tip="' . htmlspecialchars(buildSuspensionTip($o), ENT_QUOTES) . '"';
+                                $iconColor = '#94a3b8';
+                                $nameColor = '#64748b';
+                            } else {
+                                $boxStyle = 'border: 1px solid var(--g200); cursor: pointer;';
+                                $onclick = "openAfterDeathModal(" . $o['organ_id'] . ", '" . addslashes($o['organ_name']) . "')";
+                                $tip = '';
+                                $iconColor = 'var(--blue-500)';
+                                $nameColor = 'inherit';
+                            }
                         ?>
-                            <div class="d-stat d-stat--interactive <?= $isSuspended ? 'has-suspension-tip' : '' ?>" style="padding:1.25rem; <?= $boxStyle ?> text-align:center;" onclick="<?= $onclick ?>" <?= $tip ?>>
-                                <div style="color:<?= $isSuspended ? '#94a3b8' : 'var(--blue-500)' ?>; font-size:1.5rem; margin-bottom:0.75rem;"><?= $o['organ_icon'] ?></div>
-                                <div style="font-weight:700; font-size:0.85rem; color:<?= $isSuspended ? '#64748b' : 'inherit' ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
+                            <div class="d-stat d-stat--interactive <?= ($isSuspended) ? 'has-suspension-tip' : '' ?>" style="padding:1.25rem; <?= $boxStyle ?> text-align:center;" onclick="<?= $onclick ?>" <?= $tip ?>>
+                                <div style="color:<?= $iconColor ?>; font-size:1.5rem; margin-bottom:0.75rem;"><?= $o['organ_icon'] ?></div>
+                                <div style="font-weight:700; font-size:0.85rem; color:<?= $nameColor ?>;"><?= htmlspecialchars($o['organ_name']) ?></div>
                                 <?php if($isSuspended): ?>
                                     <span class="d-status d-status--suspended" style="font-size:0.6rem; margin-top:5px;">Suspended</span>
                                 <?php endif; ?>
@@ -319,12 +499,41 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                     <h3 style="font-size:0.9rem; color:var(--g500); text-transform:uppercase; margin-bottom:1rem; display:flex; align-items:center; gap:8px;">Academic Body Donation</h3>
                     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:1.25rem;">
                         <?php if(!empty($available_full_body)): ?>
-                            <div class="d-stat d-stat--interactive" onclick="goToBodyStep(1); openModal('bodyConsentModal')">
-                                <div style="display:flex; align-items:center; gap:1.25rem; width:100%;">
-                                    <div style="font-size:1.8rem; color:#8b5cf6;"><i class="fas fa-graduation-cap"></i></div>
-                                    <div><div style="font-weight:700; font-size:1rem;">Full Body Donation Authorization</div><div style="font-size:0.8rem; color:var(--g500);">Expression of intent for anatomical study and surgical training.</div></div>
+                            <?php if($is_body_mode): ?>
+                                <div class="d-stat d-stat--interactive" onclick="if(checkOrganEligibility('Full Body')){ goToBodyStep(1); openModal('bodyConsentModal'); }">
+                                    <div style="display:flex; align-items:center; gap:1.25rem; width:100%;">
+                                        <div style="font-size:1.8rem; color:#8b5cf6;"><i class="fas fa-graduation-cap"></i></div>
+                                        <div><div style="font-weight:700; font-size:1rem;">Full Body Donation Authorization</div><div style="font-size:0.8rem; color:var(--g500);">Expression of intent for anatomical study and surgical training.</div></div>
+                                    </div>
                                 </div>
-                            </div>
+                            <?php else: ?>
+                                <?php if(!empty($has_major_living_donation)): ?>
+                                    <div class="d-stat" style="border: 1.5px solid #fee2e2; background: #fef2f2; position: relative; overflow: hidden;">
+                                        <div style="position: absolute; right: -10px; top: -5px; font-size: 4rem; opacity: 0.05; color: #ef4444;"><i class="fas fa-hand-holding-heart"></i></div>
+                                        <div style="display:flex; align-items:center; gap:1.25rem; width:100%; position: relative; z-index: 1;">
+                                            <div style="width: 48px; height: 48px; border-radius: 12px; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                                                <i class="fas fa-info-circle"></i>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div style="font-weight:800; font-size:0.95rem; color: #991b1b; margin-bottom: 2px;">Body Donation Unavailable</div>
+                                                <div style="font-size:0.8rem; font-weight: 500; color:#b91c1c; line-height: 1.4;">
+                                                    Your previous life-saving gift makes whole-body study unsuitable. Thank you for your incredible contribution to life!
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="d-stat" style="opacity: 0.6; cursor: not-allowed; border: 1.5px dashed var(--g200); background: #f8fafc;">
+                                        <div style="display:flex; align-items:center; gap:1.25rem; width:100%;">
+                                            <div style="font-size:1.8rem; color:var(--g400);"><i class="fas fa-university"></i></div>
+                                            <div>
+                                                <div style="font-weight:700; font-size:1rem; color: var(--g500);">Body Donation (Historical Only)</div>
+                                                <div style="font-size:0.8rem; color:var(--g400);">Switch to Body mode to re-enable university registration.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         <?php else: ?><div style="grid-column:1/-1; color:var(--g400);">Body donation authorization active.</div><?php endif; ?>
                     </div>
                 </div>
@@ -963,22 +1172,28 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                 <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(3)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(5)">Notification & Transport <i class="fas fa-arrow-right"></i></button></div>
             </div>
 
-            <!-- Step 5: Notification & Transport -->
+            <!-- Step 5: Witness Information -->
             <div id="bodyStep5" style="display:none;">
-                <h4 class="d-section-header"><i class="fas fa-phone-volume text-accent"></i> E. Death Notification & F. Transport</h4>
-                <div style="background:#f8fafc; padding:1.5rem; border-radius:12px; border:1px solid var(--g200);">
-                    <div class="d-input-group">
-                        <label>Person Responsible to Inform Medical Faculty <span style="color:var(--danger);">*</span></label>
-                        <input type="text" name="responsible_person" id="bc_resp_p" class="d-input" placeholder="Full Name of Primary Contact">
+                <h4 class="d-section-header"><i class="fas fa-user-shield text-accent"></i> E. Witness Information (Verification)</h4>
+                <p style="font-size:0.85rem; color:var(--g600); margin-bottom:1.5rem;">Provide details of two witnesses who will confirm your intent for body donation.</p>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                    <div style="background:white; padding:1.25rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 1 <span style="color:var(--danger);">*</span></label>
+                        <input type="text" name="witness1_name" id="bc_w1_name" class="d-input" placeholder="Full Name" required style="margin-top:8px;">
+                        <input type="text" name="witness1_nic" id="bc_w1_nic" class="d-input" placeholder="NIC Number" required style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="witness1_phone" id="bc_w1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;" required>
+                            <input type="text" name="witness1_address" id="bc_w1_address" class="d-input" placeholder="Address" style="margin-top:8px;" required>
+                        </div>
                     </div>
-                    <div class="d-input-group" style="margin-top:1.25rem;">
-                        <label>Contact Number <span style="color:var(--danger);">*</span></label>
-                        <input type="text" name="responsible_contact" id="bc_resp_c" class="d-input" placeholder="07x-xxxxxxx">
-                    </div>
-                    <hr style="margin:1.5rem 0; border:0; border-top:1px solid var(--g100);">
-                    <div class="d-input-group">
-                        <label>Transport Arrangement Scheme <span style="color:var(--danger);">*</span></label>
-                        <textarea name="transport_arrangement" id="bc_transport" class="d-input" placeholder="Details of how transport will be managed (e.g. Family arranged, specific funeral service)..." rows="2"></textarea>
+                    <div style="background:white; padding:1.25rem; border:1.5px solid var(--g200); border-radius:12px;">
+                        <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 2 <span style="color:var(--danger);">*</span></label>
+                        <input type="text" name="witness2_name" id="bc_w2_name" class="d-input" placeholder="Full Name" required style="margin-top:8px;">
+                        <input type="text" name="witness2_nic" id="bc_w2_nic" class="d-input" placeholder="NIC Number" required style="margin-top:8px;">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                            <input type="text" name="witness2_phone" id="bc_w2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;" required>
+                            <input type="text" name="witness2_address" id="bc_w2_address" class="d-input" placeholder="Address" style="margin-top:8px;" required>
+                        </div>
                     </div>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-top:2rem;"><button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(4)"><i class="fas fa-arrow-left"></i> Previous</button><button type="button" class="d-btn d-btn--primary" onclick="goToBodyStep(6)">Review & Sign <i class="fas fa-check-double"></i></button></div>
@@ -998,39 +1213,30 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
                             <strong>Anatomical Declaration:</strong> I, <span style="font-weight: 800; text-decoration: underline;"><?= htmlspecialchars($donor_full_name) ?></span>, NIC <strong><?= htmlspecialchars($donor_data['nic_number'] ?? '') ?></strong>, hereby authorize the delivery of my body to the <span id="revBodySchool" style="font-weight:800; color:var(--blue-700);">-</span> for purposes of anatomical study and clinical research.
                         </div>
 
-                        <div class="d-info-grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom:2rem;">
+                        <div class="d-info-grid" style="grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom:2rem;">
                             <div class="d-info-item"><label>Religion</label><span id="revBodyReligion">-</span></div>
-                            <div class="d-info-item"><label>Notification Contact</label><span id="revBodyResp">-</span></div>
                             <div class="d-info-item"><label>Filing Date</label><span><?= date('F d, Y') ?></span></div>
                         </div>
 
                         <div style="margin-bottom:2rem;">
                             <h6 style="font-size:0.75rem; color:var(--g500); text-transform:uppercase; border-bottom:1.5px solid var(--g100); padding-bottom:10px; margin-bottom:1.5rem;">Witnesses & Verification</h6>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-                                <div style="background:white; padding:1.25rem; border:1.5px solid var(--g200); border-radius:12px;">
-                                    <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 1</label>
-                                    <input type="text" name="witness1_name" id="bc_w1_name" class="d-input" placeholder="Full Name" required style="margin-top:8px;">
-                                    <input type="text" name="witness1_nic" id="bc_w1_nic" class="d-input" placeholder="NIC Number" required style="margin-top:8px;">
-                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                        <input type="text" name="witness1_phone" id="bc_w1_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
-                                        <input type="text" name="witness1_address" id="bc_w1_address" class="d-input" placeholder="Address" style="margin-top:8px;">
-                                    </div>
+                                <div style="background:#f8fafc; padding:1rem; border-radius:10px; border:1px solid var(--g200); text-align:center;">
+                                    <div style="font-size:0.65rem; color:var(--g500); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Witness 1</div>
+                                    <strong id="revBodyW1Name" style="color:var(--blue-900); font-size:1.05rem; display:block; margin-top:4px;">-</strong>
                                 </div>
-                                <div style="background:white; padding:1.25rem; border:1.5px solid var(--g200); border-radius:12px;">
-                                    <label style="font-size:0.7rem; font-weight:800; color:var(--g400);">WITNESS 2</label>
-                                    <input type="text" name="witness2_name" id="bc_w2_name" class="d-input" placeholder="Full Name" required style="margin-top:8px;">
-                                    <input type="text" name="witness2_nic" id="bc_w2_nic" class="d-input" placeholder="NIC Number" required style="margin-top:8px;">
-                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                        <input type="text" name="witness2_phone" id="bc_w2_phone" class="d-input" placeholder="Phone" style="margin-top:8px;">
-                                        <input type="text" name="witness2_address" id="bc_w2_address" class="d-input" placeholder="Address" style="margin-top:8px;">
-                                    </div>
+                                <div style="background:#f8fafc; padding:1rem; border-radius:10px; border:1px solid var(--g200); text-align:center;">
+                                    <div style="font-size:0.65rem; color:var(--g500); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Witness 2</div>
+                                    <strong id="revBodyW2Name" style="color:var(--blue-900); font-size:1.05rem; display:block; margin-top:4px;">-</strong>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="signature-block" style="margin-top:3rem; grid-template-columns: 1fr 1fr; gap: 2rem 4rem;">
+                        <div class="signature-block" style="margin-top:3rem; grid-template-columns: 1fr 1fr; gap: 3rem 4rem;">
                             <div class="sig-line">Donor Signature</div>
-                            <div class="sig-line">Custodian (NOK) 1</div>
+                            <div style="visibility:hidden;"></div> <!-- Spacer -->
+                            <div class="sig-line">Custodian 1 Signature</div>
+                            <div class="sig-line">Custodian 2 Signature</div>
                             <div class="sig-line">Witness 1 Signature</div>
                             <div class="sig-line">Witness 2 Signature</div>
                         </div>
@@ -1083,18 +1289,83 @@ $approvedHospitalsJson = json_encode($approved_hospitals ?? []);
     <input type="hidden" name="cust2_nic" id="p_cust2_nic">
 </form>
 
-<script>
-const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
+<script>const hospitalsByOrgan = <?= $hospitalsByOrganJson ?>;
 const approvedHospitals = <?= $approvedHospitalsJson ?>;
+const eligibilityData = <?= json_encode($eligibility) ?>;
 let pendingOrganId=null, pendingOrganName=null, selectedHospitalId=null, selectedHospitalName='No Preference';
 
+function checkOrganEligibility(organName) {
+    if (!eligibilityData || !eligibilityData.is_in_recovery) return true;
+
+    const lowerName = organName.toLowerCase();
+    
+    // 1. Permanent blocks
+    const isPermanentlyBlocked = (eligibilityData.permanent_blocks || []).some(pb => 
+        lowerName.includes(pb.toLowerCase())
+    );
+
+    if (isPermanentlyBlocked) {
+        showBlockedModal(organName, 'PERMANENT');
+        return false;
+    }
+
+    // 2. Time-locked recovery blocks
+    const blockedOrgans = eligibilityData.blocked_organs || [];
+    
+    // Check for "All major donations" (Liver/Kidney recovery)
+    const allBlocked = blockedOrgans.find(b => b.organ.toLowerCase().includes('all major donations'));
+    if (allBlocked) {
+        showBlockedModal(organName, allBlocked.eligible_on);
+        return false;
+    }
+
+    // Specific organ block (e.g. Bone Marrow)
+    const specificBlock = blockedOrgans.find(b => lowerName.includes(b.organ.toLowerCase()));
+    if (specificBlock) {
+        showBlockedModal(organName, specificBlock.eligible_on);
+        return false;
+    }
+
+    return true;
+}
+
+function showBlockedModal(organName, date) {
+    const titleEl = document.getElementById('blockedModalTitle');
+    const msgEl = document.getElementById('blockedModalMessage');
+    const iconEl = document.getElementById('blockedModalIcon');
+
+    if (date === 'PERMANENT') {
+        titleEl.textContent = 'Permanently Restricted';
+        msgEl.innerHTML = `Our medical registry indicates you have already donated a <strong>${organName}</strong>. For your long-term health, we cannot accept another pledge for this specific organ.`;
+        iconEl.innerHTML = '<i class="fas fa-hand-holding-heart"></i>';
+        iconEl.style.background = '#fee2e2';
+        iconEl.style.color = '#ef4444';
+    } else {
+        titleEl.textContent = 'Donation Recovery Period';
+        msgEl.innerHTML = `<strong>Access Denied:</strong> You are currently in a mandatory post-donation recovery window. To ensure clinical safety, you will be eligible to pledge <strong>${organName}</strong> starting from <strong>${date}</strong>.`;
+        iconEl.innerHTML = '<i class="fas fa-clock"></i>';
+        iconEl.style.background = '#fffbeb';
+        iconEl.style.color = '#f59e0b';
+    }
+
+    openModal('eligibilityWarningModal');
+}
+
 function openLivingModal(id,name){ 
+    if (!checkOrganEligibility(name)) return;
     pendingOrganId=id; 
     pendingOrganName=name; 
     document.getElementById('living_organ_name').value = name; 
     document.getElementById('req_organ_name').textContent = name;
     goToStep(1); 
     openModal('livingConsentModal'); 
+}
+function openAfterDeathModal(id,name){ 
+    document.querySelectorAll('.death-org-check').forEach(c=>c.checked=false); 
+    const target=document.getElementById('death_org_'+id); 
+    if(target) target.checked=true; 
+    goToDeathStep(1); 
+    openModal('afterDeathConsentModal'); 
 }
 function goToStep(n){ 
     const currentStepNum = parseInt(document.querySelector('.d-modal__step.active')?.id.replace('step','') || '1');
@@ -1347,7 +1618,10 @@ function goToBodyStep(n){
         const s=document.getElementById('schoolSelect'); 
         document.getElementById('revBodySchool').textContent=s.options[s.selectedIndex].text; 
         document.getElementById('revBodyReligion').textContent = document.getElementById('body_religion').value || 'Not Specified';
-        document.getElementById('revBodyResp').textContent = document.getElementById('bc_resp_p').value + ' (' + document.getElementById('bc_resp_c').value + ')';
+        
+        // Witnesses Review
+        document.getElementById('revBodyW1Name').textContent = document.getElementById('bc_w1_name').value || '-';
+        document.getElementById('revBodyW2Name').textContent = document.getElementById('bc_w2_name').value || '-';
     } 
 }
 function submitBodyPledge() {
@@ -1363,7 +1637,7 @@ function submitBodyPledge() {
         }
     });
     if(!valid) {
-        alert('Please fill all required fields in the final step (Witnesses) before authorizing.');
+        alert('Please fill all required fields in the final review step before authorizing.');
         return;
     }
     
@@ -1595,23 +1869,103 @@ async function downloadExistingPledge(organId) {
                 </button>
                 <button class="d-btn d-btn--outline" onclick="closeModal('pledgeActionModal'); openUnselectWarning(pendingOrganId, document.getElementById('actionPledgeTitle').textContent)" style="color: var(--danger); border-color: var(--danger);">
                     <i class="fas fa-trash"></i> Withdraw Pledge
-                </div>
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL: UNSELECT WARNING -->
-<div id="unselectWarningModal" class="d-modal">
-    <div class="d-modal__body" style="max-width:400px; text-align:center;">
-        <div style="font-size:3rem; color:var(--danger); margin-bottom:1rem;"><i class="fas fa-exclamation-circle"></i></div>
-        <h3 id="unselectText">Withdraw this pledge?</h3>
-        <p style="color:var(--g500); font-size:0.9rem; margin-top:0.5rem;">This will remove the intent from the official registry and notify relevant departments.</p>
-        <div style="display:flex; justify-content:center; gap:12px; margin-top:2rem;">
-            <button class="d-btn d-btn--outline" onclick="closeModal('unselectWarningModal')">Keep Pledge</button>
-            <button class="d-btn d-btn--primary" style="background:var(--danger);" onclick="window.location.href = '<?= ROOT ?>/donor/withdraw-consent?action=restart&organ_id=' + pendingOrganId;">Yes, Withdraw</button>
+<!-- MODAL: COMPLETED DONATION HISTORY & RE-DONATION RULES -->
+<div id="completedHistoryModal" class="d-modal">
+    <div class="d-modal__body" style="max-width:700px;">
+        <div class="d-modal__header" style="background: linear-gradient(to right, #10b981, #059669); color: white; padding: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; color: white;">Donation History & Recovery</h3>
+                    <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">Overview of your life-saving contributions</p>
+                </div>
+            </div>
+            <button class="d-modal__close" onclick="closeModal('completedHistoryModal')" style="color: white; opacity: 0.8;">&times;</button>
+        </div>
+        <div class="d-modal__content" style="padding: 1.5rem;">
+            <?php if(!empty($eligibility['history'])): ?>
+                <div style="display: grid; gap: 1rem;">
+                    <?php foreach($eligibility['history'] as $h): 
+                        $isPermanent = (stripos($h->donated_organ, 'Kidney') !== false || stripos($h->donated_organ, 'Liver') !== false);
+                        $isEligible = strtotime($h->next_eligible_date) <= time();
+                        $dateFormatted = date('d M Y', strtotime($h->donation_date));
+                        $eligibleDate = date('d M Y', strtotime($h->next_eligible_date));
+                    ?>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                    <?= $this->getOrganIcon($h->donated_organ) ?>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 700; color: #1e293b;"><?= htmlspecialchars($h->donated_organ) ?></div>
+                                    <div style="font-size: 0.8rem; color: #64748b;">Donated on <?= $dateFormatted ?></div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <?php if($isPermanent): ?>
+                                    <span style="padding: 4px 10px; background: #fee2e2; color: #991b1b; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">
+                                        <i class="fas fa-lock"></i> Permanent Block
+                                    </span>
+                                    <div style="font-size: 0.75rem; color: #b91c1c; margin-top: 4px; font-weight: 500;">Single organ recovery policy</div>
+                                <?php elseif($isEligible): ?>
+                                    <span style="padding: 4px 10px; background: #dcfce7; color: #166534; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">
+                                        <i class="fas fa-check"></i> Eligible to Re-donate
+                                    </span>
+                                    <div style="font-size: 0.75rem; color: #15803d; margin-top: 4px; font-weight: 500;">Recovery period completed</div>
+                                <?php else: ?>
+                                    <span style="padding: 4px 10px; background: #fef9c3; color: #854d0e; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">
+                                        <i class="fas fa-clock"></i> In Recovery
+                                    </span>
+                                    <div style="font-size: 0.75rem; color: #a16207; margin-top: 4px; font-weight: 500;">Next eligible: <?= $eligibleDate ?></div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #eff6ff; border-radius: 10px; border: 1px solid #dbeafe; display: flex; gap: 0.75rem; align-items: flex-start;">
+                    <i class="fas fa-info-circle" style="color: #3b82f6; margin-top: 0.1rem;"></i>
+                    <p style="margin: 0; font-size: 0.8rem; color: #1e40af; line-height: 1.5;">
+                        <strong>Note on Eligibility:</strong> These intervals (e.g., 6 months for Bone Marrow) are based on standard Sri Lankan medical recovery guidelines. Please consult your physician before making a new living donation pledge.
+                    </p>
+                </div>
+            <?php else: ?>
+                <div style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+                    <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                    <p>No donation surgical history found in your medical records yet.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div style="padding: 1.5rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; background: #f8fafc; border-radius: 0 0 16px 16px;">
+            <button class="d-btn d-btn--secondary" onclick="closeModal('completedHistoryModal')" style="background: white; border: 1.5px solid #cbd5e1; color: #475569;">Close History</button>
         </div>
     </div>
 </div>
+
+<!-- MODAL: ELIGIBILITY/RECOVERY WARNING (PREMIUM RED ALERT) -->
+<div id="eligibilityWarningModal" class="d-modal">
+    <div class="d-modal__body" style="max-width: 450px; text-align: center; border-top: 5px solid #ef4444;">
+        <div id="blockedModalIcon" style="width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 1.5rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 id="blockedModalTitle" style="color: #991b1b; font-weight: 800; margin-bottom: 1rem;">Restriction Active</h3>
+        <p id="blockedModalMessage" style="color: #475569; line-height: 1.6; margin-bottom: 2rem; font-size: 0.95rem;">
+            The registry indicates a recent donation.
+        </p>
+        <button class="d-btn d-btn--primary" onclick="closeModal('eligibilityWarningModal')" style="background: #ef4444; width: 100%; justify-content: center; padding: 0.8rem;">
+            Acknowledge & Close
+        </button>
+    </div>
+</div>
+
+<?php include __DIR__ . '/inc/withdraw_modal.view.php'; ?>
 
 <?php include __DIR__ . '/inc/footer.view.php'; ?>

@@ -119,8 +119,14 @@ class DonorModel {
      */
     public function getPledgeSummary($donorId)
     {
-        // 1. Organ Pledges (Most common)
-        $organQuery = "SELECT * FROM donor_pledges WHERE donor_id = :donor_id AND status != 'WITHDRAWN'";
+        // 1. Organ Pledges (Most recent for each organ)
+        $organQuery = "SELECT p.* FROM donor_pledges p 
+                       JOIN (
+                           SELECT MAX(id) as max_id 
+                           FROM donor_pledges 
+                           WHERE donor_id = :donor_id AND status != 'WITHDRAWN'
+                           GROUP BY organ_id
+                       ) latest ON p.id = latest.max_id";
         $organPledges = $this->query($organQuery, [':donor_id' => $donorId]);
         
         // 2. Body Donation
@@ -290,10 +296,15 @@ class DonorModel {
                    WHERE donor_id = p.donor_id AND pledge_id = p.id
                    ORDER BY created_at DESC LIMIT 1) as donated_organ_name
                   FROM donor_pledges p 
+                  JOIN (
+                      SELECT MAX(id) as max_id 
+                      FROM donor_pledges 
+                      WHERE donor_id = :donor_id AND status != 'WITHDRAWN'
+                      GROUP BY organ_id
+                  ) latest ON p.id = latest.max_id
                   JOIN organs o ON p.organ_id = o.id 
                   LEFT JOIN hospitals h ON p.preferred_hospital_id = h.id
-                  WHERE p.donor_id = :donor_id AND p.status != 'WITHDRAWN'
-                  GROUP BY p.organ_id";
+                  WHERE p.donor_id = :donor_id";
         
         $results = $this->query($query, [':donor_id' => $donorId]);
         
@@ -314,6 +325,84 @@ class DonorModel {
         }
         
         return $results ? json_decode(json_encode($results), true) : []; 
+    }
+
+    /**
+     * Determine the unified "Deceased Donation Mode" based on Sri Lankan legal guidelines.
+     * Logic: The latest intent (by date) between Full Body and Deceased Organs determines the primary mode.
+     * Cornea/Eye consents merge with Body or Organ modes unless revoked.
+     * Modes: NONE, EYE_ONLY, BODY_ONLY, BODY_PLUS_CORNEA, ORGAN_ONLY, ORGANS_PLUS_CORNEA
+     */
+    public function getDeceasedDonationMode($donorId)
+    {
+        $donorId = (int)$donorId;
+
+        // 1. Fetch Latest Body Donation Intent (from body_donation_consents)
+        $bodyRes = $this->query(
+            "SELECT consent_date, status FROM body_donation_consents 
+             WHERE donor_id = :did AND status = 'ACTIVE' 
+             ORDER BY consent_date DESC LIMIT 1",
+            [':did' => $donorId]
+        );
+        $bodyDate = $bodyRes ? $bodyRes[0]->consent_date : null;
+
+        // 2. Fetch Latest Organ Donation Intent (excluding Cornea and Full Body legacy id 9)
+        // CRITICAL: We only count DECEASED organ pledges here.
+        // We exclude pledges that have a corresponding entry in living_donor_consents.
+        $organRes = $this->query(
+            "SELECT MAX(dp.pledge_date) as latest_date, COUNT(*) as active_count
+             FROM donor_pledges dp
+             JOIN organs o ON dp.organ_id = o.id
+             LEFT JOIN living_donor_consents ldc ON dp.id = ldc.donor_pledge_id
+             WHERE dp.donor_id = :did AND dp.status != 'WITHDRAWN' AND dp.organ_id != 9 
+             AND ldc.id IS NULL
+             AND LOWER(o.name) NOT LIKE '%cornea%' AND LOWER(o.name) NOT LIKE '%eye%'",
+            [':did' => $donorId]
+        );
+        $organDate = (!empty($organRes) && $organRes[0]->active_count > 0) ? $organRes[0]->latest_date : null;
+
+        // 3. Check for Active Cornea/Eye Consent
+        $eyeRes = $this->query(
+            "SELECT COUNT(*) as active_count
+             FROM donor_pledges dp
+             JOIN organs o ON dp.organ_id = o.id
+             WHERE dp.donor_id = :did AND dp.status != 'WITHDRAWN' 
+             AND (LOWER(o.name) LIKE '%cornea%' OR LOWER(o.name) LIKE '%eye%')",
+            [':did' => $donorId]
+        );
+        $hasCornea = (!empty($eyeRes) && $eyeRes[0]->active_count > 0);
+
+        // 4. Resolve Mode and Track Superseded Intents
+        $mode = 'NONE';
+        $superseded = null;
+
+        if (!$bodyDate && !$organDate) {
+            $mode = $hasCornea ? 'EYE_ONLY' : 'NONE';
+        } elseif ($bodyDate && (!$organDate || $bodyDate >= $organDate)) {
+            $mode = $hasCornea ? 'BODY_PLUS_CORNEA' : 'BODY_ONLY';
+            if ($organDate) {
+                $superseded = [
+                    'type' => 'ORGAN',
+                    'date' => $organDate,
+                    'reason' => "Replaced by Whole Body Donation intent on " . date('Y-m-d', strtotime($bodyDate)) . " as per Sri Lankan legal guidelines."
+                ];
+            }
+        } else {
+            // $organDate > $bodyDate
+            $mode = $hasCornea ? 'ORGANS_PLUS_CORNEA' : 'ORGAN_ONLY';
+            if ($bodyDate) {
+                $superseded = [
+                    'type' => 'BODY',
+                    'date' => $bodyDate,
+                    'reason' => "Replaced by Deceased Organ Donation pledge on " . date('Y-m-d', strtotime($organDate)) . " as per Sri Lankan legal guidelines."
+                ];
+            }
+        }
+
+        return [
+            'mode' => $mode,
+            'superseded' => $superseded
+        ];
     }
 
     /**
@@ -370,11 +459,30 @@ class DonorModel {
         $donorId  = (int)$donorId;
         $pledgeId = (int)$pledgeId;
 
-        // Mark pledge COMPLETED
+        // 1. Fetch pledge and organ details before marking COMPLETED
+        $pledge = $this->query(
+            "SELECT dp.*, o.name as organ_name 
+             FROM donor_pledges dp 
+             JOIN organs o ON dp.organ_id = o.id 
+             WHERE dp.id = :pid AND dp.donor_id = :did",
+            [':pid' => $pledgeId, ':did' => $donorId]
+        );
+
+        if (!$pledge) return false;
+
+        $organName  = $pledge[0]->organ_name;
+        $hospitalId = $pledge[0]->hospital_id;
+        $donationDt = $data['donation_date'] ?? date('Y-m-d');
+        $notes      = $data['doctor_notes'] ?? '';
+
+        // 2. Mark pledge COMPLETED in the primary table
         $this->query(
             "UPDATE donor_pledges SET status = 'COMPLETED' WHERE id = :pid AND donor_id = :did",
             [':pid' => $pledgeId, ':did' => $donorId]
         );
+
+        // 3. Record in donation_medical_history (Calculates rules automatically)
+        $this->recordDonationHistory($donorId, $pledgeId, $organName, $donationDt, $hospitalId, $notes);
 
         return true;
     }
@@ -583,6 +691,9 @@ class DonorModel {
     public function getDonationEligibility($donorId)
     {
         try {
+            // First, ensure all COMPLETED pledges are recorded in history (Auto-Sync)
+            $this->syncDonationHistory($donorId);
+
             // Fetch ALL donation history records for this donor
             $query = "SELECT * FROM donation_medical_history 
                       WHERE donor_id = :donor_id 
@@ -629,11 +740,24 @@ class DonorModel {
                 if (!in_array('Kidney', $permanentBlocks)) {
                     $permanentBlocks[] = 'Kidney';
                 }
-                // Kidney→Liver: Restricted (doctor approval)
-                if (!in_array('Kidney → Liver Portion (requires doctor approval)', $restricted)) {
-                    $restricted[] = 'Kidney → Liver Portion (requires doctor approval)';
+
+                // If within 1 month recovery: block other major donations
+                $eligibleFrom = $nextDate;
+                if (!$eligibleFrom) {
+                    $eligibleFrom = (new \DateTime((string)($row->donation_date ?? 'now')))
+                                    ->modify('+1 month');
                 }
-                // After recovery, bone marrow is allowed — no timed block needed
+
+                if ($today < $eligibleFrom) {
+                    $blockedOrgans[] = [
+                        'organ'           => 'All major donations (Kidney recovery period)',
+                        'eligible_on'     => $eligibleFrom->format('Y-m-d'),
+                        'days_remaining'  => (int)$today->diff($eligibleFrom)->days
+                    ];
+                    if (!$nextEligible || $eligibleFrom < new \DateTime($nextEligible)) {
+                        $nextEligible = $eligibleFrom->format('Y-m-d');
+                    }
+                }
                 continue;
             }
 
@@ -684,11 +808,6 @@ class DonorModel {
                         $nextEligible = $eligibleFrom->format('Y-m-d');
                     }
                 }
-
-                // Liver→Kidney: Restricted (doctor approval)
-                if (!in_array('Liver Portion → Kidney (requires doctor approval)', $restricted)) {
-                    $restricted[] = 'Liver Portion → Kidney (requires doctor approval)';
-                }
                 continue;
             }
         }
@@ -706,10 +825,6 @@ class DonorModel {
                                 . ' (' . $b['days_remaining'] . ' day(s) remaining).';
             }
         }
-        if (!empty($restricted)) {
-            $messageParts[] = 'Restricted (needs doctor approval): '
-                            . implode('; ', $restricted) . '.';
-        }
         if (empty($messageParts)) {
             $messageParts[] = 'Eligible for new donations.';
         }
@@ -720,7 +835,8 @@ class DonorModel {
             'next_eligible'    => $nextEligible,
             'history'          => $history,
             'permanent_blocks' => $permanentBlocks,
-            'restricted'       => $restricted,
+            'had_kidney'       => $hadKidney,
+            'had_liver'        => $hadLiver,
             'message'          => implode(' ', $messageParts)
         ];
         } catch (\PDOException $e) {
@@ -760,40 +876,86 @@ class DonorModel {
         $recoveryStatus    = 'IN_RECOVERY';
 
         if (str_contains($donatedOrganLower, 'kidney')) {
-            // Kidney: permanently blocked — use NULL to mean "never"
-            $nextEligibleDate = null;
-            $recoveryStatus   = 'PERMANENT_BLOCK';
-        } elseif (str_contains($donatedOrganLower, 'bone') || str_contains($donatedOrganLower, 'marrow')) {
-            // Bone Marrow: 6 months
-            $nextEligibleDate = (new \DateTime($donationDate))->modify('+6 months')->format('Y-m-d');
-            $recoveryStatus   = 'IN_RECOVERY';
+            // Kidney: permanently blocked. Recovery is short (~1 month typically)
+            // Rule: Kidney -> Kidney = No. Kidney -> Marrow = Yes after recovery. 
+            // Kidney -> Liver = Restricted.
+            $nextEligibleDate = date('Y-m-d', strtotime($donationDate . ' + 1 month'));
         } elseif (str_contains($donatedOrganLower, 'liver')) {
-            // Liver Portion: 12 months
-            $nextEligibleDate = (new \DateTime($donationDate))->modify('+12 months')->format('Y-m-d');
-            $recoveryStatus   = 'IN_RECOVERY';
+            // Liver Portion: permanently blocked (usually). Next major donation 12-18m
+            // Rule: Liver -> Liver = No. Liver -> Marrow = Yes after 12m.
+            $nextEligibleDate = date('Y-m-d', strtotime($donationDate . ' + 12 months'));
+        } elseif (str_contains($donatedOrganLower, 'marrow') || str_contains($donatedOrganLower, 'bone')) {
+            // Bone Marrow: can re-donate after 6 months.
+            $nextEligibleDate = date('Y-m-d', strtotime($donationDate . ' + 6 months'));
         } else {
-            // Unknown organ — default to 6 months recovery
-            $nextEligibleDate = (new \DateTime($donationDate))->modify('+6 months')->format('Y-m-d');
-            $recoveryStatus   = 'IN_RECOVERY';
+            // Default recovery
+            $nextEligibleDate = date('Y-m-d', strtotime($donationDate . ' + 3 months'));
         }
 
         $query = "INSERT INTO donation_medical_history 
-                    (donor_id, pledge_id, donated_organ, donation_date, recovery_status, next_eligible_date, doctor_notes, hospital_id)
-                  VALUES 
-                    (:donor_id, :pledge_id, :donated_organ, :donation_date, :recovery_status, :next_eligible_date, :doctor_notes, :hospital_id)";
-
-        $con = $this->connect();
-        $stmt = $con->prepare($query);
-        return $stmt->execute([
-            ':donor_id'          => $donorId,
-            ':pledge_id'         => $pledgeId,
-            ':donated_organ'     => $donatedOrgan,
-            ':donation_date'     => $donationDate,
-            ':recovery_status'   => $recoveryStatus,
-            ':next_eligible_date'=> $nextEligibleDate,
-            ':doctor_notes'      => $doctorNotes,
-            ':hospital_id'       => $hospitalId
+                  (donor_id, pledge_id, donated_organ, donation_date, recovery_status, next_eligible_date, hospital_id, doctor_notes) 
+                  VALUES (:did, :pid, :organ, :date, :status, :next, :hid, :notes)";
+        
+        return $this->query($query, [
+            ':did'    => (int)$donorId,
+            ':pid'    => (int)$pledgeId,
+            ':organ'  => $donatedOrgan,
+            ':date'   => $donationDate,
+            ':status' => $recoveryStatus,
+            ':next'   => $nextEligibleDate,
+            ':hid'    => $hospitalId,
+            ':notes'  => $doctorNotes
         ]);
+    }
+
+    /**
+     * Automatically detect COMPLETED pledges and ensure they are recorded 
+     * in the medical history table.
+     */
+    public function syncDonationHistory($donorId)
+    {
+        // 1. Find all COMPLETED pledges for this donor
+        $query = "SELECT dp.*, o.name as organ_name 
+                  FROM donor_pledges dp
+                  JOIN organs o ON dp.organ_id = o.id
+                  WHERE dp.donor_id = :did AND dp.status = 'COMPLETED'";
+        $completedPledges = $this->query($query, [':did' => (int)$donorId]) ?: [];
+
+        if (empty($completedPledges)) return;
+
+        // 2. See which ones are already in history
+        $historyQuery = "SELECT pledge_id FROM donation_medical_history WHERE donor_id = :did";
+        $existing = $this->query($historyQuery, [':did' => (int)$donorId]) ?: [];
+        $existingPledgeIds = array_map(fn($row) => (int)$row->pledge_id, $existing);
+
+        // 3. For any COMPLETED pledge not in history, record it
+        foreach ($completedPledges as $pledge) {
+            if (!in_array((int)$pledge->id, $existingPledgeIds)) {
+                // Record it with defaults if specific outcome info isn't available
+                $this->recordDonationHistory(
+                    $donorId, 
+                    $pledge->id, 
+                    $pledge->organ_name, 
+                    date('Y-m-d'), // Assume current date if not specified
+                    $pledge->hospital_id ?? null,
+                    'Automatically recorded from pledge status completion.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Check if donor has any active (non-withdrawn) living organ pledges.
+     */
+    public function hasActiveLivingPledges($donorId)
+    {
+        $query = "SELECT COUNT(*) as count 
+                  FROM donor_pledges dp
+                  JOIN living_donor_consents ldc ON dp.id = ldc.donor_pledge_id
+                  WHERE dp.donor_id = :did AND dp.status != 'WITHDRAWN'";
+        
+        $result = $this->query($query, [':did' => (int)$donorId]);
+        return ($result && $result[0]->count > 0);
     }
 
     /**

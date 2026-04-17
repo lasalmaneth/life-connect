@@ -68,10 +68,97 @@
       </a>
     </div>
     
-    <div class="d-menu-section d-menu-section--bottom" style="margin-top:20px; border-top: 1px solid var(--g200);">
+    <div class="d-menu-section d-menu-section--bottom" style="margin-top:20px; border-top: 1px solid var(--g200); padding-top: 10px;">
       <a class="d-menu-item" style="color: #ef4444;" href="javascript:void(0)" onclick="openLogoutModal()">
         <span class="d-menu-item__icon"><i class="fas fa-sign-out-alt"></i></span> Logout
+      </a>
+      <a class="d-menu-item" style="color: var(--g500); margin-top: 5px;" href="javascript:void(0)" onclick="openWithdrawAccountModal()">
+        <span class="d-menu-item__icon"><i class="fas fa-user-minus"></i></span> Account Withdrawal
       </a>
     </div>
   </nav>
 </aside>
+
+<!-- Modal: Account Withdrawal Confirmation -->
+<div id="withdrawAccountModal" class="d-modal">
+  <div class="d-modal__body" id="withdrawModalBody" style="max-width: 450px; text-align: center;">
+    <!-- Loading State -->
+    <div id="withdrawModalLoading" style="padding: 2.5rem 1rem;">
+      <div class="d-spinner" style="margin: 0 auto 1.5rem;"></div>
+      <p style="color: var(--g600); font-weight: 500;">Checking account eligibility...</p>
+    </div>
+
+    <!-- Ready State (Success) -->
+    <div id="withdrawModalReady" style="display: none;">
+      <div style="width: 60px; height: 60px; background: #fee2e2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 class="d-modal__title">Request Account Withdrawal</h3>
+      <div style="margin: 1.5rem 0; text-align: left;">
+        <p style="color: var(--g600); font-size: 0.9rem; margin-bottom: 1rem;">
+          You are about to request a formal withdrawal of your LifeConnect account. 
+        </p>
+        <ul style="color: var(--g600); font-size: 0.85rem; padding-left: 1.25rem;">
+          <li>All current donation commitments are cleared.</li>
+          <li>Once processed, you will no longer be able to log in.</li>
+          <li>Your data will be preserved for legal/medical records.</li>
+        </ul>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 2rem;">
+        <button class="d-btn d-btn--outline" onclick="closeModal('withdrawAccountModal')">Stay Active</button>
+        <a href="<?= ROOT ?>/donor/withdraw_account" class="d-btn" style="background: #ef4444; color: white; text-decoration: none;">Request Withdrawal</a>
+      </div>
+    </div>
+
+    <!-- Error State (Pledges Exist) -->
+    <div id="withdrawModalError" style="display: none;">
+      <div style="width: 60px; height: 60px; background: #fff7ed; color: #f97316; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1.5rem;">
+        <i class="fas fa-hand"></i>
+      </div>
+      <h3 class="d-modal__title" style="color: #c2410c;">Withdrawal Blocked</h3>
+      <div style="margin: 1.5rem 0;">
+        <p id="withdrawErrorMessage" style="color: var(--g700); font-size: 0.95rem; font-weight: 600; line-height: 1.5; padding: 0 10px;">
+          You have ongoing donation commitments. You must withdraw all pledges first.
+        </p>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 2rem;">
+        <button class="d-btn d-btn--outline" onclick="closeModal('withdrawAccountModal')">Dismiss</button>
+        <a href="<?= ROOT ?>/donor/donations" class="d-btn" style="background: var(--blue-600); color: white; text-decoration: none;">Withdraw Pledges First</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openWithdrawAccountModal() {
+  const modal = document.getElementById('withdrawAccountModal');
+  const loading = document.getElementById('withdrawModalLoading');
+  const ready = document.getElementById('withdrawModalReady');
+  const error = document.getElementById('withdrawModalError');
+  const errMsg = document.getElementById('withdrawErrorMessage');
+
+  // Activate modal and show loading state
+  modal.classList.add('active');
+  loading.style.display = 'block';
+  ready.style.display = 'none';
+  error.style.display = 'none';
+
+  // Perform AJAX pre-check
+  fetch('<?= ROOT ?>/donor/check_withdrawal_eligibility')
+    .then(response => response.json())
+    .then(data => {
+      loading.style.display = 'none';
+      if (data.success) {
+        ready.style.display = 'block';
+      } else {
+        error.style.display = 'block';
+        errMsg.innerText = data.message;
+      }
+    })
+    .catch(err => {
+      loading.style.display = 'none';
+      error.style.display = 'block';
+      errMsg.innerText = "Error connecting to server. Please try again.";
+    });
+}
+</script>

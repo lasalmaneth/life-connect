@@ -144,6 +144,14 @@ class Donor {
         // Kidney=permanent block, Bone Marrow=6 months, Liver=12 months
         $eligibility = $donorModel->getDonationEligibility($donorId);
 
+        // ── Deceased Donation Mode (Sri Lankan Practices) ─────────────────
+        $deceasedData = $donorModel->getDeceasedDonationMode($donorId);
+        $deceasedMode = $deceasedData['mode'] ?? 'NONE';
+        $deceasedSuperseded = $deceasedData['superseded'] ?? null;
+
+        // ── Active Living Pledges Check ──────────────────────────────────
+        $hasActiveLiving = $donorModel->hasActiveLivingPledges($donorId);
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -157,7 +165,10 @@ class Donor {
             'unreadCount' => $unreadCount,
             'unread_count' => $unreadCount, // Added for dual-naming compatibility
             'notifications' => $notifications,
-            'eligibility' => $eligibility  // Re-donation eligibility rules
+            'eligibility' => $eligibility,  // Re-donation eligibility rules
+            'deceasedMode' => $deceasedMode,  // NONE, EYE_ONLY, BODY_ONLY, BODY_PLUS_CORNEA, ORGAN_ONLY, ORGANS_PLUS_CORNEA
+            'deceasedSuperseded' => $deceasedSuperseded,
+            'hasActiveLiving' => $hasActiveLiving
         ];
     }
 
@@ -228,12 +239,13 @@ class Donor {
             'active_roles' => $activeRoles,
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
+            'deceased_mode' => $common['deceasedMode'],
+            'deceased_superseded' => $common['deceasedSuperseded'],
             'withdrawal' => $common['withdrawal'],
             'eligibility' => $common['eligibility'],  // Re-donation eligibility
             'total_financial' => $totalFinancial,
-            'active_page' => 'overview',
-            'page_title' => 'Overview',
-            'page_css' => [],
+            'active_page' => 'dashboard',
+            'page_title' => 'Donor Dashboard',
             'ROOT' => ROOT
         ]);
     }
@@ -591,9 +603,9 @@ class Donor {
                         'medical_school_id'     => $_POST['medical_school_id'] ?? null,
                         'religion'             => $_POST['religion'] ?? null,
                         'special_requests'      => $_POST['special_requests'] ?? null,
-                        'responsible_person'    => $_POST['responsible_person'] ?? null,
-                        'responsible_contact'   => $_POST['responsible_contact'] ?? null,
-                        'transport_arrangement' => $_POST['transport_arrangement'] ?? null,
+                        'responsible_person'    => null,
+                        'responsible_contact'   => null,
+                        'transport_arrangement' => null,
                         'witness1_name'         => $_POST['witness1_name'] ?? '',
                         'witness1_nic'          => $_POST['witness1_nic'] ?? '',
                         'witness1_phone'        => $_POST['witness1_phone'] ?? '',
@@ -907,7 +919,23 @@ class Donor {
 
         $districts = $this->getDistricts();
 
+        // ── Resolve Deceased Donation Mode ──
+        $deceasedMode = $common['deceasedMode'] ?? 'NONE';
+        
+        // ── Living Donation Restriction (Body Donation Policy) ──
+        $eligibility = $common['eligibility'] ?? [];
+        $hasMajorLivingDonation = (!empty($eligibility['had_kidney']) || !empty($eligibility['had_liver']));
+        
+        // Body donation is allowed only if:
+        // 1. Not in a conflicting ORGAN mode
+        // 2. HAS NOT donated a major organ while living
+        $isBodyMode = ($deceasedMode === 'NONE' || $deceasedMode === 'EYE_ONLY' || str_contains($deceasedMode, 'BODY'));
+        if ($hasMajorLivingDonation) {
+            $isBodyMode = false;
+        }
+
         $this->view('donor/donations', [
+            'has_major_living_donation' => $hasMajorLivingDonation,
             'donor_data'          => $donorData,
             'donor_full_name'     => $donorFullName,
             'donor_id_display'    => $donorIdDisplay,
@@ -918,6 +946,7 @@ class Donor {
             'selected_living'     => $selectedLiving,
             'selected_after_death'=> $selectedAfterDeath,
             'selected_full_body'  => $selectedFullBody,
+            'pledged_organs'      => $pledgedOrgans,
             'hospitals_by_organ'  => $hospitalsByOrgan,
             'approved_hospitals'  => $approvedHospitals,
             'medical_schools'     => $medicalSchools,
@@ -925,7 +954,12 @@ class Donor {
             'districts'           => $districts,
             'active_roles'        => $activeRoles,
             'current_mode'        => $currentMode,
+            'deceased_mode'       => $deceasedMode,
+            'deceased_superseded' => $common['deceasedSuperseded'],
+            'is_body_mode'        => $isBodyMode,
             'withdrawal'          => $common['withdrawal'],
+            'eligibility'         => $common['eligibility'],
+            'stats'               => $common['stats'],
             'active_page'         => 'donations',
             'page_title'          => 'My Donations',
             'page_css'            => ['organ.css'],
@@ -2189,6 +2223,88 @@ class Donor {
             // Default redirect for direct GET access
             redirect('donor/donations');
         }
+    }
+
+    /**
+     * Account Withdrawal Workflow
+     */
+    public function checkWithdrawalEligibility()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $donorModel = new \App\Models\DonorModel();
+        $donor = $donorModel->getDonorByUserId($_SESSION['user_id']);
+        
+        if (!$donor) {
+            echo json_encode(['success' => false, 'message' => 'Donor profile not found.']);
+            exit;
+        }
+
+        $summary = $donorModel->getPledgeSummary($donor->id);
+        
+        if ($summary['total'] > 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'You have ongoing donation commitments. You must withdraw all pledges first.'
+            ]);
+            exit;
+        }
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    public function withdraw_account()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $donorModel = new \App\Models\DonorModel();
+        $donor = $donorModel->getDonorByUserId($userId);
+        
+        if (!$donor) {
+            $_SESSION['error_message'] = "Donor profile not found.";
+            redirect('donor');
+        }
+
+        $summary = $donorModel->getPledgeSummary($donor->id);
+        
+        if ($summary['total'] > 0) {
+            $_SESSION['error_message'] = "You have ongoing donation commitments. You must withdraw all pledges first.";
+            redirect('donor/donations');
+        }
+
+        // Update user status to WITHDRAW_REQUEST
+        $db = new class { use \App\Core\Database; };
+        $db->query("UPDATE users SET status = 'WITHDRAW_REQUEST' WHERE id = :id", [':id' => $userId]);
+        
+        $_SESSION['status'] = 'WITHDRAW_REQUEST';
+        $_SESSION['success_message'] = "Account withdrawal request submitted successfully.";
+        
+        redirect('donor');
+    }
+
+    public function cancel_withdraw_account()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        
+        // Revert status to ACTIVE
+        $db = new class { use \App\Core\Database; };
+        $db->query("UPDATE users SET status = 'ACTIVE' WHERE id = :id", [':id' => $userId]);
+        
+        $_SESSION['status'] = 'ACTIVE';
+        $_SESSION['success_message'] = "Withdrawal request cancelled successfully.";
+        
+        redirect('donor');
     }
 
     /**

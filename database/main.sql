@@ -1214,7 +1214,7 @@ CREATE TABLE `users` (
   `email` varchar(100) DEFAULT NULL,
   `phone` varchar(15) DEFAULT NULL,
   `role` enum('F_ADMIN','AC_ADMIN','D_ADMIN','U_ADMIN','DONOR','HOSPITAL','MEDICAL_SCHOOL','CUSTODIAN','AFTERCARE_PATIENT') NOT NULL,
-  `status` enum('PENDING','ACTIVE','SUSPENDED') DEFAULT 'PENDING',
+  `status` enum('PENDING','ACTIVE','SUSPENDED','WITHDRAW_REQUEST') DEFAULT 'PENDING',
   `must_change_credentials` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
