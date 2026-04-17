@@ -337,25 +337,38 @@ class DonorModel {
     {
         $donorId = (int)$donorId;
 
-        // 1. Fetch Latest Body Donation Intent (from body_donation_consents)
-        $bodyRes = $this->query(
-            "SELECT consent_date, status FROM body_donation_consents 
-             WHERE donor_id = :did AND status = 'ACTIVE' 
+        // 1. Fetch Latest Body Donation Intent
+        // Checks BOTH body_donation_consents (formal form) and donor_pledges (general tracker)
+        $bodyConsentRes = $this->query(
+            "SELECT consent_date FROM body_donation_consents 
+             WHERE donor_id = :did AND status IN ('ACTIVE', 'IN_PROGRESS') 
              ORDER BY consent_date DESC LIMIT 1",
             [':did' => $donorId]
         );
-        $bodyDate = $bodyRes ? $bodyRes[0]->consent_date : null;
+        $bodyPledgeRes = $this->query(
+            "SELECT pledge_date FROM donor_pledges 
+             WHERE donor_id = :did AND organ_id IN (9, 10) 
+             AND status IN ('APPROVED', 'UPLOADED', 'IN_PROGRESS') 
+             ORDER BY pledge_date DESC LIMIT 1",
+            [':did' => $donorId]
+        );
 
-        // 2. Fetch Latest Organ Donation Intent (excluding Cornea and Full Body legacy id 9)
-        // CRITICAL: We only count DECEASED organ pledges here.
-        // We exclude pledges that have a corresponding entry in living_donor_consents.
+        $bodyDate = ($bodyConsentRes) ? $bodyConsentRes[0]->consent_date : (($bodyPledgeRes) ? $bodyPledgeRes[0]->pledge_date : null);
+
+        // 2. Fetch Latest Organ Donation Intent (excluding Cornea and Body IDs 9, 10)
+        // CRITICAL: Counts Deceased (no LDC) or ANY IN_PROGRESS organ pledge.
+        // We now EXCLUDE 'PENDING' to ensure the "Mode" only changes after formal registration.
         $organRes = $this->query(
             "SELECT MAX(dp.pledge_date) as latest_date, COUNT(*) as active_count
              FROM donor_pledges dp
              JOIN organs o ON dp.organ_id = o.id
              LEFT JOIN living_donor_consents ldc ON dp.id = ldc.donor_pledge_id
-             WHERE dp.donor_id = :did AND dp.status != 'WITHDRAWN' AND dp.organ_id != 9 
-             AND ldc.id IS NULL
+             WHERE dp.donor_id = :did 
+             AND (
+                (dp.status IN ('APPROVED', 'UPLOADED') AND ldc.id IS NULL)
+                OR (dp.status = 'IN_PROGRESS')
+             )
+             AND dp.organ_id NOT IN (9, 10) 
              AND LOWER(o.name) NOT LIKE '%cornea%' AND LOWER(o.name) NOT LIKE '%eye%'",
             [':did' => $donorId]
         );
@@ -366,7 +379,7 @@ class DonorModel {
             "SELECT COUNT(*) as active_count
              FROM donor_pledges dp
              JOIN organs o ON dp.organ_id = o.id
-             WHERE dp.donor_id = :did AND dp.status != 'WITHDRAWN' 
+             WHERE dp.donor_id = :did AND dp.status IN ('PENDING', 'APPROVED', 'UPLOADED', 'IN_PROGRESS') 
              AND (LOWER(o.name) LIKE '%cornea%' OR LOWER(o.name) LIKE '%eye%')",
             [':did' => $donorId]
         );
@@ -399,9 +412,33 @@ class DonorModel {
             }
         }
 
+        // 5. Check specifically for IN_PROGRESS status for more detailed tooltips
+        $inProgressOrganRes = $this->query(
+            "SELECT COUNT(*) as cnt 
+             FROM donor_pledges dp
+             JOIN organs o ON dp.organ_id = o.id
+             WHERE dp.donor_id = :did 
+             AND dp.status = 'IN_PROGRESS' 
+             AND dp.organ_id NOT IN (9, 10)
+             AND LOWER(o.name) NOT LIKE '%cornea%' AND LOWER(o.name) NOT LIKE '%eye%'",
+            [':did' => $donorId]
+        );
+        $hasInProgressOrgan = (!empty($inProgressOrganRes) && $inProgressOrganRes[0]->cnt > 0);
+
+        $inProgressBodyRes = $this->query(
+            "SELECT COUNT(*) as cnt FROM donor_pledges 
+             WHERE donor_id = :did AND status = 'IN_PROGRESS' AND organ_id IN (9, 10)",
+            [':did' => $donorId]
+        );
+        $hasInProgressBody = (!empty($inProgressBodyRes) && $inProgressBodyRes[0]->cnt > 0);
+
         return [
             'mode' => $mode,
-            'superseded' => $superseded
+            'superseded' => $superseded,
+            'has_active_deceased_organs' => ($organDate !== null),
+            'has_active_body_pledge' => ($bodyDate !== null),
+            'has_inprogress_deceased_organs' => $hasInProgressOrgan,
+            'has_inprogress_body' => $hasInProgressBody
         ];
     }
 
@@ -605,51 +642,50 @@ class DonorModel {
         return $result ? $result[0] : null;
     }
 
-    public function updateDonorProfile($donorId, $updateData)
+    /**
+     * Update donor profile (Telephone in users tab, Address in donors tab)
+     */
+    public function updateDonorProfile($userId, $data)
     {
-        // Extract fields
-        $contactNumber = $updateData['contact_number'] ?? '';
-        $address = $updateData['address'] ?? '';
-        $gnDiv = $updateData['grama_niladhari_division'] ?? '';
-        $district = $updateData['district'] ?? '';
-        $divSec = $updateData['divisional_secretariat'] ?? '';
-        $email = $updateData['email'] ?? '';
+        // 1. Update Telephone in users table (if phone is provided)
+        if (isset($data['phone']) || isset($data['contact_number'])) {
+            $phone = $data['phone'] ?? $data['contact_number'];
+            $this->query("UPDATE users SET phone = :phone WHERE id = :user_id", [
+                ':phone' => $phone,
+                ':user_id' => $userId
+            ]);
+        }
 
-        // Update donors table
-        $donorQuery = "UPDATE donors SET 
-                       address = :address,
-                       nationality = :nationality,
-                       grama_niladhari_division = :gn_div,
-                       district = :district,
-                       divisional_secretariat = :div_sec
-                       WHERE id = :id";
+        // 2. Update Address in donors table (with encryption if address is provided)
+        if (isset($data['address'])) {
+            $encryptedAddress = encrypt($data['address']);
+            $this->query("UPDATE donors SET address = :address WHERE user_id = :user_id", [
+                ':address' => $encryptedAddress,
+                ':user_id' => $userId
+            ]);
+        }
         
-        $donorParams = [
-            ':address' => $address,
-            ':nationality' => $updateData['nationality'] ?? 'Sri Lankan',
-            ':gn_div' => $gnDiv,
-            ':district' => $district,
-            ':div_sec' => $divSec,
-            ':id' => $donorId
+        // 3. Update Email in users table (if provided)
+        if (isset($data['email'])) {
+            $this->query("UPDATE users SET email = :email WHERE id = :user_id", [
+                ':email' => $data['email'],
+                ':user_id' => $userId
+            ]);
+        }
+
+        // 4. Update other fields in donors table (legacy compatibility if needed)
+        $donorFields = [
+            'nationality', 'grama_niladhari_division', 'district', 'divisional_secretariat'
         ];
-
-        $updateDonor = $this->query($donorQuery, $donorParams);
-
-        // Update users table for contact info
-        // First get user_id
-        $donor = $this->getDonorById($donorId);
-        if ($donor) {
-            $userQuery = "UPDATE users SET 
-                          phone = :phone,
-                          email = :email
-                          WHERE id = :user_id";
-            
-            $userParams = [
-                ':phone' => $contactNumber,
-                ':email' => $email,
-                ':user_id' => $donor->user_id
-            ];
-            $this->query($userQuery, $userParams);
+        foreach ($donorFields as $field) {
+            $key = ($field === 'grama_niladhari_division') ? 'gn_div' : $field;
+            if (isset($data[$field]) || isset($data[$key])) {
+                $val = $data[$field] ?? $data[$key];
+                $this->query("UPDATE donors SET $field = :val WHERE user_id = :user_id", [
+                    ':val' => $val,
+                    ':user_id' => $userId
+                ]);
+            }
         }
 
         return true;
@@ -995,5 +1031,114 @@ class DonorModel {
             ':cat_id' => $categoryId,
             ':id' => $donorId
         ]);
+    }
+
+    public function getPendingMatchesForDonor($donorId)
+    {
+        $query = "SELECT m.match_id, m.donor_pledge_id, m.donor_status as status, m.match_date, 
+                         o.name as organ_name, h.name as hospital_name, r.priority_level,
+                         dp.organ_id
+                  FROM donor_patient_match m
+                  JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
+                  JOIN organ_requests r ON m.request_id = r.id
+                  JOIN hospitals h ON r.hospital_id = h.id
+                  JOIN organs o ON dp.organ_id = o.id
+                  WHERE dp.donor_id = :donor_id AND m.donor_status IN ('MATCH', 'MATCH WITH WARNING', 'PENDING', 'APPROVED')";
+        
+        return $this->query($query, [':donor_id' => $donorId]) ?: [];
+    }
+
+    public function processMatchDecision($matchId, $donorId, $decision)
+    {
+        try {
+            $con = $this->connect();
+            $con->beginTransaction();
+
+            // 1. Verify match ownership and existence
+            $chkSql = "SELECT m.donor_pledge_id FROM donor_patient_match m 
+                       JOIN donor_pledges dp ON m.donor_pledge_id = dp.id 
+                       WHERE m.match_id = :mid AND dp.donor_id = :did";
+            
+            $stmt = $con->prepare($chkSql);
+            $stmt->execute([':mid' => $matchId, ':did' => $donorId]);
+            $match = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$match) {
+                $con->rollBack();
+                return ['success' => false, 'message' => 'Match not found or unauthorized.'];
+            }
+
+            $pledgeId = $match['donor_pledge_id'];
+
+            if ($decision === 'accept') {
+                // 2. Set this match to APPROVED (accepted by donor)
+                $upd1 = $con->prepare("UPDATE donor_patient_match SET donor_status = 'APPROVED' WHERE match_id = :mid");
+                $upd1->execute([':mid' => $matchId]);
+
+                // 3. Set ALL OTHER matches for this PLEDGE to REJECTED
+                $upd2 = $con->prepare("UPDATE donor_patient_match SET donor_status = 'REJECTED' WHERE donor_pledge_id = :pid AND match_id != :mid");
+                $upd2->execute([':pid' => $pledgeId, ':mid' => $matchId]);
+                
+                /* 
+                // 4. Update the Pledge status to reflect matching success
+                $upd3 = $con->prepare("UPDATE donor_pledges SET status = 'IN_PROGRESS' WHERE id = :pid");
+                $upd3->execute([':pid' => $pledgeId]);
+                */
+
+                $msg = "Match accepted! Institutional coordination has been initiated.";
+            } else {
+                // Just reject this one
+                $upd1 = $con->prepare("UPDATE donor_patient_match SET donor_status = 'REJECTED' WHERE match_id = :mid");
+                $upd1->execute([':mid' => $matchId]);
+                $msg = "Match rejected.";
+            }
+
+            $con->commit();
+            return ['success' => true, 'message' => $msg];
+
+        } catch (\Exception $e) {
+            if (isset($con) && $con->inTransaction()) $con->rollBack();
+            return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Sync Match Notifications: 
+     * Identifies pending matches in donor_patient_match and ensures 
+     * a corresponding entry exists in the notifications table.
+     */
+    public function syncMatchNotifications($donorId)
+    {
+        // 1. Get all pending matches for this donor
+        $matches = $this->getPendingMatchesForDonor($donorId);
+        if (empty($matches)) return;
+
+        $notificationModel = new \App\Models\NotificationModel();
+        
+        // Fetch user_id for this donor to target notifications
+        $donorData = $this->query("SELECT user_id FROM donors WHERE id = :id", [':id' => $donorId]);
+        if (!$donorData) return;
+        $userId = $donorData[0]->user_id;
+
+        foreach ($matches as $match) {
+            // Use a unique search key for action_url to prevent duplicates
+            $matchUrl = "donor/donations?match_id=" . $match->match_id;
+            
+            // Check if this notification already exists
+            $exists = $this->query("SELECT id FROM notifications WHERE user_id = :uid AND action_url = :url", [
+                ':uid' => $userId,
+                ':url' => $matchUrl
+            ]);
+
+            if (!$exists) {
+                $notificationModel->addNotification([
+                    'user_id' => $userId,
+                    'type' => 'MATCH',
+                    'title' => "Match Found: " . $match->organ_name,
+                    'message' => "A potential life-saving match for your {$match->organ_name} has been found at {$match->hospital_name}. Priority Level: " . ($match->priority_level ?? 'Normal'),
+                    'action_url' => $matchUrl
+                ]);
+            }
+        }
     }
 }
