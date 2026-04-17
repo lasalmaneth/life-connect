@@ -1,0 +1,241 @@
+/* =============================================================================
+   HOSPITAL PORTAL — SUCCESS STORIES PREMIUM STYLES
+   ============================================================================= */
+
+.stories-banner {
+    background: linear-gradient(135deg, #003b6e 0%, #005baa 100%);
+    border-radius: 12px;
+    padding: 2rem;
+    color: white;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0, 59, 110, 0.15);
+}
+
+.stories-banner__content h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.stories-banner__content p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.story-type-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge--impact { background: #e0f2fe; color: #0369a1; }
+.badge--inspo { background: #fef3c7; color: #92400e; }
+.badge--case { background: #f3e8ff; color: #6b21a8; }
+
+.story-stats-preview {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.story-stats-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Filter Styles */
+.stories-filter-wrapper {
+    margin-bottom: 1.5rem;
+}
+
+.stories-filter-group {
+    display: flex;
+    gap: 8px;
+    background: #f1f5f9;
+    padding: 6px;
+    border-radius: 12px;
+    width: fit-content;
+}
+
+.stories-filter-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.stories-filter-btn:hover {
+    color: #003b6e;
+}
+
+.stories-filter-btn.active {
+    background: white;
+    color: #003b6e;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Card/Table Styles */
+.stories-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.stories-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stories-table th {
+    text-align: left;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.stories-table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.stories-table tr:last-child td {
+    border-bottom: none;
+}
+
+.story-title-main {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.story-desc-preview {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.5;
+    max-width: 450px;
+}
+
+.status-badge {
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-approved { background: #dcfce7; color: #166534; }
+.status-rejected { background: #fee2e2; color: #991b1b; }
+
+.action-btns {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.btn-view-details {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #003b6e;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    background: #f0f7ff;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-view-details:hover {
+    background: #e0f2fe;
+}
+
+.btn-delete-story {
+    color: #ef4444;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-delete-story:hover {
+    background: #fef2f2;
+}
+
+/* Modal Enhancements */
+.premium-modal {
+    max-width: 650px !important;
+}
+
+.premium-modal-header {
+    background: #f8fafc;
+    border-radius: 12px 12px 0 0;
+    padding: 1.5rem 2rem !important;
+}
+
+.premium-modal-body {
+    padding: 2rem !important;
+}
+
+.premium-modal-footer {
+    background: #f8fafc;
+    border-radius: 0 0 12px 12px;
+    padding: 1.25rem 2rem !important;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Animations */
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.story-row {
+    animation: slideUp 0.3s ease forwards;
+}

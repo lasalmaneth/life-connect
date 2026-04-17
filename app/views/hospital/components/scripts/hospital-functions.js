@@ -2991,3 +2991,18 @@
             }, 800);
         }
 
+
+        function toggleDrawer(id) {
+            const drawer = document.getElementById(id);
+            const overlay = document.getElementById(id + '-overlay');
+            if (!drawer || !overlay) return;
+
+            const isShown = drawer.classList.contains('show');
+            if (isShown) {
+                drawer.classList.remove('show');
+                overlay.classList.remove('show');
+            } else {
+                drawer.classList.add('show');
+                overlay.classList.add('show');
+            }
+        }

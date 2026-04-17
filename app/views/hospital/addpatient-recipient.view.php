@@ -26,67 +26,11 @@
 </head>
 
 <body>
-    <div class="header">
-        <div class="header-content">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <a href="<?php echo ROOT ?? '/life-connect'; ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
-                    <img src="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px; width: auto;">
-                    <div>
-                        <strong style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
-                        <p style="margin:0; font-size:.68rem; color:#6b7280; padding-top:2px;">Hospital Portal</p>
-                    </div>
-                </a>
-            </div>
-            <div class="user-info">
-                <div class="user-avatar"><?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?></div>
-                <div class="user-details">
-                    <div style="font-weight: 600; font-size: 0.9rem;"><?php echo htmlspecialchars($hospital_details['name']); ?></div>
-                    <div style="font-size: 0.8rem; opacity: 0.8;"><?php echo htmlspecialchars($hospital_details['role']); ?></div>
-                </div>
-                <div class="user-actions">
-                    <button class="btn-logout" onclick="window.location.href='<?php echo ROOT; ?>/logout'" title="Logout">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16,17 21,12 16,7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php include __DIR__ . '/inc/header.view.php'; ?>
 
     <div class="container">
         <div class="main-content">
-            <div class="sidebar">
-                <div class="sidebar-header">
-                    <h3>Hospital Portal</h3>
-                    <p>Clinical coordination</p>
-                </div>
-
-                <div class="menu-section">
-                    <div class="menu-section-title">NAVIGATION</div>
-                    <a href="<?php echo ROOT; ?>/hospital" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"><i class="fas fa-chart-line"></i></span>
-                        <span>Main Dashboard</span>
-                    </a>
-                    <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
-                        <span>Aftercare Accounts</span>
-                    </a>
-                    <a href="<?php echo ROOT; ?>/hospital/aftercare-recipients" class="menu-item" style="text-decoration:none; color:inherit; display:block;">
-                        <span class="icon"><i class="fas fa-user-friends"></i></span>
-                        <span>Recipient Patients</span>
-                    </a>
-                </div>
-
-                <div class="menu-section menu-section--footer">
-                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration:none; display:block;">
-                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
+            <?php include __DIR__ . '/inc/sidebar_aftercare.view.php'; ?>
 
             <div class="content-area">
                 <div class="content-section" style="display:block;">
@@ -252,8 +196,4 @@
         }
     </script>
 
-    <?php
-        require_once __DIR__ . '/footer.php';
-    ?>
-</body>
-</html>
+    <?php include __DIR__ . '/inc/footer.view.php'; ?>

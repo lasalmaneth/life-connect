@@ -6,13 +6,13 @@
                 const style = document.createElement('style');
                 style.id = 'hc-popup-style';
                 style.textContent = `
-                    /* Donor-style toast */
-                    #hc-toast{position:fixed;top:5.25rem;right:1.5rem;z-index:3000;padding:.75rem 1.25rem;border-radius:10px;font-weight:600;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.15);transform:translateY(-80px);opacity:0;transition:all .35s ease;max-width:320px;}
-                    #hc-toast.show{transform:translateY(0);opacity:1;}
-                    #hc-toast.toast-success{background:#16a34a;color:#fff;}
-                    #hc-toast.toast-error{background:#dc2626;color:#fff;}
-                    #hc-toast.toast-info{background:#2563eb;color:#fff;}
-                    #hc-toast.toast-warning{background:#d97706;color:#fff;}
+                    /* Professional white-theme toast */
+                    #hc-toast{position:fixed;top:5.4rem;right:1.5rem;z-index:3000;padding:.8rem 1.4rem;border-radius:12px;font-weight:700;font-size:.9rem;background:#fff;color:#1e293b;border:1px solid #e2e8f0;box-shadow:0 12px 32px rgba(15,23,42,.12);transform:translateX(100px);opacity:0;transition:all .4s cubic-bezier(.17,.67,.17,.98);max-width:350px;display:flex;align-items:center;gap:10px;}
+                    #hc-toast.show{transform:translateX(0);opacity:1;}
+                    #hc-toast.toast-success{border-left:5px solid #10b981;}
+                    #hc-toast.toast-error{border-left:5px solid #ef4444;}
+                    #hc-toast.toast-info{border-left:5px solid #3b82f6;}
+                    #hc-toast.toast-warning{border-left:5px solid #f59e0b;}
 
                     /* Donor-style dialog */
                     #hc-dialog{position:fixed;inset:0;z-index:3500;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);padding:1.25rem;}
@@ -163,9 +163,34 @@
             showServerMessage(message, type);
         }
 
-                function toggleUserDropdown() {
+                function toggleNotifications() {
+            const dropdown = document.getElementById('notification-dropdown');
+            if (dropdown) dropdown.classList.toggle('show');
+            const userDropdown = document.getElementById('user-dropdown');
+            if (userDropdown) userDropdown.classList.remove('show');
+        }
+
+        function toggleUserDropdown() {
             const dropdown = document.getElementById('user-dropdown');
-            dropdown.classList.toggle('show');
+            if (dropdown) dropdown.classList.toggle('show');
+            const notifDropdown = document.getElementById('notification-dropdown');
+            if (notifDropdown) notifDropdown.classList.remove('show');
+        }
+
+        // Close dropdowns on outside click
+        window.onclick = function(event) {
+            if (!event.target.closest('.user-info') && !event.target.closest('.user-avatar')) {
+                const userDropdown = document.getElementById('user-dropdown');
+                if (userDropdown && userDropdown.classList.contains('show')) {
+                    userDropdown.classList.remove('show');
+                }
+            }
+            if (!event.target.closest('.notification-container')) {
+                const notifDropdown = document.getElementById('notification-dropdown');
+                if (notifDropdown && notifDropdown.classList.contains('show')) {
+                    notifDropdown.classList.remove('show');
+                }
+            }
         }
 
         function editProfile() {

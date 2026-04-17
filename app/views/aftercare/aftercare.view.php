@@ -18,11 +18,77 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
            hospital.css sets body as a fixed-height flex container; override locally. */
         html { height: auto; }
         body.aftercare-portal {
-            height: auto;
-            min-height: 100vh;
-            display: block;
-            overflow-y: auto;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background: #f8fafc;
         }
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .sidebar-nav {
+            padding: 20px;
+            flex: 1;
+        }
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #64748b;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .sidebar-item:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        .sidebar-item.active {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        .sidebar-item i {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-section {
+            display: none;
+            padding: 30px;
+        }
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Overrides for mobile/standardizing */
+        main.d-content { margin-left: 0; width: 100%; padding: 0; }
+        .header { background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 50; }
+        
+        /* Re-center header items for horizontal alignment while staying sleek */
+        .header-content { align-items: center !important; }
+        .header-right { align-items: center !important; }
     </style>
 </head>
 <body class="aftercare-portal">
@@ -39,26 +105,24 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
             </a>
         </div>
 
-        <div class="header-right">
-            <a class="nav-link" href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" title="Home">
+        <div class="header-right" style="display: flex; align-items: center; gap: 1.5rem;">
+            <a class="nav-link" href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" title="Home" style="display: flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
                 <i class="fa-solid fa-house"></i>
                 <span>Home</span>
             </a>
 
-            <button class="notification-bell" type="button" title="Notifications" aria-label="Notifications">
+            <button class="notification-bell" type="button" title="Notifications" aria-label="Notifications" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; padding: 0; display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid fa-bell"></i>
             </button>
 
-            <div class="user-info" style="cursor: default;">
-                <div class="user-avatar"><?php echo strtoupper(substr($patientName, 0, 1)); ?></div>
-                <div style="display: flex; flex-direction: column; gap: 2px;">
-                    <div style="font-size: 0.9rem; font-weight: 600; color: #1e293b;"><?php echo htmlspecialchars($patientName); ?></div>
-                    <div class="user-id-pill">
-                        <i class="fa-solid fa-id-card" style="font-size: 0.65rem;"></i>
-                        <span><?php echo htmlspecialchars((string)($patient->registration_number ?? 'RECIPIENT')); ?></span>
-                    </div>
+            <div class="user-info" style="display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 6px 12px; border-radius: 12px; border: 1px solid #e2e8f0; cursor: default;">
+                <div class="user-avatar" style="width: 32px; height: 32px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem;"><?php echo strtoupper(substr($patientName, 0, 1)); ?></div>
+                <div style="display: flex; flex-direction: column; gap: 0;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; line-height: 1.2;"><?php echo htmlspecialchars($patientName); ?></div>
+                    <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">ID: <?php echo htmlspecialchars((string)($patient->registration_number ?? 'RECIPIENT')); ?></div>
                 </div>
-                <a class="btn-logout" href="<?= ROOT ?>/aftercare/logout" title="Logout" aria-label="Logout">
+                <div style="width: 1px; height: 24px; background: #e2e8f0; margin: 0 4px;"></div>
+                <a class="btn-logout" href="<?= ROOT ?>/aftercare/logout" title="Logout" aria-label="Logout" style="color: #ef4444; text-decoration: none; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </a>
             </div>
@@ -66,38 +130,78 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
     </div>
 </div>
 
-<main class="d-content" style="margin-left: 0;">
-    <div class="d-content__header">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <h2>Aftercare Support</h2>
-                <p>Track your follow-up appointments and review support requests.</p>
-            </div>
-            <div class="d-status d-status--success">
-                <div class="d-status__dot"></div>
-                Active Support
+<div class="main-container">
+    <div class="sidebar">
+        <div class="sidebar-nav">
+            <div style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 15px; padding-left: 10px;">User Menu</div>
+            <a onclick="showSection('dashboard', this)" class="sidebar-item active">
+                <i class="fa-solid fa-gauge-high"></i>
+                Dashboard
+            </a>
+            <a onclick="showSection('appointments', this)" class="sidebar-item">
+                <i class="fa-solid fa-calendar-check"></i>
+                My Appointments
+            </a>
+            <a onclick="showSection('support', this)" class="sidebar-item">
+                <i class="fa-solid fa-hand-holding-medical"></i>
+                Support Request
+            </a>
+            <a onclick="showSection('medical-history', this)" class="sidebar-item">
+                <i class="fa-solid fa-file-medical"></i>
+                Medical History
+            </a>
+        </div>
+        
+        <div style="padding: 20px; border-top: 1px solid #f1f5f9;">
+            <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #64748b; margin-bottom: 5px;">Linked Hospital</div>
+                <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;"><?php echo htmlspecialchars((string)($patient->hospital_registration_no ?? 'HOSP-GEN-01')); ?></div>
             </div>
         </div>
     </div>
 
-    <div class="d-content__body">
-
-        <div class="d-dashboard-grid" style="grid-template-columns: 1fr; gap: 2rem;">
-
-            <div class="d-widget">
-                <div class="d-widget__header">
-                    <div class="d-widget__title">Appointments Calendar</div>
+    <div class="content-area">
+        <main class="d-content">
+            <!-- Global Page Header (Optional, or per section) -->
+            <div id="dashboard" class="content-section active">
+                <div class="d-content__header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h2>Patient Dashboard</h2>
+                            <p>Overview of your aftercare progress and upcoming activities.</p>
+                        </div>
+                        <div class="d-status d-status--success">
+                            <div class="d-status__dot"></div>
+                            Active Support
+                        </div>
+                    </div>
                 </div>
-                <div class="d-widget__body">
-                    <div id="calendar-container" style="padding: 20px;"></div>
+                
+                <div class="d-content__body">
+                    <div class="d-dashboard-grid" style="grid-template-columns: 1fr; gap: 2rem;">
+                         <div class="d-widget">
+                            <div class="d-widget__header">
+                                <div class="d-widget__title">Appointments Calendar</div>
+                            </div>
+                            <div class="d-widget__body">
+                                <div id="calendar-container" style="padding: 20px;"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="d-widget">
-                <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div class="d-widget__title">My Appointments</div>
-                    <button class="d-btn d-btn--sm d-btn--primary" onclick="openAppointmentModal()">Book Appointment</button>
+            <div id="appointments" class="content-section">
+                <div class="d-content__header">
+                    <h2>My Appointments</h2>
+                    <p>Manage and track your scheduled hospital consultations.</p>
                 </div>
+                <div class="d-content__body">
+                    <div class="d-widget" style="margin-top: 0;">
+                        <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="d-widget__title">Appointment History</div>
+                            <button class="d-btn d-btn--sm d-btn--primary" onclick="openAppointmentModal()">Book Appointment</button>
+                        </div>
 
                 <div class="d-widget__body" style="padding: 0;">
                     <div class="d-table-wrap" style="border: none; border-radius: 0 0 var(--r) var(--r);">
@@ -139,14 +243,22 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                             </tbody>
                         </table>
                     </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="d-widget">
-                <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div class="d-widget__title">Support Requests</div>
-                    <button class="d-btn d-btn--sm d-btn--primary" onclick="openSupportRequestModal()">New Request</button>
+            <div id="support" class="content-section">
+                <div class="d-content__header">
+                    <h2>Support Requests</h2>
+                    <p>Request financial or medical assistance from your hospital.</p>
                 </div>
+                <div class="d-content__body">
+                    <div class="d-widget" style="margin-top: 0;">
+                        <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="d-widget__title">Request Registry</div>
+                            <button class="d-btn d-btn--sm d-btn--primary" onclick="openSupportRequestModal()">New Request</button>
+                        </div>
 
                 <div class="d-widget__body" style="padding: 0;">
                     <div class="d-table-wrap" style="border: none; border-radius: 0 0 var(--r) var(--r);">
@@ -212,18 +324,20 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </div>
-
-            <!-- Medical History Section -->
-            <div class="d-widget">
-                <div class="d-widget__header">
-                    <div class="d-widget__title" style="display: flex; align-items: center; gap: 0.75rem;">
-                        <i class="fa-solid fa-hospital" style="color: var(--secondary-color); font-size: 1.1rem;"></i>
-                        Medical History & Test Results
                     </div>
                 </div>
-                <div class="d-widget__body">
+            </div>
+        </div>
+
+            <!-- Medical History Section -->
+            <div id="medical-history" class="content-section">
+                <div class="d-content__header">
+                    <h2>Medical History & Test Results</h2>
+                    <p>Access your clinical records and laboratory reports.</p>
+                </div>
+                <div class="d-content__body">
+                    <div class="d-widget" style="margin-top: 0;">
+                        <div class="d-widget__body">
                     <?php if (!empty($medical_history)): ?>
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; padding: 1rem 0;">
                             <?php foreach ($medical_history as $record): ?>
@@ -285,12 +399,12 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
                             <p style="margin: 0.5rem 0 0; font-size: 0.9rem; color: #94a3b8;">Your test results and medical records will appear here automatically from linked hospitals.</p>
                         </div>
                     <?php endif; ?>
+                    </div>
                 </div>
-            </div>
-
-        </div>
+            </div></div>
+        </main>
     </div>
-</main>
+</div>
 
 <!-- Appointment Modal -->
 <div id="appointmentModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);">
@@ -394,6 +508,28 @@ $patientName = !empty($patient->full_name) ? (string)$patient->full_name : 'Reci
 </div>
 
 <script>
+function showSection(sectionId, btn) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show target section
+    const target = document.getElementById(sectionId);
+    if (target) {
+        target.classList.add('active');
+    }
+    
+    // Update sidebar active state
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    if (btn) btn.classList.add('active');
+    
+    // Smooth scroll to top of content
+    document.querySelector('.content-area').scrollTop = 0;
+}
+
 const appointmentsData = <?php echo json_encode(array_map(function($apt) {
     return [
         'date' => date('Y-m-d', strtotime($apt->appointment_date)),

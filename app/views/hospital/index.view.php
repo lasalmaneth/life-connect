@@ -19,11 +19,25 @@ if ($requested === 'hospital/appointments' || $requested === 'hospital/lab-repor
     $initialSection = 'lab-reports';
 } elseif ($requested === 'hospital/organ-requests') {
     $initialSection = 'organ-requests';
-} elseif ($requested === 'hospital/eligibility') {
-    $initialSection = 'eligibility';
-} elseif ($requested === 'hospital/stories') {
+} elseif (strpos($requested, 'hospital/consents') !== false) {
+    $initialSection = 'consents';
+} elseif (strpos($requested, 'hospital/organ-testing') !== false) {
+    $initialSection = 'organ-testing';
+} elseif (strpos($requested, 'hospital/matching') !== false) {
+    $initialSection = 'matching';
+} elseif (strpos($requested, 'hospital/surgery-prep') !== false) {
+    $initialSection = 'surgery-prep';
+} elseif (strpos($requested, 'hospital/aftercare') !== false) {
+    $initialSection = 'aftercare';
+} elseif (strpos($requested, 'hospital/deceased-requests') !== false) {
+    $initialSection = 'deceased-requests';
+} elseif (strpos($requested, 'hospital/deceased-documents') !== false) {
+    $initialSection = 'deceased-documents';
+} elseif (strpos($requested, 'hospital/deceased-final-flow') !== false) {
+    $initialSection = 'deceased-final-flow';
+} elseif (strpos($requested, 'hospital/stories') !== false) {
     $initialSection = 'stories';
-} elseif ($requested === 'hospital/test-results') {
+} elseif (strpos($requested, 'hospital/test-results') !== false) {
     $initialSection = 'test-results';
 }
 
@@ -52,274 +66,69 @@ if (!isset($notifications) || !isset($unread_count)) {
 ?>
 
 
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
-    
-    <title>Hospital Management - LifeConnect</title>
-</head>
-
-<body>
-    <div class="header">
-        <div class="header-content">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <a href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/"
-                    style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
-                    <img src="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/images/logo.png" alt="LifeConnect"
-                        style="height: 40px; width: auto;">
-                    <div>
-                        <strong
-                            style="display:block; font-size:1.1rem; color:#003b6e; line-height:1.2;">LifeConnect</strong>
-                        <p style="margin:0; font-size:.68rem; color:#6b7280; padding-top:2px;">Hospital Portal</p>
-                    </div>
-                </a>
-            </div>
-            <div class="header-right">
-                <a class="nav-link" href="<?php echo rtrim((ROOT ?? '/life-connect'), '/'); ?>/" title="Home">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Home</span>
-                </a>
-
-                <div class="notification-container">
-                    <button class="notification-bell" id="notificationBell" type="button" title="Notifications">
-                        <i class="fa-solid fa-bell"></i>
-                        <?php if (!empty($unread_count)): ?>
-                            <span class="notification-badge"><?php echo (int)$unread_count; ?></span>
-                        <?php endif; ?>
-                    </button>
-
-                    <div class="notification-dropdown" id="notificationDropdown">
-                        <div class="dropdown-header">
-                            <span>Recent Notifications</span>
-                            <a href="<?php echo ROOT; ?>/hospital/notifications?mark_all_read=1">Mark all read</a>
-                        </div>
-                        <div class="dropdown-body">
-                            <?php if (!empty($notifications)): ?>
-                                <?php foreach ($notifications as $n): ?>
-                                    <a href="<?php echo !empty($n['action_url']) ? (ROOT . '/' . ltrim((string)$n['action_url'], '/')) : (ROOT . '/hospital/notifications'); ?>" class="notification-item <?php echo empty($n['is_read']) ? 'unread' : ''; ?>">
-                                        <div class="notification-icon">
-                                            <i class="fa-solid fa-circle-info"></i>
-                                        </div>
-                                        <div class="notification-content">
-                                            <p class="notification-title"><?php echo htmlspecialchars((string)($n['title'] ?? 'Notification')); ?></p>
-                                            <p class="notification-time"><?php echo !empty($n['created_at']) ? date('M d, H:i', strtotime((string)$n['created_at'])) : ''; ?></p>
-                                        </div>
-                                    </a>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <div class="no-notifications">
-                                    <i class="fa-solid fa-bell-slash"></i>
-                                    <p>No new notifications</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="dropdown-footer">
-                            <a href="<?php echo ROOT; ?>/hospital/notifications">View All Notifications</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="user-info" onclick="toggleUserDropdown()">
-                    <div class="user-avatar"><?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?></div>
-                    <div class="user-details">
-                        <div style="font-weight: 600; font-size: 0.9rem;">
-                            <?php echo htmlspecialchars($hospital_details['name']); ?>
-                        </div>
-                        <div style="font-size: 0.8rem; opacity: 0.8;">
-                            <?php echo htmlspecialchars($hospital_details['role']); ?>
-                        </div>
-                        <div style="font-size: 0.7rem; opacity: 0.6;">ID:
-                            <?php echo htmlspecialchars($hospital_details['registration']); ?>
-                        </div>
-                    </div>
-                    <div class="user-actions">
-                        <button class="btn-logout" onclick="logout()" title="Logout">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="16,17 21,12 16,7"></polyline>
-                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- User Details Dropdown -->
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="dropdown-header">
-                            <div class="user-avatar-large">
-                                <?php echo strtoupper(substr($hospital_details['name'], 0, 1)); ?>
-                            </div>
-                            <div>
-                                <div class="user-name"><?php echo htmlspecialchars($hospital_details['name']); ?></div>
-                                <div class="user-role"><?php echo htmlspecialchars($hospital_details['role']); ?></div>
-                            </div>
-                        </div>
-                        <div class="dropdown-content">
-                            <div class="detail-item">
-                                <span class="detail-label">Hospital ID:</span>
-                                <span
-                                    class="detail-value"><?php echo htmlspecialchars($hospital_details['registration']); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Email:</span>
-                                <span
-                                    class="detail-value"><?php echo htmlspecialchars($hospital_details['email']); ?></span>
-                            </div>
-                            <?php
-                            $displayAddress = $hospital_details['address'] ?? 'Not specified';
-                            $displayPhone = $hospital_details['phone'] ?? 'Not specified';
-
-                            // If address contains our special [Phone] marker, parse it
-                            if ($displayAddress && strpos($displayAddress, '[Phone]:') !== false) {
-                                $parts = explode(' | [Address]: ', $displayAddress);
-                                $displayPhone = str_replace('[Phone]: ', '', $parts[0]);
-                                $displayAddress = $parts[1] ?? 'Not specified';
-                            }
-                            ?>
-                            <div class="detail-item">
-                                <span class="detail-label">Address:</span>
-                                <span class="detail-value"><?php echo htmlspecialchars($displayAddress); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Phone:</span>
-                                <span class="detail-value"><?php echo htmlspecialchars($displayPhone); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Status:</span>
-                                <span
-                                    class="detail-value status-active"><?php echo htmlspecialchars($hospital_details['status']); ?></span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Last Login:</span>
-                                <span
-                                    class="detail-value"><?php echo date('M d, Y H:i', strtotime($hospital_details['last_login'])); ?></span>
-                            </div>
-                        </div>
-                        <div class="dropdown-footer">
-                            <button class="btn btn-secondary btn-small" onclick="editProfile()">Edit Profile</button>
-                            <button class="btn btn-danger btn-small" onclick="logout()">Logout</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <?php include __DIR__ . '/inc/header.view.php'; ?>
 
     <div class="container">
         <div class="main-content">
-            <div class="sidebar">
-                <div class="sidebar-header">
-                    <h3>Hospital Portal </h3>
-                    <p>Clinical coordination</p>
-                </div>
-
-                <div class="menu-section">
-                    <div class="menu-section-title">SECTION</div>
-                    <div class="menu-item active" onclick="showContent('overview', this)" style="text-align: left;">
-                        <span class="icon"><i class="fas fa-chart-line"></i></span>
-                        <span>Main Dashboard</span>
-                    </div>
-                    <a href="<?php echo ROOT; ?>/hospital/notifications" class="menu-item" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-bell"></i></span>
-                        <span style="flex:1;">Notifications</span>
-                        <?php if (!empty($unread_count ?? 0)): ?>
-                            <span style="display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--danger-color); color:var(--white-color); font-size:.7rem; font-weight:900; margin-left:auto;">
-                                <?php echo (int)($unread_count ?? 0); ?>
-                            </span>
-                        <?php endif; ?>
-                    </a>
-                    <div class="menu-item" onclick="showContent('organ-requests', this)" data-section="organ-requests" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-heart"></i></span>
-                        <span>Organ Requests</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('eligibility', this)" data-section="eligibility" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-check-circle"></i></span>
-                        <span>Update Eligibility</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('stories', this)" data-section="stories" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
-                        <span class="icon"><i class="fas fa-star"></i></span>
-                        <span>Success Stories</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('lab-reports', this)" data-section="lab-reports" style="text-decoration:none; color: inherit; display: flex; text-align: left; white-space: nowrap;">
-                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
-                        <span>Upcoming Appointments</span>
-                    </div>
-                    <div class="menu-item" onclick="showContent('test-results', this)" data-section="test-results" style="text-decoration:none; color: inherit; display: flex; text-align: left; white-space: nowrap;">
-                        <span class="icon"><i class="fas fa-vial"></i></span>
-                        <span>Test Results</span>
-                    </div>
-                    
-                    <div class="menu-section-title" style="margin-top: 1.5rem;">AFTERCARE</div>
-                    <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item" style="text-decoration: none; color: inherit; display: block; text-align: left;">
-                        <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
-                        <span>Add Aftercare Patient</span>
-                    </a>
-                </div>
-
-                <div class="menu-section menu-section--footer">
-                    <a href="<?php echo ROOT; ?>/logout" class="menu-item menu-item--danger" style="text-decoration: none; display: block; text-align: left;">
-                        <span class="icon"><i class="fas fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
+            <?php include __DIR__ . '/inc/sidebar.view.php'; ?>
 
             <div class="content-area" id="content-area">
-                <?php require __DIR__ . '/overview.view.php'; ?>
-
-                <?php require __DIR__ . '/organ_request.view.php'; ?>
-
-
-                <?php require __DIR__ . '/eligibility.view.php'; ?>
-
-
-                <?php require __DIR__ . '/lab_reports.view.php'; ?>
-
-                <?php require __DIR__ . '/test-results.view.php'; ?>
-
-                <?php require __DIR__ . '/stories.view.php'; ?>
+                <?php require __DIR__ . '/partials/overview.view.php'; ?>
+                <?php require __DIR__ . '/partials/organ_requests.view.php'; ?>
+                <?php require __DIR__ . '/partials/basic_organ_testing.view.php'; ?>
+                <?php require __DIR__ . '/partials/donor_consents.view.php'; ?>
+                <?php require __DIR__ . '/partials/lab_reports.view.php'; ?>
+                <?php require __DIR__ . '/partials/test_results.view.php'; ?>
+                <?php require __DIR__ . '/partials/stories.view.php'; ?>
+                <?php require __DIR__ . '/partials/matching_results.view.php'; ?>
+                <?php require __DIR__ . '/partials/surgery_prep.view.php'; ?>
+                <?php require __DIR__ . '/partials/deceased_requests.view.php'; ?>
+                <?php require __DIR__ . '/partials/deceased_docs.view.php'; ?>
+                <?php require __DIR__ . '/partials/deceased_final_flow.view.php'; ?>
             </div>
+
+    <!-- Premium Standard Side Drawer (Generic) -->
+    <div class="cp-drawer-overlay" id="case-details-drawer-overlay" onclick="toggleDrawer('case-details-drawer')"></div>
+    <div class="cp-drawer" id="case-details-drawer">
+        <div class="cp-drawer__header">
+            <h2 class="cp-drawer__title" id="drawerTitle">Details</h2>
+            <button class="cp-drawer__close" onclick="toggleDrawer('case-details-drawer')">&times;</button>
+        </div>
+        <div class="cp-drawer__body" id="drawerBody">
+            <!-- Dynamically populated via AJAX -->
         </div>
     </div>
 
-    <!-- Profile Modal -->
-    <?php require __DIR__ . '/profile_modal.view.php'; ?>
-
-
-    <!-- Story Modal -->
-    <?php require __DIR__ . '/story_modal.view.php'; ?>
-
-    <!-- Organ Request Modals -->
-    <?php require __DIR__ . '/request_modal.view.php'; ?>
-    <?php require __DIR__ . '/request_details_modal.view.php'; ?>
-
-    <!-- Lab Report Modal -->
-    <?php require __DIR__ . '/lab_report_modal.view.php'; ?>
-
-    <!-- Test Result Upload Modal -->
-    <?php require __DIR__ . '/test-result-modal.view.php'; ?>
-
-    <!-- Export Modal -->
-    <?php require __DIR__ . '/export_modal.view.php'; ?>
+    <!-- Modals & Partials -->
+    <?php require __DIR__ . '/partials/profile_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/story_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/request_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/request_details_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/lab_report_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/test_result_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/export_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/consent_modal.view.php'; ?>
+    <?php require __DIR__ . '/partials/surgery_match_modal.view.php'; ?>
 
     <script>
+        const ROOT = '<?php echo ROOT; ?>';
         const HOSPITAL_BASE_PATH = <?php echo json_encode($hospitalBasePath); ?>;
 
         function hospitalPathForSection(id) {
             const map = {
                 'overview': '',
+                'organ-testing': 'organ-testing',
                 'organ-requests': 'organ-requests',
-                'eligibility': 'eligibility',
+                'consents': 'consents',
                 'stories': 'stories',
                 'lab-reports': 'appointments',
-                'test-results': 'test-results'
+                'test-results': 'test-results',
+                'matching': 'matching',
+                'surgery-prep': 'surgery-prep',
+                'deceased-requests': 'deceased-requests',
+                'deceased-documents': 'deceased-documents',
+                'deceased-final-flow': 'deceased-final-flow'
             };
             const suffix = Object.prototype.hasOwnProperty.call(map, id) ? map[id] : '';
             return suffix ? (HOSPITAL_BASE_PATH + '/' + suffix) : HOSPITAL_BASE_PATH;
@@ -333,20 +142,30 @@ if (!isset($notifications) || !isset($unread_count)) {
             const rest = current.slice(base.length).replace(/^\/+/, '');
             if (!rest) return 'overview';
 
-            if (rest === 'organ-requests') return 'organ-requests';
-            if (rest === 'eligibility') return 'eligibility';
-            if (rest === 'stories') return 'stories';
-            if (rest === 'appointments' || rest === 'lab-reports') return 'lab-reports';
-            if (rest === 'test-results') return 'test-results';
+            if (rest.includes('organ-testing')) return 'organ-testing';
+            if (rest.includes('organ-requests')) return 'organ-requests';
+            if (rest.includes('consents')) return 'consents';
+            if (rest.includes('stories')) return 'stories';
+            if (rest.includes('appointments') || rest.includes('lab-reports')) return 'lab-reports';
+            if (rest.includes('test-results')) return 'test-results';
+            if (rest.includes('matching')) return 'matching';
+            if (rest.includes('surgery-prep')) return 'surgery-prep';
+
+            if (rest.includes('deceased-requests')) return 'deceased-requests';
+            if (rest.includes('deceased-documents')) return 'deceased-documents';
+            if (rest.includes('deceased-final-flow')) return 'deceased-final-flow';
             return 'overview';
         }
 
         function showContent(id, element, updateUrl = true) {
-            // Hide all content sections
+            console.log('Hospital Nav ->', id);
+            
+            // Hide all content sections and remove active classes from ALL potential menu items
             document.querySelectorAll('.content-section').forEach(s => {
                 s.style.display = 'none';
                 s.classList.remove('active');
             });
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
             
             const target = document.getElementById(id);
             if (target) {
@@ -354,22 +173,20 @@ if (!isset($notifications) || !isset($unread_count)) {
                 target.classList.add('active');
             }
 
-            // Update active menu item
-            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-            if (element) {
+            // Update active menu item highlight
+            if (element && element.classList) {
                 element.classList.add('active');
             } else {
-                // Find and activate the menu item by ID string in its onclick attribute if no element passed
-                const items = document.querySelectorAll('.menu-item');
-                items.forEach(item => {
-                    if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(id)) {
-                        item.classList.add('active');
-                    }
-                });
-
-                // Also support routed menu items (anchors) via data-section
                 const byData = document.querySelector('.menu-item[data-section="' + id + '"]');
-                if (byData) byData.classList.add('active');
+                if (byData) {
+                    byData.classList.add('active');
+                } else {
+                    document.querySelectorAll('.menu-item').forEach(item => {
+                        if ((item.getAttribute('onclick') || '').includes("'" + id + "'")) {
+                            item.classList.add('active');
+                        }
+                    });
+                }
             }
 
             // Update URL without reloading (clean routes)
@@ -383,16 +200,16 @@ if (!isset($notifications) || !isset($unread_count)) {
             // Scroll to top of content area
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // Load data for specific sections
-            if (id === 'organ-requests') loadOrganRequests();
-            else if (id === 'stories') loadStories();
-            else if (id === 'lab-reports') loadLabReports();
-            else if (id === 'test-results') loadTestResults();
+            // Load data for specific sections if needed
+            if (id === 'organ-requests') { if(typeof loadOrganRequests === 'function') loadOrganRequests(); }
+            else if (id === 'stories') { if(typeof loadStories === 'function') loadStories(); }
+            else if (id === 'lab-reports') { if(typeof loadLabReports === 'function') loadLabReports(); }
+            else if (id === 'test-results') { if(typeof loadTestResults === 'function') loadTestResults(); }
         }
 
         // Initialize display
         document.addEventListener('DOMContentLoaded', function() {
-            const initial = <?php echo json_encode($initialSection); ?>;
+            const initial = sectionFromHospitalPath(window.location.pathname) || <?php echo json_encode($initialSection); ?>;
             const menu = document.querySelector('.menu-item[data-section="' + initial + '"]');
             // Don't pushState on initial load; keep the requested URL as-is.
             showContent(initial, menu || undefined, false);
@@ -912,10 +729,110 @@ if (!isset($notifications) || !isset($unread_count)) {
 
 
         // Eligibility Functions
-        async function viewDonorLabData(nic) {
-            // Step 1: View Lab Data
-            const message = `Medical Lab Profile for ${nic}\n\n- Blood Group: O+\n- HIV: Negative (Clear)\n- Hepatitis B: Negative (Clear)\n- Hepatitis C: Negative (Clear)\n- CBC: Normal Range\n\nOverall Screening: Medically Fit for Donation`;
-            await hcAlert(message, 'info');
+        async function viewDonorLabData(pledgeId) {
+            if (!pledgeId) return;
+            
+            try {
+                // Show loading state or at least clear previous data
+                const modal = document.getElementById('consent-details-modal');
+                modal.classList.add('show');
+                
+                // Fetch data
+                const response = await fetch('<?php echo ROOT; ?>/hospital/get-pledge-details?id=' + pledgeId);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const d = result.data;
+                    
+                    // Populate basic info
+                    document.getElementById('modal-donor-name').textContent = (d.first_name + ' ' + d.last_name) || '-';
+                    document.getElementById('modal-donor-nic').textContent = d.nic_number || '-';
+                    document.getElementById('modal-donor-dob').textContent = d.date_of_birth || '-';
+                    document.getElementById('modal-donor-gender').textContent = d.gender || '-';
+                    document.getElementById('modal-donor-nationality').textContent = d.nationality || 'Sri Lankan';
+                    document.getElementById('modal-donor-contact').textContent = d.phone || '-';
+                    document.getElementById('modal-donor-email').textContent = d.email || '-';
+                    
+                    document.getElementById('modal-organ-name').textContent = d.organ_name || '-';
+                    document.getElementById('modal-pledge-date').textContent = d.pledge_date ? new Date(d.pledge_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+                    
+                    const statusBadge = document.getElementById('modal-pledge-status');
+                    statusBadge.textContent = (d.status || 'PENDING').toUpperCase();
+                    statusBadge.className = 'status-badge ' + (d.status || 'PENDING').toLowerCase();
+                    
+                    // Show Approve button only if status is UPLOADED (pending verification)
+                    const approveBtn = document.getElementById('modal-approve-btn');
+                    if (d.status === 'UPLOADED') {
+                        approveBtn.style.display = 'block';
+                        approveBtn.setAttribute('onclick', `approveEligibility(${pledgeId})`);
+                    } else {
+                        approveBtn.style.display = 'none';
+                    }
+                    
+                    // Handle PDF
+                    const iframe = document.getElementById('pdf-iframe');
+                    const placeholder = document.getElementById('pdf-placeholder');
+                    const controls = document.getElementById('pdf-controls');
+                    const statusTitle = document.getElementById('pdf-status-title');
+                    const statusDesc = document.getElementById('pdf-status-desc');
+                    
+                    if (d.signed_form_path) {
+                        const pdfUrl = '<?php echo ROOT; ?>' + d.signed_form_path;
+                        iframe.src = pdfUrl;
+                        iframe.style.display = 'block';
+                        placeholder.style.display = 'none';
+                        controls.style.display = 'block';
+                        document.getElementById('modal-pdf-download').href = pdfUrl;
+                    } else {
+                        iframe.style.display = 'none';
+                        placeholder.style.display = 'block';
+                        controls.style.display = 'none';
+                        statusTitle.textContent = "PDF Pending";
+                        statusDesc.textContent = "The formal signed consent document has not been uploaded to the registry yet.";
+                    }
+                } else {
+                    hcAlert(result.message || 'Failed to fetch details', 'error');
+                    closeConsentDetailsModal();
+                }
+            } catch (error) {
+                console.error('Error fetching pledge details:', error);
+                hcAlert('An error occurred while fetching details', 'error');
+                closeConsentDetailsModal();
+            }
+        }
+
+        function closeConsentDetailsModal() {
+            document.getElementById('consent-details-modal').classList.remove('show');
+            // Clear iframe src to stop any loading
+            document.getElementById('pdf-iframe').src = '';
+        }
+
+        function flagConsentRecord() {
+            hcAlert('This feature is currently being integrated with the National Health Authority feedback system. Please contact the administrator for immediate discrepancies.', 'info');
+        }
+
+        async function approveEligibility(id) {
+            const confirmed = await hcConfirm('Are you sure you want to approve this donor\'s eligibility? This will mark the consent as legally finalized.');
+            if (confirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '<?php echo ROOT; ?>/hospital/consents';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'approve_eligibility';
+                form.appendChild(actionInput);
+                
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'pledge_id';
+                idInput.value = id;
+                form.appendChild(idInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         function postEligibilityAction(action, pledgeId) {
@@ -1169,10 +1086,32 @@ if (!isset($notifications) || !isset($unread_count)) {
                             const option = document.createElement('option');
                             option.value = donor.id;
                             option.text = `${donor.nic_number || ''} - ${donor.first_name} ${donor.last_name}`;
+                            // Store pledged organs in data attribute for auto-fill
+                            option.dataset.organs = donor.pledged_organs || ''; 
                             donorSelect.appendChild(option);
                         });
                     }
                     console.log('Donors loaded:', donors);
+
+                    // Add change listener for auto-filling organ
+                    donorSelect.onchange = function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        const organSelect = document.getElementById('lab-organ-id');
+                        const donorIdInput = document.getElementById('lab-donor-id');
+                        
+                        if (donorIdInput) donorIdInput.value = this.value;
+
+                        if (selectedOption && selectedOption.dataset.organs) {
+                            // Format is usually "id:name||id:name"
+                            const organs = selectedOption.dataset.organs.split('||');
+                            if (organs.length > 0) {
+                                const firstOrgan = organs[0].split(':');
+                                if (firstOrgan.length > 0 && organSelect) {
+                                    organSelect.value = firstOrgan[0]; // Set to the first pledged organ ID
+                                }
+                            }
+                        }
+                    };
                 })
                 .catch(error => console.error('Error loading donors:', error));
 
@@ -1492,6 +1431,161 @@ if (!isset($notifications) || !isset($unread_count)) {
             ];
         }
 
+        // Global data for lab reports
+        let labReportsData = <?php echo json_encode($lab_reports ?? []); ?>;
+
+        function switchLabTab(tabId, btn) {
+            document.querySelectorAll('.lab-tab-content').forEach(c => c.style.display = 'none');
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelectorAll('.lab-nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function populateLabReportsTable() {
+            const body = document.getElementById('lab-members-body');
+            const emptyState = document.getElementById('lab-empty-state');
+            
+            if (!body) return;
+            body.innerHTML = '';
+
+            // Group by donor
+            const grouped = {};
+            labReportsData.forEach(r => {
+                if (!grouped[r.donor_id]) {
+                    grouped[r.donor_id] = {
+                        id: r.donor_id,
+                        name: r.donor_name,
+                        nic: r.donor_nic,
+                        organ: r.test_type.split(' - ')[0] || 'Unknown',
+                        tests: []
+                    };
+                }
+                grouped[r.donor_id].tests.push(r);
+            });
+
+            const donors = Object.values(grouped);
+            
+            if (donors.length === 0) {
+                if (emptyState) emptyState.style.display = 'block';
+                return;
+            }
+            if (emptyState) emptyState.style.display = 'none';
+
+            donors.forEach(donor => {
+                const total = donor.tests.length;
+                const completed = donor.tests.filter(t => t.status.toLowerCase() === 'completed' || t.status.toLowerCase() === 'success').length;
+                const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+                
+                const tr = document.createElement('tr');
+                tr.style.cssText = "border-bottom: 1px solid #f1f5f9; transition: all 0.2s; cursor: pointer;";
+                tr.onmouseover = () => tr.style.background = "#f8fafc";
+                tr.onmouseout = () => tr.style.background = "transparent";
+                tr.onclick = () => openLabDrawer(donor);
+
+                tr.innerHTML = `
+                    <td style="padding: 18px 25px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 38px; height: 38px; background: #eff6ff; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                ${donor.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${donor.name}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">Reg ID: #DN-${donor.id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 18px 25px;">
+                        <code style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">${donor.nic}</code>
+                    </td>
+                    <td style="padding: 18px 25px; font-weight: 700; color: #475569; font-size: 0.9rem;">
+                        <i class="fas fa-heart" style="color: #ef4444; margin-right: 6px; font-size: 0.8rem;"></i> ${donor.organ}
+                    </td>
+                    <td style="padding: 18px 25px;">
+                        <div style="width: 120px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <span style="font-size: 0.7rem; font-weight: 800; color: #64748b;">${progress}%</span>
+                                <span style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">${completed}/${total}</span>
+                            </div>
+                            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
+                                <div style="width: ${progress}%; height: 100%; background: #2563eb; border-radius: 10px;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 18px 25px;">
+                        <span class="status-pill ${progress === 100 ? 'status-completed' : 'status-scheduled'}">
+                            ${progress === 100 ? 'Verified' : 'Active Screening'}
+                        </span>
+                    </td>
+                    <td style="padding: 18px 25px; text-align: right;">
+                        <button class="btn btn-secondary btn-small" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 8px;">View Details</button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+
+            updateLabStats(labReportsData);
+        }
+
+        function updateLabStats(data) {
+            const total = new Set(data.map(r => r.donor_id)).size;
+            const pending = data.filter(r => r.status.toLowerCase() === 'pending').length;
+            const completed = data.filter(r => r.status.toLowerCase() === 'completed' || r.status.toLowerCase() === 'success').length;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayCount = data.filter(r => r.test_date === todayStr).length;
+
+            if (document.getElementById('stat-total-screening')) document.getElementById('stat-total-screening').textContent = total;
+            if (document.getElementById('stat-pending-tests')) document.getElementById('stat-pending-tests').textContent = pending;
+            if (document.getElementById('stat-tests-today')) document.getElementById('stat-tests-today').textContent = todayCount;
+            if (document.getElementById('stat-completed-overall')) document.getElementById('stat-completed-overall').textContent = completed;
+        }
+
+        function openLabDrawer(donor) {
+            const overlay = document.getElementById('lab-drawer-overlay');
+            const drawer = document.getElementById('lab-drawer');
+            
+            if (document.getElementById('drawer-donor-name')) document.getElementById('drawer-donor-name').textContent = donor.name;
+            if (document.getElementById('drawer-donor-nic')) document.getElementById('drawer-donor-nic').textContent = 'NIC: ' + donor.nic;
+            if (document.getElementById('drawer-organ-type')) document.getElementById('drawer-organ-type').innerHTML = `<i class="fas fa-heart" style="color: #ef4444;"></i> ${donor.organ}`;
+            
+            const list = document.getElementById('drawer-tests-list');
+            if (list) {
+                list.innerHTML = '';
+                donor.tests.forEach(test => {
+                    const card = document.createElement('div');
+                    card.className = 'test-card-premium';
+                    
+                    const status = test.status.toLowerCase();
+                    let statusClass = 'status-pending';
+                    if (status === 'completed' || status === 'success') statusClass = 'status-completed';
+                    if (status === 'scheduled' || status === 'accepted') statusClass = 'status-scheduled';
+
+                    card.innerHTML = `
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #94a3b8; border: 1px solid #e2e8f0;">
+                                <i class="fas fa-vial"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${test.test_type.includes(' - ') ? test.test_type.split(' - ')[1] : test.test_type}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">Scheduled for ${new Date(test.test_date).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <span class="status-pill ${statusClass}">${test.status}</span>
+                    `;
+                    list.appendChild(card);
+                });
+            }
+
+            if (overlay) overlay.style.display = 'flex';
+            if (drawer) setTimeout(() => drawer.style.transform = 'translateX(0)', 10);
+        }
+
+        function closeLabDrawer() {
+            const overlay = document.getElementById('lab-drawer-overlay');
+            const drawer = document.getElementById('lab-drawer');
+            if (drawer) drawer.style.transform = 'translateX(100%)';
+            if (overlay) setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
         function renderLabTests() {
             const container = document.getElementById('lab-tests-container');
             if (!container) return;
@@ -1544,6 +1638,13 @@ if (!isset($notifications) || !isset($unread_count)) {
             const otherText = document.getElementById('lab_test_type_other_input');
             if (otherText) otherText.style.display = 'none';
         }
+
+        // Initialize table
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof labReportsData !== 'undefined') {
+                populateLabReportsTable();
+            }
+        });
 
         // Test Results Upload
         const TR_RECIPIENTS = <?php echo json_encode($recipients ?? []); ?>;
@@ -3223,4 +3324,4 @@ if (!isset($notifications) || !isset($unread_count)) {
 
     </script>
 
-    <?php include 'footer.php'; ?>
+    <?php include __DIR__ . '/inc/footer.view.php'; ?>
