@@ -35,16 +35,22 @@ class SupportRequestModel {
             'total' => 0,
             'pending' => 0,
             'approved' => 0,
+            'approved_amount' => 0,
             'rejected' => 0
         ];
 
-        $res = $this->query("SELECT status, COUNT(*) as count FROM $this->table GROUP BY status");
+        $res = $this->query("SELECT status, SUM(amount) as total_amount, COUNT(*) as count FROM $this->table GROUP BY status");
         if ($res) {
             foreach ($res as $row) {
                 $status = strtolower($row->status);
                 if (isset($stats[$status])) {
                     $stats[$status] = $row->count;
                 }
+                
+                if ($status === 'approved') {
+                    $stats['approved_amount'] = $row->total_amount;
+                }
+                
                 $stats['total'] += $row->count;
             }
         }

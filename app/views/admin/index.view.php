@@ -657,12 +657,12 @@
             <div class="sidebar glass">
                 <div class="sidebar-user-card">
                     <div class="sidebar-user-avatar">
-                        A
+                        R
                     </div>
                     <div class="sidebar-user-info">
-                        <span class="sidebar-user-name">admin_4</span>
-                        <span class="sidebar-user-id">ID-00004</span>
-                        <span class="sidebar-user-role">System Admin</span>
+                        <span class="sidebar-user-name">Reema</span>
+                        <span class="sidebar-user-id">ID-00001</span>
+                        <span class="sidebar-user-role">User Admin</span>
                     </div>
                 </div>
 

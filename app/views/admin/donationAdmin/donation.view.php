@@ -373,11 +373,11 @@
         <div class="main-content">
             <div class="sidebar glass">
                 <div class="sidebar-user-card">
-                    <div class="sidebar-user-avatar">A</div>
+                    <div class="sidebar-user-avatar">S</div>
                     <div class="sidebar-user-info">
-                        <span class="sidebar-user-name">admin_4</span>
+                        <span class="sidebar-user-name">Sahasna</span>
                         <span class="sidebar-user-id">ID-00004</span>
-                        <span class="sidebar-user-role">System Admin</span>
+                        <span class="sidebar-user-role">Donation Admin</span>
                     </div>
                 </div>
 

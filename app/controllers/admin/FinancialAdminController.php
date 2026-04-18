@@ -21,7 +21,7 @@ class FinancialAdminController {
             'total' => $model->getTotalDonations(),
             'highest' => $model->getHighestContributor(),
             'kpis' => $model->getFinancialKPIs(),
-            'support_requests' => $supportModel->getRequestsByStatus('VERIFIED'),
+            'support_requests' => $supportModel->getAllRequests(),
             'support_stats' => $supportModel->getStats(),
             'vouchers' => $voucherModel->getAllVouchers(),
             'voucher_stats' => $voucherModel->getStats()
