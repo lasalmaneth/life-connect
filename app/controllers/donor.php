@@ -130,6 +130,9 @@ class Donor {
         // Fetch counts for role switching logic
         $stats = $donorModel->getPledgeSummary($donorId);
 
+        // Sync any new matches as notifications before fetching counts
+        $donorModel->syncMatchNotifications($donorId);
+
         // Fetch unread notification count and recent list
         $notificationModel = new \App\Models\NotificationModel();
         $uid = $donorData['user_id'] ?? 0;
@@ -144,6 +147,14 @@ class Donor {
         // Kidney=permanent block, Bone Marrow=6 months, Liver=12 months
         $eligibility = $donorModel->getDonationEligibility($donorId);
 
+        // ── Deceased Donation Mode (Sri Lankan Practices) ─────────────────
+        $deceasedData = $donorModel->getDeceasedDonationMode($donorId);
+        $deceasedMode = $deceasedData['mode'] ?? 'NONE';
+        $deceasedSuperseded = $deceasedData['superseded'] ?? null;
+
+        // ── Active Living Pledges Check ──────────────────────────────────
+        $hasActiveLiving = $donorModel->hasActiveLivingPledges($donorId);
+
         return [
             'donorId' => $donorId,
             'donorData' => $donorData,
@@ -157,7 +168,11 @@ class Donor {
             'unreadCount' => $unreadCount,
             'unread_count' => $unreadCount, // Added for dual-naming compatibility
             'notifications' => $notifications,
-            'eligibility' => $eligibility  // Re-donation eligibility rules
+            'eligibility' => $eligibility,  // Re-donation eligibility rules
+            'deceasedMode' => $deceasedMode,  // NONE, EYE_ONLY...
+            'deceasedData' => $deceasedData,  // Full object with conflict flags
+            'deceasedSuperseded' => $deceasedSuperseded,
+            'hasActiveLiving' => $hasActiveLiving
         ];
     }
 
@@ -228,12 +243,13 @@ class Donor {
             'active_roles' => $activeRoles,
             'is_first_login' => $isFirstLogin,
             'current_mode' => $currentMode,
+            'deceased_mode' => $common['deceasedMode'],
+            'deceased_superseded' => $common['deceasedSuperseded'],
             'withdrawal' => $common['withdrawal'],
             'eligibility' => $common['eligibility'],  // Re-donation eligibility
             'total_financial' => $totalFinancial,
-            'active_page' => 'overview',
-            'page_title' => 'Overview',
-            'page_css' => [],
+            'active_page' => 'dashboard',
+            'page_title' => 'Donor Dashboard',
             'ROOT' => ROOT
         ]);
     }
@@ -300,7 +316,7 @@ class Donor {
 
         // 3. Get Consent Details (Living/After Death/Body)
         $consent = null;
-        if ($organId == 9) { // Full Body
+        if ($organId == 10) { // Full Body
             $bodyModel = new \App\Models\BodyDonationModel();
             $consent = $bodyModel->getConsentByDonorId($donorId);
         } else if (stripos($pledgeData->organ_desc, 'living donor') !== false) {
@@ -591,9 +607,9 @@ class Donor {
                         'medical_school_id'     => $_POST['medical_school_id'] ?? null,
                         'religion'             => $_POST['religion'] ?? null,
                         'special_requests'      => $_POST['special_requests'] ?? null,
-                        'responsible_person'    => $_POST['responsible_person'] ?? null,
-                        'responsible_contact'   => $_POST['responsible_contact'] ?? null,
-                        'transport_arrangement' => $_POST['transport_arrangement'] ?? null,
+                        'responsible_person'    => null,
+                        'responsible_contact'   => null,
+                        'transport_arrangement' => null,
                         'witness1_name'         => $_POST['witness1_name'] ?? '',
                         'witness1_nic'          => $_POST['witness1_nic'] ?? '',
                         'witness1_phone'        => $_POST['witness1_phone'] ?? '',
@@ -606,7 +622,7 @@ class Donor {
                     ];
 
                     if ($bodyDonationModel->createConsent($donorId, $bodyData)) {
-                        // Save Custodians (Next of Kin) for the body donation (Linked to Organ ID 9)
+                        // Save Custodians (Next of Kin) for the body donation (Linked to Organ ID 10)
                         $custodians = [
                             [
                                 'name'         => trim($_POST['cust1_name'] ?? ''),
@@ -625,11 +641,11 @@ class Donor {
                                 'address'      => trim($_POST['cust2_address'] ?? '')
                             ]
                         ];
-                        $custodianModel->addOrganCustodians($donorId, 9, $custodians);
+                        $custodianModel->addOrganCustodians($donorId, 10, $custodians);
 
                         // Mark the body as Pledged in the main donor_pledges table
                         $organModel = new \App\Models\OrganModel();
-                        $organModel->addDonorPledge($donorId, 9, [
+                        $organModel->addDonorPledge($donorId, 10, [
                             'conditions' => $bodyData['special_requests'] ?? ''
                         ]);
 
@@ -840,9 +856,9 @@ class Donor {
                 'next_eligible_date' => $recoveryMap[$organ['id']] ?? null,
             ];
 
-            if (stripos($item['description'], 'living donor') !== false) {
+            if (stripos($item['description'] ?? '', 'living donor') !== false) {
                 $availableLiving[] = $item;
-            } elseif (stripos($item['description'], 'educational') !== false) {
+            } elseif (in_array((int)$item['organ_id'], [9, 10])) {
                 $availableFullBody[] = $item;
             } else {
                 $availableAfterDeath[] = $item;
@@ -855,7 +871,7 @@ class Donor {
 
             if (stripos($organ['description'], 'living donor') !== false) {
                 $selectedLiving[] = $organ;
-            } elseif (stripos($organ['description'], 'educational') !== false) {
+            } elseif (in_array((int)$organ['organ_id'], [9, 10])) {
                 $selectedFullBody[] = $organ;
             } else {
                 $selectedAfterDeath[] = $organ;
@@ -907,7 +923,27 @@ class Donor {
 
         $districts = $this->getDistricts();
 
-        $this->view('donor/donations', [
+        // ── Resolve Deceased Donation Mode ──
+        $deceasedMode = $common['deceasedMode'] ?? 'NONE';
+        
+        // ── Living Donation Restriction (Body Donation Policy) ──
+        $eligibility = $common['eligibility'] ?? [];
+        $hasMajorLivingDonation = (!empty($eligibility['had_kidney']) || !empty($eligibility['had_liver']));
+        
+        // Body donation is allowed only if:
+        // 1. Not in a conflicting ORGAN mode
+        // 2. HAS NOT donated a major organ while living
+        $isBodyMode = ($deceasedMode === 'NONE' || $deceasedMode === 'EYE_ONLY' || str_contains($deceasedMode, 'BODY'));
+        if ($hasMajorLivingDonation) {
+            $isBodyMode = false;
+        }
+
+        // Fetch potential matches for this donor
+        $pendingMatches = $donorModel->getPendingMatchesForDonor($donorId);
+
+        $this->view('donor/donations', array_merge($common, [
+            'pending_matches'     => $pendingMatches,
+            'has_major_living_donation' => $hasMajorLivingDonation,
             'donor_data'          => $donorData,
             'donor_full_name'     => $donorFullName,
             'donor_id_display'    => $donorIdDisplay,
@@ -918,6 +954,7 @@ class Donor {
             'selected_living'     => $selectedLiving,
             'selected_after_death'=> $selectedAfterDeath,
             'selected_full_body'  => $selectedFullBody,
+            'pledged_organs'      => $pledgedOrgans,
             'hospitals_by_organ'  => $hospitalsByOrgan,
             'approved_hospitals'  => $approvedHospitals,
             'medical_schools'     => $medicalSchools,
@@ -925,12 +962,17 @@ class Donor {
             'districts'           => $districts,
             'active_roles'        => $activeRoles,
             'current_mode'        => $currentMode,
+            'deceased_mode'       => $deceasedMode,
+            'deceased_superseded' => $common['deceasedSuperseded'],
+            'is_body_mode'        => $isBodyMode,
             'withdrawal'          => $common['withdrawal'],
+            'eligibility'         => $common['eligibility'],
+            'stats'               => $common['stats'],
             'active_page'         => 'donations',
             'page_title'          => 'My Donations',
             'page_css'            => ['organ.css'],
             'ROOT'                => ROOT
-        ]);
+        ]));
     }
 
 
@@ -2192,6 +2234,88 @@ class Donor {
     }
 
     /**
+     * Account Withdrawal Workflow
+     */
+    public function checkWithdrawalEligibility()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $donorModel = new \App\Models\DonorModel();
+        $donor = $donorModel->getDonorByUserId($_SESSION['user_id']);
+        
+        if (!$donor) {
+            echo json_encode(['success' => false, 'message' => 'Donor profile not found.']);
+            exit;
+        }
+
+        $summary = $donorModel->getPledgeSummary($donor->id);
+        
+        if ($summary['total'] > 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'You have ongoing donation commitments. You must withdraw all pledges first.'
+            ]);
+            exit;
+        }
+
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    public function withdraw_account()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        $donorModel = new \App\Models\DonorModel();
+        $donor = $donorModel->getDonorByUserId($userId);
+        
+        if (!$donor) {
+            $_SESSION['error_message'] = "Donor profile not found.";
+            redirect('donor');
+        }
+
+        $summary = $donorModel->getPledgeSummary($donor->id);
+        
+        if ($summary['total'] > 0) {
+            $_SESSION['error_message'] = "You have ongoing donation commitments. You must withdraw all pledges first.";
+            redirect('donor/donations');
+        }
+
+        // Update user status to WITHDRAW_REQUEST
+        $db = new class { use \App\Core\Database; };
+        $db->query("UPDATE users SET status = 'WITHDRAW_REQUEST' WHERE id = :id", [':id' => $userId]);
+        
+        $_SESSION['status'] = 'WITHDRAW_REQUEST';
+        $_SESSION['success_message'] = "Account withdrawal request submitted successfully.";
+        
+        redirect('donor');
+    }
+
+    public function cancel_withdraw_account()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) redirect('login');
+
+        $userId = $_SESSION['user_id'];
+        
+        // Revert status to ACTIVE
+        $db = new class { use \App\Core\Database; };
+        $db->query("UPDATE users SET status = 'ACTIVE' WHERE id = :id", [':id' => $userId]);
+        
+        $_SESSION['status'] = 'ACTIVE';
+        $_SESSION['success_message'] = "Withdrawal request cancelled successfully.";
+        
+        redirect('donor');
+    }
+
+    /**
      * Notifications Page
      */
     public function notifications()
@@ -2267,5 +2391,94 @@ class Donor {
             echo json_encode(['success' => false]);
         }
         exit;
+    }
+
+    /**
+     * AJAX Action: Respond to a potential match (Accept/Reject)
+     * POST /donor/respondMatch
+     */
+    public function respondMatch()
+    {
+        ob_start(); // Start capturing any unintended output (warnings, notices, whitespace)
+        
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $donorModel = new \App\Models\DonorModel();
+        $donor = $donorModel->getDonorByUserId($_SESSION['user_id']);
+        $donorId = $donor ? $donor->id : null;
+
+        if (!$donorId) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Donor profile not found']);
+            exit;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $matchId = $input['match_id'] ?? null;
+        $action = $input['action'] ?? null; // 'accept' or 'reject'
+
+        if (!$matchId || !in_array($action, ['accept', 'reject'])) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $result = $donorModel->processMatchDecision($matchId, $donorId, $action);
+        
+        // Discard any trapped output/warnings and send clean JSON
+        ob_end_clean();
+        echo json_encode($result);
+        exit;
+    }
+    /**
+     * Update Donor Profile (Telephone & Address)
+     */
+    public function update_profile()
+    {
+        ob_start(); // Capture unintended output
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user_id'])) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $phone = $_POST['phone'] ?? '';
+        $address = $_POST['address'] ?? '';
+
+        if (empty($phone)) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Phone number is required.']);
+            exit;
+        }
+
+        try {
+            $donorModel = new \App\Models\DonorModel();
+            $success = $donorModel->updateDonorProfile($_SESSION['user_id'], [
+                'phone' => $phone,
+                'address' => $address
+            ]);
+
+            ob_end_clean();
+            if ($success) {
+                echo json_encode(['success' => true, 'message' => 'Profile updated successfully.']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Failed to update profile.']);
+            }
+            exit;
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            echo json_encode(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()]);
+            exit;
+        }
     }
 }
