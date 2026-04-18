@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="/life-connect/public/assets/css/style.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/admin/style.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/admin/donation-style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/life-connect/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
     <title>Status Management | LifeConnect</title>
 </head>
 <body>

@@ -451,4 +451,55 @@ class UserAdmin {
         }
     }
 
+    public function getFeedbacks() {
+        header('Content-Type: application/json');
+        try {
+            $adminModel = new AdminModel();
+            $feedbacks = $adminModel->getFeedbacks();
+            echo json_encode(['success' => true, 'feedbacks' => $feedbacks]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function updateFeedbackStatus() {
+        header('Content-Type: application/json');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $id = $input['id'] ?? null;
+            $status = $input['status'] ?? null;
+
+            if (!$id || !$status) {
+                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+                return;
+            }
+
+            $adminModel = new AdminModel();
+            $adminModel->updateFeedbackStatus($id, $status);
+
+            echo json_encode(['success' => true, 'message' => 'Feedback status updated']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function deleteFeedback() {
+        header('Content-Type: application/json');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $id = $input['id'] ?? null;
+
+            if (!$id) {
+                echo json_encode(['success' => false, 'message' => 'Missing ID']);
+                return;
+            }
+
+            $adminModel = new AdminModel();
+            $adminModel->deleteFeedback($id);
+
+            echo json_encode(['success' => true, 'message' => 'Feedback record permanently deleted']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 }

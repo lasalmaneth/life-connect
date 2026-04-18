@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="/life-connect/public/assets/css/style.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/admin/style.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/admin/donation-style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/life-connect/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
     <title>Donation Admin | LifeConnect</title>
     <style>
     .header-nav {

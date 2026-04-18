@@ -20,7 +20,7 @@ try {
 
     // 3. Fetch Data using the new column name
     $sql = "SELECT m.match_id, m.match_date, m.clinical_match_quality as match_status, m.warning_details, m.donor_status, m.hospital_match_status,
-                   dp.id as pledge_id, d.first_name as donor_name, d.last_name as donor_last_name, d.blood_group as donor_blood_group,
+                   dp.id as pledge_id, dp.status as pledge_status, d.first_name as donor_name, d.last_name as donor_last_name, d.blood_group as donor_blood_group,
                    orq.id as request_id, orq.blood_group as required_blood_group, orq.priority_level,
                    org.name as organ_name, h.name as hospital_name
             FROM donor_patient_match m
@@ -67,7 +67,7 @@ try {
 </div>
 
 <!-- Search and Filters Section -->
-<div style="margin-bottom: 25px; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+<div style="margin-bottom: 25px; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 15px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
     <div style="position: relative;">
         <i class="fa-solid fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
         <input type="text" id="matching-search" placeholder="Search donors, hospitals or request IDs..." style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
@@ -89,6 +89,20 @@ try {
             <option value="">All Responses</option>
             <option value="PENDING">🕒 Pending</option>
             <option value="ACCEPTED">✅ Accepted</option>
+            <option value="REJECTED">❌ Rejected</option>
+        </select>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; white-space: nowrap; text-transform: uppercase;">Pledge:</span>
+        <select id="matching-pledge-status-filter" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; color: #475569; outline: none; cursor: pointer;">
+            <option value="">All Statuses</option>
+            <option value="PENDING">🕒 Pending</option>
+            <option value="APPROVED">🛡️ Approved</option>
+            <option value="IN_PROGRESS">🔄 In Progress</option>
+            <option value="SUSPENDED">⏸️ Suspended</option>
+            <option value="UPLOADED">📤 Uploaded</option>
+            <option value="COMPLETED">🏁 Completed</option>
             <option value="REJECTED">❌ Rejected</option>
         </select>
     </div>
@@ -127,7 +141,7 @@ try {
                     $statusStyle = 'background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
                 }
             ?>
-            <div class='table-row' data-match-id='<?= $match['match_id'] ?>' data-donor-status='<?= $match['donor_status'] ?>' data-hospital-match-status='<?= $match['hospital_match_status'] ?>' onclick="viewMatchDetails(<?= $match['match_id'] ?>)" style='display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 180px; gap: 1rem; padding: 1.5rem; align-items: center; border-bottom: 1px solid #f1f5f9; transition: all 0.2s;'>
+            <div class='table-row' data-match-id='<?= $match['match_id'] ?>' data-donor-status='<?= $match['donor_status'] ?>' data-hospital-match-status='<?= $match['hospital_match_status'] ?>' data-pledge-status='<?= $match['pledge_status'] ?>' onclick="viewMatchDetails(<?= $match['match_id'] ?>)" style='display: grid; grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr 180px; gap: 1rem; padding: 1.5rem; align-items: center; border-bottom: 1px solid #f1f5f9; transition: all 0.2s;'>
                 <div class='table-cell'>
                     <div style='font-weight: 700; color: #0f172a; margin-bottom: 4px;'><?= htmlspecialchars($match['donor_name'] . ' ' . $match['donor_last_name']) ?></div>
                     <div style='font-size: 0.8rem; color: #64748b; font-weight: 500; display: flex; align-items: center; gap: 6px;'>
@@ -258,6 +272,12 @@ try {
                             <div>
                                 <span class="data-label" style="color: #ef4444;">Weight/BMI</span>
                                 <div id="modal-donor-bmi" class="data-value">-</div>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid #fee2e2; padding-top: 10px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="data-label" style="color: #ef4444; margin: 0;">Pledge Status</span>
+                            <div id="modal-donor-pledge-status-badge" style="padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #f1f5f9; color: #475569;">
+                                <span id="modal-donor-pledge-status-text">UNKNOWN</span>
                             </div>
                         </div>
                         <div style="border-top: 1px solid #fee2e2; padding-top: 10px; display: grid; grid-template-columns: 1fr; gap: 8px;">

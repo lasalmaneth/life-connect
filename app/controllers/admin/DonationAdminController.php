@@ -112,11 +112,11 @@ class DonationAdminController {
                 $organ['consent_type'] = 'LIVING';
                 $consent = $this->query("SELECT * FROM living_donor_consents WHERE donor_pledge_id = :id", ['id' => $id]);
                 $organ['consent_data'] = $consent ? $consent[0] : null;
-            } elseif ($organId >= 4 && $organId <= 8) {
+            } elseif ($organId >= 4 && $organId <= 9) {
                 $organ['consent_type'] = 'DECEASED';
                 $consent = $this->query("SELECT * FROM after_death_consents WHERE donor_id = :id", ['id' => $donorId]);
                 $organ['consent_data'] = $consent ? $consent[0] : null;
-            } elseif ($organId == 9) {
+            } elseif ($organId == 10) {
                 $organ['consent_type'] = 'BODY';
                 $consent = $this->query("SELECT * FROM body_donation_consents WHERE donor_id = :id AND status = 'ACTIVE'", ['id' => $donorId]);
                 $organ['consent_data'] = $consent ? $consent[0] : null;
@@ -293,38 +293,10 @@ class DonationAdminController {
             }
         }
         
-        // Final Step: Sync match statuses to escalate pledges to IN_PROGRESS
-        $this->syncMatchStatuses($pdo);
-        
         return $matchesCreated;
     }
 
-    /**
-     * Escalates donor pledges to IN_PROGRESS when both donor and hospital have accepted
-     */
-    private function syncMatchStatuses($pdo) {
-        // 1. Escalate accepted matches to IN_PROGRESS
-        $sqlEscalate = "UPDATE donor_pledges 
-                SET status = 'IN_PROGRESS'
-                WHERE id IN (
-                    SELECT donor_pledge_id 
-                    FROM donor_patient_match 
-                    WHERE donor_status = 'ACCEPTED' 
-                      AND hospital_match_status = 'ACCEPTED'
-                ) AND status = 'APPROVED'";
-        $pdo->exec($sqlEscalate);
 
-        // 2. Suspend other pledges for donors who are now IN_PROGRESS
-        // This prevents a donor from being coordinated for multiple transplants simultaneously
-        $sqlSuspendOthers = "UPDATE donor_pledges 
-                             SET status = 'SUSPENDED'
-                             WHERE donor_id IN (
-                                 SELECT DISTINCT donor_id 
-                                 FROM (SELECT donor_id FROM donor_pledges WHERE status = 'IN_PROGRESS') as active_donors
-                             )
-                             AND status IN ('APPROVED', 'PENDING', 'UPLOADED')";
-        $pdo->exec($sqlSuspendOthers);
-    }
 
 
     public function getFilterMetadata() {
@@ -469,10 +441,32 @@ class DonationAdminController {
             // Ensure donor_pledges supports IN_PROGRESS status
             $pledgeCols = $pdo->query("SHOW COLUMNS FROM donor_pledges LIKE 'status'")->fetch(\PDO::FETCH_ASSOC);
             if ($pledgeCols && !str_contains($pledgeCols['Type'], 'IN_PROGRESS')) {
-                // We need to carefully update the ENUM. This is a generic approach.
-                // Assuming existing statuses are: PENDING, APPROVED, REJECTED, COMPLETED, UPLOADED, SUSPENDED
                 $pdo->exec("ALTER TABLE donor_pledges MODIFY COLUMN status ENUM('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED', 'UPLOADED', 'SUSPENDED', 'IN_PROGRESS') DEFAULT 'PENDING'");
             }
+
+            // [NEW] Automated Database Trigger for Match Coordination
+            // This ensures that donor pledges are escalated to IN_PROGRESS immediately when both statuses are ACCEPTED
+            $pdo->exec("DROP TRIGGER IF EXISTS after_match_status_update");
+            $pdo->exec("
+                CREATE TRIGGER after_match_status_update
+                AFTER UPDATE ON donor_patient_match
+                FOR EACH ROW
+                BEGIN
+                    IF NEW.donor_status = 'ACCEPTED' AND NEW.hospital_match_status = 'ACCEPTED' THEN
+                        -- 1. Mark the coordinate pledge as IN_PROGRESS
+                        UPDATE donor_pledges 
+                        SET status = 'IN_PROGRESS' 
+                        WHERE id = NEW.donor_pledge_id;
+                        
+                        -- 2. Mark ALL other pledges for this donor as SUSPENDED to prevent double donation
+                        UPDATE donor_pledges 
+                        SET status = 'SUSPENDED'
+                        WHERE donor_id = (SELECT donor_id FROM donor_pledges WHERE id = NEW.donor_pledge_id)
+                          AND id != NEW.donor_pledge_id
+                          AND status IN ('APPROVED', 'PENDING', 'UPLOADED');
+                    END IF;
+                END
+            ");
         } catch (\Exception $e) {
             // Silently fail if DB issues, logic will handle missing columns
         }
@@ -503,7 +497,8 @@ class DonationAdminController {
                         orq.blood_group as required_blood, orq.priority_level, orq.created_at as request_date,
                         orq.recipient_age, orq.gender as recipient_gender, orq.transplant_reason,
                         orq.hla_a1 as req_hla_a1, orq.hla_a2 as req_hla_a2, orq.hla_b1 as req_hla_b1, 
-                        orq.hla_b2 as req_hla_b2, orq.hla_dr1 as req_hla_dr1, orq.hla_dr2 as req_hla_dr2
+                        orq.hla_b2 as req_hla_b2, orq.hla_dr1 as req_hla_dr1, orq.hla_dr2 as req_hla_dr2,
+                        dp.status as pledge_status
                     FROM donor_patient_match m
                     JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
                     JOIN donors d ON dp.donor_id = d.id

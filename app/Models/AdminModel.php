@@ -622,4 +622,25 @@ class AdminModel {
         $params = array_merge([$status, $message], $userIds);
         return $this->query($query, $params);
     }
+
+    public function getFeedbacks() {
+        // Try to order by id desc since we aren't 100% sure about created_at
+        return $this->query("SELECT * FROM contact_messages ORDER BY id DESC") ?: [];
+    }
+
+    public function getFeedbackById($id) {
+        $res = $this->query("SELECT * FROM contact_messages WHERE id = :id", ['id' => $id]);
+        return $res[0] ?? null;
+    }
+
+    public function updateFeedbackStatus($id, $status) {
+        return $this->query("UPDATE contact_messages SET status = :status WHERE id = :id", [
+            'status' => $status,
+            'id' => $id
+        ]);
+    }
+
+    public function deleteFeedback($id) {
+        return $this->query("DELETE FROM contact_messages WHERE id = :id", ['id' => $id]);
+    }
 }

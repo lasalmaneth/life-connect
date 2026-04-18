@@ -50,8 +50,7 @@ function setupMatchingSearch() {
 
 // Setup filter functionality for matching
 function setupMatchingFilters() {
-    const donorFilter = document.getElementById('matching-donor-status-filter');
-    const hospitalFilter = document.getElementById('matching-hospital-status-filter');
+    const pledgeFilter = document.getElementById('matching-pledge-status-filter');
     
     if (donorFilter) {
         donorFilter.addEventListener('change', filterMatchingTable);
@@ -59,13 +58,17 @@ function setupMatchingFilters() {
     if (hospitalFilter) {
         hospitalFilter.addEventListener('change', filterMatchingTable);
     }
+    if (pledgeFilter) {
+        pledgeFilter.addEventListener('change', filterMatchingTable);
+    }
 }
 
 // Filter matching table based on search and filters
 function filterMatchingTable() {
     const searchTerm = document.getElementById('matching-search').value.toLowerCase();
-    const donorStatusFilter = document.getElementById('matching-donor-status-filter').value;
+        const donorStatusFilter = document.getElementById('matching-donor-status-filter').value;
     const hospitalStatusFilter = document.getElementById('matching-hospital-status-filter').value;
+    const pledgeStatusFilter = document.getElementById('matching-pledge-status-filter').value;
     
     const tableRows = document.querySelectorAll('#matching-table .table-row');
     const insightRows = document.querySelectorAll('#matching-table .insights-row');
@@ -77,6 +80,7 @@ function filterMatchingTable() {
         
         const rowDonorStatus = row.dataset.donorStatus;
         const rowHospitalStatus = row.dataset.hospitalMatchStatus;
+        const rowPledgeStatus = row.dataset.pledgeStatus;
         const matchId = row.dataset.matchId;
 
         const matchesSearch = donorName.includes(searchTerm) || 
@@ -85,8 +89,9 @@ function filterMatchingTable() {
         
         const matchesDonorStatus = !donorStatusFilter || rowDonorStatus === donorStatusFilter;
         const matchesHospitalStatus = !hospitalStatusFilter || rowHospitalStatus === hospitalStatusFilter;
+        const matchesPledgeStatus = !pledgeStatusFilter || rowPledgeStatus === pledgeStatusFilter;
         
-        const isVisible = matchesSearch && matchesDonorStatus && matchesHospitalStatus;
+        const isVisible = matchesSearch && matchesDonorStatus && matchesHospitalStatus && matchesPledgeStatus;
         
         // Hide/Show main row
         row.style.display = isVisible ? 'grid' : 'none';
@@ -244,6 +249,26 @@ function populateMatchModal(details) {
         donorAgeDisplay = (new Date().getFullYear() - dob.getFullYear()) + ' Years';
     }
     document.getElementById('modal-donor-age').textContent = donorAgeDisplay;
+    
+    // Update Clinical Pledge Status Badge
+    const pledgeBadge = document.getElementById('modal-donor-pledge-status-badge');
+    const pledgeText = document.getElementById('modal-donor-pledge-status-text');
+    const pStatus = (details.pledge_status || 'UNKNOWN').toUpperCase();
+    
+    pledgeText.textContent = pStatus;
+    if (pStatus === 'IN_PROGRESS') {
+        pledgeBadge.style.background = '#eff6ff';
+        pledgeBadge.style.color = '#1e40af';
+    } else if (pStatus === 'APPROVED' || pStatus === 'COMPLETED') {
+        pledgeBadge.style.background = '#dcfce7';
+        pledgeBadge.style.color = '#166534';
+    } else if (pStatus === 'SUSPENDED' || pStatus === 'REJECTED') {
+        pledgeBadge.style.background = '#fee2e2';
+        pledgeBadge.style.color = '#991b1b';
+    } else {
+        pledgeBadge.style.background = '#f1f5f9';
+        pledgeBadge.style.color = '#475569';
+    }
 
     // Calculate and show BMI if height/weight available
     const bmiEl = document.getElementById('modal-donor-bmi');

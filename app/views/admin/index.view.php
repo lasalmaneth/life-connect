@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/admin/style.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
-        integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
 
     <title>User Admin | LifeConnect</title>
     <style>
@@ -698,9 +696,12 @@
                         <span>Notifications</span>
                     </a>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')">
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')"
+                        style="display: flex; align-items: center;">
                         <span class="icon"><i class="fa-solid fa-comments"></i></span>
                         <span>Feedbacks</span>
+                        <span id="nav-pending-feedbacks-badge" class="badge"
+                            style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
                     </a>
 
                     <a href="javascript:void(0)" class="menu-item" onclick="showContent('audit-logs')">
@@ -1018,33 +1019,7 @@
 
 
                 <!-- Feedbacks -->
-                <div id="feedbacks" class="content-section" style="display: none;">
-                    <div class="content-header">
-                        <h2>Feedback Management</h2>
-                        <p>Audit user testimonials and inquiries to improve overall platform satisfaction and support.</p>
-                    </div>
-                    <div class="content-body">
-                        <div class="action-section">
-                            <h3>Feedback Actions</h3>
-                            <div class="action-buttons">
-                                <button class="btn btn-danger" id="bulk-delete-feedbacks" onclick="bulkDeleteFeedbacks()" disabled>Bulk Delete</button>
-                            </div>
-                        </div>
-
-                        <div class="data-table">
-                            <div class="table-header">
-                                <h4>Feedback Messages</h4>
-                            </div>
-                            <div class="table-content" id="feedbacks-table">
-                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                                    <div class="table-cell">
-                                        <input type="checkbox" id="select-all-feedbacks" onchange="toggleSelectAllFeedbacks()"> User Details
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <?php include 'feedback_management.php'; ?>
 
                 <!-- System Audit Logs -->
                 <div id="audit-logs" class="content-section" style="display: none;">
@@ -1539,7 +1514,7 @@
         <div class="modal-content">
             <div class="modal-scroll-area">
                 <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
-                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('notif-details-modal')">&times;</button>
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="event.stopPropagation(); closeModal('notif-details-modal')">&times;</button>
                 
                 <div style="display: flex; align-items: center; gap: 1.25rem;">
                     <div id="notif-type-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #eff6ff; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -1574,7 +1549,7 @@
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-                    <button type="button" onclick="closeModal('notif-details-modal')" style="background: #005baa; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Got it</button>
+                    <button type="button" onclick="event.stopPropagation(); closeModal('notif-details-modal')" style="background: #005baa; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Got it</button>
             </div>
         </div>
     </div>
@@ -1585,7 +1560,7 @@
         <div class="modal-content">
             <div class="modal-scroll-area">
                 <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
-                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('audit-details-modal')">&times;</button>
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="event.stopPropagation(); closeModal('audit-details-modal')">&times;</button>
                 
                 <div style="display: flex; align-items: center; gap: 1.25rem;">
                     <div style="flex-shrink: 0; width: 48px; height: 48px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
@@ -1630,7 +1605,7 @@
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-                    <button type="button" onclick="closeModal('audit-details-modal')" style="background: #1e293b; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Secure Close</button>
+                    <button type="button" onclick="event.stopPropagation(); closeModal('audit-details-modal')" style="background: #1e293b; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Secure Close</button>
                 </div>
             </div>
         </div>
@@ -1684,40 +1659,7 @@
         </div>
     </div>
 
-    <!-- Feedback Message Modal -->
-    <div id="feedback-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Feedback Message</h3>
-                <button class="modal-close" onclick="closeModal('feedback-modal')">&times;</button>
-            </div>
-            <div id="feedback-details">
-                <div class="form-group">
-                    <label class="form-label">From</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-from"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-email"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Message</label>
-                    <div class="form-textarea"
-                        style="background: var(--gray-bg-color); min-height: 150px; white-space: pre-wrap;"
-                        id="feedback-message"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Submitted</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-date"></div>
-                </div>
-            </div>
-            <div class="action-buttons" style="margin-top: 2rem;">
-                <button type="button" class="btn btn-danger" onclick="deleteFeedback(currentFeedbackId)">Delete
-                    Feedback</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('feedback-modal')">Close</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Bulk Action Authorization Modal (Existing) -->
     <div id="bulk-action-modal" class="modal">
@@ -1782,7 +1724,10 @@
             selectedUsers: [],
             selectedDocuments: [],
             selectedEligibility: [],
-            selectedFeedbacks: []
+            selectedFeedbacks: [],
+            isProcessingNotif: false,
+            isProcessingAudit: false,
+            isProcessingFeedback: false
         };
 
         // Navigation Functions
@@ -1841,7 +1786,7 @@
                     renderEligibilityTable();
                     break;
                 case 'feedbacks':
-                    renderFeedbacksTable();
+                    // Handled in feedback_management.php
                     break;
             }
         }
@@ -2894,6 +2839,16 @@
             }
         });
 
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+        }
+
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) {
@@ -3039,11 +2994,23 @@
 
         function renderNotificationsTable() {
             const tableContent = document.getElementById('notifications-table');
-            const headerRow = tableContent.querySelector('.table-row');
+            const headerRow = tableContent ? tableContent.querySelector('.table-row') : null;
             if (!tableContent || !headerRow) return;
 
             tableContent.innerHTML = '';
             tableContent.appendChild(headerRow);
+
+            // Add delegation listener once if not already present
+            if (!tableContent.dataset.hasListener) {
+                tableContent.addEventListener('click', (e) => {
+                    const row = e.target.closest('.clickable-row');
+                    if (row && row.dataset.notifId) {
+                        e.stopImmediatePropagation();
+                        openNotificationDetail(row.dataset.notifId);
+                    }
+                });
+                tableContent.dataset.hasListener = 'true';
+            }
 
             const notifs = Array.isArray(appState.notifications) ? appState.notifications : [];
 
@@ -3051,8 +3018,7 @@
                 const row = document.createElement('div');
                 row.className = 'table-row clickable-row';
                 row.style.cursor = 'pointer';
-                // Using onclick to ensure singleton listener (prevents double popup)
-                row.onclick = () => openNotificationDetail(notification.id);
+                row.dataset.notifId = notification.id;
                 
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Notification">
@@ -3070,7 +3036,15 @@
         }
 
         function openNotificationDetail(notifId) {
+            if (appState.isProcessingNotif) return;
+            appState.isProcessingNotif = true;
+            setTimeout(() => { appState.isProcessingNotif = false; }, 300);
+
             console.log('Requesting Notification Detail for ID:', notifId);
+            console.trace('Notification detail trigger source:');
+            
+            // Ensure modal is unique and on body
+            ensureModalOnBody('notif-details-modal');
             const notification = (appState.notifications || []).find(n => n.id == notifId);
             if (notification) {
                 const titleEl = document.getElementById('notif-modal-title');
@@ -3276,98 +3250,7 @@
             }, 5000);
         }
 
-        // Feedback Functions
-        function renderFeedbacksTable() {
-            const tableContent = document.getElementById('feedbacks-table');
-            const headerRow = tableContent.querySelector('.table-row');
 
-            tableContent.innerHTML = '';
-            tableContent.appendChild(headerRow);
-
-            appState.feedbacks.forEach(feedback => {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-            <div class="table-cell name" data-label="User">
-                <input type="checkbox" class="feedback-checkbox" data-feedback-id="${feedback.id}">
-                <span style="margin-left: 0.5rem;">
-                    <strong>${feedback.name}</strong><br>
-                    <small>${feedback.email}</small>
-                </span>
-            </div>
-            <div class="table-cell" data-label="Message">
-                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${feedback.message}
-                </div>
-            </div>
-            <div class="table-cell" data-label="Date">${feedback.date}</div>
-            <div class="table-cell" data-label="Actions">
-                <button class="btn btn-primary btn-small" onclick="viewFeedback(${feedback.id})">View</button>
-                <button class="btn btn-danger btn-small" onclick="deleteFeedback(${feedback.id})">Delete</button>
-            </div>
-        `;
-                tableContent.appendChild(row);
-            });
-
-            document.querySelectorAll('.feedback-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedFeedbacks);
-            });
-        }
-
-        let currentFeedbackId = null;
-
-        function viewFeedback(feedbackId) {
-            const feedback = appState.feedbacks.find(f => f.id === feedbackId);
-            if (feedback) {
-                currentFeedbackId = feedbackId;
-                document.getElementById('feedback-from').textContent = feedback.name;
-                document.getElementById('feedback-email').textContent = feedback.email;
-                document.getElementById('feedback-message').textContent = feedback.message;
-                document.getElementById('feedback-date').textContent = feedback.date;
-
-                document.getElementById('feedback-modal').classList.add('show');
-            }
-        }
-
-        function deleteFeedback(feedbackId) {
-            if (confirm('Are you sure you want to delete this feedback?')) {
-                appState.feedbacks = appState.feedbacks.filter(f => f.id !== feedbackId);
-                renderFeedbacksTable();
-                closeModal('feedback-modal');
-                showToast('warning', 'Feedback deleted successfully.');
-            }
-        }
-
-        function toggleSelectAllFeedbacks() {
-            const selectAll = document.getElementById('select-all-feedbacks');
-            const checkboxes = document.querySelectorAll('.feedback-checkbox');
-
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-            });
-
-            updateSelectedFeedbacks();
-        }
-
-        function updateSelectedFeedbacks() {
-            const checkboxes = document.querySelectorAll('.feedback-checkbox:checked');
-            appState.selectedFeedbacks = Array.from(checkboxes).map(cb => parseInt(cb.dataset.feedbackId));
-
-            const deleteBtn = document.getElementById('bulk-delete-feedbacks');
-            if (deleteBtn) deleteBtn.disabled = appState.selectedFeedbacks.length === 0;
-        }
-
-        function bulkDeleteFeedbacks() {
-            if (appState.selectedFeedbacks.length === 0) return;
-
-            if (confirm(`Delete ${appState.selectedFeedbacks.length} feedback message(s)?`)) {
-                appState.feedbacks = appState.feedbacks.filter(f => !appState.selectedFeedbacks.includes(f.id));
-                renderFeedbacksTable();
-                showToast('warning', `${appState.selectedFeedbacks.length} feedback(s) deleted.`);
-                appState.selectedFeedbacks = [];
-                document.getElementById('select-all-feedbacks').checked = false;
-            }
-        }
 
 
 
@@ -3396,10 +3279,20 @@
             const searchInput = document.getElementById('audit-search');
             const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
-            console.log('Rendering Audit Table. Logs available:', (appState.auditLogs || []).length);
-
             tableContent.innerHTML = '';
             if (headerRow) tableContent.appendChild(headerRow);
+
+            // Add delegation listener once if not already present
+            if (!tableContent.dataset.hasListener) {
+                tableContent.addEventListener('click', (e) => {
+                    const row = e.target.closest('.clickable-row');
+                    if (row && row.dataset.logId) {
+                        e.stopImmediatePropagation();
+                        openAuditDetail(row.dataset.logId);
+                    }
+                });
+                tableContent.dataset.hasListener = 'true';
+            }
 
             const filteredLogs = (appState.auditLogs || []).filter(log => {
                 const admin = (log.admin_name || '').toLowerCase();
@@ -3408,13 +3301,11 @@
                 return admin.includes(searchTerm) || target.includes(searchTerm) || action.includes(searchTerm);
             });
 
-            console.log('Filtered Logs count:', filteredLogs.length);
-
             filteredLogs.forEach(log => {
                 const row = document.createElement('div');
                 row.className = 'table-row clickable-row';
                 row.style.cursor = 'pointer';
-                row.onclick = () => openAuditDetail(log.id);
+                row.dataset.logId = log.id;
                 
                 row.innerHTML = `
                     <div class="table-cell">
@@ -3429,7 +3320,15 @@
         }
 
         function openAuditDetail(logId) {
+            if (appState.isProcessingAudit) return;
+            appState.isProcessingAudit = true;
+            setTimeout(() => { appState.isProcessingAudit = false; }, 300);
+
             console.log('Requesting Audit Detail for ID:', logId);
+            console.trace('Audit detail trigger source:');
+
+            // Ensure modal is unique and on body
+            ensureModalOnBody('audit-details-modal');
             const log = (appState.auditLogs || []).find(l => l.id == logId);
             if (log) {
                 document.getElementById('audit-modal-title').textContent = (log.action || 'Event').replace(/_/g, ' ');

@@ -236,6 +236,9 @@ route('user-admin/updateUser', 'admin\UserAdmin@updateUser');
 route('user-admin/reviewUser', 'admin\UserAdmin@reviewUser');
 route('user-admin/profile', 'admin\UserAdmin@profile');
 route('user-admin/checkUsername', 'admin\UserAdmin@checkUsername');
+route('user-admin/getFeedbacks', 'admin\UserAdmin@getFeedbacks');
+route('user-admin/updateFeedbackStatus', 'admin\UserAdmin@updateFeedbackStatus');
+route('user-admin/deleteFeedback', 'admin\UserAdmin@deleteFeedback');
 route('user-admin/bulkUpdateEntityVerification', 'admin\UserAdmin@bulkUpdateEntityVerification');
 
 // Donation Admin Routes
