@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use Exception;
 use PDO;
+use App\Models\admin\AftercareAdminModel;
 
 class DonationAdminController {
     use Controller;
@@ -13,7 +14,8 @@ class DonationAdminController {
 
     public function index() {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'D_ADMIN') {
+        $role = strtoupper($_SESSION['role'] ?? '');
+        if (!isset($_SESSION['user_id']) || ($role !== 'D_ADMIN' && $role !== 'ADMIN')) {
             redirect('login');
         }
 
@@ -48,18 +50,57 @@ class DonationAdminController {
     public function getDashboardStats() {
         header('Content-Type: application/json');
         try {
-            $totalDonors = $this->query("SELECT COUNT(DISTINCT donor_id) as count FROM donor_pledges WHERE status != 'REJECTED'")[0]->count ?? 0;
-            $totalOrgans = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status != 'REJECTED'")[0]->count ?? 0;
-            $pendingApprovals = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status = 'PENDING'")[0]->count ?? 0;
-            $completedDonations = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status = 'COMPLETED'")[0]->count ?? 0;
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $role = strtoupper($_SESSION['role'] ?? '');
+            if (!isset($_SESSION['user_id']) || ($role !== 'D_ADMIN' && $role !== 'ADMIN')) {
+                throw new \Exception("Unauthorized access");
+            }
+            // Helper for percentage change estimation (Month-over-Month)
+            $calcChange = function($current, $previous) {
+                if ($previous == 0) return $current > 0 ? 100 : 0;
+                return round((($current - $previous) / $previous) * 100, 1);
+            };
+
+            $thisMonthStart = date('Y-m-01 00:00:00');
+            $lastMonthStart = date('Y-m-01 00:00:00', strtotime('first day of last month'));
+
+            // 1. Total Organ Pledgers (Distinct Donors)
+            $totalDonorsCount = $this->query("SELECT COUNT(DISTINCT donor_id) as count FROM donor_pledges WHERE status != 'REJECTED'")[0]->count ?? 0;
+            $donorsThisMonth = $this->query("SELECT COUNT(DISTINCT donor_id) as count FROM donor_pledges WHERE status != 'REJECTED' AND pledge_date >= :start", ['start' => $thisMonthStart])[0]->count ?? 0;
+            $donorsLastMonth = $this->query("SELECT COUNT(DISTINCT donor_id) as count FROM donor_pledges WHERE status != 'REJECTED' AND pledge_date >= :start AND pledge_date < :end", ['start' => $lastMonthStart, 'end' => $thisMonthStart])[0]->count ?? 0;
+            $donorsChange = $calcChange($donorsThisMonth, $donorsLastMonth);
+
+            // 2. Organ Pledges (Total Count)
+            $totalOrgansCount = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status != 'REJECTED'")[0]->count ?? 0;
+            $organsThisMonth = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status != 'REJECTED' AND pledge_date >= :start", ['start' => $thisMonthStart])[0]->count ?? 0;
+            $organsLastMonth = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status != 'REJECTED' AND pledge_date >= :start AND pledge_date < :end", ['start' => $lastMonthStart, 'end' => $thisMonthStart])[0]->count ?? 0;
+            $organsChange = $calcChange($organsThisMonth, $organsLastMonth);
+
+            // 3. Pending Pledges
+            $pendingCount = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status = 'PENDING'")[0]->count ?? 0;
+            $pendingThisMonth = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status = 'PENDING' AND pledge_date >= :start", ['start' => $thisMonthStart])[0]->count ?? 0;
+            $pendingLastMonth = $this->query("SELECT COUNT(*) as count FROM donor_pledges WHERE status = 'PENDING' AND pledge_date >= :start AND pledge_date < :end", ['start' => $lastMonthStart, 'end' => $thisMonthStart])[0]->count ?? 0;
+            $pendingChange = $calcChange($pendingThisMonth, $pendingLastMonth);
+
+            // 4. Successful Matches
+            $matchesCount = $this->query("SELECT COUNT(*) as count FROM donor_patient_match")[0]->count ?? 0;
+            $matchesThisMonth = $this->query("SELECT COUNT(*) as count FROM donor_patient_match WHERE match_date >= :start", ['start' => $thisMonthStart])[0]->count ?? 0;
+            $matchesLastMonth = $this->query("SELECT COUNT(*) as count FROM donor_patient_match WHERE match_date >= :start AND match_date < :end", ['start' => $lastMonthStart, 'end' => $thisMonthStart])[0]->count ?? 0;
+            $matchesChange = $calcChange($matchesThisMonth, $matchesLastMonth);
+
+            // 5. Aftercare Patients
+            $totalRecipients = $this->query("SELECT COUNT(*) as count FROM aftercare_patients WHERE patient_type = 'RECIPIENT'")[0]->count ?? 0;
+            $totalDonorsAftercare = $this->query("SELECT COUNT(*) as count FROM aftercare_patients WHERE patient_type = 'DONOR'")[0]->count ?? 0;
 
             echo json_encode([
                 'success' => true,
                 'stats' => [
-                    'totalDonors' => (int)$totalDonors,
-                    'totalOrgans' => (int)$totalOrgans,
-                    'pendingApprovals' => (int)$pendingApprovals,
-                    'completedDonations' => (int)$completedDonations
+                    'totalDonors' => ['count' => (int)$totalDonorsCount, 'change' => $donorsChange],
+                    'totalOrgans' => ['count' => (int)$totalOrgansCount, 'change' => $organsChange],
+                    'pendingApprovals' => ['count' => (int)$pendingCount, 'change' => $pendingChange],
+                    'successfulMatches' => ['count' => (int)$matchesCount, 'change' => $matchesChange],
+                    'totalRecipients' => (int)$totalRecipients,
+                    'totalDonorsAftercare' => (int)$totalDonorsAftercare
                 ]
             ]);
         } catch (Exception $e) {
@@ -474,6 +515,12 @@ class DonationAdminController {
     public function getMatchDetails() {
         header('Content-Type: application/json');
         try {
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $role = strtoupper($_SESSION['role'] ?? '');
+            if (!isset($_SESSION['user_id']) || ($role !== 'D_ADMIN' && $role !== 'ADMIN')) {
+                throw new \Exception("Unauthorized access");
+            }
+
             $input = json_decode(file_get_contents('php://input'), true);
             $id = $input['match_id'] ?? ($_GET['match_id'] ?? null);
 
@@ -521,6 +568,58 @@ class DonationAdminController {
             }
         } catch (\Exception $e) {
             echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * AJAX endpoint: Get all aftercare patients
+     */
+    public function getPatients() {
+        header('Content-Type: application/json');
+        try {
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $role = strtoupper($_SESSION['role'] ?? '');
+            if (!isset($_SESSION['user_id']) || ($role !== 'D_ADMIN' && $role !== 'ADMIN')) {
+                throw new \Exception("Unauthorized access");
+            }
+
+            $type = $_GET['type'] ?? null;
+            $blood = $_GET['blood'] ?? null;
+            $search = $_GET['search'] ?? null;
+
+            $model = new AftercareAdminModel();
+            $patients = $model->getAllPatients($type, $blood, $search);
+            echo json_encode(['success' => true, 'patients' => $patients ? $patients : []]);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * AJAX endpoint: Get single patient details
+     */
+    public function getPatientDetails() {
+        header('Content-Type: application/json');
+        try {
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $role = strtoupper($_SESSION['role'] ?? '');
+            if (!isset($_SESSION['user_id']) || ($role !== 'D_ADMIN' && $role !== 'ADMIN')) {
+                throw new \Exception("Unauthorized access");
+            }
+
+            $id = $_GET['id'] ?? null;
+            if (!$id) throw new \Exception("Patient ID is required");
+
+            $model = new AftercareAdminModel();
+            $patient = $model->getPatientById($id);
+
+            if ($patient) {
+                echo json_encode(['success' => true, 'patient' => $patient]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Patient not found']);
+            }
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 }

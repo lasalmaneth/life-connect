@@ -251,6 +251,8 @@ route('donation-admin/getHospitalRequests', 'admin\DonationAdminController@getHo
 route('donation-admin/runAlgorithm', 'admin\DonationAdminController@runAlgorithm');
 route('donation-admin/getFilterMetadata', 'admin\DonationAdminController@getFilterMetadata');
 route('donation-admin/getMatchDetails', 'admin\DonationAdminController@getMatchDetails');
+route('donation-admin/getPatients', 'admin\DonationAdminController@getPatients');
+route('donation-admin/getPatientDetails', 'admin\DonationAdminController@getPatientDetails');
 
 // Tributes Admin Routes
 route('tributes-admin/getHospitals', 'admin\TributesAdminController@getHospitals');

@@ -211,10 +211,6 @@ $admin_status = 'Active';
                         <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
                         <span>Support Requests</span>
                     </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('patients', this)">
-                        <span class="icon"><i class="fa-solid fa-user-injured"></i></span>
-                        <span>Aftercare Patients</span>
-                    </a>
                 </div>
 
                 <div class="menu-section mt-auto">
@@ -321,76 +317,9 @@ $admin_status = 'Active';
                 </div>
             </div>
 
-            <!-- Aftercare Patients -->
-            <div id="patients" class="content-section" style="display: none;">
-                <div class="content-header">
-                    <h2>Aftercare Patient Records</h2>
-                    <p>Monitor and manage post-surgery patient follow-ups and long-term care records.</p>
-                </div>
-                <div class="content-body">
-                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; padding-top: 2rem;">
-                        <div class="search-bar" style="margin-bottom: 0; flex: 1;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" class="search-input" placeholder="Search by Patient Name, ID, or Surgery Type..." id="patient-search">
-                        </div>
-
-                        <div class="filter-section" style="margin-bottom: 0; display: flex; gap: 12px;">
-                            <select class="filter-select" id="patient-type-filter">
-                                <option value="">All Patient Types</option>
-                                <option value="recipient">Recipient Patient</option>
-                                <option value="donor">Post-Donation Patient</option>
-                            </select>
-                            <select class="filter-select" id="blood-type-filter">
-                                <option value="">All Blood Types</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="stats-grid dashboard-metrics" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="total-patients">0</div>
-                            <div class="stat-label">Total Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="recipient-patients">0</div>
-                            <div class="stat-label">Recipient Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="donor-patients">0</div>
-                            <div class="stat-label">Post-Donation Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="average-age">0</div>
-                            <div class="stat-label">Average Age</div>
-                        </div>
-                    </div>
-
-                    <div class="data-table">
-                        <div class="table-header">
-                            <h4>Aftercare Patient Records</h4>
-                        </div>
-                        <div class="table-content" id="patients-table">
-                            <div class="table-row header-row">
-                                <div class="table-cell" style="flex: 1.5;">Patient Details</div>
-                                <div class="table-cell">Age</div>
-                                <div class="table-cell">Blood Type</div>
-                                <div class="table-cell">Type</div>
-                                <div class="table-cell">Status</div>
-                                <div class="table-cell">Actions</div>
-                            </div>
-                            <!-- AJAX will load patient rows here -->
-                        </div>
-                    </div>
-                </div>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 </div>
@@ -471,71 +400,6 @@ $admin_status = 'Active';
     </div>
 </div>
 
-<!-- Patient Details Modal (Modern Styled) -->
-<div id="patientModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Patient Profile Review</h3>
-            <button class="modal-close" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closePatientModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="review-section">
-                <div class="review-grid">
-                    <div class="review-item">
-                        <span class="review-label">Registration Number</span>
-                        <span class="review-value" id="modal-patient-id">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">Full Name</span>
-                        <span class="review-value" id="modal-patient-name">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">National ID (NIC)</span>
-                        <span class="review-value" id="modal-patient-nic">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">Patient Status</span>
-                        <span class="review-value" id="modal-patient-status">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="review-grid" style="margin-bottom: 2rem;">
-                <div class="review-item">
-                    <span class="review-label">Age</span>
-                    <span class="review-value" id="modal-patient-age">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Blood Type</span>
-                    <span class="review-value" id="modal-patient-bloodtype">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Gender</span>
-                    <span class="review-value" id="modal-patient-gender">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Classification</span>
-                    <span class="review-value" id="modal-patient-type">-</span>
-                </div>
-            </div>
-
-            <div class="review-section">
-                <div class="review-item">
-                    <span class="review-label">Associated Hospital (Reg No)</span>
-                    <span class="review-value" id="modal-patient-hosp">-</span>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
-                <button class="btn btn-secondary" onclick="closePatientModal()" style="border-radius: 12px; padding: 0.75rem 1.5rem;">
-                    Close
-                </button>
-                <button class="btn btn-primary" style="border-radius: 12px; padding: 0.75rem 1.5rem; background: #005baa;">
-                    <i class="fa-solid fa-file-medical"></i> Clinical Records
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Notification System -->
@@ -634,25 +498,6 @@ $admin_status = 'Active';
         document.getElementById('supportModal').classList.remove('show');
     }
 
-    // Patient Modal controls
-    function openPatientModal(data) {
-        if(!data) return;
-        document.getElementById('modal-patient-id').innerText = data.id || '-';
-        document.getElementById('modal-patient-name').innerText = (data.first_name || '') + ' ' + (data.last_name || '');
-        document.getElementById('modal-patient-nic').innerText = data.nic || '-';
-        document.getElementById('modal-patient-status').innerText = data.status || '-';
-        document.getElementById('modal-patient-age').innerText = data.age || '-';
-        document.getElementById('modal-patient-bloodtype').innerText = data.blood_group || '-';
-        document.getElementById('modal-patient-gender').innerText = data.gender || '-';
-        document.getElementById('modal-patient-type').innerText = data.patient_type || '-';
-        document.getElementById('modal-patient-hosp').innerText = data.associated_hospital || '-';
-        
-        document.getElementById('patientModal').classList.add('show');
-    }
-
-    function closePatientModal() {
-        document.getElementById('patientModal').classList.remove('show');
-    }
 
     function handleSupportAction(id, action) {
         // ... (action logic mapping stays the same) ...
@@ -685,9 +530,7 @@ $admin_status = 'Active';
     // Close modal on click outside
     window.onclick = function(event) {
         const supportModal = document.getElementById('supportModal');
-        const patientModal = document.getElementById('patientModal');
         if (event.target == supportModal) closeSupportModal();
-        if (event.target == patientModal) closePatientModal();
     }
 
     // Support Request Filtering System

@@ -50,6 +50,8 @@ function setupMatchingSearch() {
 
 // Setup filter functionality for matching
 function setupMatchingFilters() {
+    const donorFilter = document.getElementById('matching-donor-status-filter');
+    const hospitalFilter = document.getElementById('matching-hospital-status-filter');
     const pledgeFilter = document.getElementById('matching-pledge-status-filter');
     
     if (donorFilter) {
@@ -114,7 +116,7 @@ function viewMatchDetails(matchId) {
     modal.style.display = 'flex';
     
     // Fetch from controller
-    fetch('/life-connect/public/donation-admin/getMatchDetails', {
+    fetch(`${ROOT}/donation-admin/getMatchDetails`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

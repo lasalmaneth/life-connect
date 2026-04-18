@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
 async function loadDashboardStats() {
     try {
         console.log('Loading dashboard stats...');
-        const response = await fetch('/life-connect/public/donation-admin/getDashboardStats');
+        const response = await fetch(`${ROOT}/donation-admin/getDashboardStats`);
         const data = await response.json();
 
         console.log('Dashboard stats response:', data);
@@ -55,12 +55,43 @@ async function loadDashboardStats() {
 // Update dashboard statistics
 function updateDashboardStats(stats) {
     console.log('Updating stats with:', stats);
-    document.getElementById('total-donors').textContent = stats.totalDonors || '0';
-    document.getElementById('total-organs').textContent = stats.totalOrgans || '0';
-    document.getElementById('pending-approvals').textContent = stats.pendingApprovals || '0';
-    document.getElementById('completed-donations').textContent = stats.completedDonations || '0';
-    // Update change indicators
-    updateStatChanges();
+    
+    // Update Counts
+    document.getElementById('total-donors').textContent = stats.totalDonors.count || '0';
+    document.getElementById('total-organs').textContent = stats.totalOrgans.count || '0';
+    document.getElementById('pending-approvals').textContent = stats.pendingApprovals.count || '0';
+    document.getElementById('completed-donations').textContent = stats.successfulMatches.count || '0';
+    
+    // Inject Aftercare Counts
+    const recEl = document.getElementById('total-recipients');
+    if (recEl) recEl.textContent = stats.totalRecipients || '0';
+    
+    const donEl = document.getElementById('total-donors-aftercare');
+    if (donEl) donEl.textContent = stats.totalDonorsAftercare || '0';
+    
+    // Update Change Indicators
+    updateStatChanges(stats);
+}
+
+function updateStatChanges(stats) {
+    const indicators = [
+        { id: 'total-donors-change', val: stats.totalDonors.change },
+        { id: 'total-organs-change', val: stats.totalOrgans.change },
+        { id: 'pending-pledges-change', val: stats.pendingApprovals.change },
+        { id: 'matches-change', val: stats.successfulMatches.change }
+    ];
+
+    indicators.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (el) {
+            const isPositive = item.val >= 0;
+            const arrow = isPositive ? '↗' : '↘';
+            const absVal = Math.abs(item.val);
+            
+            el.textContent = `${arrow} ${isPositive ? '+' : '-'}${absVal}% this month`;
+            el.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+        }
+    });
 }
 
 /**
@@ -68,7 +99,7 @@ function updateDashboardStats(stats) {
  * and populates all relevant filter dropdowns dynamically.
  */
 function loadFilterMetadata() {
-    fetch('/life-connect/public/donation-admin/getFilterMetadata')
+    fetch(`${ROOT}/donation-admin/getFilterMetadata`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -126,13 +157,6 @@ function loadFilterMetadata() {
         .catch(error => console.error('Error loading filter metadata:', error));
 }
 
-function updateStatChanges() {
-    const changes = document.querySelectorAll('.stat-change');
-    changes.forEach(change => {
-        change.textContent = '↗ +12% this month';
-        change.className = 'stat-change positive';
-    });
-}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -151,6 +175,28 @@ function setupEventListeners() {
 
     const bloodFilter = document.getElementById('blood-type-filter');
     if (bloodFilter) bloodFilter.addEventListener('change', handleOrganFilter);
+
+    // Aftercare Patient Search
+    const patientSearch = document.getElementById('patient-search');
+    if (patientSearch) {
+        patientSearch.addEventListener('input', () => {
+            // Simple debounce for search
+            clearTimeout(this.patientSearchTimeout);
+            this.patientSearchTimeout = setTimeout(fetchPatients, 300);
+        });
+    }
+
+    // Aftercare Patient Type Filter
+    const patientTypeFilterTab = document.getElementById('patient-type-filter');
+    if (patientTypeFilterTab) {
+        patientTypeFilterTab.addEventListener('change', fetchPatients);
+    }
+
+    // Blood Type Filter (Tab)
+    const bloodFilterTab = document.getElementById('blood-type-filter');
+    if (bloodFilterTab) {
+        bloodFilterTab.addEventListener('change', fetchPatients);
+    }
 }
 
 // Show Content Section (Navigation) - FIXED
@@ -178,6 +224,11 @@ function showContent(sectionId, element) {
             console.log('Triggering hospital requests fetch...');
             fetchHospitalRequests();
         }
+
+        if (sectionId === 'patients') {
+            console.log('Triggering patients fetch...');
+            fetchPatients();
+        }
     } else {
         console.error(`FAILED to find section with ID: ${sectionId}`);
     }
@@ -199,7 +250,7 @@ async function fetchOrgans() {
     if (loader) loader.style.display = 'block';
 
     try {
-        const response = await fetch('/life-connect/public/donation-admin/getPledges');
+        const response = await fetch(`${ROOT}/donation-admin/getPledges`);
         const data = await response.json();
 
         if (data.success) {
@@ -1003,4 +1054,201 @@ function resetRequestDateRange() {
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
     handleHospitalRequestFilter();
+}
+
+/**
+ * AJAX: Fetch Aftercare Patients
+ */
+async function fetchPatients() {
+    const tableBody = document.getElementById('patients-table');
+    if (!tableBody) return;
+
+    const loadingHtml = '<div class="table-row" style="justify-content: center; padding: 2rem;"><span><i class="fa-solid fa-spinner fa-spin"></i> Loading patients...</span></div>';
+    
+    // Preserve header
+    const headerRow = tableBody.querySelector('.header-row');
+    const headerHtml = headerRow ? headerRow.outerHTML : '';
+    tableBody.innerHTML = headerHtml + loadingHtml;
+
+    const typeFilter = document.getElementById('patient-type-filter')?.value || '';
+    const bloodFilter = document.getElementById('blood-type-filter')?.value || '';
+    const searchTerm = document.getElementById('patient-search')?.value || '';
+
+    try {
+        const response = await fetch(`${ROOT}/donation-admin/getPatients?type=${typeFilter}&blood=${bloodFilter}&search=${searchTerm}`);
+        const data = await response.json();
+
+        if (data.success) {
+            renderPatientsTable(data.patients);
+        } else {
+            console.error('Failed to fetch patients:', data.message);
+            tableBody.innerHTML = headerHtml + `<div class="table-row text-danger" style="padding: 2rem; justify-content: center;">Error: ${data.message}</div>`;
+        }
+    } catch (error) {
+        console.error('AJAX Error:', error);
+        tableBody.innerHTML = headerHtml + '<div class="table-row text-danger" style="padding: 2rem; justify-content: center;">Network error while fetching patient database.</div>';
+    }
+}
+
+/**
+ * Render Patients Table
+ */
+function renderPatientsTable(patients) {
+    const tableBody = document.getElementById('patients-table');
+    if (!tableBody) return;
+    const headerRow = tableBody.querySelector('.header-row');
+    const headerHtml = headerRow ? headerRow.outerHTML : '';
+    
+    if (!patients || patients.length === 0) {
+        tableBody.innerHTML = headerHtml + '<div class="table-row" style="justify-content: center; padding: 4rem; color: #64748b; flex-direction: column; gap: 1rem;">' +
+            '<i class="fa-solid fa-folder-open" style="font-size: 3rem; opacity: 0.2;"></i>' +
+            '<span>No aftercare patients found.</span></div>';
+        return;
+    }
+
+    let rowsHtml = headerHtml;
+    let recipientCount = 0;
+    let donorCount = 0;
+    let totalAge = 0;
+
+    patients.forEach(p => {
+        const typeColor = p.patient_type === 'RECIPIENT' ? '#3b82f6' : '#10b981';
+        if (p.patient_type === 'RECIPIENT') recipientCount++;
+        else donorCount++;
+        totalAge += parseInt(p.age || 0);
+
+        rowsHtml += `
+            <div class="table-row" 
+                 style="display: grid; grid-template-columns: 2.2fr 1.2fr 1fr 1.5fr 130px; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; align-items: center; transition: all 0.2s ease; cursor: pointer;"
+                 onclick="viewPatientDetails(${p.id})"
+                 onmouseover="this.style.background='#f8fafc'; this.style.boxShadow='inset 4px 0 0 #1e40af'"
+                 onmouseout="this.style.background='transparent'; this.style.boxShadow='none'">
+                
+                <div class="table-cell" style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; background: ${typeColor}15; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: ${typeColor}; font-weight: 700; border: 1px solid ${typeColor}30;">
+                        ${(p.full_name || 'P').charAt(0)}
+                    </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${p.full_name}</span>
+                        <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">${p.registration_number}</span>
+                    </div>
+                </div>
+                
+                <div class="table-cell" style="font-weight: 600; color: #1e293b;">
+                    ${p.age || 'N/A'} Yrs <span style="color: #94a3b8; font-weight: 400; font-size: 0.8rem; margin-left: 4px;">/ ${p.gender || 'M'}</span>
+                </div>
+                
+                <div class="table-cell" style="text-align: center;">
+                    <span style="background: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; border: 1px solid #fecaca;">
+                        ${p.blood_group || 'N/A'}
+                    </span>
+                </div>
+                
+                <div class="table-cell" style="text-align: center;">
+                    <span style="background: ${typeColor}15; color: ${typeColor}; padding: 5px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; border: 1px solid ${typeColor}25; text-transform: uppercase; letter-spacing: 0.02em;">
+                        ${p.patient_type}
+                    </span>
+                </div>
+                
+                <div class="table-cell" style="display: flex; justify-content: center;">
+                    <span style="background: #ecfdf5; color: #059669; padding: 5px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 800; display: flex; align-items: center; gap: 6px; border: 1px solid #d1fae5; text-transform: uppercase;">
+                        <span style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px #d1fae5;"></span>
+                        ${p.status}
+                    </span>
+                </div>
+            </div>
+        `;
+    });
+
+    tableBody.innerHTML = rowsHtml;
+
+    // Update Tab Stats
+    if (document.getElementById('tab-total-patients')) document.getElementById('tab-total-patients').innerText = patients.length;
+    if (document.getElementById('tab-recipient-patients')) document.getElementById('tab-recipient-patients').innerText = recipientCount;
+    if (document.getElementById('tab-donor-patients')) document.getElementById('tab-donor-patients').innerText = donorCount;
+    if (document.getElementById('tab-average-age')) document.getElementById('tab-average-age').innerText = patients.length > 0 ? Math.round(totalAge / patients.length) : 0;
+}
+
+/**
+ * AJAX: View Patient Details
+ */
+async function viewPatientDetails(id) {
+    try {
+        const response = await fetch(`${ROOT}/donation-admin/getPatientDetails?id=${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const p = data.patient;
+            
+            // Map Elements
+            const nameEl = document.getElementById('modal-patient-name');
+            const idEl = document.getElementById('modal-patient-id');
+            const ageGenderEl = document.getElementById('modal-patient-age-gender');
+            const bloodTypeEl = document.getElementById('modal-patient-bloodtype');
+            const typeSubEl = document.getElementById('modal-patient-type');
+            const statusEl = document.getElementById('modal-patient-status');
+            const nicEl = document.getElementById('modal-patient-nic');
+            const hospEl = document.getElementById('modal-patient-hosp');
+            
+            // New Fields
+            const surgeryTypeEl = document.getElementById('modal-patient-surgery-type');
+            const surgeryDateEl = document.getElementById('modal-patient-surgery-date');
+            const medicalNotesEl = document.getElementById('modal-patient-medical');
+            const contactDetailsEl = document.getElementById('modal-patient-contact');
+            
+            // Conditional Sections
+            const surgeryTypeSec = document.getElementById('modal-surgery-type-section');
+            const surgeryDateSec = document.getElementById('modal-surgery-date-section');
+            const extendedDetailsSec = document.getElementById('modal-extended-details');
+
+            if (nameEl) nameEl.textContent = p.full_name || 'N/A';
+            if (idEl) idEl.textContent = p.registration_number || 'N/A';
+            
+            // Age/Gender formatting
+            if (ageGenderEl) {
+                const ageDisplay = p.age ? `${p.age}Y` : '--';
+                const genderDisplay = p.gender || 'N/A';
+                ageGenderEl.textContent = `${ageDisplay} / ${genderDisplay}`;
+            }
+            
+            if (bloodTypeEl) bloodTypeEl.textContent = p.blood_group || 'N/A';
+            if (typeSubEl) typeSubEl.textContent = p.patient_type === 'RECIPIENT' ? 'Organ Recipient' : 'Organ Donor';
+            if (statusEl) {
+                statusEl.textContent = p.status || 'ACTIVE';
+                statusEl.style.color = (p.status || '').toUpperCase() === 'ACTIVE' ? '#10b981' : '#f59e0b';
+            }
+            if (nicEl) nicEl.textContent = p.nic || 'N/A';
+            if (hospEl) hospEl.textContent = p.hospital_name || (p.hospital_registration_no ? `Reg No: ${p.hospital_registration_no}` : 'General Hospital');
+
+            // Conditional display based on type
+            if (p.patient_type === 'RECIPIENT') {
+                if (surgeryTypeSec) surgeryTypeSec.style.display = 'block';
+                if (surgeryDateSec) surgeryDateSec.style.display = 'block';
+                if (extendedDetailsSec) extendedDetailsSec.style.display = 'block';
+                
+                if (surgeryTypeEl) surgeryTypeEl.textContent = p.surgery_type || 'N/A';
+                if (surgeryDateEl) surgeryDateEl.textContent = p.surgery_date || 'N/A';
+                if (medicalNotesEl) medicalNotesEl.textContent = p.medical_details || 'No clinical notes available.';
+                if (contactDetailsEl) contactDetailsEl.textContent = p.contact_details || 'No contact information provided.';
+            } else {
+                // Donor - Hide surgery and clinical sections
+                if (surgeryTypeSec) surgeryTypeSec.style.display = 'none';
+                if (surgeryDateSec) surgeryDateSec.style.display = 'none';
+                if (extendedDetailsSec) extendedDetailsSec.style.display = 'none';
+            }
+
+            // Show Modal
+            const modal = document.getElementById('patientModal');
+            modal.classList.add('show');
+        } else {
+            alert('Error fetching details: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Modal Fetch Error:', error);
+        alert('Network error while opening patient profile.');
+    }
+}
+
+function closePatientModal() {
+    document.getElementById('patientModal').classList.remove('show');
 }

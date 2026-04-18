@@ -332,6 +332,7 @@
 </head>
 <body>
 <?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<script>const ROOT = "<?= ROOT ?>";</script>
 <script src="/life-connect/public/assets/js/admin/donation.js?v=<?= time() ?>" defer></script>
 <script src="/life-connect/public/assets/js/admin/matching.js?v=<?= time() ?>" defer></script>
 <script src="/life-connect/public/assets/js/admin/tributes.js?v=<?= time() ?>" defer></script>
@@ -414,6 +415,10 @@
                         </div>
                         <span id="nav-stories-badge" style="background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; display: none;">0</span>
                     </a>
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('patients', this)">
+                        <span class="icon"><i class="fa-solid fa-user-injured"></i></span>
+                        <span>Aftercare Patients</span>
+                    </a>
                 </div>
 
                 <div class="menu-section mt-auto">
@@ -425,6 +430,7 @@
             </div>
 
             <div class="content-area" id="content-area">
+                <?php include 'aftercare_patients.tab.php'; ?>
                 <!-- Dashboard Overview -->
                 <div id="dashboard" class="content-section dashboard-page">
                     <div class="content-body" style="padding-top: 0;">
@@ -432,7 +438,7 @@
                             <div class="stat-card">
                                 <div class="stat-number" id="total-donors">0</div>
                                 <div class="stat-label">Total Organ Pledgers</div>
-                                <div class="stat-change positive">Loading...</div>
+                                <div class="stat-change" id="total-donors-change">Loading...</div>
                             </div>
                             <div class="stat-card">
                                 <a href="javascript:void(0)" class="see-all-link" title="See All Pledges" onclick="showContent('donor-organs', document.querySelector('.menu-item[onclick*=\'donor-organs\']'))">
@@ -440,17 +446,17 @@
                                 </a>
                                 <div class="stat-number" id="total-organs">0</div>
                                 <div class="stat-label">Organ Pledges</div>
-                                <div class="stat-change positive">Loading...</div>
+                                <div class="stat-change" id="total-organs-change">Loading...</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-number" id="pending-approvals">0</div>
-                                <div class="stat-label">Action Required</div>
-                                <div class="stat-change warning">Loading...</div>
+                                <div class="stat-number" id="pending-approvals" style="color: #ef4444;">0</div>
+                                <div class="stat-label">Pending Pledges</div>
+                                <div class="stat-change" id="pending-pledges-change">Loading...</div>
                             </div>
                             <div class="stat-card">
                                 <div class="stat-number" id="completed-donations">0</div>
                                 <div class="stat-label">Successful Matches</div>
-                                <div class="stat-change positive">Loading...</div>
+                                <div class="stat-change" id="matches-change">Loading...</div>
                             </div>
 
                             <!-- Organ Request Visualization (now inside the grid) -->
@@ -487,9 +493,9 @@
                                     $max_val = max($p_stats['normal'], $p_stats['urgent'], $p_stats['critical'], 1);
                                     
                                     $items = [
-                                        ['label' => 'Normal', 'count' => $p_stats['normal'], 'color' => '#e2e8f0', 'border' => '#374151'],
-                                        ['label' => 'Urgent', 'count' => $p_stats['urgent'], 'color' => '#fed7aa', 'border' => '#9A3412'],
-                                        ['label' => 'Critical', 'count' => $p_stats['critical'], 'color' => '#fecdd3', 'border' => '#9F1239']
+                                        ['label' => 'Normal', 'count' => $p_stats['normal'], 'color' => '#fef08a', 'border' => '#713F12'],
+                                        ['label' => 'Urgent', 'count' => $p_stats['urgent'], 'color' => '#faa97bff', 'border' => '#9a3412'],
+                                        ['label' => 'Critical', 'count' => $p_stats['critical'], 'color' => '#fd8181ff', 'border' => '#991b1b']
                                     ];
 
                                     foreach($items as $item):
@@ -504,6 +510,17 @@
                                         <div class="pillar-label"><?= $item['label'] ?></div>
                                     </div>
                                     <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <!-- Vertical Aftercare Stats -->
+                            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                                <div class="stat-card" style="margin-top: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                    <div class="stat-number" id="total-recipients" style="color: #1e40af ;">0</div>
+                                    <div class="stat-label">Aftercare Recipients</div>
+                                </div>
+                                <div class="stat-card" style="margin-top: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                                    <div class="stat-number" id="total-donors-aftercare" style="color: #1e40af ;">0</div>
+                                    <div class="stat-label">Aftercare Donors</div>
                                 </div>
                             </div>
                         </div>
