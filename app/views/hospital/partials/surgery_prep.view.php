@@ -1,4 +1,4 @@
-<div id="surgery-prep" class="content-section" style="display: none;">
+<div id="surgery-prep" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'surgery-prep') ? 'display:block' : 'display:none'; ?>">
     <div class="content-header" style="background: white; border-bottom: 1px solid #e2e8f0; padding: 25px 30px; border-radius: 16px 16px 0 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -50,14 +50,14 @@
                                 </td>
                                 <td style="padding: 18px 24px;">
                                     <?php 
-                                        $status = strtoupper(trim((string)$match->status));
+                                        $hStatus = strtoupper(trim((string)($match->hospital_match_status ?? 'PENDING')));
                                         $bg = '#f1f5f9'; $fg = '#64748b';
-                                        if ($status === 'APPROVED') { $bg = '#dcfce7'; $fg = '#166534'; }
-                                        elseif ($status === 'REJECTED') { $bg = '#fee2e2'; $fg = '#991b1b'; }
-                                        elseif ($status === 'PENDING' || $status === 'MATCH') { $bg = '#fef3c7'; $fg = '#92400e'; }
+                                        if ($hStatus === 'ACCEPTED') { $bg = '#dcfce7'; $fg = '#166534'; }
+                                        elseif ($hStatus === 'REJECTED') { $bg = '#fee2e2'; $fg = '#991b1b'; }
+                                        elseif ($hStatus === 'PENDING') { $bg = '#fef3c7'; $fg = '#92400e'; }
                                     ?>
                                     <span style="padding: 6px 14px; background: <?= $bg ?>; color: <?= $fg ?>; border-radius: 20px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.02em;">
-                                        <?= $status ?>
+                                        <?= $hStatus ?>
                                     </span>
                                 </td>
                                 <td style="padding: 18px 24px; text-align: right;">
@@ -152,34 +152,64 @@ function viewSurgeryMatchDetails(matchId) {
 
                 // Date & Status Badge
                 document.getElementById('matchSurgeryDate').innerText = new Date(data.surgery_date).toLocaleString();
+
+                // Hospital Specific Decision
+                const hBox = document.getElementById('hospitalDecisionBox');
+                const hStatus = data.hospital_match_status || 'PENDING';
+                const hReason = data.hospital_reject_reason;
                 
-                const status = data.status.toUpperCase();
+                if (hStatus !== 'PENDING') {
+                    hBox.style.display = 'block';
+                    const pill = document.getElementById('hospitalStatusPill');
+                    pill.innerText = hStatus;
+                    pill.style.background = (hStatus === 'ACCEPTED') ? '#dcfce7' : '#fee2e2';
+                    pill.style.color = (hStatus === 'ACCEPTED') ? '#166534' : '#991b1b';
+                    document.getElementById('hospitalRemarksText').innerText = hReason || 'No reason provided.';
+                    
+                    if (document.getElementById('matchReason')) {
+                        document.getElementById('matchReason').value = hReason || '';
+                    }
+                } else {
+                    hBox.style.display = 'none';
+                    if (document.getElementById('matchReason')) {
+                        document.getElementById('matchReason').value = '';
+                    }
+                }
+
+                // LOCKING: Only allow decision if institution has not finalized one yet
+                const actionForm = document.getElementById('matchActionForm');
+                if (hStatus === 'PENDING') {
+                    actionForm.style.display = 'block';
+                } else {
+                    actionForm.style.display = 'none';
+                }
+                
                 let statusHtml = '';
-                if (status === 'APPROVED') {
-                    statusHtml = '<span style="padding: 8px 16px; background: #dcfce7; color: #166534; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">APPROVED</span>';
-                    document.getElementById('matchActionForm').style.display = 'none';
+                if (hStatus === 'ACCEPTED') {
+                    statusHtml = '<span style="padding: 8px 16px; background: #dcfce7; color: #166534; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">MATCH ACCEPTED</span>';
                     document.getElementById('matchDocsSection').style.display = 'block';
                     
                     // Set Doc Links
                     document.getElementById('certLink').href = `${ROOT}/hospital/view-donation-certificate?id=${data.match_id}`;
                     document.getElementById('letterLink').href = `${ROOT}/hospital/view-appreciation-letter?id=${data.match_id}`;
-                } else if (status === 'REJECTED') {
-                    statusHtml = '<span style="padding: 8px 16px; background: #fee2e2; color: #991b1b; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">REJECTED</span>';
-                    document.getElementById('matchActionForm').style.display = 'none';
+                } else if (hStatus === 'REJECTED') {
+                    statusHtml = '<span style="padding: 8px 16px; background: #fee2e2; color: #991b1b; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">MATCH REJECTED</span>';
                     document.getElementById('matchDocsSection').style.display = 'none';
                 } else {
-                    statusHtml = '<span style="padding: 8px 16px; background: #fef3c7; color: #92400e; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">WAITING CLINICAL APPROVAL</span>';
-                    document.getElementById('matchActionForm').style.display = 'block';
+                    statusHtml = '<span style="padding: 8px 16px; background: #fef3c7; color: #92400e; border-radius: 8px; font-weight: 800; font-size: 0.85rem;">PENDING YOUR DECISION</span>';
                     document.getElementById('matchDocsSection').style.display = 'none';
                 }
                 document.getElementById('matchStatusBadgeContainer').innerHTML = statusHtml;
 
                 modal.style.display = 'block';
             } else {
-                alert(res.message);
+                notify(res.message, 'error');
             }
         })
-        .catch(err => console.error('Error fetching match details:', err));
+        .catch(err => {
+            console.error('Error fetching match details:', err);
+            notify('Failed to load match details.', 'error');
+        });
 }
 
 function closeSurgeryMatchModal() {
@@ -190,29 +220,43 @@ function submitMatchAction(action) {
     const reason = document.getElementById('matchReason').value;
     
     if (action === 'reject' && !reason.trim()) {
-        alert('Please provide a reason for rejection.');
+        notify('Please provide a reason for rejection.', 'warning');
         return;
     }
 
-    const formData = new FormData();
-    formData.append('match_id', currentMatchId);
-    formData.append('action', action);
-    formData.append('reason', reason);
+    const confirmMsg = action === 'approve' 
+        ? 'Are you sure you want to ACCEPT this match results? Once accepted, this decision is final and irreversible.' 
+        : 'Are you sure you want to REJECT this pairing? Once rejected, you cannot reconsider this donor for this specific request.';
 
-    fetch(`${ROOT}/hospital/handle-match-action`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(res => {
-        if (res.success) {
-            closeSurgeryMatchModal();
-            location.reload(); // Reload to show updated status
-        } else {
-            alert(res.message);
-        }
-    })
-    .catch(err => console.error('Error submitting match action:', err));
+    hcConfirm(confirmMsg, { danger: action === 'reject' }).then(ok => {
+        if (!ok) return;
+
+        const formData = new FormData();
+        formData.append('match_id', currentMatchId);
+        formData.append('action', action);
+        formData.append('reason', reason);
+
+        fetch(`${ROOT}/hospital/handle-match-action`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.success) {
+                notify(res.message, 'success');
+                setTimeout(() => {
+                    closeSurgeryMatchModal();
+                    location.reload();
+                }, 1500);
+            } else {
+                notify(res.message, 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Error submitting match action:', err);
+            notify('An error occurred. Please try again.', 'error');
+        });
+    });
 }
 
 window.onclick = function(event) {

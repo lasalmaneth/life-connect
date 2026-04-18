@@ -202,7 +202,7 @@ function extractRescheduleProposedDate($notes): ?string
             $proposed = extractRescheduleProposedDate($apt->notes ?? '');
 
             if ($status === 'Rejected')                  $cls = 'apt-red';
-            elseif ($status === 'Pending' && $isFuture)  $cls = 'apt-yellow';   // upcoming & pending
+            elseif (($status === 'Pending' || $status === 'Scheduled') && $isFuture)  $cls = 'apt-yellow';   // upcoming & pending/scheduled
             elseif ($status === 'Approved' && $isFuture) $cls = 'apt-green';    // upcoming & approved
             else                                         $cls = 'apt-blue';     // past (any approved/completed)
 
@@ -256,7 +256,7 @@ function extractRescheduleProposedDate($notes): ?string
                         <div style="display:grid; gap:.9rem;">
                             <?php foreach ($upcoming_appointments as $apt):
                                 $status   = $apt->status ?? 'Pending';
-                                $isPending = ($status === 'Pending');
+                                $isPending = ($status === 'Pending' || $status === 'Scheduled');
                                 $isRequested = ($status === 'Requested');
                                 $proposed = extractRescheduleProposedDate($apt->notes ?? '');
                                 
@@ -268,7 +268,7 @@ function extractRescheduleProposedDate($notes): ?string
                                            : ($isRequested  ? 'background:#dbeafe;color:#1d4ed8;'
                                            : ($status==='Approved' ? 'background:#dcfce7;color:#16a34a;'
                                            : 'background:#fee2e2;color:#b91c1c;'));
-                                $badgeCls  = $isPending     ? 'badge-yellow'
+                                $badgeCls  = ($status === 'Pending' || $status === 'Scheduled') ? 'badge-yellow'
                                            : ($isRequested  ? 'badge-blue'
                                            : ($status==='Approved' ? 'badge-green' : 'badge-red'));
                                 $aptJson   = json_encode([
@@ -405,7 +405,7 @@ function extractRescheduleProposedDate($notes): ?string
                             $isFuture = !empty($apt->test_date) && date('Y-m-d', strtotime($apt->test_date)) >= $today;
                             if ($status==='Rejected')                    $badgeCls='badge-red';
                             elseif ($status==='Approved' && $isFuture)   $badgeCls='badge-green';
-                            elseif ($status==='Pending')                 $badgeCls='badge-yellow';
+                            elseif ($status==='Pending' || $status==='Scheduled')      $badgeCls='badge-yellow';
                             else                                         $badgeCls='badge-blue';
                             $cardData = json_encode([
                                 'id'       => $apt->id,

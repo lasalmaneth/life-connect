@@ -1,5 +1,5 @@
 <!-- Deceased Documents & Success Stories (Combined View) -->
-<div id="deceased-documents" class="content-section" style="display: none;">
+<div id="deceased-documents" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'deceased-documents') ? 'display:block' : 'display:none'; ?>">
     <div class="cp-content-header">
         <div class="cp-content-header__content">
             <h1 class="cp-content-header__title">

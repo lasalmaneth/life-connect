@@ -276,19 +276,20 @@ class AdminModel {
                 "UPDATE medical_schools SET verification_status = :vs WHERE user_id = :uid",
                 ['vs' => $profileStatus, 'uid' => $userId]
             );
-            // Aftercare Patients summary table (HAS user_id)
-            $this->query(
-                "UPDATE aftercare_patients SET status = :s WHERE user_id = :uid",
-                ['s' => strtoupper($status), 'uid' => $userId]
-            );
+            // Aftercare Patients summary table (Mapping only)
+            // No status column here anymore, status is managed in users and recipient_patient
             
-            // Recipient Patients table (NO user_id, use registration_number from aftercare_patients)
-            $res = $this->query("SELECT registration_number FROM aftercare_patients WHERE user_id = :uid", ['uid' => $userId]);
+            // Recipient Patients table (Sync status if they have a profile)
+            $res = $this->query(
+                "SELECT r.registration_number 
+                 FROM aftercare_patients ap
+                 JOIN recipient_patient r ON ap.user_id = r.user_id 
+                 WHERE ap.user_id = :uid", ['uid' => $userId]);
             if (!empty($res) && !empty($res[0]->registration_number)) {
                 $regNo = $res[0]->registration_number;
                 $this->query(
                     "UPDATE recipient_patient SET status = :s WHERE registration_number = :rn",
-                    ['s' => strtoupper($status), ':rn' => $regNo]
+                    ['s' => strtoupper($status), 'rn' => $regNo]
                 );
             }
         }

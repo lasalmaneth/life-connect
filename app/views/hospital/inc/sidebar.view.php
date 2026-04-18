@@ -6,7 +6,7 @@
 
     <div class="menu-section">
         <div class="menu-section-title">MAIN</div>
-        <a href="<?php echo ROOT; ?>/hospital" class="menu-item active" data-section="overview" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital" class="menu-item <?php echo (($initialSection ?? 'overview') === 'overview') ? 'active' : ''; ?>" data-section="overview" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-chart-line"></i></span>
             <span>Main Dashboard</span>
         </a>
@@ -39,27 +39,27 @@
             <span class="icon"><i class="fas fa-heart"></i></span>
             <span>Manage Requests</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/matching" class="menu-item" data-section="matching" onclick="showContent('matching', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/matching" class="menu-item" data-section="matching" onclick="hcShowSection('matching', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-dna"></i></span>
             <span>Matching Results</span>
         </a>
 
         <div class="menu-section-title" style="margin-top: 1rem;">SURGERY MANAGEMENT</div>
-        <a href="<?php echo ROOT; ?>/hospital/surgery-prep" class="menu-item" data-section="surgery-prep" onclick="showContent('surgery-prep', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/surgery-prep" class="menu-item" data-section="surgery-prep" onclick="hcShowSection('surgery-prep', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-procedures"></i></span>
             <span>Details</span>
         </a>
 
         <div class="menu-section-title" style="margin-top: 1rem;">DECEASED ORGAN MANAGEMENT</div>
-        <a href="<?php echo ROOT; ?>/hospital/deceased-requests" class="menu-item" data-section="deceased-requests" onclick="showContent('deceased-requests', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/deceased-requests" class="menu-item" data-section="deceased-requests" onclick="hcShowSection('deceased-requests', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-inbox"></i></span>
             <span>Requests</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/deceased-documents" class="menu-item" data-section="deceased-documents" onclick="showContent('deceased-documents', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/deceased-documents" class="menu-item" data-section="deceased-documents" onclick="hcShowSection('deceased-documents', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-file-medical"></i></span>
             <span>Document & Success Stories</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/deceased-final-flow" class="menu-item" data-section="deceased-final-flow" onclick="showContent('deceased-final-flow', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/deceased-final-flow" class="menu-item" data-section="deceased-final-flow" onclick="hcShowSection('deceased-final-flow', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-check-double"></i></span>
             <span>Final Flow</span>
         </a>

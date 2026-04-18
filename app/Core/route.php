@@ -136,7 +136,9 @@ route('hospital/test-results', 'Hospital@index');
 // Backward-compatible path (Upcoming Appointments section)
 route('hospital/lab-reports', 'Hospital@index');
 route('hospital/search-donors', 'Hospital@searchDonors');
+route('hospital/fetch-donor-appointments', 'Hospital@fetchDonorAppointments');
 route('hospital/addpatient', 'Hospital@addpatient');
+route('hospital/aftercare-management', 'Hospital@aftercareManagement');
 route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
 route('hospital/addpatient/donor', 'Hospital@addpatientDonor');
 route('hospital/fetch-donor-details', 'Hospital@fetchDonorDetails');

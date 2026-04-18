@@ -1,5 +1,5 @@
 <div id="surgeryMatchModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
-    <div class="modal-content" style="background-color: #f8fafc; margin: 5% auto; padding: 0; border: none; width: 850px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; animation: modalSlideIn 0.3s ease-out;">
+    <div class="modal-content" style="background-color: #f8fafc; margin: 2% auto; padding: 0; border: none; width: 850px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); max-height: 90vh; overflow-y: auto; animation: modalSlideIn 0.3s ease-out;">
         
         <!-- Modal Header -->
         <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 30px; color: white; position: relative;">
@@ -50,7 +50,7 @@
             <div id="medicalWarningBox" style="display: none; margin-top: 25px; padding: 18px; background: #fffbeb; border-radius: 12px; border: 1px solid #fef3c7; color: #92400e;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 1.1rem;"></i>
-                    <strong style="font-weight: 700;">Medical Precautions Noted</strong>
+                    <strong style="font-weight: 700;">Important Medical Notes</strong>
                 </div>
                 <p id="matchWarningText" style="margin: 0; font-size: 0.9rem; line-height: 1.5;"></p>
             </div>
@@ -61,21 +61,43 @@
                     <div style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px;">Surgery Scheduled For</div>
                     <div id="matchSurgeryDate" style="font-size: 1.1rem; color: #0f172a; font-weight: 800;"></div>
                 </div>
-                <div id="matchStatusBadgeContainer">
+                <div id="matchStatusBadgeContainer" style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                     <!-- Dynamic Badge -->
                 </div>
             </div>
 
+            <!-- Scenario Summary -->
+            <div style="margin-top: 25px; padding: 25px; background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+                    <div style="width: 32px; height: 32px; background: #f1f5f9; color: #475569; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <h4 style="margin: 0; color: #1e293b; font-size: 1rem; font-weight: 700;">Scenario Summary</h4>
+                </div>
+                <div id="scenarioSummary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 0.9rem;">
+                    <!-- Populate via JS -->
+                </div>
+            </div>
+
+            <!-- Hospital Decision Display (Existing) -->
+            <div id="hospitalDecisionBox" style="display: none; margin-top: 20px; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <h4 style="margin: 0; color: #1e293b; font-size: 0.95rem; font-weight: 700;">Hospital Decision</h4>
+                    <span id="hospitalStatusPill" style="padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;"></span>
+                </div>
+                <div style="color: #475569; font-size: 0.9rem; font-weight: 500; line-height: 1.5;" id="hospitalRemarksText"></div>
+            </div>
+
             <!-- Action Form (Conditional) -->
             <div id="matchActionForm" style="display: none; margin-top: 30px; padding-top: 25px; border-top: 1px solid #e2e8f0;">
-                <h4 style="margin: 0 0 15px; color: #1e293b; font-size: 1rem; font-weight: 700;">Coordinator Clinical Review</h4>
+                <h4 style="margin: 0 0 15px; color: #1e293b; font-size: 1rem; font-weight: 700;">Confirm Decision</h4>
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 0.9rem;">Review Notes / Rejection Reason</label>
-                    <textarea id="matchReason" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; min-height: 100px; font-family: inherit; font-size: 0.95rem; resize: vertical;" placeholder="Provide clinical justification for approval or detailed reason for rejection..."></textarea>
+                    <label style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: 0.9rem;">Your Reason / Notes</label>
+                    <textarea id="matchReason" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; min-height: 100px; font-family: inherit; font-size: 0.95rem; resize: vertical;" placeholder="Why are you approving or rejecting this match?"></textarea>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 15px;">
-                    <button onclick="submitMatchAction('reject')" style="background: white; border: 1px solid #ef4444; color: #ef4444; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">Reject Pairing</button>
-                    <button onclick="submitMatchAction('approve')" style="background: #10b981; border: none; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">Approve & Generate Registry</button>
+                    <button onclick="submitMatchAction('reject')" style="background: white; border: 1px solid #ef4444; color: #ef4444; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;">Reject Match</button>
+                    <button onclick="submitMatchAction('approve')" style="background: #10b981; border: none; color: white; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);">Approve Match</button>
                 </div>
             </div>
 

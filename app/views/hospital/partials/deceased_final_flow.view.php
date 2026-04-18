@@ -1,5 +1,5 @@
 <!-- Deceased Final Flow (Stage G for Hospital) -->
-<div id="deceased-final-flow" class="content-section" style="display: none;">
+<div id="deceased-final-flow" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'deceased-final-flow') ? 'display:block' : 'display:none'; ?>">
     <div class="cp-content-header">
         <div class="cp-content-header__content">
             <h1 class="cp-content-header__title">

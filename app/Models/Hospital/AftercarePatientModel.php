@@ -55,15 +55,14 @@ class AftercarePatientModel
         return (bool)$cache;
     }
 
-    public function getByUserId(int $userId)
+    public function getByRegistrationNumber(string $registrationNumber)
     {
+        $registrationNumber = trim($registrationNumber);
+        if ($registrationNumber === '') return false;
+
         $res = $this->query(
-            "SELECT ap.*, d.first_name, d.last_name, rp.full_name 
-             FROM {$this->table} ap
-             LEFT JOIN donors d ON ap.user_id = d.user_id
-             LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
-             WHERE ap.user_id = :uid LIMIT 1",
-            [':uid' => $userId]
+            "SELECT * FROM {$this->table} WHERE registration_number = :rn LIMIT 1",
+            [':rn' => $registrationNumber]
         );
 
         return $res ? $res[0] : false;
@@ -75,11 +74,7 @@ class AftercarePatientModel
         if ($nic === '') return false;
 
         $res = $this->query(
-            "SELECT ap.*, d.first_name, d.last_name, rp.full_name 
-             FROM {$this->table} ap
-             LEFT JOIN donors d ON ap.user_id = d.user_id
-             LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
-             WHERE d.nic_number = :nic OR rp.nic = :nic LIMIT 1",
+            "SELECT * FROM {$this->table} WHERE nic = :nic LIMIT 1",
             [':nic' => $nic]
         );
 
@@ -118,8 +113,6 @@ class AftercarePatientModel
                 'username' => $registrationNumber,
                 'password_hash' => $passwordHash,
                 'role' => 'RECIPIENT_PATIENT',
-                'email' => $data['email'] ?? null,
-                'phone' => $data['phone'] ?? null,
                 'status' => 'PENDING',
                 'must_change_credentials' => 1,
                 'created_at' => date('Y-m-d H:i:s'),
@@ -133,16 +126,25 @@ class AftercarePatientModel
 
             try {
                 $aftercareRow = [
-                    'user_id' => $userIdInt,
+                    'registration_number' => $registrationNumber,
+                    'nic' => $nic,
+                    'full_name' => $fullName,
                     'patient_type' => 'RECIPIENT',
+                    'hospital_registration_no' => $hospitalReg,
+                    'status' => 'PENDING',
                 ];
+
+                if ($this->aftercareHasColumn('user_id')) {
+                    $aftercareRow['user_id'] = $userIdInt;
+                }
+
 
                 $aftercareId = $this->insert($aftercareRow, $this->table);
                 if (!$aftercareId) {
                     throw new \RuntimeException('Failed to create aftercare patient profile.');
                 }
 
-                $this->insertRecipientPatientRow($userIdInt, $registrationNumber, $nic, $fullName, $hospitalReg, $data);
+                $this->insertRecipientPatientRow($registrationNumber, $nic, $fullName, $hospitalReg, $data);
 
                 return $registrationNumber;
             } catch (\Throwable $e) {
@@ -240,11 +242,10 @@ class AftercarePatientModel
         return sprintf('REG-%d-%04d', $year, $nextSeq);
     }
 
-    private function insertRecipientPatientRow(int $userId, string $registrationNumber, string $nic, string $fullName, string $hospitalReg, array $data): void
+    private function insertRecipientPatientRow(string $registrationNumber, string $nic, string $fullName, string $hospitalReg, array $data): void
     {
         $this->query(
             "INSERT INTO {$this->recipientTable} (
-                user_id,
                 registration_number,
                 nic,
                 full_name,
@@ -259,7 +260,6 @@ class AftercarePatientModel
                 status,
                 created_at
             ) VALUES (
-                :uid,
                 :rn,
                 :nic,
                 :full_name,
@@ -275,7 +275,6 @@ class AftercarePatientModel
                 NOW()
             )",
             [
-                ':uid' => $userId,
                 ':rn' => $registrationNumber,
                 ':nic' => $nic,
                 ':full_name' => $fullName,
@@ -312,10 +311,21 @@ class AftercarePatientModel
                 'hospital_registration_no' => $hospitalReg,
                 'nic' => $nic,
             ];
-            $this->query(
-                "UPDATE {$this->table} SET patient_type = 'DONOR' WHERE user_id = :uid LIMIT 1",
-                [':uid' => $userId]
-            );
+            $sql = "UPDATE {$this->table} SET full_name = :full_name, hospital_registration_no = :hosp, updated_at = NOW()";
+            $params = [
+                ':full_name' => $fullName,
+                ':hosp' => $hospitalReg,
+                ':nic' => $nic,
+            ];
+
+            if ($userId !== null) {
+                $sql .= ", user_id = :uid";
+                $params[':uid'] = $userId;
+            }
+
+            $sql .= " WHERE nic = :nic LIMIT 1";
+            
+            $this->query($sql, $params);
             return (string)($existing->registration_number ?? '');
         }
 
@@ -329,14 +339,30 @@ class AftercarePatientModel
             try {
                 $this->query(
                     "INSERT INTO {$this->table} (
+                        registration_number,
                         user_id,
-                        patient_type
+                        nic,
+                        full_name,
+                        patient_type,
+                        hospital_registration_no,
+                        status,
+                        created_at
                     ) VALUES (
+                        :rn,
                         :uid,
-                        'DONOR'
+                        :nic,
+                        :full_name,
+                        'DONOR',
+                        :hosp,
+                        'ACTIVE',
+                        NOW()
                     )",
                     [
-                        ':uid' => $userId
+                        ':rn' => $registrationNumber,
+                        ':uid' => $userId,
+                        ':nic' => $nic,
+                        ':full_name' => $fullName,
+                        ':hosp' => $hospitalReg,
                     ]
                 );
                 return $registrationNumber;
@@ -356,18 +382,18 @@ class AftercarePatientModel
     {
         return $this->query(
             "SELECT 
-                r.nic, 
-                r.full_name, 
-                r.registration_number, 
-                r.status,
+                a.nic, 
+                a.full_name, 
+                a.registration_number, 
+                a.status,
                 r.surgery_type, 
                 r.surgery_date, 
                 r.contact_details, 
                 r.medical_details 
-             FROM {$this->table} ap
-             JOIN {$this->recipientTable} r ON ap.user_id = r.user_id
-             WHERE r.hospital_registration_no = :hosp AND ap.patient_type = 'RECIPIENT' 
-             ORDER BY r.created_at DESC",
+             FROM {$this->table} a
+             JOIN {$this->recipientTable} r ON a.registration_number = r.registration_number
+             WHERE a.hospital_registration_no = :hosp AND a.patient_type = 'RECIPIENT' 
+             ORDER BY a.created_at DESC",
             [':hosp' => $hospitalReg]
         );
     }

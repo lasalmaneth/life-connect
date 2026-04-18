@@ -44,10 +44,10 @@ include __DIR__ . '/inc/sidebar.view.php';
                 <i class="fas fa-plus-circle"></i> Schedule an Appointment
             </button>
             <button class="d-btn d-btn--lg" onclick="switchTab('requested')" id="tab-requested" style="padding: 12px 28px; font-weight: 600; border-radius: 8px; min-width: 200px; background: #e5e7eb; color: #374151; border: none;">
-                <i class="fas fa-list"></i> Requested Appointments
+                <i class="fas fa-list"></i> Support Request
             </button>
             <button class="d-btn d-btn--lg" onclick="switchTab('aftercare')" id="tab-aftercare" style="padding: 12px 28px; font-weight: 600; border-radius: 8px; min-width: 200px; background: #e5e7eb; color: #374151; border: none;">
-                <i class="fas fa-heart"></i> Aftercare Requested Appointments
+                <i class="fas fa-heart"></i> contact us
             </button>
         </div>
 
@@ -114,10 +114,10 @@ include __DIR__ . '/inc/sidebar.view.php';
                 </div>
             </div>
 
-            <!-- Requested Appointments -->
+            <!-- Support Request -->
             <div class="d-widget" id="section-requested" style="display: none;">
                 <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <div class="d-widget__title"><i class="fas fa-envelope-open-text text-accent"></i> Requested Appointments</div>
+                    <div class="d-widget__title"><i class="fas fa-envelope-open-text text-accent"></i> Support Request</div>
                     <button class="d-btn d-btn--sm d-btn--primary" onclick="openSupportRequestModal()"><i class="fas fa-plus"></i> New Request</button>
                 </div>
                 

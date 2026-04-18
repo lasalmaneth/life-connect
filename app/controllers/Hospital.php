@@ -23,7 +23,7 @@ class Hospital
     public function index()
     {
         // Session check
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -35,22 +35,23 @@ class Hospital
         $hospitalId = $hospital ? (int) $hospital->id : 0;
 
         if (!$hospital) {
-            $hospital_registration = $_SESSION['hospital_registration'] ?? 'HOSP001';
-            $hospital_name = $_SESSION['hospital_name'] ?? 'Hospital';
+            // Enhanced fallback: Use session registration OR username (often the same for hospital accounts)
+            $hospital_registration = $_SESSION['hospital_registration'] ?? ($_SESSION['username'] ?? 'HOSP001');
+            $hospital_name = $_SESSION['hospital_name'] ?? ($_SESSION['username'] ?? 'Hospital');
             $hospital_details = [
                 'name' => $hospital_name,
                 'registration' => $hospital_registration,
                 'email' => $_SESSION['email'] ?? 'Not specified',
                 'role' => $_SESSION['role'] ?? 'Hospital',
                 'last_login' => date('Y-m-d H:i:s'),
-                'status' => 'Active'
+                'status' => 'Pending Profile'
             ];
         } else {
-            $hospital_registration = $hospital->registration_number;
-            $hospital_name = $hospital->name;
+            $hospital_registration = (string)$hospital->registration_number;
+            $hospital_name = (string)$hospital->name;
             $hospital_details = [
-                'name' => $hospital->name,
-                'registration' => $hospital->registration_number,
+                'name' => $hospital_name,
+                'registration' => $hospital_registration,
                 'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
                 'role' => $_SESSION['role'] ?? 'Medical Coordinator',
                 'address' => $hospital->address,
@@ -110,6 +111,8 @@ class Hospital
             }))
         ];
 
+        $eligible_donors = $hospitalModel->getEligibleDonors($hospitalId) ?: [];
+
         $data = [
             'hospital_name' => $hospital_name,
             'hospital_registration' => $hospital_registration,
@@ -123,6 +126,7 @@ class Hospital
             'lab_reports' => $lab_reports,
             'test_results' => $test_results,
             'eligibility_pledges' => $eligibility_pledges,
+            'eligible_donors' => $eligible_donors,
             'surgery_matches' => $surgery_matches,
             'deceased_requests' => $deceased_requests,
             'deceased_submissions' => $deceased_submissions,
@@ -131,12 +135,13 @@ class Hospital
             'stats' => $stats
         ];
 
+
         $this->view('hospital/index', $data);
     }
 
     public function aftercareRecipients()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -447,18 +452,18 @@ class Hospital
 
                 if ($hospitalModel->acceptAftercareAppointment($appointmentId, $regNo)) {
                     $apt = $hospitalModel->query(
-                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        "SELECT user_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
+                    $targetUserId = $apt ? (int) ($apt[0]->user_id ?? 0) : 0;
                     $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
-                    if ($patientNic !== '') {
+                    if ($targetUserId > 0) {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $msg = 'Your aftercare appointment request was accepted by ' . $hName . '.';
                         if ($when)
                             $msg .= ' Scheduled for: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
-                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment accepted', $msg, 'INFO');
+                        $hospitalModel->notifyPatientByUserId($targetUserId, 'Aftercare appointment accepted', $msg, 'INFO');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment accepted.';
                 } else {
@@ -480,12 +485,12 @@ class Hospital
 
                 if ($hospitalModel->rejectAftercareAppointment($appointmentId, $regNo, $reason)) {
                     $apt = $hospitalModel->query(
-                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        "SELECT user_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
+                    $targetUserId = $apt ? (int) ($apt[0]->user_id ?? 0) : 0;
                     $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
-                    if ($patientNic !== '') {
+                    if ($targetUserId > 0) {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $phone = $hospital->contact_number ?? '';
@@ -495,7 +500,7 @@ class Hospital
                         $msg .= ' Reason: ' . $reason . '.';
                         if ($phone)
                             $msg .= ' Contact: ' . $phone . '.';
-                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment rejected', $msg, 'WARNING');
+                        $hospitalModel->notifyPatientByUserId($targetUserId, 'Aftercare appointment rejected', $msg, 'WARNING');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment rejected.';
                 } else {
@@ -550,6 +555,14 @@ class Hospital
                 }
 
                 if ($hospitalModel->approveSupportRequest($requestId, $regNo, 'Hospital ' . (string) $regNo)) {
+                    $req = $hospitalModel->getSupportRequestById($requestId);
+                    if ($req && !empty($req->patient_nic)) {
+                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                        $hName = $hospital->name ?? 'Hospital';
+                        $type = $req->request_type ?? 'care support';
+                        $msg = 'Your ' . $type . ' request was approved by ' . $hName . '. The support will be coordinated shortly.';
+                        $hospitalModel->notifyPatientByNic($req->patient_nic, 'Support request approved', $msg, 'INFO');
+                    }
                     $_SESSION['flash_success'] = 'Support request approved.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to approve support request.';
@@ -569,6 +582,14 @@ class Hospital
                 }
 
                 if ($hospitalModel->rejectSupportRequest($requestId, $regNo, $reason, 'Hospital ' . (string) $regNo)) {
+                    $req = $hospitalModel->getSupportRequestById($requestId);
+                    if ($req && !empty($req->patient_nic)) {
+                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                        $hName = $hospital->name ?? 'Hospital';
+                        $type = $req->request_type ?? 'care support';
+                        $msg = 'Your ' . $type . ' request was declined by ' . $hName . '. Reason: ' . $reason;
+                        $hospitalModel->notifyPatientByNic($req->patient_nic, 'Support request declined', $msg, 'WARNING');
+                    }
                     $_SESSION['flash_success'] = 'Support request rejected.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to reject support request.';
@@ -781,6 +802,9 @@ class Hospital
                     'donor_id' => !empty($_POST['donor_id']) ? $_POST['donor_id'] : null,
                     'test_type' => $_POST['test_type'],
                     'test_date' => $_POST['test_date'],
+                    'scheduled_date_1' => $_POST['scheduled_date_1'] ?? null,
+                    'scheduled_date_2' => $_POST['scheduled_date_2'] ?? null,
+                    'scheduled_date_3' => $_POST['scheduled_date_3'] ?? null,
                     'result_status' => $_POST['result_status'],
                     'result_notes' => $_POST['result_notes'] ?? '',
                     'blood_type' => $_POST['blood_type'] ?? ''
@@ -818,18 +842,34 @@ class Hospital
 
             case 'delete_lab_report':
                 $rid = (int) ($_POST['report_id'] ?? 0);
+                $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+                $success = false;
+                $msg = '';
                 if ($rid > 0 && $hospitalModel->softDeleteLabReport($rid)) {
-                    $_SESSION['flash_success'] = "Schedule deleted successfully.";
+                    $success = true;
+                    $msg = "Lab report deleted Successfully.";
                 } else {
-                    $_SESSION['flash_error'] = "Failed to delete schedule.";
+                    $msg = "Failed to delete lab report.";
+                }
+                if ($isAjax) {
+                    header('Content-Type: application/json');
+                    echo json_encode([ 'success' => $success, 'message' => $msg ]);
+                    exit;
+                } else {
+                    if ($success) {
+                        $_SESSION['flash_success'] = $msg;
+                    } else {
+                        $_SESSION['flash_error'] = $msg;
+                    }
                 }
                 break;
 
             case 'update_lab_report_status':
-                $reportId = $_POST['report_id'];
-                $status = $_POST['status'];
-                if ($hospitalModel->updateLabReportStatus($reportId, $status)) {
-                    $_SESSION['flash_success'] = "Lab report status updated to " . $status . ".";
+                $reportId = $_POST['report_id'] ?? 0;
+                $status = $_POST['status'] ?? '';
+                $reason = $_POST['reason'] ?? null;
+                if ($hospitalModel->updateLabReportStatus($reportId, $status, $reason)) {
+                    $_SESSION['flash_success'] = "Status updated successfully.";
                 }
                 break;
 
@@ -837,11 +877,16 @@ class Hospital
                 $donorId = (int) ($_POST['donor_id'] ?? 0);
                 $organId = (int) ($_POST['organ_id'] ?? 0);
                 $tests = $_POST['tests'] ?? [];
+                $description = trim((string) ($_POST['description'] ?? ''));
+
                 if (!is_array($tests))
                     $tests = [];
                 $tests = array_values(array_filter(array_map('trim', $tests), fn($t) => $t !== ''));
 
                 $testDate = trim((string) ($_POST['test_date'] ?? ''));
+                $sd1 = trim((string) ($_POST['scheduled_date_1'] ?? ''));
+                $sd2 = trim((string) ($_POST['scheduled_date_2'] ?? ''));
+                $sd3 = trim((string) ($_POST['scheduled_date_3'] ?? ''));
                 $notes = trim((string) ($_POST['notes'] ?? ''));
 
                 if ($donorId <= 0 || $organId <= 0 || empty($tests) || $testDate === '') {
@@ -852,12 +897,19 @@ class Hospital
                 $organName = $hospitalModel->getOrganNameById($organId) ?? 'Organ';
                 $scheduledCount = 0;
                 foreach ($tests as $t) {
+                    // Prepend organ name to test type for better labeling
+                    $finalTestType = (strpos($t, ' - ') === false) ? ($organName . ' - ' . $t) : $t;
+                    
                     $data = [
                         'donor_id' => $donorId,
                         'hospital_registration_no' => $regNo,
-                        'test_type' => $organName . ' - ' . $t,
+                        'test_type' => $finalTestType,
+                        'description' => $description,
                         'test_date' => $testDate,
-                        'result_status' => 'Pending',
+                        'scheduled_date_1' => $sd1 !== '' ? $sd1 : null,
+                        'scheduled_date_2' => $sd2 !== '' ? $sd2 : null,
+                        'scheduled_date_3' => $sd3 !== '' ? $sd3 : null,
+                        'result_status' => $_POST['appointment_status'] ?? 'Pending',
                         'result_notes' => $notes,
                     ];
                     if ($hospitalModel->addLabReport($data)) {
@@ -869,10 +921,10 @@ class Hospital
                     $hospitalModel->notifyDonor(
                         $donorId,
                         'Appointment scheduled',
-                        'Your hospital appointment for ' . $organName . ' tests has been scheduled on ' . $testDate . '. Please review and approve/reject in your Appointments page.',
+                        'Your hospital appointment for ' . $organName . ' tests (' . ($description ?: ($tests[0] ?? '')) . ') has been scheduled on ' . $testDate . '.',
                         'INFO'
                     );
-                    $_SESSION['flash_success'] = "Appointment scheduled successfully ($scheduledCount test(s)).";
+                    $_SESSION['flash_success'] = "Appointment scheduled successfully.";
                 } else {
                     $_SESSION['flash_error'] = 'Failed to schedule appointment.';
                 }
@@ -1020,6 +1072,40 @@ class Hospital
                 }
                 break;
 
+            case 'complete_clinical_testing':
+                $donorId = (int)($_POST['donor_id'] ?? 0);
+                if ($donorId > 0) {
+                    $hospitalModel->query(
+                        "UPDATE upcoming_appointments 
+                         SET status = 'COMPLETED', updated_at = NOW() 
+                         WHERE donor_id = :did 
+                         AND hospital_registration_no = :reg 
+                         AND status IN ('ACCEPTED', 'SCHEDULED', 'APPROVED')",
+                        [':did' => $donorId, ':reg' => $regNo]
+                    );
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                break;
+
+            case 'mark_test_physically_completed':
+                $donorId = (int)($_POST['donor_id'] ?? 0);
+                if ($donorId > 0) {
+                    $hospitalModel->query(
+                         "UPDATE upcoming_appointments 
+                          SET Tests_done = 'yes', updated_at = NOW() 
+                          WHERE donor_id = :did 
+                          AND hospital_registration_no = :reg 
+                          AND status IN ('ACCEPTED', 'SCHEDULED', 'APPROVED', 'COMPLETED', 'SUCCESS')",
+                        [':did' => $donorId, ':reg' => $regNo]
+                    );
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true]);
+                    exit;
+                }
+                break;
+
             case 'decline_reschedule_request':
                 $rid = (int) ($_POST['report_id'] ?? 0);
                 $reason = trim((string) ($_POST['reason'] ?? ''));
@@ -1087,6 +1173,11 @@ class Hospital
                     'name' => $_POST['hospital_name'],
                     'address' => $_POST['address'],
                     'phone' => $_POST['phone'],
+                    'district' => $_POST['district'] ?? '',
+                    'facility_type' => $_POST['facility_type'] ?? '',
+                    'cmo_name' => $_POST['cmo_name'] ?? '',
+                    'cmo_nic' => $_POST['cmo_nic'] ?? '',
+                    'medical_license_number' => $_POST['medical_license_number'] ?? '',
                     'registration' => $regNo
                 ];
                 if ($hospitalModel->updateHospitalProfile($data)) {
@@ -1108,7 +1199,7 @@ class Hospital
 
     public function organRequests()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1149,7 +1240,7 @@ class Hospital
 
     public function eligibility()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1193,7 +1284,7 @@ class Hospital
 
     public function stories()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1230,7 +1321,7 @@ class Hospital
 
     public function addpatient()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1256,11 +1347,45 @@ class Hospital
         $this->view('hospital/addpatient', $data);
     }
 
+    public function aftercareManagement()
+    {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
+            redirect('login');
+        }
+
+        $hospitalModel = new HospitalModel();
+        $userId = $_SESSION['user_id'];
+        $hospital = $hospitalModel->getHospitalByUserId($userId);
+        $hospital_registration = $hospital->registration_number ?? $_SESSION['hospital_registration'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->handlePost($hospital_registration);
+        }
+
+        $hospital_details = [
+            'name' => $hospital->name,
+            'registration' => $hospital->registration_number,
+            'role' => 'HOSPITAL',
+            'email' => $hospital->user_email ?? ($_SESSION['email'] ?? 'Not specified'),
+        ];
+
+        $data = [
+            'hospital_name' => $hospital->name ?? ($_SESSION['hospital_name'] ?? 'Hospital'),
+            'hospital_details' => $hospital_details,
+            'hospital_registration' => $hospital_registration,
+            'donor_requests' => $hospitalModel->getDonorAftercareAppointments($hospital_registration) ?: [],
+            'recipient_requests' => $hospitalModel->getRecipientAftercareAppointments($hospital_registration) ?: [],
+            'current_page' => 'aftercare-management'
+        ];
+
+        $this->view('hospital/aftercare-management', $data);
+    }
+
     public function addpatientRecipient()
     {
         if (session_status() === PHP_SESSION_NONE)
             session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1272,10 +1397,12 @@ class Hospital
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim((string) ($_POST['recipient_name'] ?? ''));
             $nic = trim((string) ($_POST['recipient_nic'] ?? ''));
+            $email = trim((string) ($_POST['recipient_email'] ?? ''));
+            $phone = trim((string) ($_POST['recipient_phone'] ?? ''));
             $requestedReg = trim((string) ($_POST['registration_number'] ?? ''));
 
-            if ($name === '' || $nic === '') {
-                $_SESSION['flash_error'] = 'Full name and NIC are required.';
+            if ($name === '' || $nic === '' || $email === '' || $phone === '') {
+                $_SESSION['flash_error'] = 'Full name, NIC, Email, and Phone are required.';
                 redirect('hospital/addpatient/recipient');
             }
 
@@ -1285,6 +1412,8 @@ class Hospital
                 $registrationNumber = $aftercarePatientModel->createRecipientAccount([
                     'full_name' => $name,
                     'nic' => $nic,
+                    'email' => $email,
+                    'phone' => $phone,
                     'hospital_registration_no' => $hospital_registration,
                     'registration_number' => $requestedReg,
                     'age' => !empty($_POST['recipient_age']) ? (int) $_POST['recipient_age'] : null,
@@ -1332,7 +1461,7 @@ class Hospital
     {
         if (session_status() === PHP_SESSION_NONE)
             session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1444,7 +1573,7 @@ class Hospital
      */
     public function labReports()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1490,7 +1619,7 @@ class Hospital
      */
     public function searchDonors()
     {
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
@@ -1515,13 +1644,59 @@ class Hospital
 
 
     /**
+     * API endpoint to get donor appointments specifically for test results upload
+     */
+    public function fetchDonorAppointments()
+    {
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        header('Content-Type: application/json');
+
+        try {
+            $donorId = isset($_GET['donor_id']) ? (int)$_GET['donor_id'] : 0;
+            if ($donorId <= 0) {
+                echo json_encode([]);
+                exit;
+            }
+
+            $hospitalModel = new HospitalModel();
+            $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+            $regNo = $hospital ? $hospital->registration_number : '';
+
+                        // For uploading test results, only show tests that were physically completed.
+                        $appointments = $hospitalModel->query(
+                                "SELECT id, test_type, test_date, scheduled_date_1, scheduled_date_2, scheduled_date_3, status, Tests_done
+                                 FROM upcoming_appointments
+                                 WHERE donor_id = :donor_id
+                                     AND hospital_registration_no = :reg_no
+                                     AND (
+                                         (Tests_done = 'yes' AND UPPER(TRIM(status)) IN ('COMPLETED', 'SUCCESS'))
+                                         OR UPPER(TRIM(status)) IN ('APPROVED', 'ACCEPTED')
+                                     )
+                                 ORDER BY test_date DESC",
+                                [':donor_id' => $donorId, ':reg_no' => $regNo]
+                        );
+
+            echo json_encode($appointments ?: []);
+        } catch (\Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * API endpoint to get donor details directly for the Add Patient form
      */
     public function fetchDonorDetails()
     {
         if (session_status() === PHP_SESSION_NONE)
             session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
@@ -1566,7 +1741,7 @@ class Hospital
             session_start();
 
         try {
-            if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+            if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit;
             }
@@ -1607,7 +1782,7 @@ class Hospital
         header('Content-Type: application/json');
         if (session_status() === PHP_SESSION_NONE) session_start();
 
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
         }
@@ -1633,7 +1808,7 @@ class Hospital
     {
         header('Content-Type: application/json');
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
         }
@@ -1659,7 +1834,7 @@ class Hospital
     {
         header('Content-Type: application/json');
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             echo json_encode(['success' => false, 'message' => 'Unauthorized']);
             exit;
         }
@@ -1689,7 +1864,7 @@ class Hospital
     public function viewDonationCertificate()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 
@@ -1707,7 +1882,7 @@ class Hospital
     public function viewAppreciationLetter()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'HOSPITAL') {
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
             redirect('login');
         }
 

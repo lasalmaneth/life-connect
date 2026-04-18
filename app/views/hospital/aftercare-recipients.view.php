@@ -59,31 +59,25 @@
 
                     <div class="table-container">
                         <div class="table-content">
-                            <div class="table-header">
+                            <div class="table-header table-row aftercare-recipients-grid">
                                 <div class="table-cell">NIC</div>
-                                <div class="table-cell">Reg. Number</div>
-                                <div class="table-cell">Full Name</div>
-                                <div class="table-cell">Surgery Type</div>
-                                <div class="table-cell">Surgery Date</div>
-                                <div class="table-cell">Status</div>
-                                <div class="table-cell">Actions</div>
+                                <div class="table-cell">NAME</div>
+                                <div class="table-cell">ORGAN RECEIVED</div>
+                                <div class="table-cell">SURGERY DATE</div>
+                                <div class="table-cell">STATUS</div>
                             </div>
 
                             <?php if (!empty($aftercare_recipients)): ?>
                                 <?php foreach ($aftercare_recipients as $recipient): ?>
-                                    <div class="table-row">
-                                        <div class="table-cell" data-label="NIC"><?php echo htmlspecialchars($recipient->nic); ?></div>
-                                        <div class="table-cell" data-label="Reg. Number"><?php echo htmlspecialchars($recipient->registration_number); ?></div>
-                                        <div class="table-cell" data-label="Full Name"><?php echo htmlspecialchars($recipient->full_name); ?></div>
-                                        <div class="table-cell" data-label="Surgery Type"><?php echo htmlspecialchars($recipient->surgery_type ?? 'N/A'); ?></div>
-                                        <div class="table-cell" data-label="Surgery Date"><?php echo !empty($recipient->surgery_date) ? date('Y-m-d', strtotime($recipient->surgery_date)) : 'N/A'; ?></div>
-                                        <div class="table-cell" data-label="Status">
-                                            <span class="status-badge <?php echo ($recipient->status === 'ACTIVE') ? 'status-active' : 'status-pending'; ?>">
-                                                <?php echo htmlspecialchars($recipient->status); ?>
+                                    <div class="table-row aftercare-recipients-grid">
+                                        <div class="table-cell" data-label="NIC"><?php echo htmlspecialchars($recipient->nic ?? 'N/A'); ?></div>
+                                        <div class="table-cell" data-label="NAME"><?php echo htmlspecialchars($recipient->full_name ?? 'N/A'); ?></div>
+                                        <div class="table-cell" data-label="ORGAN RECEIVED"><?php echo htmlspecialchars($recipient->surgery_type ?? 'N/A'); ?></div>
+                                        <div class="table-cell" data-label="SURGERY DATE"><?php echo !empty($recipient->surgery_date) ? date('Y-m-d', strtotime($recipient->surgery_date)) : 'N/A'; ?></div>
+                                        <div class="table-cell" data-label="STATUS">
+                                            <span class="status-badge <?php echo ($recipient->status === 'ACTIVE') ? 'status-active' : 'status-pending'; ?>" style="font-size: 0.75rem;">
+                                                <?php echo htmlspecialchars($recipient->status ?? 'PENDING'); ?>
                                             </span>
-                                        </div>
-                                        <div class="table-cell" data-label="Actions">
-                                            <button class="btn btn-secondary btn-small" onclick="viewRecipientDetails('<?php echo $recipient->nic; ?>')">View Details</button>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>

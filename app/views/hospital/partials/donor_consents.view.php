@@ -1,13 +1,18 @@
-<div id="consents" class="content-section" style="display: none;">
+<div id="consents" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'consents') ? 'display:block' : 'display:none'; ?>">
     <div class="content-header" style="background: white; border-bottom: 1px solid #e2e8f0; padding: 25px 30px; border-radius: 16px 16px 0 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div style="width: 45px; height: 45px; background: #ebf5ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #2563eb;">
-                    <i class="fas fa-file-signature" style="font-size: 1.2rem;"></i>
-                </div>
-                <div>
-                    <h2 style="margin: 0; font-size: 1.5rem; color: #0f172a; font-weight: 800;">Consent Registry</h2>
-                    <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem; font-weight: 500;">Verify and maintain organ donation intent records.</p>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <button onclick="hcShowSection('overview', this)" style="background: white; border: 1.5px solid #e2e8f0; width: 42px; height: 42px; border-radius: 12px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" onmouseover="this.style.background='#f8fafc'; this.style.color='#1e293b';" onmouseout="this.style.background='white'; this.style.color='#64748b';">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 45px; height: 45px; background: #ebf5ff; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #2563eb;">
+                        <i class="fas fa-file-signature" style="font-size: 1.2rem;"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.5rem; color: #0f172a; font-weight: 800;">Consent Registry</h2>
+                        <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem; font-weight: 500;">Verify and maintain organ donation intent records.</p>
+                    </div>
                 </div>
             </div>
             <div>
@@ -44,18 +49,24 @@
                     <?php if (!empty($eligibility_pledges)): ?>
                         <?php foreach ($eligibility_pledges as $p): 
                             $status = strtoupper(trim((string)($p->status ?? '')));
+                            $withdrawalStatus = strtoupper(trim((string)($p->withdrawal_status ?? '')));
+
                             // Map internal statuses to Active/Withdrawn if needed
                             $displayStatus = 'ACTIVE';
                             $statusClass = 'status-active-pill';
+
                             if ($status === 'WITHDRAWN') {
                                 $displayStatus = 'WITHDRAWN';
                                 $statusClass = 'status-withdrawn-pill';
-                            } elseif ($status === 'PENDING' || $status === 'UPLOADED') {
-                                $displayStatus = 'PENDING';
-                                $statusClass = 'status-pending-pill';
+                            } elseif ($withdrawalStatus === 'PENDING_UPLOAD') {
+                                $displayStatus = 'WITHDRAWAL PENDING';
+                                $statusClass = 'status-pending-pill'; // Using amber for warning
+                            } elseif ($status === 'COMPLETED') {
+                                $displayStatus = 'COMPLETED';
+                                $statusClass = 'status-active-pill'; // Still counts as a valid history record
                             }
                         ?>
-                            <tr class="consent-row" data-status="<?= $displayStatus ?>" style="transition: all 0.2s;">
+                            <tr class="consent-row" data-status="<?= ($displayStatus === 'WITHDRAWAL PENDING') ? 'WITHDRAWN' : $displayStatus ?>" style="transition: all 0.2s;">
                                 <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
                                     <div style="display: flex; align-items: center; gap: 12px;">
                                         <div style="width: 38px; height: 38px; background: #f1f5f9; color: #64748b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
