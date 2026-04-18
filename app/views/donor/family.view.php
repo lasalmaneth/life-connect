@@ -36,69 +36,66 @@ include __DIR__ . '/inc/sidebar.view.php';
                     Your custodians have the legal authority to execute your donation wishes. 
                 </p>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="custodians-grid">
                     <?php if (!empty($custodians)): foreach ($custodians as $c): ?>
-                        <div style="border: 1px solid var(--g200); border-radius: var(--r); padding: 1.5rem; background: var(--white); position: relative; transition: all 0.2s ease;" onmouseover="this.style.borderColor='var(--blue-300)'; this.style.boxShadow='0 4px 12px rgba(0,91,170,0.05)';" onmouseout="this.style.borderColor='var(--g200)'; this.style.boxShadow='none';">
+                        <div class="custodian-card">
                             <?php if ($c->user_status === 'SUSPENDED'): ?>
-                                <span class="d-status d-status--danger" style="position: absolute; top: 1rem; right: 1rem; background: rgba(220, 38, 38, 0.1); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.2);"><i class="fas fa-exclamation-triangle"></i> Suspended</span>
+                                <span class="badge badge-danger" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-exclamation-triangle"></i> Suspended</span>
                             <?php elseif ($c->status === 'ACTIVE'): ?>
-                                <span class="d-status d-status--success" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-check-circle"></i> Active</span>
+                                <span class="badge badge-success" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-check-circle"></i> Active</span>
                             <?php else: ?>
-                                <span class="d-status d-status--warning" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-clock"></i> Pending Approval</span>
+                                <span class="badge badge-pending" style="position: absolute; top: 1rem; right: 1rem;"><i class="fas fa-clock"></i> Pending Approval</span>
                             <?php endif; ?>
                             
-                            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--blue-50); color: var(--blue-600); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <div class="custodian-info">
+                                <div class="custodian-avatar">
                                     <i class="fas fa-user-shield"></i>
                                 </div>
-                                    <div style="font-weight: 700; color: var(--blue-900); font-size: 1rem;"><?= htmlspecialchars($c->name) ?></div>
-                                    <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-                                        <div style="font-size: 0.85rem; color: var(--g600);"><?= htmlspecialchars($c->relationship) ?></div>
+                                <div class="custodian-details">
+                                    <div class="custodian-name"><?= htmlspecialchars($c->name) ?></div>
+                                    <div class="custodian-relationship">
+                                        <span class="relationship-badge"><?= htmlspecialchars($c->relationship) ?></span>
                                         <?php if ($c->organ_id): ?>
-                                            <div style="font-size: 0.75rem; color: #059669; font-weight: 600;"><i class="fas fa-leaf"></i> For <?= htmlspecialchars($c->organ_name) ?></div>
+                                            <span style="font-size: 0.75rem; color: #059669; font-weight: 600;"><i class="fas fa-leaf"></i> For <?= htmlspecialchars($c->organ_name) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <div class="custodian-contact">
+                                        <div class="contact-item"><i class="fas fa-id-card icon"></i> <?= htmlspecialchars($c->nic_number) ?></div>
+                                        <div class="contact-item"><i class="fas fa-phone icon"></i> <?= htmlspecialchars($c->phone ?? '—') ?></div>
+                                        <?php if (!empty($c->email)): ?>
+                                            <div class="contact-item"><i class="fas fa-envelope icon"></i> <?= htmlspecialchars($c->email) ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($c->user_status === 'SUSPENDED' && !empty($c->review_message)): ?>
+                                            <div style="font-size: 0.8rem; color: #dc2626; background: rgba(220, 38, 38, 0.05); padding: 0.5rem; border-radius: 4px; border-left: 2px solid #dc2626; margin-top: 0.5rem;">
+                                                <strong>Reason:</strong> <?= htmlspecialchars($c->review_message) ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
 
-                            <div style="display: flex; flex-direction: column; gap: 0.4rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--g200); margin-bottom: 1rem;">
-                                <div style="font-size: 0.85rem; color: var(--g700);"><i class="fas fa-id-card" style="color: var(--g400); width: 20px;"></i> <?= htmlspecialchars($c->nic_number) ?></div>
-                                <div style="font-size: 0.85rem; color: var(--g700);"><i class="fas fa-phone" style="color: var(--g400); width: 20px;"></i> <?= htmlspecialchars($c->phone ?? '—') ?></div>
-                                <?php if (!empty($c->email)): ?>
-                                    <div style="font-size: 0.85rem; color: var(--g700);"><i class="fas fa-envelope" style="color: var(--g400); width: 20px;"></i> <?= htmlspecialchars($c->email) ?></div>
-                                <?php endif; ?>
-                                <?php if ($c->user_status === 'SUSPENDED' && !empty($c->review_message)): ?>
-                                    <div style="font-size: 0.8rem; color: #dc2626; background: rgba(220, 38, 38, 0.05); padding: 0.5rem; border-radius: 4px; border-left: 2px solid #dc2626; margin-top: 0.5rem;">
-                                        <strong>Reason:</strong> <?= htmlspecialchars($c->review_message) ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span class="d-status d-status--success" style="font-size: 0.7rem;"><i class="fas fa-check"></i> Linked Account</span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button class="d-btn d-btn--sm d-btn--outline" onclick="openCustodianModal(<?= htmlspecialchars(json_encode($c)) ?>, 'edit')"><i class="fas fa-edit"></i> Edit</button>
-                                        <button class="d-btn d-btn--sm d-btn--outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeCustodian(<?= $c->id ?>, '<?= addslashes($c->name) ?>', <?= $custodian_count ?>)"><i class="fas fa-trash"></i></button>
-                                    </div>
+                            <div class="custodian-actions">
+                                <button class="btn-card btn-edit" onclick="openCustodianModal(<?= htmlspecialchars(json_encode($c)) ?>, 'edit')"><i class="fas fa-edit"></i> Edit Details</button>
+                                <button class="btn-card btn-remove" onclick="removeCustodian(<?= $c->id ?>, '<?= addslashes($c->name) ?>', <?= $custodian_count ?>)"><i class="fas fa-trash"></i> Remove</button>
                             </div>
                         </div>
                     <?php endforeach; else: ?>
-                        <div style="grid-column: 1 / -1; padding: 2rem; border: 1px dashed var(--g300); border-radius: var(--r); background: var(--g50); text-align: center;">
-                            <i class="fas fa-user-shield" style="font-size: 2.5rem; color: var(--g300); margin-bottom: 1rem;"></i>
-                            <h4 style="color: var(--slate); margin-bottom: 0.5rem;">No Custodians Assigned</h4>
-                            <p style="color: var(--g500); font-size: 0.9rem;">Assign at least 2 custodians to ensure your wishes can be fulfilled seamlessly.</p>
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <i class="fas fa-user-shield empty-icon"></i>
+                            <h4 class="empty-title">No Custodians Assigned</h4>
+                            <p class="empty-text">Assign at least 2 custodians to ensure your wishes can be fulfilled seamlessly.</p>
+                        </div>
                     <?php endif; ?>
                 </div>
 
-                <button class="d-btn d-btn--primary" onclick="openCustodianModal(null, 'add')"><i class="fas fa-plus-circle"></i> Add Custodian</button>
-            </div>
-        </div>
+                <button class="d-btn d-btn--primary" onclick="openCustodianModal(null, 'add')" style="margin-top: 1.5rem;"><i class="fas fa-plus-circle"></i> Add Custodian</button>
             </div>
         </div>
 
         <!-- SECTION: WITNESSES -->
-        <div class="d-widget">
-            <div class="d-widget__header" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="d-widget" style="margin-top: 2rem;">
+            <div class="d-widget__header">
                 <div class="d-widget__title"><i class="fas fa-user-pen text-accent"></i> Legal Witnesses</div>
                 <div class="d-status <?= $witness_count >= 2 ? 'd-status--success' : 'd-status--warning' ?>">
                     <?= $witness_count ?> Registered
@@ -109,48 +106,45 @@ include __DIR__ . '/inc/sidebar.view.php';
                     Legally registered witnesses who verified your donation consent profile.
                 </p>
 
-                <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <?php if (!empty($witnesses)): foreach ($witnesses as $index => $w): ?>
-                        <div style="border: 1px solid var(--g200); border-radius: var(--r); padding: 1.25rem 1.5rem; background: var(--white); display: flex; justify-content: space-between; align-items: center;">
+                        <div class="responsibility-item" style="justify-content: space-between; padding: 1.5rem;">
                             <div style="display: flex; gap: 1.5rem; align-items: center;">
-                                <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--g50); color: var(--g500); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; border: 2px solid var(--white); box-shadow: 0 0 0 1px var(--g200);">
+                                <div class="responsibility-icon" style="font-weight: 800; font-size: 1.1rem;">
                                     <?= getWitnessInitials($w->name ?? '') ?>
                                 </div>
-                                <div style="display: flex; gap: 3rem;">
-                                    <div style="min-width: 200px;">
-                                        <div style="font-weight: 700; color: var(--blue-900); font-size: 1rem; margin-bottom: 0.2rem;"><?= htmlspecialchars($w->name ?? '') ?></div>
+                                <div style="display: flex; gap: 3rem; flex-wrap: wrap;">
+                                    <div style="min-width: 180px;">
+                                        <div class="custodian-name" style="margin-bottom: 0.1rem;"><?= htmlspecialchars($w->name ?? '') ?></div>
                                         <?php if (!empty($w->organ_id)): ?>
-                                            <div style="font-size: 0.8rem; color: #059669; font-weight:600;"><i class="fas fa-leaf"></i> Linked to <?= htmlspecialchars($w->organ_name ?? '') ?></div>
+                                            <div style="font-size: 0.75rem; color: #059669; font-weight:600;"><i class="fas fa-leaf"></i> Linked to <?= htmlspecialchars($w->organ_name ?? '') ?></div>
                                         <?php else: ?>
-                                            <div style="font-size: 0.8rem; color: var(--g500);">Registered Witness #<?= $index+1 ?></div>
+                                            <div style="font-size: 0.75rem; color: var(--g500);">Registered Witness #<?= $index+1 ?></div>
                                         <?php endif; ?>
                                     </div>
-                                    <div>
-                                        <div style="font-size: 0.75rem; color: var(--g400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">NIC Number</div>
-                                        <div style="font-size: 0.9rem; color: var(--slate); font-weight: 500;"><?= htmlspecialchars($w->nic_number ?? '') ?></div>
+                                    <div class="contact-item" style="flex-direction: column; align-items: flex-start; gap: 0.1rem;">
+                                        <span style="font-size: 0.7rem; color: var(--g400); text-transform: uppercase;">NIC Number</span>
+                                        <span style="font-weight: 600;"><?= htmlspecialchars($w->nic_number ?? '') ?></span>
                                     </div>
-                                    <div>
-                                        <div style="font-size: 0.75rem; color: var(--g400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Contact</div>
-                                        <div style="font-size: 0.9rem; color: var(--slate); font-weight: 500;"><?= htmlspecialchars($w->contact_number ?? '') ?></div>
+                                    <div class="contact-item" style="flex-direction: column; align-items: flex-start; gap: 0.1rem;">
+                                        <span style="font-size: 0.7rem; color: var(--g400); text-transform: uppercase;">Contact</span>
+                                        <span style="font-weight: 600;"><?= htmlspecialchars($w->contact_number ?? '') ?></span>
                                     </div>
                                 </div>
                             </div>
-                            <div style="color: var(--g300); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; background: var(--g50); padding: 0.5rem 1rem; border-radius: 20px;">
-                                <i class="fas fa-lock" style="font-size: 0.75rem;"></i> Verified Record
+                            <div class="badge-success" style="font-size: 0.7rem; padding: 0.4rem 1rem; border-radius: 20px; color: #fff; background: var(--success); display: flex; align-items: center; gap: 0.5rem; height: fit-content;">
+                                <i class="fas fa-lock" style="font-size: 0.7rem;"></i> Verified Record
                             </div>
                         </div>
                     <?php endforeach; else: ?>
-                        <div style="padding: 2rem; border: 1px dashed var(--g300); border-radius: var(--r); background: var(--g50); text-align: center;">
-                            <i class="fas fa-users" style="font-size: 2.5rem; color: var(--g300); margin-bottom: 1rem;"></i>
-                            <h4 style="color: var(--slate); margin-bottom: 0.5rem;">No Witnesses Assigned</h4>
-                            <p style="color: var(--g500); font-size: 0.9rem;">Legal witnesses are required for your donation consent to be valid.</p>
+                        <div class="empty-state">
+                            <i class="fas fa-users empty-icon"></i>
+                            <h4 class="empty-title">No Witnesses Assigned</h4>
+                            <p class="empty-text">Legal witnesses are required for your donation consent to be valid.</p>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
-        </div>
-
-    </div>
         </div>
 
     </div>
