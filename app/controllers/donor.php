@@ -2216,12 +2216,25 @@ class Donor {
                     if (move_uploaded_file($file['tmp_name'], $destination)) {
                         $donorModel->updateWithdrawalPath($withdrawalId, $dbPath);
                         
+                        $witnessModel = new \App\Models\WitnessModel();
+                        $custodianModel = new \App\Models\DonorCustodianModel();
+
                         if (!empty($withdrawal->organ_id)) {
                             $donorModel->deactivateSpecificPledge($donorId, $withdrawal->organ_id);
-                            $_SESSION['success_message'] = "Withdrawal formalized. Consent for this organ has been revoked.";
+                            
+                            // Delete Witnesses and Custodians linked to this organ
+                            $witnessModel->deleteWitnessesByOrganPledge($donorId, $withdrawal->organ_id);
+                            $custodianModel->deleteCustodiansByOrganPledge($donorId, $withdrawal->organ_id);
+
+                            $_SESSION['success_message'] = "Withdrawal formalized. Consent for this organ has been revoked, and associated witnesses/custodians have been removed.";
                         } else {
                             $donorModel->deactivateAllPledges($donorId);
-                            $_SESSION['success_message'] = "Withdrawal document uploaded. All donation commitments are now revoked.";
+                            
+                            // Delete ALL organ-specific Witnesses and Custodians
+                            $witnessModel->deleteAllOrganWitnesses($donorId);
+                            $custodianModel->deleteAllOrganCustodians($donorId);
+
+                            $_SESSION['success_message'] = "Withdrawal document uploaded. All donation commitments are now revoked, and all linked witnesses/custodians have been removed.";
                         }
                         
                         unset($_SESSION['show_withdrawal']);

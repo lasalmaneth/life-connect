@@ -218,4 +218,22 @@ class DonorCustodianModel {
             ':phone'    => !empty($data['phone']) ? $data['phone'] : null
         ]);
     }
+
+    /**
+     * Delete custodians associated with a specific organ pledge.
+     */
+    public function deleteCustodiansByOrganPledge($donorId, $organId)
+    {
+        $query = "DELETE FROM custodians WHERE donor_id = :donor_id AND organ_id = :organ_id";
+        return $this->query($query, [':donor_id' => $donorId, ':organ_id' => $organId]);
+    }
+
+    /**
+     * Delete ALL custodians linked to ANY organ pledge for a donor.
+     */
+    public function deleteAllOrganCustodians($donorId)
+    {
+        $query = "DELETE FROM custodians WHERE donor_id = :donor_id AND organ_id IS NOT NULL";
+        return $this->query($query, [':donor_id' => $donorId]);
+    }
 }

@@ -97,4 +97,10 @@ class WitnessModel {
         $query = "DELETE FROM witnesses WHERE donor_id = :donor_id AND organ_id = :organ_id";
         return $this->query($query, [':donor_id' => $donorId, ':organ_id' => $organId]);
     }
+
+    public function deleteAllOrganWitnesses($donorId)
+    {
+        $query = "DELETE FROM witnesses WHERE donor_id = :donor_id AND organ_id IS NOT NULL";
+        return $this->query($query, [':donor_id' => $donorId]);
+    }
 }
