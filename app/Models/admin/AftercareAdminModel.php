@@ -14,9 +14,10 @@ class AftercareAdminModel {
      * Excludes sensitive data like password_hash
      */
     public function getAllPatients() {
-        $query = "SELECT id, registration_number, nic, full_name, patient_type, age, blood_group, status, hospital_registration_no, created_at 
-                  FROM {$this->table} 
-                  ORDER BY created_at DESC";
+        $query = "SELECT a.id, a.registration_number, a.nic, a.full_name, a.patient_type, r.age, r.blood_group, a.status, a.hospital_registration_no, a.created_at 
+                  FROM {$this->table} a
+                  LEFT JOIN recipient_patient r ON a.registration_number = r.registration_number
+                  ORDER BY a.created_at DESC";
         $results = $this->query($query);
         return $results ? $results : [];
     }
@@ -25,10 +26,11 @@ class AftercareAdminModel {
      * Get full details for a single patient
      */
     public function getPatientById($id) {
-        $query = "SELECT id, registration_number, nic, full_name, patient_type, age, blood_group, status, 
-                         hospital_registration_no, gender, contact_details, medical_details, created_at 
-                  FROM {$this->table} 
-                  WHERE id = :id LIMIT 1";
+        $query = "SELECT a.id, a.registration_number, a.nic, a.full_name, a.patient_type, r.age, r.blood_group, a.status, 
+                         a.hospital_registration_no, r.gender, r.contact_details, r.medical_details, a.created_at 
+                   FROM {$this->table} a
+                   LEFT JOIN recipient_patient r ON a.registration_number = r.registration_number
+                   WHERE a.id = :id LIMIT 1";
         $results = $this->query($query, ['id' => $id]);
         return $results ? $results[0] : null;
     }
@@ -55,8 +57,8 @@ class AftercareAdminModel {
             }
         }
 
-        // Average Age
-        $resAge = $this->query("SELECT AVG(age) as avg_age FROM {$this->table} WHERE age IS NOT NULL");
+        // Average Age (calculated from recipient_patient table)
+        $resAge = $this->query("SELECT AVG(age) as avg_age FROM recipient_patient WHERE age IS NOT NULL");
         if ($resAge) {
             $stats['average_age'] = round($resAge[0]->avg_age ?? 0);
         }

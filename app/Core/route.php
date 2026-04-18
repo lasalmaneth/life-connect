@@ -222,6 +222,7 @@ route('user-admin/getDashboardStats', 'admin\UserAdmin@getDashboardStats');
 route('user-admin/getUsers', 'admin\UserAdmin@getUsers');
 route('user-admin/updateUserStatus', 'admin\UserAdmin@updateUserStatus');
 route('user-admin/getNotifications', 'admin\UserAdmin@getNotifications');
+route('user-admin/getAuditLogs', 'admin\UserAdmin@getAuditLogs');
 route('user-admin/sendNotification', 'admin\UserAdmin@sendNotification');
 route('user-admin/bulkUpdateUserStatus', 'admin\UserAdmin@bulkUpdateUserStatus');
 route('user-admin/getUser', 'admin\UserAdmin@getUser');
@@ -240,6 +241,8 @@ route('donation-admin/updateOrganStatus', 'admin\DonationAdminController@updateO
 route('donation-admin/getPledges', 'admin\DonationAdminController@getPledges');
 route('donation-admin/getHospitalRequests', 'admin\DonationAdminController@getHospitalRequests');
 route('donation-admin/runAlgorithm', 'admin\DonationAdminController@runAlgorithm');
+route('donation-admin/getFilterMetadata', 'admin\DonationAdminController@getFilterMetadata');
+route('donation-admin/getMatchDetails', 'admin\DonationAdminController@getMatchDetails');
 
 // Tributes Admin Routes
 route('tributes-admin/getHospitals', 'admin\TributesAdminController@getHospitals');
