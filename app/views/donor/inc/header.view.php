@@ -182,7 +182,7 @@ $is_withdrawing = (strtoupper($user_status) === 'WITHDRAW_REQUEST');
         </div>
       </div>
 
-      <div class="user-info">
+      <div class="user-info" onclick="openEditProfileModal()" style="cursor: pointer;">
         <div class="user-avatar"><?= $donor_avatar_initial ?></div>
         <div style="display: flex; flex-direction: column; gap: 2px;">
           <div style="font-size: 0.9rem; font-weight: 600; color: var(--blue-900);"><?= htmlspecialchars($donor_full_name ?? 'Donor') ?></div>
@@ -628,5 +628,6 @@ $is_withdrawing = (strtoupper($user_status) === 'WITHDRAW_REQUEST');
   </script>
 
   <?php include 'withdraw_modal.view.php'; ?>
+  <?php include 'profile_edit_modal.view.php'; ?>
 
   <div class="d-shell">
