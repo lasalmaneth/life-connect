@@ -138,12 +138,12 @@ $is_withdrawing = (strtoupper($user_status) === 'WITHDRAW_REQUEST');
       </nav>
       
       <div class="notification-container">
-        <button class="notification-bell" id="notificationBell">
-          <i class="fas fa-bell"></i>
-          <?php if(isset($unread_count) && $unread_count > 0): ?>
-            <span class="notification-badge"><?= $unread_count ?></span>
-          <?php endif; ?>
-        </button>
+        <a href="<?= ROOT ?>/donor/notifications" class="notification-bell" id="notificationBell" title="Recent Notifications">
+            <i class="fas fa-bell"></i>
+            <?php if(isset($unread_count) && $unread_count > 0): ?>
+                <span class="notification-badge"><?= $unread_count ?></span>
+            <?php endif; ?>
+        </a>
         
         <div class="notification-dropdown" id="notificationDropdown">
           <div class="dropdown-header">
@@ -607,18 +607,17 @@ $is_withdrawing = (strtoupper($user_status) === 'WITHDRAW_REQUEST');
         }, 50);
       }
 
-      // Notification Dropdown Toggle
+        // Notification Dropdown Toggle
       const bell = document.getElementById('notificationBell');
       const dropdown = document.getElementById('notificationDropdown');
 
       if (bell && dropdown) {
-        bell.addEventListener('click', (e) => {
-          e.stopPropagation();
-          dropdown.classList.toggle('active');
-        });
-
-        document.addEventListener('click', () => {
-          dropdown.classList.remove('active');
+        // Bell icon now navigates directly via href.
+        // We add persistent click listeners to manage the dropdown lifecycle.
+        document.addEventListener('click', (e) => {
+          if (!bell.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('active');
+          }
         });
 
         dropdown.addEventListener('click', (e) => {
