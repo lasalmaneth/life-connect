@@ -256,8 +256,7 @@ class DonorModel {
      */
     public function deactivateSpecificPledge($donorId, $organId)
     {
-        $organId = (int)$organId;
-        if ($organId === 9) {
+        if ($organId === 10) {
             // Full Body Donation
             $this->query("UPDATE body_donation_consents SET status = 'WITHDRAWN' WHERE donor_id = :donor_id AND (status = 'ACTIVE' OR status = 'PENDING')", [':donor_id' => $donorId]);
         }
@@ -347,7 +346,7 @@ class DonorModel {
         );
         $bodyPledgeRes = $this->query(
             "SELECT pledge_date FROM donor_pledges 
-             WHERE donor_id = :did AND organ_id IN (9, 10) 
+             WHERE donor_id = :did AND organ_id = 10 
              AND status IN ('APPROVED', 'UPLOADED', 'IN_PROGRESS') 
              ORDER BY pledge_date DESC LIMIT 1",
             [':did' => $donorId]
@@ -355,7 +354,7 @@ class DonorModel {
 
         $bodyDate = ($bodyConsentRes) ? $bodyConsentRes[0]->consent_date : (($bodyPledgeRes) ? $bodyPledgeRes[0]->pledge_date : null);
 
-        // 2. Fetch Latest Organ Donation Intent (excluding Cornea and Body IDs 9, 10)
+        // 2. Fetch Latest Organ Donation Intent (excluding Cornea and Body ID 10)
         // CRITICAL: Counts Deceased (no LDC) or ANY IN_PROGRESS organ pledge.
         // We now EXCLUDE 'PENDING' to ensure the "Mode" only changes after formal registration.
         $organRes = $this->query(
@@ -368,7 +367,7 @@ class DonorModel {
                 (dp.status IN ('APPROVED', 'UPLOADED') AND ldc.id IS NULL)
                 OR (dp.status = 'IN_PROGRESS')
              )
-             AND dp.organ_id NOT IN (9, 10) 
+             AND dp.organ_id != 10 
              AND LOWER(o.name) NOT LIKE '%cornea%' AND LOWER(o.name) NOT LIKE '%eye%'",
             [':did' => $donorId]
         );
@@ -419,7 +418,7 @@ class DonorModel {
              JOIN organs o ON dp.organ_id = o.id
              WHERE dp.donor_id = :did 
              AND dp.status = 'IN_PROGRESS' 
-             AND dp.organ_id NOT IN (9, 10)
+             AND dp.organ_id != 10
              AND LOWER(o.name) NOT LIKE '%cornea%' AND LOWER(o.name) NOT LIKE '%eye%'",
             [':did' => $donorId]
         );
@@ -427,7 +426,7 @@ class DonorModel {
 
         $inProgressBodyRes = $this->query(
             "SELECT COUNT(*) as cnt FROM donor_pledges 
-             WHERE donor_id = :did AND status = 'IN_PROGRESS' AND organ_id IN (9, 10)",
+             WHERE donor_id = :did AND status = 'IN_PROGRESS' AND organ_id = 10",
             [':did' => $donorId]
         );
         $hasInProgressBody = (!empty($inProgressBodyRes) && $inProgressBodyRes[0]->cnt > 0);

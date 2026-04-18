@@ -379,7 +379,8 @@ if (!empty($pending_matches)) {
                                 if ($isCompleted) goto skip_body;
 
                                 $isPending = ($o['status'] === 'PENDING' && empty($o['signed_form_path']));
-                                $isWithdrawPending = (!empty($o['withdrawal_status']) && $o['withdrawal_status'] === 'PENDING_UPLOAD');
+                                $isUploaded = ($o['status'] === 'UPLOADED' || ($o['status'] === 'PENDING' && !empty($o['signed_form_path'])));
+                                $isWithdrawPending = (!empty($o['withdrawal_status']) && ($o['withdrawal_status'] === 'PENDING_UPLOAD' || $o['withdrawal_status'] === 'PENDING'));
                                 $isSuperseded = ($deceased_superseded && $deceased_superseded['type'] === 'BODY');
 
                                 if ($isSuperseded) {
@@ -391,15 +392,29 @@ if (!empty($pending_matches)) {
                                 } elseif ($isWithdrawPending) {
                                     $boxStyle = 'border: 1.5px solid #ef4444; background: #fef2f2;';
                                     $statusClass = 'd-status--danger'; $statusStyle = ''; $statusText = 'Withdrawal Pending';
-                                    $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=9'";
+                                    $clickHandler = "window.location.href='" . ROOT . "/donor/withdraw-consent?organ_id=10'";
                                     $iconColor = '#ef4444'; $nameColor = '#991b1b';
                                     $dataTip = '';
                                 } else {
-                                    $boxStyle = $isPending ? 'border: 1.5px solid #facc15; background: #fffbeb;' : 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
-                                    $statusClass = $isPending ? 'd-status--pending' : ''; $statusStyle = $isPending ? '' : 'background:#8b5cf6; color:white;';
-                                    $statusText = $isPending ? 'Pending Upload' : 'Pledged';
-                                    $clickHandler = $isPending ? "openPledgeActionModal(9, 'Full Body')" : "openUnselectWarning(9, 'Full Body')";
-                                    $iconColor = ($isPending || $isWithdrawPending) ? '#d97706' : '#8b5cf6'; $nameColor = ($isPending || $isWithdrawPending) ? '#92400e' : '#5b21b6';
+                                    if ($isPending) {
+                                        $boxStyle = 'border: 1.5px solid #facc15; background: #fffbeb;';
+                                        $statusClass = 'd-status--pending'; $statusStyle = '';
+                                        $statusText = 'Pending Upload';
+                                        $clickHandler = "openPledgeActionModal(10, 'Full Body')";
+                                        $iconColor = '#d97706'; $nameColor = '#92400e';
+                                    } elseif ($isUploaded) {
+                                        $boxStyle = 'border: 1.5px solid #10b981; background: #f0fdf4;';
+                                        $statusClass = 'd-status--success'; $statusStyle = '';
+                                        $statusText = 'Uploaded';
+                                        $clickHandler = "openUnselectWarning(10, 'Full Body')";
+                                        $iconColor = '#10b981'; $nameColor = '#166534';
+                                    } else {
+                                        $boxStyle = 'border: 1.5px solid #8b5cf6; background: #f5f3ff;';
+                                        $statusClass = ''; $statusStyle = 'background:#8b5cf6; color:white;';
+                                        $statusText = 'Pledged';
+                                        $clickHandler = "openUnselectWarning(10, 'Full Body')";
+                                        $iconColor = '#8b5cf6'; $nameColor = '#5b21b6';
+                                    }
                                     $dataTip = '';
                                 }
                             ?>
@@ -581,7 +596,8 @@ function isBlockedStatus($organName, $eligibility) {
                     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:1.25rem; margin-bottom:2.5rem;">
                         <?php if(!empty($available_after_death)): foreach($available_after_death as $o): 
                             $isSuspended = $o['is_suspended'] ?? false;
-                            $hasConflict = $deceasedData['has_active_body_pledge'] ?? false;
+                            $isEye = (stripos($o['organ_name'], 'cornea') !== false || stripos($o['organ_name'], 'eye') !== false);
+                            $hasConflict = (!$isEye && ($deceasedData['has_active_body_pledge'] ?? false));
                             $organMatches = $matchesByOrgan[$o['organ_id']] ?? [];
                             $hasMatch = !empty($organMatches);
                             
@@ -747,20 +763,20 @@ function isBlockedStatus($organName, $eligibility) {
                     </div>
                     <div class="d-input-group" style="grid-column: span 2;">
                         <label>Address <span style="color:var(--danger);">*</span></label>
-                        <textarea id="livingAddress" class="d-input" style="height:60px;" required></textarea>
+                        <textarea id="livingAddress" class="d-input" style="height:60px;" required><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
                     </div>
                     <div class="d-input-group">
                         <label>Blood Group <span style="color:var(--danger);">*</span></label>
                         <select id="bloodGroup" class="d-input" required>
                             <option value="">-- Select Blood Group --</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
+                            <option value="A+" <?= ($donor_data['blood_group'] ?? '') == 'A+' ? 'selected' : '' ?>>A+</option>
+                            <option value="A-" <?= ($donor_data['blood_group'] ?? '') == 'A-' ? 'selected' : '' ?>>A-</option>
+                            <option value="B+" <?= ($donor_data['blood_group'] ?? '') == 'B+' ? 'selected' : '' ?>>B+</option>
+                            <option value="B-" <?= ($donor_data['blood_group'] ?? '') == 'B-' ? 'selected' : '' ?>>B-</option>
+                            <option value="AB+" <?= ($donor_data['blood_group'] ?? '') == 'AB+' ? 'selected' : '' ?>>AB+</option>
+                            <option value="AB-" <?= ($donor_data['blood_group'] ?? '') == 'AB-' ? 'selected' : '' ?>>AB-</option>
+                            <option value="O+" <?= ($donor_data['blood_group'] ?? '') == 'O+' ? 'selected' : '' ?>>O+</option>
+                            <option value="O-" <?= ($donor_data['blood_group'] ?? '') == 'O-' ? 'selected' : '' ?>>O-</option>
                         </select>
                     </div>
                     <div class="d-input-group">
@@ -846,18 +862,6 @@ function isBlockedStatus($organName, $eligibility) {
 
             <!-- Step 4: D. Compatibility & F. Emergency Contact -->
             <div id="step4" class="d-modal__step">
-                <h4 class="d-section-header"><i class="fas fa-flask text-accent"></i> D. Compatibility Information (Staff Update)</h4>
-                <p style="font-size:0.8rem; color:var(--g500); margin-bottom:1rem;">Optional at this stage. Medical staff will update this after investigations.</p>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; background:white; padding:1.25rem; border:1px solid var(--g200); border-radius:12px; margin-bottom:2rem;">
-                    <div class="d-input-group">
-                        <label>Blood Compatibility</label>
-                        <input type="text" id="compat_blood" class="d-input" placeholder="Pending investigation...">
-                    </div>
-                    <div class="d-input-group">
-                        <label>Tissue Typing (HLA Match)</label>
-                        <input type="text" id="compat_tissue" class="d-input" placeholder="Pending investigation...">
-                    </div>
-                </div>
 
                 <h4 class="d-section-header"><i class="fas fa-phone-alt text-accent"></i> F. Emergency Contact</h4>
                 <div style="background:#fff7ed; padding:1.5rem; border-radius:12px; border:1.5px solid #fed7aa;">
@@ -1035,7 +1039,7 @@ function isBlockedStatus($organName, $eligibility) {
             <!-- Step 2: Organ Selection -->
             <div id="deathStep2" style="display:none;">
                 <h4 class="d-section-header"><i class="fas fa-check-square text-accent"></i> B. Donation Preferences</h4>
-                <p style="font-size:0.9rem; color:var(--g600); margin-bottom:1.5rem;">Select the specific organs and tissues you authorize for clinical recovery:</p>
+                <p style="font-size:0.9rem; color:var(--g600); margin-bottom:1.5rem;">Select organs and tissues for recovery. Note: Eye (Cornea) donation is compatible with all other selections.</p>
                 <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:15px; margin-bottom:2rem;">
                     <?php foreach($available_after_death as $o): ?>
                     <label class="organ-sel-card" style="display:flex; align-items:center; gap:12px; cursor:pointer; padding:1.25rem; background:white; border-radius:12px; border:1px solid var(--g200); transition:all 0.2s ease;">
@@ -1197,7 +1201,7 @@ function isBlockedStatus($organName, $eligibility) {
                     <button type="button" class="d-btn d-btn--outline" onclick="goToDeathStep(6)"><i class="fas fa-arrow-left"></i> Back</button>
                     <div style="display:flex; gap:10px;">
                         <button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('afterDeathReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button>
-                        <button type="button" class="d-btn d-btn--primary" onclick="submitAfterDeath()"><i class="fas fa-check-circle"></i> Submit Consent</button>
+                        <button type="button" class="d-btn d-btn--primary" onclick="submitAfterDeath()"><i class="fas fa-check-circle"></i> Finalize Consent</button>
                     </div>
                 </div>
             </div>
@@ -1409,7 +1413,7 @@ function isBlockedStatus($organName, $eligibility) {
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-top:2rem; border-top:1px solid var(--g200); padding-top:1.5rem;">
                     <button type="button" class="d-btn d-btn--outline" onclick="goToBodyStep(5)"><i class="fas fa-arrow-left"></i> Previous</button>
-                    <div style="display:flex; gap:12px;"><button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('bodyReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button><button type="button" class="d-btn d-btn--primary" onclick="submitBodyPledge()"><i class="fas fa-check-circle"></i> Authorize Donation</button></div>
+                    <div style="display:flex; gap:12px;"><button type="button" class="d-btn d-btn--secondary" onclick="downloadPledge('bodyReviewContent')"><i class="fas fa-file-pdf"></i> Download Document</button><button type="button" class="d-btn d-btn--primary" onclick="submitBodyPledge()"><i class="fas fa-check-circle"></i> Finalize Consent</button></div>
                 </div>
             </div>
         </form>
@@ -1435,12 +1439,6 @@ function isBlockedStatus($organName, $eligibility) {
     <input type="hidden" name="conditions" id="pledgeConditions">
     <input type="hidden" name="blood_group" id="pledgeBloodGroup">
     <input type="hidden" name="address" id="pledgeAddress">
-    
-    <!-- Recipient Info (REMOVED) -->
-    
-    <!-- Compatibility -->
-    <input type="hidden" name="compat_blood" id="p_compat_blood">
-    <input type="hidden" name="compat_tissue" id="p_compat_tissue">
     
     <!-- Emergency Contact -->
     <input type="hidden" name="emergency_name" id="p_emergency_name">
@@ -1671,10 +1669,6 @@ function submitPledge(){
     document.getElementById('p_allergies').value = document.getElementById('allergies').value;
     document.getElementById('p_habits').value = document.getElementById('habits').value;
     
-    // Recipient Info (REMOVED)
-    
-    document.getElementById('p_compat_blood').value = document.getElementById('compat_blood').value;
-    document.getElementById('p_compat_tissue').value = document.getElementById('compat_tissue').value;
     
     document.getElementById('p_emergency_name').value = document.getElementById('emergencyName').value;
     document.getElementById('p_emergency_rel').value = document.getElementById('emergencyRel').value;
@@ -1692,7 +1686,7 @@ function submitPledge(){
 
     document.getElementById('pledgeForm').submit(); 
 }
-function openAfterDeathModal(id,name){ document.querySelectorAll('.death-org-check').forEach(c=>c.checked=false); const target=document.getElementById('death_org_'+id); if(target) target.checked=true; goToDeathStep(1); openModal('afterDeathConsentModal'); }
+
 function goToDeathStep(step) {
     const currentStepNum = parseInt(document.querySelector('#afterDeathForm div[id^="deathStep"]:not([style*="display: none"])')?.id.replace('deathStep','') || '1');
     
