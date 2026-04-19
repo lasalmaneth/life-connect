@@ -54,6 +54,18 @@
                         <div class="dr-value--sub"><?= date('M d, Y', strtotime($request->date_of_death)) ?></div>
                     </div>
                 </div>
+                <div class="cp-detail-item">
+                    <div class="cp-detail-label">Case Number</div>
+                    <div class="cp-detail-value"><?= htmlspecialchars($request->case_number) ?></div>
+                </div>
+                <div class="cp-detail-item">
+                    <div class="cp-detail-label">Blood Group</div>
+                    <div class="cp-detail-value"><?= htmlspecialchars($request->blood_group ?: 'N/A') ?></div>
+                </div>
+                <div class="cp-detail-item">
+                    <div class="cp-detail-label">Date of Death</div>
+                    <div class="cp-detail-value"><?= date('d/m/Y', strtotime($request->date_of_death)) ?></div>
+                </div>
             </div>
         </div>
 
@@ -159,6 +171,8 @@
                         <br>Reason: <?= htmlspecialchars($request->rejection_reason) ?>
                     <?php endif; ?>
                 </div>
+            <div class="cp-alert cp-alert--info">
+                This request was <strong><?= htmlspecialchars($request->request_status) ?></strong> on <?= date('d/m/Y', strtotime($request->request_action_at)) ?>.
             </div>
         <?php endif; ?>
 

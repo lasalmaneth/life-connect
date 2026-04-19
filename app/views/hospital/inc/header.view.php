@@ -106,7 +106,7 @@ $h_avatar = strtoupper(substr((string)$h_name, 0, 1) ?: 'H');
                                         <div class="notif-content">
                                             <div class="notif-title"><?php echo htmlspecialchars($notif['title']); ?></div>
                                             <div class="notif-message"><?php echo htmlspecialchars($notif['message']); ?></div>
-                                            <div class="notif-time"><?php echo date('M d, H:i', strtotime($notif['created_at'])); ?>
+                                            <div class="notif-time"><?php echo date('d/m/Y H:i', strtotime($notif['created_at'])); ?>
                                             </div>
                                         </div>
                                     </div>
@@ -194,7 +194,7 @@ $h_avatar = strtoupper(substr((string)$h_name, 0, 1) ?: 'H');
                             <div class="detail-item">
                                 <span class="detail-label">Last Login:</span>
                                 <span
-                                    class="detail-value"><?php echo date('M d, Y H:i', strtotime($hospital_details['last_login'])); ?></span>
+                                    class="detail-value"><?php echo date('d/m/Y H:i', strtotime($hospital_details['last_login'])); ?></span>
                             </div>
                         </div>
                         <div class="dropdown-footer">

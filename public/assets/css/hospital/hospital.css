@@ -1000,6 +1000,13 @@ main.screen {
     gap: 0.8rem;
 }
 
+/* Specific grid for aftercare recipients table to ensure perfect alignment */
+.aftercare-recipients-grid.table-row {
+    grid-template-columns: 140px 1.5fr 1fr 1fr 120px !important;
+    gap: 1.5rem !important;
+    align-items: center;
+}
+
 #recipients-table .btn-small {
     padding: 0.4rem 0.8rem;
     font-size: 0.75rem;

@@ -16,8 +16,29 @@ class SuccessStoryModel {
         return $this->query($query, ['id' => $id, 'type' => $type]) ?: [];
     }
 
+    public function getAllStories() {
+        $query = "SELECT s.*, 
+                         u.username,
+                         u.role as user_role,
+                         COALESCE(h.name, CONCAT(d.first_name, ' ', d.last_name), u.username) as submitted_by_name
+                  FROM {$this->table} s
+                  LEFT JOIN users u ON s.user_id = u.id
+                  LEFT JOIN hospitals h ON u.id = h.user_id
+                  LEFT JOIN donors d ON u.id = d.user_id
+                  ORDER BY s.created_at DESC";
+        return $this->query($query) ?: [];
+    }
+
     public function getStoryById($id) {
-        $query = "SELECT * FROM {$this->table} WHERE story_id = :id";
+        $query = "SELECT s.*, 
+                         u.username,
+                         u.role as user_role,
+                         COALESCE(h.name, CONCAT(d.first_name, ' ', d.last_name), u.username) as submitted_by_name
+                  FROM {$this->table} s
+                  LEFT JOIN users u ON s.user_id = u.id
+                  LEFT JOIN hospitals h ON u.id = h.user_id
+                  LEFT JOIN donors d ON u.id = d.user_id
+                  WHERE s.story_id = :id";
         $result = $this->query($query, ['id' => $id]);
         return $result ? $result[0] : null;
     }

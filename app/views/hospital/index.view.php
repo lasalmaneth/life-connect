@@ -4,14 +4,35 @@
 
 // Donor-style clean routing for specific sections.
 // Keep EXACT same UI/output by reusing this view and only changing the initially visible section.
-$requestedUrl = trim((string)($_GET['url'] ?? ''), '/');
-$requestedPath = trim((string)parse_url(($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH), '/');
-$requested = $requestedUrl !== '' ? $requestedUrl : $requestedPath;
+// Normalize the requested path to find the hospital section.
+// NOTE: $requestedPath is not passed by the controller, so fall back to the actual request URI.
+$rootPath = rtrim((string) (parse_url(ROOT, PHP_URL_PATH) ?? ''), '/');
+$requestedPathValue = $requestedPath ?? ($_SERVER['REQUEST_URI'] ?? '');
+$requestedPathValue = (string) $requestedPathValue;
+$requestedPathValue = (string) (parse_url($requestedPathValue, PHP_URL_PATH) ?? $requestedPathValue);
 
-// Normalize in case the app is served from a base folder (e.g. "life-connect/hospital/..." )
-$hospitalPos = strpos($requested, 'hospital/');
-if ($hospitalPos !== false) {
-    $requested = substr($requested, $hospitalPos);
+$requested = $requestedPathValue;
+if ($rootPath !== '' && strpos($requested, $rootPath) === 0) {
+    $requested = substr($requested, strlen($rootPath));
+}
+$requested = trim($requested, '/');
+
+// When embedding PHP data into inline <script> blocks, use HEX flags so content
+// can't accidentally terminate the script tag (e.g. "</script>") and break all JS.
+function hc_json($value): string
+{
+    $json = json_encode(
+        $value,
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+
+    // json_encode() can return false for invalid UTF-8 coming from DB.
+    // Returning 'null' keeps the inline JS valid so the whole page doesn't break.
+    if ($json === false) {
+        return 'null';
+    }
+
+    return $json;
 }
 
 $initialSection = 'overview';
@@ -42,7 +63,6 @@ if ($requested === 'hospital/appointments' || $requested === 'hospital/lab-repor
 }
 
 // Base Hospital URL (keep the address bar here)
-$rootPath = rtrim((string)(parse_url(ROOT, PHP_URL_PATH) ?? ''), '/');
 $hospitalBasePath = $rootPath . '/hospital';
 
 // Notifications (donor-style dropdown)
@@ -135,8 +155,151 @@ if (!isset($notifications) || !isset($unread_count)) {
         setInterval(updateHospitalCountdowns, 60000);
         document.addEventListener('DOMContentLoaded', updateHospitalCountdowns);
 
-        const ROOT = '<?php echo ROOT; ?>';
-        const HOSPITAL_BASE_PATH = <?php echo json_encode($hospitalBasePath); ?>;
+        const ROOT = <?php echo hc_json(ROOT); ?>;
+        const HOSPITAL_BASE_PATH = <?php echo hc_json($hospitalBasePath ?? ''); ?>;
+        window.eligibleDonorsData = <?php echo json_encode($eligible_donors ?? []); ?>;
+
+        // Ensure key modal functions are globally available early
+        window.openLabReportModal = function(mode = 'basic') {
+            const modal = document.getElementById('lab-report-modal');
+            if (!modal) {
+                console.error('Modal lab-report-modal not found');
+                return;
+            }
+            modal.classList.add('show');
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) modalContent.scrollTop = 0;
+
+            const headerTitle = modal.querySelector('.modal-header h3');
+            if (headerTitle) {
+                headerTitle.textContent = mode === 'advanced' ? 'Schedule Advanced Diagnostics' : 'Schedule Initial Screening';
+            }
+            
+            // Store mode for other functions
+            window.__labModalMode = mode;
+            
+            // Clear all fields
+            ['lab-donor-select', 'lab-donor-id', 'lab-organ-id', 'lab-test-type', 'lab-test-date', 'lab-test-date-2', 'lab-test-date-3', 'lab-result-notes', 'lab-blood-type', 'lab-recipient-patient', 'lab-recipient-id'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.value = ''; el.disabled = false; el.style.backgroundColor = ''; el.style.cursor = ''; }
+            });
+
+            // Reset Duration for Advanced mode
+            const durationGroup = document.getElementById('scheduling-duration-group');
+            if (durationGroup) {
+                durationGroup.style.display = mode === 'advanced' ? 'block' : 'none';
+                const firstBtn = durationGroup.querySelector('.duration-btn');
+                if (firstBtn) setScheduleDuration(1, firstBtn);
+            }
+
+            const testContainer = document.getElementById('lab-tests-container');
+            if (testContainer) {
+                const formGroup = testContainer.closest('.form-group');
+                if (formGroup) {
+                    formGroup.style.display = 'block'; // Always show, but content will vary
+                }
+            }
+
+            if (typeof renderLabTests === 'function') renderLabTests();
+
+            // Load donors for the searchable select
+            const populateDonorSelect = (data) => {
+                const select = document.getElementById('lab-donor-select');
+                if (!select) return;
+                select.innerHTML = '<option value="">Select a Donor</option>';
+                if (Array.isArray(data)) {
+                    data.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.text = `${d.nic_number || ''} - ${d.first_name || ''} ${d.last_name || ''}`;
+                        opt.dataset.organs = d.pledged_organs || '';
+                        select.appendChild(opt);
+                    });
+                }
+
+                // Auto-load organ type when donor is selected
+                select.onchange = function() {
+                    const opt = this.options[this.selectedIndex];
+                    const organSelect = document.getElementById('lab-organ-id');
+                    const donorIdField = document.getElementById('lab-donor-id');
+                    if (!organSelect || !donorIdField) return;
+
+                    if (opt && opt.value && opt.dataset.organs) {
+                        donorIdField.value = opt.value;
+                        const organs = opt.dataset.organs.split('||');
+                        organSelect.innerHTML = '<option value="">Select Organ</option>';
+                        organs.forEach(oStr => {
+                            const parts = oStr.split(':');
+                            if (parts.length === 2) {
+                                const oItem = document.createElement('option');
+                                oItem.value = parts[0];
+                                oItem.text = parts[1];
+                                organSelect.appendChild(oItem);
+                            }
+                        });
+                        organSelect.disabled = false;
+                        organSelect.style.backgroundColor = '';
+                        organSelect.style.cursor = '';
+                        
+                        // Dynamically load tests when the specific organ is chosen
+                        organSelect.onchange = function() {
+                            if (typeof renderLabTests === 'function') renderLabTests();
+                        };
+                    } else {
+                        donorIdField.value = '';
+                        organSelect.value = '';
+                        organSelect.disabled = false;
+                        organSelect.style.backgroundColor = '';
+                        organSelect.style.cursor = '';
+                    }
+                }
+            };
+
+            if (mode === 'advanced') {
+                populateDonorSelect(window.eligibleDonorsData || []);
+            } else {
+                fetch(ROOT + '/hospital/search-donors?q=')
+                    .then(r => r.json())
+                    .then(res => {
+                        const data = res.data || res;
+                        populateDonorSelect(data);
+                    })
+                    .catch(e => console.error('Error loading donors:', e));
+            }
+        };
+
+        window.setScheduleDuration = function(days, btn) {
+            document.querySelectorAll('.duration-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.background = 'white';
+                b.style.color = '#1e293b';
+                b.style.borderColor = '#e2e8f0';
+            });
+            
+            btn.classList.add('active');
+            btn.style.background = '#2563eb';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#2563eb';
+            
+            document.getElementById('lab-schedule-duration').value = days;
+            
+            // Show/Hide date fields
+            for (let i = 1; i <= 3; i++) {
+                const group = document.getElementById('date-group-' + i);
+                const label1 = document.getElementById('date-label-1');
+                if (i === 1 && label1) {
+                    label1.innerHTML = days > 1 ? 'Day 1 Test Date <span style="color: #e74c3c;">*</span>' : 'Test Date <span style="color: #e74c3c;">*</span>';
+                }
+                if (group) group.style.display = i <= days ? 'block' : 'none';
+            }
+        };
+
+        function toggleDrawer(id) {
+            const drawer = document.getElementById(id);
+            const overlay = document.getElementById(id + '-overlay');
+            if (drawer) drawer.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('open');
+        }
 
         function hospitalPathForSection(id) {
             const map = {
@@ -147,11 +310,13 @@ if (!isset($notifications) || !isset($unread_count)) {
                 'stories': 'stories',
                 'lab-reports': 'appointments',
                 'test-results': 'test-results',
+                'advanced-testing': 'advanced-testing',
                 'matching': 'matching',
                 'surgery-prep': 'surgery-prep',
                 'deceased-requests': 'deceased-requests',
                 'deceased-documents': 'deceased-documents',
-                'deceased-final-flow': 'deceased-final-flow'
+                'deceased-final-flow': 'deceased-final-flow',
+                'aftercare-recipients': 'aftercare'
             };
             const suffix = Object.prototype.hasOwnProperty.call(map, id) ? map[id] : '';
             return suffix ? (HOSPITAL_BASE_PATH + '/' + suffix) : HOSPITAL_BASE_PATH;
@@ -171,6 +336,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             if (rest.includes('stories')) return 'stories';
             if (rest.includes('appointments') || rest.includes('lab-reports')) return 'lab-reports';
             if (rest.includes('test-results')) return 'test-results';
+            if (rest.includes('advanced-testing')) return 'advanced-testing';
             if (rest.includes('matching')) return 'matching';
             if (rest.includes('surgery-prep')) return 'surgery-prep';
 
@@ -197,27 +363,17 @@ if (!isset($notifications) || !isset($unread_count)) {
             }
 
             // Update active menu item highlight
-            if (element && element.classList) {
-                element.classList.add('active');
-            } else {
-                const byData = document.querySelector('.menu-item[data-section="' + id + '"]');
-                if (byData) {
-                    byData.classList.add('active');
-                } else {
-                    document.querySelectorAll('.menu-item').forEach(item => {
-                        if ((item.getAttribute('onclick') || '').includes("'" + id + "'")) {
-                            item.classList.add('active');
-                        }
-                    });
-                }
+            const activeItem = (element && element.classList)
+                ? element
+                : document.querySelector('.menu-item[data-section="' + id + '"]');
+
+            if (activeItem) {
+                activeItem.classList.add('active');
             }
 
-            // Update URL without reloading (clean routes)
-            if (updateUrl && typeof window !== 'undefined' && window.history && window.history.pushState) {
-                const nextPath = hospitalPathForSection(id);
-                if (nextPath && window.location.pathname !== nextPath) {
-                    window.history.pushState({ section: id }, document.title, nextPath);
-                }
+            if (updateUrl) {
+                const newPath = hospitalPathForSection(id);
+                window.history.pushState({ sectionId: id }, '', newPath);
             }
 
             // Scroll to top of content area
@@ -228,21 +384,29 @@ if (!isset($notifications) || !isset($unread_count)) {
             else if (id === 'stories') { if(typeof loadStories === 'function') loadStories(); }
             else if (id === 'lab-reports') { if(typeof loadLabReports === 'function') loadLabReports(); }
             else if (id === 'test-results') { if(typeof loadTestResults === 'function') loadTestResults(); }
+            else if (id === 'advanced-testing') { if(typeof populateAdvancedTestingTable === 'function') populateAdvancedTestingTable(); }
+            else if (id === 'consents') { /* Rendered by PHP initially */ }
+            else if (id === 'aftercare-recipients') { if(typeof loadAftercareRecipients === 'function') loadAftercareRecipients(); }
+        }
+
+        // Sidebar links use hcShowSection(...); keep it as a thin wrapper.
+        function hcShowSection(id, element, updateUrl = true) {
+            showContent(id, element, updateUrl);
         }
 
         // Initialize display
         document.addEventListener('DOMContentLoaded', function() {
-            const initial = sectionFromHospitalPath(window.location.pathname) || <?php echo json_encode($initialSection); ?>;
+            const initial = sectionFromHospitalPath(window.location.pathname) || <?php echo hc_json($initialSection); ?>;
             const menu = document.querySelector('.menu-item[data-section="' + initial + '"]');
             // Don't pushState on initial load; keep the requested URL as-is.
-            showContent(initial, menu || undefined, false);
+            hcShowSection(initial, menu || undefined, false);
         });
 
         // Support browser back/forward buttons
         window.addEventListener('popstate', function() {
             const id = sectionFromHospitalPath(window.location.pathname);
             const menu = document.querySelector('.menu-item[data-section="' + id + '"]');
-            showContent(id, menu || undefined, false);
+            hcShowSection(id, menu || undefined, false);
         });
 
         // Organ Request Functions
@@ -389,7 +553,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             openRequestModal();
         }
         function editRequest(requestId) {
-            const requests = <?php echo json_encode($organ_requests); ?>;
+            const requests = <?php echo hc_json($organ_requests); ?>;
             const request = requests.find(r => r.id == requestId);
             if (!request) return;
 
@@ -643,7 +807,7 @@ if (!isset($notifications) || !isset($unread_count)) {
 
         function loadOrganRequests() {
             // Use PHP data directly
-            const requests = <?php echo json_encode($organ_requests); ?>;
+            const requests = <?php echo hc_json($organ_requests); ?>;
             updateOrganRequestsTable(requests);
         }
 
@@ -653,7 +817,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             const urgencyFilter = document.getElementById('urgency-filter').value;
 
             // Access original organ requests from PHP
-            const allRequests = <?php echo json_encode($organ_requests); ?>;
+            const allRequests = <?php echo hc_json($organ_requests); ?>;
 
             const filtered = allRequests.filter(req => {
                 const organName = String(req.organ_name || '').toLowerCase();
@@ -727,7 +891,7 @@ if (!isset($notifications) || !isset($unread_count)) {
         }
 
         function viewDetails(requestId) {
-            const requests = <?php echo json_encode($organ_requests); ?>;
+            const requests = <?php echo hc_json($organ_requests); ?>;
             const request = requests.find(r => r.id == requestId);
             if (!request) return;
 
@@ -756,9 +920,15 @@ if (!isset($notifications) || !isset($unread_count)) {
             if (!pledgeId) return;
             
             try {
-                // Show loading state or at least clear previous data
+                // Show modal first with loading state
                 const modal = document.getElementById('consent-details-modal');
                 modal.classList.add('show');
+                
+                // Clear previous data
+                ['modal-donor-name', 'modal-donor-nic', 'modal-donor-dob', 'modal-donor-gender', 'modal-donor-nationality', 'modal-donor-contact', 'modal-donor-email', 'modal-organ-name', 'modal-pledge-date'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = 'Loading...';
+                });
                 
                 // Fetch data
                 const response = await fetch('<?php echo ROOT; ?>/hospital/get-pledge-details?id=' + pledgeId);
@@ -768,26 +938,27 @@ if (!isset($notifications) || !isset($unread_count)) {
                     const d = result.data;
                     
                     // Populate basic info
-                    document.getElementById('modal-donor-name').textContent = (d.first_name + ' ' + d.last_name) || '-';
-                    document.getElementById('modal-donor-nic').textContent = d.nic_number || '-';
-                    document.getElementById('modal-donor-dob').textContent = d.date_of_birth || '-';
-                    document.getElementById('modal-donor-gender').textContent = d.gender || '-';
+                    document.getElementById('modal-donor-name').textContent = ((d.first_name || '') + ' ' + (d.last_name || '')).trim() || d.donor_name || 'Anonymous';
+                    document.getElementById('modal-donor-nic').textContent = d.nic_number || 'N/A';
+                    document.getElementById('modal-donor-dob').textContent = d.date_of_birth || 'Not specified';
+                    document.getElementById('modal-donor-gender').textContent = d.gender || 'Not specified';
                     document.getElementById('modal-donor-nationality').textContent = d.nationality || 'Sri Lankan';
-                    document.getElementById('modal-donor-contact').textContent = d.phone || '-';
+                    document.getElementById('modal-donor-contact').textContent = d.phone || d.contact_number || '-';
                     document.getElementById('modal-donor-email').textContent = d.email || '-';
                     
                     document.getElementById('modal-organ-name').textContent = d.organ_name || '-';
                     document.getElementById('modal-pledge-date').textContent = d.pledge_date ? new Date(d.pledge_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
                     
                     const statusBadge = document.getElementById('modal-pledge-status');
-                    statusBadge.textContent = (d.status || 'PENDING').toUpperCase();
-                    statusBadge.className = 'status-badge ' + (d.status || 'PENDING').toLowerCase();
+                    const status = (d.status || 'PENDING').toUpperCase();
+                    statusBadge.textContent = status;
+                    statusBadge.className = 'status-badge ' + status.toLowerCase();
                     
                     // Show Approve button only if status is UPLOADED (pending verification)
                     const approveBtn = document.getElementById('modal-approve-btn');
-                    if (d.status === 'UPLOADED') {
+                    if (status === 'UPLOADED') {
                         approveBtn.style.display = 'block';
-                        approveBtn.setAttribute('onclick', `approveEligibility(${pledgeId})`);
+                        approveBtn.onclick = () => approveEligibility(pledgeId);
                     } else {
                         approveBtn.style.display = 'none';
                     }
@@ -834,29 +1005,6 @@ if (!isset($notifications) || !isset($unread_count)) {
             hcAlert('This feature is currently being integrated with the National Health Authority feedback system. Please contact the administrator for immediate discrepancies.', 'info');
         }
 
-        async function approveEligibility(id) {
-            const confirmed = await hcConfirm('Are you sure you want to approve this donor\'s eligibility? This will mark the consent as legally finalized.');
-            if (confirmed) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '<?php echo ROOT; ?>/hospital/consents';
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'approve_eligibility';
-                form.appendChild(actionInput);
-                
-                const idInput = document.createElement('input');
-                idInput.type = 'hidden';
-                idInput.name = 'pledge_id';
-                idInput.value = id;
-                form.appendChild(idInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
 
         function postEligibilityAction(action, pledgeId) {
             const form = document.createElement('form');
@@ -961,7 +1109,7 @@ if (!isset($notifications) || !isset($unread_count)) {
         }
         function editStory(storyId) {
             // Get story data and populate edit form
-            const stories = <?php echo json_encode($success_stories); ?>;
+            const stories = <?php echo hc_json($success_stories); ?>;
             const story = stories.find(s => s.story_id == storyId);
 
             if (story) {
@@ -1064,125 +1212,6 @@ if (!isset($notifications) || !isset($unread_count)) {
             form.submit();
         }
 
-        // Lab Report Functions
-        function openLabReportModal() {
-            const modal = document.getElementById('lab-report-modal');
-            modal.classList.add('show');
-
-            // Scroll modal content to top
-            const modalContent = modal.querySelector('.modal-content');
-            if (modalContent) {
-                modalContent.scrollTop = 0;
-            }
-
-            const headerTitle = modal.querySelector('.modal-header h3');
-            if (headerTitle) headerTitle.textContent = 'Schedule Appointment';
-            const submitBtn = modal.querySelector('button[onclick="saveLabReport()"]');
-            if (submitBtn) submitBtn.style.display = 'inline-flex';
-
-            document.getElementById('lab-donor-select').value = '';
-            document.getElementById('lab-donor-id').value = '';
-            const organEl = document.getElementById('lab-organ-id');
-            if (organEl) organEl.value = '';
-            document.getElementById('lab-test-type').value = '';
-            renderLabTests();
-            document.getElementById('lab-test-date').value = '';
-            document.getElementById('lab-test-date').value = '';
-            document.getElementById('lab-result-notes').value = '';
-            document.getElementById('lab-blood-type').value = '';
-
-            const fields = ['lab-donor-select', 'lab-organ-id', 'lab-recipient-patient', 'lab-test-date', 'lab-result-notes', 'lab-blood-type'];
-            fields.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.disabled = false;
-            });
-
-            // Load donors into dropdown
-            fetch('<?php echo ROOT; ?>/hospital/search-donors?q=')
-                .then(response => response.json())
-                .then(donors => {
-                    const donorSelect = document.getElementById('lab-donor-select');
-                    donorSelect.innerHTML = '<option value="">Select a Donor</option>';
-
-                    if (donors && Array.isArray(donors) && donors.length > 0) {
-                        donors.forEach(donor => {
-                            const option = document.createElement('option');
-                            option.value = donor.id;
-                            option.text = `${donor.nic_number || ''} - ${donor.first_name} ${donor.last_name}`;
-                            // Store pledged organs in data attribute for auto-fill
-                            option.dataset.organs = donor.pledged_organs || ''; 
-                            donorSelect.appendChild(option);
-                        });
-                    }
-                    console.log('Donors loaded:', donors);
-
-                    // Add change listener for auto-filling organ
-                    donorSelect.onchange = function() {
-                        const selectedOption = this.options[this.selectedIndex];
-                        const organSelect = document.getElementById('lab-organ-id');
-                        const donorIdInput = document.getElementById('lab-donor-id');
-                        
-                        if (donorIdInput) donorIdInput.value = this.value;
-
-                        if (selectedOption && selectedOption.dataset.organs) {
-                            // Format is usually "id:name||id:name"
-                            const organs = selectedOption.dataset.organs.split('||');
-                            if (organs.length > 0) {
-                                const firstOrgan = organs[0].split(':');
-                                if (firstOrgan.length > 0 && organSelect) {
-                                    organSelect.value = firstOrgan[0]; // Set to the first pledged organ ID
-                                }
-                            }
-                        }
-                    };
-                })
-                .catch(error => console.error('Error loading donors:', error));
-
-            // Load recipients into dropdown
-            const recipients = <?php echo json_encode($recipients ?? []); ?>;
-            const recipientSelect = document.getElementById('lab-recipient-patient');
-
-            if (!recipientSelect) {
-                console.error('Recipient select element not found');
-                return;
-            }
-
-            // Clear existing options except the first one
-            recipientSelect.innerHTML = '<option value="">Select Recipient Patient</option>';
-
-            // Add recipient options
-            if (recipients && Array.isArray(recipients) && recipients.length > 0) {
-                recipients.forEach(recipient => {
-                    const option = document.createElement('option');
-                    option.value = recipient.recipient_id || '';
-                    const patientNic = recipient.nic || recipient.patient_nic || '';
-                    const patientName = recipient.name || recipient.patient_name || '';
-                    const organ = recipient.organ_received || '';
-                    option.text = `${patientNic} - ${patientName} (${organ})`;
-                    recipientSelect.appendChild(option);
-                });
-            }
-
-            // Handle donor selection
-            const donorSelect = document.getElementById('lab-donor-select');
-            if (donorSelect) {
-                donorSelect.addEventListener('change', function () {
-                    document.getElementById('lab-donor-id').value = this.value;
-                });
-            }
-
-            // Render tests when organ changes (assign, avoid stacking listeners)
-            const organSelect = document.getElementById('lab-organ-id');
-            if (organSelect) {
-                organSelect.onchange = function() { renderLabTests(); };
-            }
-
-            // Focus on donor select field
-            setTimeout(() => {
-                document.getElementById('lab-donor-select').focus();
-            }, 100);
-        }
-
         // Handle recipient patient selection
         function handleRecipientSelection() {
             const recipientSelect = document.getElementById('lab-recipient-patient');
@@ -1245,14 +1274,13 @@ if (!isset($notifications) || !isset($unread_count)) {
             }
         });
 
-        function searchDonorsForLabReport() {
-            const query = document.getElementById('lab-donor-input').value.trim();
-            const suggestionsDiv = document.getElementById('lab-donor-suggestions');
+        function searchDonorsForLab(query) {
+            const suggestionsDiv = document.getElementById('lab-donor-list');
 
             console.log('Searching for donors with query:', query);
 
-            if (query.length < 1) {
-                suggestionsDiv.style.display = 'none';
+            if (!query || query.length < 1) {
+                if (suggestionsDiv) suggestionsDiv.style.display = 'none';
                 document.getElementById('lab-donor-id').value = '';
                 return;
             }
@@ -1295,11 +1323,10 @@ if (!isset($notifications) || !isset($unread_count)) {
 
         function selectDonorForLabReport(donorId, donorName) {
             console.log('Selected donor:', donorId, donorName);
-            document.getElementById('lab-donor-input').value = donorName;
+            document.getElementById('lab-donor-select').value = donorName;
             document.getElementById('lab-donor-id').value = donorId;
-            document.getElementById('lab-donor-suggestions').style.display = 'none';
-            // Focus on next field
-            document.getElementById('lab-test-type').focus();
+            const list = document.getElementById('lab-donor-list');
+            if (list) list.style.display = 'none';
         }
 
         function saveLabReport() {
@@ -1313,10 +1340,17 @@ if (!isset($notifications) || !isset($unread_count)) {
                 const otherVal = document.getElementById('lab_test_type_other_input').value.trim();
                 if (otherVal) selectedTests.push(otherVal);
             }
-            document.getElementById('lab-test-type').value = selectedTests.join(', ');
+            if (window.__labModalMode === 'basic') {
+                document.getElementById('lab-test-type').value = 'COMMON TESTS';
+            } else {
+                document.getElementById('lab-test-type').value = selectedTests.join(', ');
+            }
 
             const testType = document.getElementById('lab-test-type').value;
             const testDate = document.getElementById('lab-test-date').value;
+            const scheduledDate1 = document.getElementById('lab-test-date').value;
+            const scheduledDate2 = (document.getElementById('lab-test-date-2') || {}).value || null;
+            const scheduledDate3 = (document.getElementById('lab-test-date-3') || {}).value || null;
             const resultNotes = document.getElementById('lab-result-notes').value;
             const bloodType = document.getElementById('lab-blood-type').value;
 
@@ -1355,19 +1389,51 @@ if (!isset($notifications) || !isset($unread_count)) {
             form.appendChild(organIdInput);
 
             // Send selected tests as tests[]
+            let descriptions = [];
             selectedTests.forEach(t => {
                 const testInput = document.createElement('input');
                 testInput.type = 'hidden';
                 testInput.name = 'tests[]';
                 testInput.value = t;
                 form.appendChild(testInput);
+
+                // Find the source checkbox to get description
+                const cb = Array.from(document.querySelectorAll('input[name="lab_test_types[]"]:checked')).find(c => c.value === t);
+                if (cb && cb.dataset.description) {
+                    descriptions.push(cb.dataset.description);
+                }
             });
+
+            const descInput = document.createElement('input');
+            descInput.type = 'hidden';
+            descInput.name = 'description';
+            descInput.value = descriptions.join(' | ');
+            form.appendChild(descInput);
 
             const testDateInput = document.createElement('input');
             testDateInput.type = 'hidden';
             testDateInput.name = 'test_date';
             testDateInput.value = testDate;
             form.appendChild(testDateInput);
+
+            // Add multi-day scheduled dates
+            const sd1Input = document.createElement('input');
+            sd1Input.type = 'hidden';
+            sd1Input.name = 'scheduled_date_1';
+            sd1Input.value = scheduledDate1;
+            form.appendChild(sd1Input);
+
+            const sd2Input = document.createElement('input');
+            sd2Input.type = 'hidden';
+            sd2Input.name = 'scheduled_date_2';
+            sd2Input.value = scheduledDate2;
+            form.appendChild(sd2Input);
+
+            const sd3Input = document.createElement('input');
+            sd3Input.type = 'hidden';
+            sd3Input.name = 'scheduled_date_3';
+            sd3Input.value = scheduledDate3;
+            form.appendChild(sd3Input);
 
             const resultNotesInput = document.createElement('input');
             resultNotesInput.type = 'hidden';
@@ -1403,156 +1469,300 @@ if (!isset($notifications) || !isset($unread_count)) {
         }
 
         function getTestsForOrganKey(key) {
-            const infectious = [
-                { value: 'Infectious Disease Screening - HIV', label: 'Infectious Disease (HIV)' },
-                { value: 'Infectious Disease Screening - Hepatitis B', label: 'Infectious Disease (Hepatitis B)' },
-                { value: 'Infectious Disease Screening - Hepatitis C', label: 'Infectious Disease (Hepatitis C)' },
-                { value: 'Infectious Disease Screening - Syphilis', label: 'Infectious Disease (Syphilis)' },
-            ];
-
-            if (key === 'kidney') {
-                return [
-                    { value: 'ABO Typing', label: 'ABO Typing' },
-                    { value: 'HLA Typing (6 markers)', label: 'HLA Typing (6 markers)' },
-                    { value: 'Crossmatch Test', label: 'Crossmatch Test' },
-                    { value: 'Renal Function Tests', label: 'Renal Function Tests' },
-                    ...infectious,
-                ];
+            if (window.__labModalMode === 'basic') {
+                return [{ 
+                    value: 'COMMON TESTS', 
+                    label: 'Common General Tests', 
+                    description: 'Includes: CBC (Complete Blood Count), Blood Sugar (Fasting or Random), Blood Pressure (BP), BMI (Height & Weight), Kidney Function Tests (Creatinine, Urea), Liver Function Tests (LFT), Urine Analysis, ECG (Heart Check), HIV Test, Hepatitis B Test, Hepatitis C Test, Syphilis Test (VDRL)' 
+                }];
             }
 
-            if (key === 'liver') {
-                return [
-                    { value: 'ABO Typing', label: 'ABO Typing' },
-                    { value: 'Volumetric CT Scan (Liver size matching)', label: 'Volumetric CT Scan' },
-                    { value: 'Liver Function Tests (LFTs)', label: 'Liver Function Tests (LFTs)' },
-                    { value: 'BMI Assessment', label: 'BMI Assessment' },
-                    ...infectious,
-                ];
+            // Advanced Mode: Filter by specific organ selected in the dropdown
+            const organSelect = document.getElementById('lab-organ-id');
+            const organName = organSelect ? organSelect.options[organSelect.selectedIndex]?.text || '' : '';
+            const normalizedKey = getOrganKeyFromName(organName);
+            
+            const tests = [];
+            
+            if (normalizedKey === 'kidney') {
+                tests.push(
+                    { value: 'GFR', label: 'GFR (Glomerular Filtration Rate)', description: 'Assessment of overall kidney function and filtration efficiency.' },
+                    { value: 'CREATININE_CLEARANCE', label: 'Creatinine Clearance Test', description: 'Precise measurement of how well the kidneys clear creatinine from the blood.' },
+                    { value: 'CT_RENAL_ANGIO', label: 'CT Renal Angiography', description: 'Detailed mapping of kidney blood vessels and internal anatomy.' },
+                    { value: 'URINE_PROTEIN', label: 'Urine Protein (24-hour)', description: 'Checking for protein leakage or kidney damage markers.' }
+                );
+            } else if (normalizedKey === 'liver') {
+                tests.push(
+                    { value: 'LIVER_VOLUMETRY', label: 'CT Liver Volumetry', description: 'Calculating safe donation volume and anatomical partitioning.' },
+                    { value: 'TRIPHASIC_CT_MRI', label: 'Triphasic CT Scan / MRI Liver', description: 'Multiphase imaging for detailed structural assessment.' },
+                    { value: 'ICG_CLEARANCE', label: 'Indocyanine Green (ICG) Clearance', description: 'Evaluation of liver functional reserve and metabolic capacity.' },
+                    { value: 'LIVER_BIOPSY', label: 'Liver Biopsy', description: 'Histological analysis to detect fatty liver or hidden diseases.' }
+                );
+            } else if (normalizedKey === 'bone_marrow') {
+                tests.push(
+                    { value: 'HLA_TYPING_HIGH', label: 'HLA Typing (High-resolution)', description: 'Advanced genetic matching for donor-recipient compatibility.' },
+                    { value: 'CD34_COUNT', label: 'Peripheral Blood Stem Cell Count (CD34)', description: 'Measuring stem cell levels for optimal harvesting.' },
+                    { value: 'BONE_MARROW_ASP', label: 'Bone Marrow Aspiration', description: 'Direct analysis of marrow sample and cellularity.' },
+                    { value: 'CHIMERISM_COMPAT', label: 'Chimerism / Compatibility Assessment', description: 'Advanced matching and post-transplant monitoring preparation.' }
+                );
+            } else {
+                // Fallback/Generic for other advanced organs
+                tests.push(
+                    { value: 'HLA_TYPING', label: 'HLA Tissue Typing', description: 'Detailed genetic matching to assess long-term compatibility.' },
+                    { value: 'CROSSMATCH', label: 'Lymphocyte Crossmatch', description: 'Direct testing of donor cells against recipient serum to detect pre-existing antibodies.' },
+                    { value: 'ABO_TITER', label: 'ABO Antibody Titer', description: 'Measuring the concentration of blood group antibodies for incompatible transplants.' },
+                    { value: 'ORGAN_SCAN', label: 'High-Res Imaging (CT/MRI)', description: '3D structural mapping of the specific organ and vascular anatomy.' }
+                );
             }
 
-            if (key === 'bone_marrow') {
-                return [
-                    { value: 'High-Resolution HLA Typing (10 markers)', label: 'High-Resolution HLA Typing (10 markers)' },
-                    { value: 'Complete Blood Count (CBC)', label: 'Complete Blood Count (CBC)' },
-                    ...infectious,
-                ];
-            }
-
-            if (key === 'tissue') {
-                return [
-                    ...infectious,
-                    { value: 'Tissue Quality Assessment', label: 'Tissue Quality Assessment' },
-                    { value: 'ABO Matching (Heart Valves)', label: 'ABO Matching (Heart Valves)' },
-                ];
-            }
-
-            // Generic fallback
-            return [
-                ...infectious,
-                { value: 'Complete Blood Count (CBC)', label: 'Complete Blood Count (CBC)' },
-                { value: 'Blood Pressure', label: 'Blood Pressure' },
-            ];
+            return tests;
         }
 
         // Global data for lab reports
-        let labReportsData = <?php echo json_encode($lab_reports ?? []); ?>;
+        let labReportsData = <?php echo hc_json($lab_reports ?? []); ?>;
+        window.__aftercareAppointments = <?php echo hc_json($aftercare_appointments ?? []); ?>;
 
         function switchLabTab(tabId, btn) {
             document.querySelectorAll('.lab-tab-content').forEach(c => c.style.display = 'none');
-            document.getElementById(tabId).style.display = 'block';
+            const target = document.getElementById(tabId);
+            if (target) target.style.display = 'block';
+            
             document.querySelectorAll('.lab-nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+
+            // Toggle corresponding action buttons
+            const mainTitle = document.getElementById('lab-section-title');
+            const mainDesc = mainTitle ? mainTitle.nextElementSibling : null;
+            const basicActions = document.getElementById('basic-screening-actions');
+            const advancedActions = document.getElementById('advanced-testing-actions');
+
+            if (tabId === 'advanced-requests') {
+                if (basicActions) basicActions.style.display = 'none';
+                if (advancedActions) advancedActions.style.display = 'block';
+                if (mainTitle) mainTitle.textContent = 'Advanced Organ Testing';
+                if (mainDesc) mainDesc.textContent = 'Indepth compatibility mapping and specialized clinical diagnostics.';
+                populateAdvancedRequestsTable();
+            } else {
+                if (basicActions) basicActions.style.display = 'block';
+                if (advancedActions) advancedActions.style.display = 'none';
+                if (mainTitle) mainTitle.textContent = 'Basic Organ Testing';
+                if (mainDesc) mainDesc.textContent = 'Clinical screening and donor compatibility management.';
+                populateLabReportsTable();
+            }
+        }
+
+        function filterLabTables() {
+            populateLabReportsTable();
+            populateAdvancedRequestsTable();
+        }
+
+        function populateAdvancedRequestsTable() {
+            const body = document.getElementById('lab-advanced-body');
+            if (!body) return;
+            
+            const searchInput = document.getElementById('lab-main-search');
+            const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            
+            const data = window.eligibleDonorsData || [];
+            const filtered = data.filter(d => {
+                const name = ((d.first_name || '') + ' ' + (d.last_name || '')).toLowerCase();
+                const nic = (d.nic_number || '').toLowerCase();
+                if (!q) return true;
+                return name.includes(q) || nic.includes(q);
+            });
+
+            body.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" style="padding: 30px; text-align: center; color: #64748b;">No matching donors found.</td></tr>';
+                return;
+            }
+            
+            filtered.forEach(d => {
+                const tr = document.createElement('tr');
+                tr.style.cssText = "border-bottom: 1px solid #f1f5f9; transition: all 0.2s; cursor: pointer;";
+                tr.onmouseover = () => tr.style.background = "#f8fafc";
+                tr.onmouseout = () => tr.style.background = "transparent";
+                
+                tr.innerHTML = `
+                    <td style="padding: 18px 25px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 38px; height: 38px; background: #f0fdf4; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                ${String(d.first_name || 'D').charAt(0)}
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${d.first_name} ${d.last_name}</div>
+                                <div style="font-size: 0.75rem; color: #16a34a; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-check-circle"></i> Approved Donor
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="padding: 18px 25px;">
+                        <code style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">${d.nic_number}</code>
+                    </td>
+                    <td style="padding: 18px 25px; font-weight: 700; color: #475569; font-size: 0.9rem;">
+                        ${d.organs}
+                    </td>
+                     <td style="padding: 18px 25px;">
+                        ${(() => {
+                            const aptStatus = (d.latest_appointment_status || 'PENDING').toUpperCase();
+                            const physicalStatus = (d.latest_tests_done || 'no');
+                            
+                            let bg = '#fff7ed', color = '#c2410c', border = '#ffedd5', icon = 'fa-clock', label = aptStatus;
+                            
+                            if (aptStatus === 'SCHEDULED') {
+                                bg = '#eff6ff'; color = '#2563eb'; border = '#dbeafe'; icon = 'fa-calendar-alt'; label = 'OFFICIALLY SCHEDULED';
+                            } else if (aptStatus === 'REQUESTED' || aptStatus === 'RESCHEDULE REQUESTED') {
+                                bg = '#eff6ff'; color = '#2563eb'; border = '#dbeafe'; icon = 'fa-calendar-alt'; label = 'RESCHEDULE REQUESTED';
+                            } else if (aptStatus === 'ACCEPTED' || aptStatus === 'COMPLETED' || aptStatus === 'SUCCESS' || aptStatus === 'APPROVED') {
+                                bg = '#f0fdf4'; color = '#16a34a'; border = '#dcfce7'; icon = 'fa-check-circle'; label = 'OFFICIALLY SCHEDULED';
+                            } else if (aptStatus === 'REJECTED') {
+                                bg = '#fef2f2', color = '#ef4444', border = '#fee2e2', icon = 'fa-times-circle';
+                            }
+                            
+                            return `
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="background: ${bg}; color: ${color}; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; border: 1px solid ${border}; display: inline-flex; align-items: center; gap: 5px; width: fit-content;">
+                                        <i class="fas ${icon}"></i> ${label}
+                                    </span>
+                                    <div style="font-size: 0.7rem; color: #64748b; font-weight: 600; padding-left: 4px;">
+                                        ${d.latest_test_type || (d.organs + ' Tests')}
+                                    </div>
+                                </div>
+                            `;
+                        })()}
+                    </td>
+                    <td style="padding: 18px 25px; text-align: right;">
+                        <button style="background: white; color: #003366; border: 1.5px solid #e2e8f0; padding: 10px 20px; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" 
+                                onmouseover="this.style.borderColor='#2563eb'; this.style.background='#f8fafc';" 
+                                onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='white';"
+                                onclick="openAdvancedLabDrawer(${JSON.stringify(d).replace(/"/g, '&quot;')})">
+                            View Details
+                        </button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
         }
 
         function populateLabReportsTable() {
             const body = document.getElementById('lab-members-body');
             const emptyState = document.getElementById('lab-empty-state');
+            const searchInput = document.getElementById('lab-main-search');
+            const q = searchInput ? searchInput.value.toLowerCase().trim() : '';
             
             if (!body) return;
             body.innerHTML = '';
 
-            // Group by donor
-            const grouped = {};
-            labReportsData.forEach(r => {
-                if (!grouped[r.donor_id]) {
-                    grouped[r.donor_id] = {
-                        id: r.donor_id,
-                        name: r.donor_name,
-                        nic: r.donor_nic,
-                        organ: r.test_type.split(' - ')[0] || 'Unknown',
-                        tests: []
-                    };
-                }
-                grouped[r.donor_id].tests.push(r);
+            const filtered = (labReportsData || []).filter(r => {
+                const name = (r.donor_name || '').toLowerCase();
+                const nic = (r.donor_nic || '').toLowerCase();
+                const type = (r.test_type || '').toLowerCase();
+                if (!q) return true;
+                return name.includes(q) || nic.includes(q) || type.includes(q);
             });
 
-            const donors = Object.values(grouped);
-            
-            if (donors.length === 0) {
+            if (!filtered || filtered.length === 0) {
                 if (emptyState) emptyState.style.display = 'block';
+                // Also update stats with zeroed counts if totally empty? No, use full data for stats unless filtered.
+                updateLabStats(labReportsData);
                 return;
             }
             if (emptyState) emptyState.style.display = 'none';
 
-            donors.forEach(donor => {
-                const total = donor.tests.length;
-                const completed = donor.tests.filter(t => t.status.toLowerCase() === 'completed' || t.status.toLowerCase() === 'success').length;
-                const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-                
+            filtered.forEach(r => {
                 const tr = document.createElement('tr');
                 tr.style.cssText = "border-bottom: 1px solid #f1f5f9; transition: all 0.2s; cursor: pointer;";
                 tr.onmouseover = () => tr.style.background = "#f8fafc";
                 tr.onmouseout = () => tr.style.background = "transparent";
-                tr.onclick = () => openLabDrawer(donor);
+                tr.onclick = () => openLabDrawer(r);
+
+                const status = (r.status || 'Pending').toUpperCase();
+                let statusClass = 'status-pending';
+                if (status === 'COMPLETED' || status === 'SUCCESS' || status === 'UPLOADED' || status === 'ACCEPTED') statusClass = 'status-completed';
+                if (status === 'SCHEDULED') statusClass = 'status-scheduled';
+                if (status === 'REQUESTED' || status === 'RESCHEDULE REQUESTED') statusClass = 'status-requested';
+                if (status === 'REJECTED') statusClass = 'status-rejected';
+
+                // Extract organ name and test label
+                let testLabel = r.test_type || '';
+                let organName = 'Organ';
+                
+                if (testLabel.includes(' - ')) {
+                    const parts = testLabel.split(' - ');
+                    organName = parts[0];
+                    testLabel = parts.length > 1 ? parts[1] : parts[0];
+                } else {
+                    organName = r.organ_name || (r.description && r.test_type === 'COMMON TESTS' ? 'Pledged Organ' : 'Organ');
+                }
+
+                if (testLabel === 'COMMON TESTS') testLabel = 'Common General Tests';
 
                 tr.innerHTML = `
                     <td style="padding: 18px 25px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <div style="width: 38px; height: 38px; background: #eff6ff; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
-                                ${donor.name.charAt(0)}
+                                ${String(r.donor_name || 'D').charAt(0)}
                             </div>
                             <div>
-                                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${donor.name}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">Reg ID: #DN-${donor.id}</div>
+                                <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;">${r.donor_name || 'Unknown Donor'}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">Reg ID: #DN-${r.donor_id || r.id}</div>
                             </div>
                         </div>
                     </td>
                     <td style="padding: 18px 25px;">
-                        <code style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">${donor.nic}</code>
+                        <code style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">${r.donor_nic || 'N/A'}</code>
                     </td>
                     <td style="padding: 18px 25px; font-weight: 700; color: #475569; font-size: 0.9rem;">
-                        <i class="fas fa-heart" style="color: #ef4444; margin-right: 6px; font-size: 0.8rem;"></i> ${donor.organ}
+                        ${organName}
+                    </td>
+                    <td style="padding: 18px 25px; font-weight: 600; color: #1e293b; font-size: 0.9rem;">
+                        ${testLabel}
                     </td>
                     <td style="padding: 18px 25px;">
-                        <div style="width: 120px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                                <span style="font-size: 0.7rem; font-weight: 800; color: #64748b;">${progress}%</span>
-                                <span style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">${completed}/${total}</span>
-                            </div>
-                            <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;">
-                                <div style="width: ${progress}%; height: 100%; background: #2563eb; border-radius: 10px;"></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td style="padding: 18px 25px;">
-                        <span class="status-pill ${progress === 100 ? 'status-completed' : 'status-scheduled'}">
-                            ${progress === 100 ? 'Verified' : 'Active Screening'}
-                        </span>
+                        <span class="status-pill ${statusClass}">${status}</span>
                     </td>
                     <td style="padding: 18px 25px; text-align: right;">
-                        <button class="btn btn-secondary btn-small" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 8px;">View Details</button>
+                        <button class="btn btn-secondary btn-small" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 8px; font-weight: 700; font-size: 0.75rem;">View Details</button>
                     </td>
                 `;
                 body.appendChild(tr);
             });
+            
+            // Also populate Donor Requests tab if data exists
+            const requestsBody = document.getElementById('lab-requests-body');
+            if (requestsBody && typeof window.__aftercareAppointments !== 'undefined') {
+                const requests = window.__aftercareAppointments.filter(a => (a.status || '').toLowerCase() === 'requested');
+                requestsBody.innerHTML = '';
+                if (requests.length === 0) {
+                    requestsBody.innerHTML = '<tr><td colspan="4" style="padding: 30px; text-align: center; color: #64748b;">No pending appointment requests</td></tr>';
+                } else {
+                    requests.forEach(req => {
+                        const tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid #f1f5f9';
+                        tr.innerHTML = `
+                            <td style="padding: 18px 25px; font-weight: 700; color: #1e293b;">${req.patient_id}</td>
+                            <td style="padding: 18px 25px; font-weight: 600; color: #475569;">${req.appointment_type || 'Aftercare Checkup'}</td>
+                            <td style="padding: 18px 25px; color: #64748b;">${new Date(req.appointment_date).toLocaleDateString()}</td>
+                            <td style="padding: 18px 25px; text-align: right;">
+                                <button class="btn btn-primary btn-small" onclick="acceptAftercareAppointment(${req.appointment_id})">Accept</button>
+                                <button class="btn btn-danger btn-small" onclick="rejectAftercareAppointment(${req.appointment_id})">Reject</button>
+                            </td>
+                        `;
+                        requestsBody.appendChild(tr);
+                    });
+                }
+            }
 
             updateLabStats(labReportsData);
         }
 
         function updateLabStats(data) {
-            const total = new Set(data.map(r => r.donor_id)).size;
+            if (!data) return;
+            const total = data.length;
             const pending = data.filter(r => r.status.toLowerCase() === 'pending').length;
-            const completed = data.filter(r => r.status.toLowerCase() === 'completed' || r.status.toLowerCase() === 'success').length;
+            const completed = data.filter(r => r.status.toLowerCase() === 'completed' || r.status.toLowerCase() === 'success' || r.status.toLowerCase() === 'uploaded').length;
             const todayStr = new Date().toISOString().split('T')[0];
             const todayCount = data.filter(r => r.test_date === todayStr).length;
 
@@ -1562,44 +1772,320 @@ if (!isset($notifications) || !isset($unread_count)) {
             if (document.getElementById('stat-completed-overall')) document.getElementById('stat-completed-overall').textContent = completed;
         }
 
-        function openLabDrawer(donor) {
+        function openLabDrawer(r) {
             const overlay = document.getElementById('lab-drawer-overlay');
             const drawer = document.getElementById('lab-drawer');
+            const bioProfile = document.getElementById('drawer-bio-profile');
+            if (bioProfile) bioProfile.style.display = 'none'; // Hide for basic
             
-            if (document.getElementById('drawer-donor-name')) document.getElementById('drawer-donor-name').textContent = donor.name;
-            if (document.getElementById('drawer-donor-nic')) document.getElementById('drawer-donor-nic').textContent = 'NIC: ' + donor.nic;
-            if (document.getElementById('drawer-organ-type')) document.getElementById('drawer-organ-type').innerHTML = `<i class="fas fa-heart" style="color: #ef4444;"></i> ${donor.organ}`;
+            if (document.getElementById('drawer-donor-name')) document.getElementById('drawer-donor-name').textContent = r.donor_name;
+            if (document.getElementById('drawer-donor-nic')) document.getElementById('drawer-donor-nic').textContent = 'NIC: ' + r.donor_nic;
             
-            const list = document.getElementById('drawer-tests-list');
-            if (list) {
-                list.innerHTML = '';
-                donor.tests.forEach(test => {
-                    const card = document.createElement('div');
-                    card.className = 'test-card-premium';
-                    
-                    const status = test.status.toLowerCase();
-                    let statusClass = 'status-pending';
-                    if (status === 'completed' || status === 'success') statusClass = 'status-completed';
-                    if (status === 'scheduled' || status === 'accepted') statusClass = 'status-scheduled';
+            const testLabel = r.test_type === 'COMMON TESTS' ? 'Common General Tests' : r.test_type;
+            const organName = (r.description && r.test_type === 'COMMON TESTS') ? 'Pledged Organ' : (r.test_type.includes(' - ') ? r.test_type.split(' - ')[0] : 'Organ');
 
-                    card.innerHTML = `
-                        <div style="display: flex; gap: 15px; align-items: center;">
-                            <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #94a3b8; border: 1px solid #e2e8f0;">
-                                <i class="fas fa-vial"></i>
+            if (document.getElementById('drawer-organ-type')) document.getElementById('drawer-organ-type').innerHTML = organName;
+            if (document.getElementById('drawer-test-type')) document.getElementById('drawer-test-type').textContent = testLabel;
+            if (document.getElementById('drawer-test-description')) document.getElementById('drawer-test-description').textContent = r.description || 'No detailed description available.';
+            
+            const actions = document.getElementById('drawer-actions');
+            if (actions) {
+                actions.innerHTML = '';
+                if (r.status.toUpperCase() === 'PENDING') {
+                    // Approve Button
+                    const approveBtn = document.createElement('button');
+                    approveBtn.className = 'btn btn-primary';
+                    approveBtn.style.flex = '1';
+                    approveBtn.style.background = '#10b981';
+                    approveBtn.style.color = 'white';
+                    approveBtn.style.border = 'none';
+                    approveBtn.style.padding = '12px';
+                    approveBtn.style.borderRadius = '10px';
+                    approveBtn.style.fontWeight = '700';
+                    approveBtn.style.cursor = 'pointer';
+                    approveBtn.innerText = 'Approve Eligibility';
+                    approveBtn.onclick = () => updateAppointmentStatus(r.id, 'ACCEPTED');
+                    
+                    // Reject Button
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.className = 'btn btn-secondary';
+                    rejectBtn.style.flex = '1';
+                    rejectBtn.style.background = '#ef4444';
+                    rejectBtn.style.color = 'white';
+                    rejectBtn.style.border = 'none';
+                    rejectBtn.style.padding = '12px';
+                    rejectBtn.style.borderRadius = '10px';
+                    rejectBtn.style.fontWeight = '700';
+                    rejectBtn.style.cursor = 'pointer';
+                    rejectBtn.innerText = 'Reject Eligibility';
+                    rejectBtn.onclick = () => updateAppointmentStatus(r.id, 'REJECTED');
+
+                    actions.appendChild(approveBtn);
+                    actions.appendChild(rejectBtn);
+                } else {
+                    const statusBlock = document.createElement('div');
+                    statusBlock.style.width = '100%';
+                    statusBlock.style.textAlign = 'center';
+                    statusBlock.style.padding = '15px';
+                    statusBlock.style.background = '#f8fafc';
+                    statusBlock.style.borderRadius = '12px';
+                    statusBlock.style.border = '1px solid #e2e8f0';
+                    
+                    let reasonHtml = '';
+                    if (r.status.toUpperCase() === 'REJECTED' && r.rejected_reason) {
+                        reasonHtml = `
+                            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
+                                <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; margin-bottom: 5px;">Rejection Reason</div>
+                                <div style="font-size: 0.9rem; color: #ef4444; font-weight: 600; font-style: italic;">"${escapeHtml(r.rejected_reason)}"</div>
                             </div>
-                            <div>
-                                <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">${test.test_type.includes(' - ') ? test.test_type.split(' - ')[1] : test.test_type}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">Scheduled for ${new Date(test.test_date).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <span class="status-pill ${statusClass}">${test.status}</span>
+                        `;
+                    }
+
+                    const status = r.status.toUpperCase();
+                    let statusColor = '#475569'; // Default
+                    if (status === 'ACCEPTED' || status === 'COMPLETED') statusColor = '#10b981';
+                    else if (status === 'REJECTED') statusColor = '#ef4444';
+                    else if (status === 'PENDING') statusColor = '#64748b'; // Using a neutral grey for "white colour" background context
+
+                    statusBlock.innerHTML = `
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; margin-bottom: 5px;">Current Status</div>
+                        <div style="font-weight: 800; color: ${statusColor}; font-size: 1.1rem;">${status}</div>
+                        ${reasonHtml}
                     `;
-                    list.appendChild(card);
-                });
+                    actions.appendChild(statusBlock);
+                }
             }
 
             if (overlay) overlay.style.display = 'flex';
             if (drawer) setTimeout(() => drawer.style.transform = 'translateX(0)', 10);
+        }
+        function openAdvancedLabDrawer(d) {
+            const overlay = document.getElementById('lab-drawer-overlay');
+            const drawer = document.getElementById('lab-drawer');
+            const bioProfile = document.getElementById('drawer-bio-profile');
+            
+            if (document.getElementById('drawer-donor-name')) document.getElementById('drawer-donor-name').textContent = d.first_name + ' ' + d.last_name;
+            if (document.getElementById('drawer-donor-nic')) document.getElementById('drawer-donor-nic').textContent = 'NIC: ' + d.nic_number;
+            
+            if (document.getElementById('drawer-organ-type')) document.getElementById('drawer-organ-type').innerHTML = 'Eligible Organ(s)';
+            if (document.getElementById('drawer-test-type')) document.getElementById('drawer-test-type').textContent = d.organs || 'N/A';
+            if (document.getElementById('drawer-test-description')) document.getElementById('drawer-test-description').textContent = 'Donor has passed initial screening and is now eligible for advanced matching diagnostics.';
+
+            // Populate Bio Profile
+            if (bioProfile) {
+                bioProfile.style.display = 'grid';
+                if (document.getElementById('drawer-bio-blood')) document.getElementById('drawer-bio-blood').textContent = d.blood_group || 'N/A';
+                if (document.getElementById('drawer-bio-gender')) document.getElementById('drawer-bio-gender').textContent = d.gender || 'N/A';
+                if (document.getElementById('drawer-bio-age')) {
+                    const age = calculateAge(d.date_of_birth);
+                    document.getElementById('drawer-bio-age').textContent = age + ' yrs';
+                }
+            }
+
+            const actions = document.getElementById('drawer-actions');
+            if (actions) {
+                actions.innerHTML = '';
+                const statusBlock = document.createElement('div');
+                statusBlock.style.width = '100%';
+                statusBlock.style.textAlign = 'center';
+                statusBlock.style.padding = '20px';
+                
+                const status = (d.latest_appointment_status || 'PENDING').toUpperCase();
+                let bg = '#fff7ed', border = '#ffedd5', color = '#c2410c', label = 'PENDING ADVANCED TESTING', icon = 'fa-clock';
+                
+                if (status === 'SCHEDULED') {
+                    bg = '#eff6ff'; border = '#dbeafe'; color = '#2563eb'; label = 'OFFICIALLY SCHEDULED'; icon = 'fa-calendar-alt';
+                } else if (status === 'REQUESTED' || status === 'RESCHEDULE REQUESTED') {
+                    bg = '#eff6ff'; border = '#dbeafe'; color = '#2563eb'; label = 'RESCHEDULE REQUESTED'; icon = 'fa-calendar-alt';
+                } else if (status === 'ACCEPTED' || status === 'COMPLETED' || status === 'APPROVED' || status === 'SUCCESS') {
+                    bg = '#f0fdf4'; border = '#dcfce7'; color = '#16a34a'; label = 'OFFICIALLY SCHEDULED'; icon = 'fa-check-circle';
+                }
+
+                statusBlock.style.background = bg;
+                statusBlock.style.borderRadius = '16px';
+                statusBlock.style.border = `1px solid ${border}`;
+                
+                let extraInfo = '';
+                if (status === 'SCHEDULED' || status === 'ACCEPTED' || status === 'APPROVED' || status === 'SUCCESS') {
+                    const formatDate = (date) => {
+                        if (!date) return null;
+                        return new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    };
+                    
+                    const d1 = formatDate(d.latest_date_1);
+                    const d2 = formatDate(d.latest_date_2);
+                    const d3 = formatDate(d.latest_date_3);
+                    
+                    let testsHtml = '';
+                    if (d.clinical_tests_list) {
+                        const rawTests = d.clinical_tests_list.split('||');
+                        // Use a Set to ensure unique test labels if multiple entries exist during transitions
+                        const uniqueTests = Array.from(new Set(rawTests));
+                        uniqueTests.forEach(rt => {
+                            const [tType, tStatus] = rt.split('::');
+                            const s = (tStatus || 'PENDING').toUpperCase();
+                            let sColor = '#c2410c', sLabel = s, sIcon = 'fa-clock';
+                            
+                            if (s === 'SCHEDULED') { sColor = '#2563eb'; sLabel = 'OFFICIALLY SCHEDULED'; sIcon = 'fa-calendar-alt'; }
+                            else if (s === 'REQUESTED' || s === 'RESCHEDULE REQUESTED') { sColor = '#2563eb'; sLabel = 'RESCHEDULE REQUESTED'; sIcon = 'fa-calendar-alt'; }
+                            else if (['ACCEPTED', 'APPROVED', 'COMPLETED', 'SUCCESS'].includes(s)) { sColor = '#16a34a'; sLabel = 'OFFICIALLY SCHEDULED'; sIcon = 'fa-check-circle'; }
+                            
+                            testsHtml += `
+                                <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed ${border};">
+                                    <div style="font-weight: 700; color: #1e293b; font-size: 0.88rem; margin-bottom: 4px;">${tType}</div>
+                                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; color: ${sColor}; text-transform: uppercase;">
+                                        <i class="fas ${sIcon}"></i> ${sLabel}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        testsHtml = `
+                            <div style="font-weight: 700; color: #1e293b; font-size: 0.88rem; margin-bottom: 4px;">
+                                ${d.latest_test_type || (d.organs + ' Tests')}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; color: ${color};">
+                                <i class="fas ${icon}"></i> ${label}
+                            </div>
+                        `;
+                    }
+
+                    if (d1) {
+                        extraInfo = `
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed ${border}; text-align: left;">
+                                <div style="font-size: 0.65rem; font-weight: 800; color: ${color}; text-transform: uppercase; margin-bottom: 8px;">Scheduled Dates</div>
+                                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span style="color: #64748b; font-weight: 600;">Day 1:</span>
+                                        <span style="color: #1e293b; font-weight: 700;">${d1}</span>
+                                    </div>
+                                    ${d2 ? `<div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span style="color: #64748b; font-weight: 600;">Day 2:</span>
+                                        <span style="color: #1e293b; font-weight: 700;">${d2}</span>
+                                    </div>` : ''}
+                                    ${d3 ? `<div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                        <span style="color: #64748b; font-weight: 600;">Day 3:</span>
+                                        <span style="color: #1e293b; font-weight: 700;">${d3}</span>
+                                    </div>` : ''}
+                                </div>
+                                <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.7); border-radius: 12px; border: 1px solid ${border};">
+                                    <div style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">Test Details & Interaction Status</div>
+                                    <div style="display: flex; flex-direction: column;">
+                                        ${testsHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                statusBlock.innerHTML = `
+                    <div style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Overall Interaction Status</div>
+                    <div style="font-weight: 900; color: ${color}; font-size: 1.1rem;">${label}</div>
+                    ${extraInfo}
+                `;
+                actions.appendChild(statusBlock);
+
+                // Add Action Buttons
+                const btnContainer = document.createElement('div');
+                btnContainer.style.display = 'flex';
+                btnContainer.style.flexDirection = 'column';
+                btnContainer.style.gap = '12px';
+                btnContainer.style.width = '100%';
+                btnContainer.style.marginTop = '20px';
+
+                const labReportBtn = document.createElement('button');
+                labReportBtn.innerHTML = '<i class="fas fa-file-medical"></i> Go to Lab Report';
+                labReportBtn.style.cssText = "width: 100%; padding: 14px; background: white; color: #0f172a; border: 2px solid #e2e8f0; border-radius: 12px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.2s;";
+                
+                const isApproved = ['ACCEPTED', 'COMPLETED', 'APPROVED', 'SUCCESS'].includes(status);
+                
+                if (!isApproved) {
+                    labReportBtn.style.opacity = '0.5';
+                    labReportBtn.title = 'Approval from donor is required before accessing reports';
+                    labReportBtn.style.cursor = 'not-allowed';
+                }
+                
+                labReportBtn.onmouseover = () => { 
+                    if (isApproved) {
+                        labReportBtn.style.borderColor = "#2563eb"; labReportBtn.style.color = "#2563eb"; 
+                    }
+                };
+                labReportBtn.onmouseout = () => { labReportBtn.style.borderColor = "#e2e8f0"; labReportBtn.style.color = "#0f172a"; };
+                labReportBtn.onclick = () => {
+                    if (!isApproved) {
+                        hcAlert('Please wait for current appointment/screening to be approved.', 'warning');
+                        return;
+                    }
+                    closeLabDrawer();
+                    hcShowSection('test-results');
+                };
+
+                btnContainer.appendChild(labReportBtn);
+                actions.appendChild(btnContainer);
+            }
+
+            if (overlay) overlay.style.display = 'flex';
+            if (drawer) setTimeout(() => drawer.style.transform = 'translateX(0)', 10);
+        }
+
+        function calculateAge(dob) {
+            if (!dob) return 'N/A';
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            return age;
+        }
+
+
+        async function updateAppointmentStatus(id, newStatus) {
+            let reason = '';
+            
+            if (newStatus === 'REJECTED') {
+                reason = await hcPrompt('Reason for Rejection', { 
+                    placeholder: 'Enter reason here...', 
+                    required: true 
+                });
+                if (!reason) return;
+            } else {
+                const ok = await hcConfirm('Are you sure you want to approve this appointment and mark the donor as eligible?');
+                if (!ok) return;
+            }
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'update_lab_report_status';
+            form.appendChild(actionInput);
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'report_id';
+            idInput.value = id;
+            form.appendChild(idInput);
+            
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = newStatus;
+            form.appendChild(statusInput);
+
+            if (reason) {
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'reason';
+                reasonInput.value = reason;
+                form.appendChild(reasonInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function closeLabDrawer() {
@@ -1622,44 +2108,53 @@ if (!isset($notifications) || !isset($unread_count)) {
             const tests = getTestsForOrganKey(key);
 
             container.innerHTML = '';
+            container.style.display = 'block';
+
             tests.forEach(t => {
+                const wrapper = document.createElement('div');
+                wrapper.style.padding = '15px';
+                wrapper.style.background = '#f8fafc';
+                wrapper.style.borderRadius = '12px';
+                wrapper.style.border = '1px solid #e2e8f0';
+                wrapper.style.marginBottom = '15px';
+
                 const label = document.createElement('label');
                 label.style.display = 'flex';
                 label.style.alignItems = 'center';
-                label.style.gap = '8px';
+                label.style.gap = '12px';
+                label.style.cursor = 'pointer';
+                label.style.fontWeight = '700';
+                label.style.color = '#1e293b';
+                label.style.fontSize = '1rem';
 
                 const input = document.createElement('input');
                 input.type = 'checkbox';
                 input.name = 'lab_test_types[]';
                 input.value = t.value;
+                input.dataset.description = t.description; // Store description
+                input.checked = true;
+
+                // Lock the checkbox if it's the only one in basic mode
+                if (window.__labModalMode === 'basic' && tests.length === 1) {
+                    input.onclick = (e) => e.preventDefault();
+                    input.style.cursor = 'not-allowed';
+                }
+
+                const desc = document.createElement('div');
+                desc.style.marginTop = '10px';
+                desc.style.marginLeft = '28px';
+                desc.style.fontSize = '0.85rem';
+                desc.style.color = '#64748b';
+                desc.style.lineHeight = '1.6';
+                desc.style.fontStyle = 'italic';
+                desc.innerText = 'Includes: ' + t.description;
 
                 label.appendChild(input);
-                label.appendChild(document.createTextNode(' ' + t.label));
-                container.appendChild(label);
+                label.appendChild(document.createTextNode(t.label));
+                wrapper.appendChild(label);
+                wrapper.appendChild(desc);
+                container.appendChild(wrapper);
             });
-
-            // Always include Other option
-            const otherLabel = document.createElement('label');
-            otherLabel.style.display = 'flex';
-            otherLabel.style.alignItems = 'center';
-            otherLabel.style.gap = '8px';
-
-            const otherInput = document.createElement('input');
-            otherInput.type = 'checkbox';
-            otherInput.id = 'lab_test_type_other_checkbox';
-            otherInput.value = 'Other';
-            otherInput.onclick = function() {
-                const otherText = document.getElementById('lab_test_type_other_input');
-                if (otherText) otherText.style.display = this.checked ? 'block' : 'none';
-            };
-
-            otherLabel.appendChild(otherInput);
-            otherLabel.appendChild(document.createTextNode(' Other'));
-            container.appendChild(otherLabel);
-
-            // Reset other input visibility
-            const otherText = document.getElementById('lab_test_type_other_input');
-            if (otherText) otherText.style.display = 'none';
         }
 
         // Initialize table
@@ -1670,7 +2165,7 @@ if (!isset($notifications) || !isset($unread_count)) {
         });
 
         // Test Results Upload
-        const TR_RECIPIENTS = <?php echo json_encode($recipients ?? []); ?>;
+        const TR_RECIPIENTS = <?php echo hc_json($recipients ?? []); ?>;
 
         function toggleTestResultPatientType() {
             const typeEl = document.getElementById('tr-patient-type');
@@ -1678,13 +2173,122 @@ if (!isset($notifications) || !isset($unread_count)) {
             const donorSelect = document.getElementById('tr-donor-select');
             const donorWrap = donorSelect ? donorSelect.closest('.form-group') : null;
             const recWrap = document.getElementById('tr-recipient-wrap');
+            const profileWrap = document.getElementById('tr-donor-profile-wrap');
             if (type === 'RECIPIENT') {
                 if (donorWrap) donorWrap.style.display = 'none';
                 if (recWrap) recWrap.style.display = 'block';
+                if (profileWrap) profileWrap.style.display = 'none';
             } else {
                 if (donorWrap) donorWrap.style.display = 'block';
                 if (recWrap) recWrap.style.display = 'none';
+                // Will be shown once a donor is selected
+                if (profileWrap) profileWrap.style.display = 'none';
             }
+        }
+
+        function populateTrDonorProfileFields(donor) {
+            const profileWrap = document.getElementById('tr-donor-profile-wrap');
+            if (profileWrap) profileWrap.style.display = donor ? 'block' : 'none';
+
+            const bg = document.getElementById('tr-donor-blood-group');
+            const a1 = document.getElementById('tr-hla-a1');
+            const a2 = document.getElementById('tr-hla-a2');
+            const b1 = document.getElementById('tr-hla-b1');
+            const b2 = document.getElementById('tr-hla-b2');
+            const dr1 = document.getElementById('tr-hla-dr1');
+            const dr2 = document.getElementById('tr-hla-dr2');
+
+            if (!donor) {
+                if (bg) bg.value = '';
+                if (a1) a1.value = '';
+                if (a2) a2.value = '';
+                if (b1) b1.value = '';
+                if (b2) b2.value = '';
+                if (dr1) dr1.value = '';
+                if (dr2) dr2.value = '';
+                return;
+            }
+
+            if (bg) bg.value = (donor.blood_group || '').trim();
+            if (a1) a1.value = (donor.hla_a1 || '').trim();
+            if (a2) a2.value = (donor.hla_a2 || '').trim();
+            if (b1) b1.value = (donor.hla_b1 || '').trim();
+            if (b2) b2.value = (donor.hla_b2 || '').trim();
+            if (dr1) dr1.value = (donor.hla_dr1 || '').trim();
+            if (dr2) dr2.value = (donor.hla_dr2 || '').trim();
+        }
+
+        function saveTrDonorProfile() {
+            const ptEl = document.getElementById('tr-patient-type');
+            const patientType = String((ptEl && ptEl.value) ? ptEl.value : 'DONOR').toUpperCase();
+            if (patientType !== 'DONOR') return;
+
+            const donorId = String(document.getElementById('tr-donor-select')?.value || '').trim();
+            if (!donorId) {
+                if (typeof hcAlert === 'function') hcAlert('Please select a donor patient.', 'error');
+                else window.alert('Please select a donor patient.');
+                return;
+            }
+
+            const fd = new FormData();
+            fd.append('donor_id', donorId);
+            fd.append('blood_group', String(document.getElementById('tr-donor-blood-group')?.value || '').trim());
+            fd.append('hla_a1', String(document.getElementById('tr-hla-a1')?.value || '').trim());
+            fd.append('hla_a2', String(document.getElementById('tr-hla-a2')?.value || '').trim());
+            fd.append('hla_b1', String(document.getElementById('tr-hla-b1')?.value || '').trim());
+            fd.append('hla_b2', String(document.getElementById('tr-hla-b2')?.value || '').trim());
+            fd.append('hla_dr1', String(document.getElementById('tr-hla-dr1')?.value || '').trim());
+            fd.append('hla_dr2', String(document.getElementById('tr-hla-dr2')?.value || '').trim());
+
+            fetch('<?php echo ROOT; ?>/api/update_donor_profile.php', {
+                method: 'POST',
+                body: fd,
+                credentials: 'include'
+            })
+                .then(r => r.json())
+                .then(res => {
+                    if (!res || !res.success) {
+                        const msg = (res && res.message) ? res.message : 'Failed to update donor profile.';
+                        if (typeof hcAlert === 'function') hcAlert(msg, 'error');
+                        else window.alert(msg);
+                        return;
+                    }
+
+                    const updated = res.data || {};
+                    const d = (window.trDonorsData || []).find(x => String(x && x.id) === String(donorId));
+                    if (d) {
+                        d.blood_group = updated.blood_group || '';
+                        d.hla_a1 = updated.hla_a1 || '';
+                        d.hla_a2 = updated.hla_a2 || '';
+                        d.hla_b1 = updated.hla_b1 || '';
+                        d.hla_b2 = updated.hla_b2 || '';
+                        d.hla_dr1 = updated.hla_dr1 || '';
+                        d.hla_dr2 = updated.hla_dr2 || '';
+                        // Refresh donor details panel
+                        const detailsContent = document.getElementById('tr-donor-details-content');
+                        const detailsWrap = document.getElementById('tr-donor-details');
+                        if (detailsContent && detailsWrap) {
+                            const uname = (d.username || '').trim();
+                            const nic = (d.nic_number || '').trim();
+                            const name = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+                            const blood = (d.blood_group || '').trim();
+                            const parts = [];
+                            if (uname) parts.push(`<div><strong>Username:</strong> ${escapeHtml(uname)}</div>`);
+                            if (nic) parts.push(`<div><strong>NIC:</strong> ${escapeHtml(nic)}</div>`);
+                            if (name) parts.push(`<div><strong>Name:</strong> ${escapeHtml(name)}</div>`);
+                            if (blood) parts.push(`<div><strong>Blood Group:</strong> ${escapeHtml(blood)}</div>`);
+                            detailsContent.innerHTML = parts.join('') || '<div>No donor details available.</div>';
+                            detailsWrap.style.display = 'block';
+                        }
+                    }
+
+                    if (typeof hcAlert === 'function') hcAlert('Donor profile updated.', 'success');
+                    else window.alert('Donor profile updated.');
+                })
+                .catch(() => {
+                    if (typeof hcAlert === 'function') hcAlert('Failed to update donor profile.', 'error');
+                    else window.alert('Failed to update donor profile.');
+                });
         }
 
         function openTestResultModal() {
@@ -1697,11 +2301,29 @@ if (!isset($notifications) || !isset($unread_count)) {
 
             document.getElementById('tr-donor-select').innerHTML = '<option value="">Select a Donor</option>';
             document.getElementById('tr-recipient-select').innerHTML = '<option value="">Select a Recipient</option>';
-            document.getElementById('tr-test-name').value = '';
+            // Reset tests UI (there is no single #tr-test-name input; we use checkboxes)
+            const cbContainer = document.getElementById('tr-tests-checkboxes-container');
+            if (cbContainer) {
+                cbContainer.innerHTML = '<span style="color: #64748b; font-size: 0.85rem; font-style: italic;">Select a donor to see scheduled tests...</span>';
+            }
+            const testNameOther = document.getElementById('tr-test-name-other');
+            if (testNameOther) {
+                testNameOther.value = '';
+                testNameOther.style.display = 'none';
+            }
+
             document.getElementById('tr-test-date').value = '';
-            document.getElementById('tr-result-value').value = '';
             const file = document.getElementById('tr-document');
             if (file) file.value = '';
+
+            populateTrDonorProfileFields(null);
+
+            // Clear donor details
+            window.trDonorsData = [];
+            const detailsWrap = document.getElementById('tr-donor-details');
+            const detailsContent = document.getElementById('tr-donor-details-content');
+            if (detailsWrap) detailsWrap.style.display = 'none';
+            if (detailsContent) detailsContent.innerHTML = '';
 
             // Populate recipients from server data (registered to this hospital)
             const recSel = document.getElementById('tr-recipient-select');
@@ -1722,16 +2344,113 @@ if (!isset($notifications) || !isset($unread_count)) {
                 .then(response => response.json())
                 .then(donors => {
                     const donorSelect = document.getElementById('tr-donor-select');
+                    window.trDonorsData = Array.isArray(donors) ? donors : [];
                     if (donors && Array.isArray(donors) && donors.length > 0) {
                         donors.forEach(donor => {
                             const option = document.createElement('option');
                             option.value = donor.id;
-                            option.text = `${donor.nic_number || ''} - ${donor.first_name} ${donor.last_name}`;
+                            const name = `${donor.first_name || ''} ${donor.last_name || ''}`.trim();
+                            const ident = (donor.username || donor.nic_number || '').trim();
+                            option.text = ident ? (name ? `${ident} - ${name}` : ident) : (name || ('Donor ' + donor.id));
                             donorSelect.appendChild(option);
                         });
                     }
                 })
                 .catch(error => console.error('Error loading donors:', error));
+        }
+
+        window.trAppointmentsData = [];
+
+        function fetchDonorAppointmentsForTR() {
+            const donorId = document.getElementById('tr-donor-select').value;
+            const cbContainer = document.getElementById('tr-tests-checkboxes-container');
+
+            // Update donor details panel
+            const detailsWrap = document.getElementById('tr-donor-details');
+            const detailsContent = document.getElementById('tr-donor-details-content');
+            if (!donorId) {
+                if (detailsWrap) detailsWrap.style.display = 'none';
+                if (detailsContent) detailsContent.innerHTML = '';
+                populateTrDonorProfileFields(null);
+            } else {
+                const d = (window.trDonorsData || []).find(x => String(x && x.id) === String(donorId));
+                if (d && detailsContent) {
+                    const uname = (d.username || '').trim();
+                    const nic = (d.nic_number || '').trim();
+                    const name = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+                    const blood = (d.blood_group || '').trim();
+                    const parts = [];
+                    if (uname) parts.push(`<div><strong>Username:</strong> ${escapeHtml(uname)}</div>`);
+                    if (nic) parts.push(`<div><strong>NIC:</strong> ${escapeHtml(nic)}</div>`);
+                    if (name) parts.push(`<div><strong>Name:</strong> ${escapeHtml(name)}</div>`);
+                    if (blood) parts.push(`<div><strong>Blood Group:</strong> ${escapeHtml(blood)}</div>`);
+                    detailsContent.innerHTML = parts.join('') || '<div>No donor details available.</div>';
+                    if (detailsWrap) detailsWrap.style.display = 'block';
+                    populateTrDonorProfileFields(d);
+                } else {
+                    if (detailsWrap) detailsWrap.style.display = 'none';
+                    if (detailsContent) detailsContent.innerHTML = '';
+                    populateTrDonorProfileFields(null);
+                }
+            }
+            
+            if (!donorId) {
+                if (cbContainer) cbContainer.innerHTML = '<span style="color: #64748b; font-size: 0.85rem; font-style: italic;">Select a donor to see scheduled tests...</span>';
+                return;
+            }
+
+            fetch(`<?php echo ROOT; ?>/hospital/fetch-donor-appointments?donor_id=${donorId}`)
+                .then(res => res.json())
+                .then(data => {
+                    window.trAppointmentsData = data;
+                    if (!cbContainer) return;
+
+                    if (data && data.length > 0) {
+                        cbContainer.innerHTML = '';
+                        data.forEach((apt) => {
+                            const label = document.createElement('label');
+                            label.style.display = 'flex';
+                            label.style.alignItems = 'center';
+                            label.style.gap = '8px';
+                            label.style.fontSize = '0.8rem';
+                            label.style.fontWeight = '600';
+                            label.style.color = '#1e293b';
+                            label.style.cursor = 'pointer';
+
+                            const ck = document.createElement('input');
+                            ck.type = 'checkbox';
+                            ck.className = 'tr-test-checkbox';
+                            ck.value = apt.test_type;
+                            const s = (apt.status || '').toUpperCase();
+                            const isReady = (apt.Tests_done === 'yes' || s === 'APPROVED' || s === 'ACCEPTED' || s === 'SUCCESS' || s === 'COMPLETED');
+                            ck.checked = isReady;
+
+                            label.appendChild(ck);
+                            label.appendChild(document.createTextNode(apt.test_type));
+                            cbContainer.appendChild(label);
+                        });
+
+                        // Set the date from the latest completed test
+                        if (data[0] && document.getElementById('tr-test-date')) {
+                            document.getElementById('tr-test-date').value = data[0].test_date || '';
+                        }
+                    } else {
+                        cbContainer.innerHTML = '<span style="color: #64748b; font-size: 0.85rem; font-style: italic;">No approved or completed tests found for this donor.</span>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching appointments:', err);
+                    if (cbContainer) cbContainer.innerHTML = '<span style="color: #64748b; font-size: 0.85rem; font-style: italic;">Failed to load completed tests.</span>';
+                });
+        }
+
+        function toggleTrOtherInput() {
+            const other = document.getElementById('tr-test-name-other');
+            if (!other) return;
+            const isHidden = other.style.display === 'none' || !other.style.display;
+            other.style.display = isHidden ? 'block' : 'none';
+            if (!isHidden) other.value = '';
+            if (isHidden) other.focus();
         }
 
         function closeTestResultModal() {
@@ -1744,9 +2463,20 @@ if (!isset($notifications) || !isset($unread_count)) {
             const patientType = String((ptEl && ptEl.value) ? ptEl.value : 'DONOR').toUpperCase();
             const donorId = document.getElementById('tr-donor-select').value;
             const recipientId = document.getElementById('tr-recipient-select').value;
-            const testName = document.getElementById('tr-test-name').value.trim();
+            
+            // Collect checked tests
+            const checkedTests = [];
+            document.querySelectorAll('.tr-test-checkbox:checked').forEach(ck => {
+                checkedTests.push(ck.value);
+            });
+            const nameOtherInput = document.getElementById('tr-test-name-other');
+            if (nameOtherInput && nameOtherInput.style.display !== 'none' && nameOtherInput.value.trim()) {
+                checkedTests.push(nameOtherInput.value.trim());
+            }
+
+            let testName = checkedTests.join(' / ');
+
             const testDate = document.getElementById('tr-test-date').value;
-            const resultValue = document.getElementById('tr-result-value').value.trim();
             const documentFile = document.getElementById('tr-document').files[0] || null;
 
             if (!testName || !testDate) {
@@ -1781,7 +2511,6 @@ if (!isset($notifications) || !isset($unread_count)) {
             }
             fd.append('test_name', testName);
             fd.append('test_date', testDate);
-            fd.append('result_value', resultValue);
             if (documentFile) fd.append('document', documentFile);
 
             fetch(window.location.href, { method: 'POST', body: fd, credentials: 'include' })
@@ -1814,31 +2543,28 @@ if (!isset($notifications) || !isset($unread_count)) {
         }
 
         function loadLabReports() {
-            // Use PHP data directly from the initial page load
-            const labReports = <?php echo json_encode($lab_reports ?? []); ?>;
-            // Aftercare appointment requests (from Aftercare portal)
-            window.__aftercareAppointments = <?php echo json_encode($aftercare_appointments ?? []); ?>;
-            // Store globally so editLabReport can access it
+            // Update the Premium UI table
+            if (typeof populateLabReportsTable === 'function') {
+                populateLabReportsTable();
+            }
+
+            // Keep original data processing for legacy filters/calendar
+            const labReports = <?php echo hc_json($lab_reports ?? []); ?>;
             window.allLabReports = labReports;
-            console.log('Lab reports loaded:', window.allLabReports);
-            // Do not show deleted schedules in Upcoming Appointments
+            
             const visible = (labReports || []).filter(r => {
                 const raw = (r && (r.status ?? r.result_status)) ?? '';
                 return String(raw || '').trim().toLowerCase() !== 'deleted';
             });
-
-            // Keep visible list for filtering
             window.allVisibleLabReports = visible;
 
-            // Default view
-            if (!window.labAppointmentsView) window.labAppointmentsView = 'scheduled';
-            initLabReportsFilters(visible);
-            applyLabReportsFilters();
+            if (typeof initLabReportsFilters === 'function') initLabReportsFilters(visible);
+            if (typeof applyLabReportsFilters === 'function') applyLabReportsFilters();
         }
 
         function loadTestResults() {
             // Use PHP data directly from the initial page load
-            const testResults = <?php echo json_encode($test_results ?? []); ?>;
+            const testResults = <?php echo hc_json($test_results ?? []); ?>;
             window.allTestResults = testResults;
             console.log('Test results loaded:', window.allTestResults);
         }
@@ -2820,7 +3546,7 @@ if (!isset($notifications) || !isset($unread_count)) {
 
         function loadStories() {
             // Use PHP data directly
-            const stories = <?php echo json_encode($success_stories); ?>;
+            const stories = <?php echo hc_json($success_stories); ?>;
             // Load stories data
             updateStoriesTable(stories);
         }
@@ -3029,6 +3755,40 @@ if (!isset($notifications) || !isset($unread_count)) {
         }
 
         // User dropdown functions
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notification-dropdown');
+            if (dropdown) dropdown.classList.toggle('show');
+            // Close other dropdowns
+            const userDropdown = document.getElementById('user-dropdown');
+            if (userDropdown) userDropdown.classList.remove('show');
+        }
+
+        async function markAsRead(id) {
+            try {
+                const resp = await fetch(ROOT + '/hospital/markNotificationRead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    location.reload(); // Simple refresh to update counts
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function markAllAsRead() {
+            try {
+                const resp = await fetch(ROOT + '/hospital/markAllNotificationsRead', {
+                    method: 'POST'
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    location.reload();
+                }
+            } catch (e) { console.error(e); }
+        }
+
         function toggleUserDropdown() {
             const dropdown = document.getElementById('user-dropdown');
             dropdown.classList.toggle('show');
@@ -3200,8 +3960,8 @@ if (!isset($notifications) || !isset($unread_count)) {
 
         // Load initial data
         document.addEventListener('DOMContentLoaded', function () {
-            loadOrganRequests();
-            loadStories();
+            if (typeof loadOrganRequests === 'function') loadOrganRequests();
+            if (typeof loadStories === 'function') loadStories();
         });
 
         // Function to refresh all data
@@ -3234,7 +3994,7 @@ if (!isset($notifications) || !isset($unread_count)) {
             // Show loading message
             showServerMessage('Preparing export file...', 'info');
 
-            const recipients = <?php echo json_encode($aftercare_recipients ?? []); ?>;
+            const recipients = <?php echo hc_json($aftercare_recipients ?? []); ?>;
 
             setTimeout(() => {
                 if (format === 'csv') {
@@ -3326,7 +4086,7 @@ if (!isset($notifications) || !isset($unread_count)) {
 
         function viewRecipientDetails(nic) {
             // Fetch recipient from the PHP-passed array
-            const recipients = <?php echo json_encode($aftercare_recipients ?? []); ?>;
+            const recipients = <?php echo hc_json($aftercare_recipients ?? []); ?>;
             const recipient = recipients.find(r => r.nic === nic);
 
             if (recipient) {

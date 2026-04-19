@@ -9,14 +9,20 @@ require_once __DIR__ . '/../../../core/config.php';
 $pdo = new PDO("mysql:host=".DBHOST.";dbname=".DBNAME, DBUSER, DBPASS);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// 1. Auto-sync schema if column is missing
+try {
+    $cols = $pdo->query("SHOW COLUMNS FROM donor_patient_match")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('clinical_match_quality', $cols)) {
+        $pdo->exec("ALTER TABLE donor_patient_match ADD COLUMN clinical_match_quality ENUM('MATCH','MATCH WITH WARNING') DEFAULT 'MATCH' AFTER request_id");
+        $pdo->exec("ALTER TABLE donor_patient_match ADD COLUMN warning_details TEXT DEFAULT NULL AFTER clinical_match_quality");
+    }
+} catch (Exception $e) { /* Already exists */ }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
     switch ($_POST['action']) {
         case 'get_matches':
             getMatches($pdo);
-            break;
-        case 'update_match_status':
-            updateMatchStatus($pdo);
             break;
         case 'get_match_details':
             getMatchDetails($pdo);
@@ -33,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 function getMatches($pdo) {
     try {
-        $sql = "SELECT m.match_id, m.match_date, m.status as match_status, m.warning_details,
+        $sql = "SELECT m.match_id, m.match_date, m.clinical_match_quality as match_status, m.warning_details,
                        dp.id as pledge_id, d.first_name as donor_name, d.last_name, d.blood_group as donor_blood_group,
                        orq.id as request_id, orq.blood_group as required_blood_group, orq.priority_level,
                        org.name as organ_name, h.name as hospital_name
@@ -105,19 +111,15 @@ function runMatchingAlgorithm($pdo) {
                 }
                 
                 if ($isMatch) {
-                    $status = 'MATCH';
-                    $warning = null;
-                    if (!empty($donor['allergies']) && strtoupper($donor['allergies']) !== 'NONE') {
-                        $status = 'MATCH WITH WARNING';
-                        $warning = 'Medical Warning: Allergies - ' . $donor['allergies'];
-                    }
+                    $rank = (!empty($donor['allergies']) && strtoupper($donor['allergies']) !== 'NONE') ? 'MATCH WITH WARNING' : 'MATCH';
+                    $warning = $rank === 'MATCH WITH WARNING' ? 'Medical Warning: Allergies - ' . $donor['allergies'] : null;
                     
                     $chk = $pdo->prepare("SELECT 1 FROM donor_patient_match WHERE donor_pledge_id = ? AND request_id = ?");
                     $chk->execute(array($donor['pledge_id'], $req['request_id']));
                     
                     if ($chk->rowCount() == 0) {
-                        $ins = $pdo->prepare("INSERT INTO donor_patient_match (donor_pledge_id, request_id, status, warning_details) VALUES (?, ?, ?, ?)");
-                        $ins->execute(array($donor['pledge_id'], $req['request_id'], $status, $warning));
+                        $ins = $pdo->prepare("INSERT INTO donor_patient_match (donor_pledge_id, request_id, clinical_match_quality, warning_details) VALUES (?, ?, ?, ?)");
+                        $ins->execute(array($donor['pledge_id'], $req['request_id'], $rank, $warning));
                         
                         // Update request to MATCHED
                         $pdo->prepare("UPDATE organ_requests SET status = 'MATCHED' WHERE id = ?")->execute(array($req['request_id']));
@@ -139,7 +141,6 @@ function runMatchingAlgorithm($pdo) {
     }
 }
 
-function updateMatchStatus($pdo) {} // Placeholder
 function getMatchDetails($pdo) {} // Placeholder
 
 ob_end_flush();

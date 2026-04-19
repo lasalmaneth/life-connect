@@ -11,7 +11,9 @@
                     <select class="form-select" id="organ-type">
                         <option value="">Select Organ</option>
                         <?php foreach (($organs ?? []) as $organ): ?>
-                            <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                            <?php if (in_array($organ->name, ['Kidney', 'Part of Liver', 'Bone Marrow'])): ?>
+                                <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
                 </div>

@@ -23,19 +23,20 @@ class MedicalHistoryModel
             SELECT 
                 tr.id,
                 tr.test_name,
-                tr.result_value,
+                tr.status as result_value,
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
                 h.name as hospital_name,
                 h.address as hospital_address,
                 h.contact_number as hospital_phone,
-                ap.registration_number,
-                ap.full_name as patient_name
+                rp.registration_number,
+                rp.full_name as patient_name
             FROM test_results tr
             LEFT JOIN hospitals h ON tr.verified_by_hospital_id = h.id
             LEFT JOIN aftercare_patients ap ON tr.donor_id = ap.id
-            WHERE ap.nic = :nic OR (SELECT COUNT(*) FROM aftercare_patients WHERE id = tr.donor_id AND nic = :nic) > 0
+            LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
+            WHERE rp.nic = :nic OR (SELECT COUNT(*) FROM aftercare_patients ap2 JOIN recipient_patient rp2 ON ap2.user_id = rp2.user_id WHERE ap2.id = tr.donor_id AND rp2.nic = :nic) > 0
             ORDER BY tr.test_date DESC
         ";
         
@@ -54,18 +55,19 @@ class MedicalHistoryModel
             SELECT 
                 tr.id,
                 tr.test_name,
-                tr.result_value,
+                tr.status as result_value,
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
                 h.name as hospital_name,
                 h.address as hospital_address,
                 h.contact_number as hospital_phone,
-                ap.registration_number,
-                ap.full_name as patient_name
+                rp.registration_number,
+                rp.full_name as patient_name
             FROM test_results tr
             LEFT JOIN hospitals h ON tr.verified_by_hospital_id = h.id
             LEFT JOIN aftercare_patients ap ON tr.donor_id = ap.id
+            LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
             WHERE tr.donor_id = :id
             ORDER BY tr.test_date DESC
         ";
@@ -86,7 +88,7 @@ class MedicalHistoryModel
             SELECT 
                 tr.id,
                 tr.test_name,
-                tr.result_value,
+                tr.status as result_value,
                 tr.test_date,
                 tr.document_path,
                 h.id as hospital_id,
@@ -96,7 +98,8 @@ class MedicalHistoryModel
             FROM test_results tr
             LEFT JOIN hospitals h ON tr.verified_by_hospital_id = h.id
             LEFT JOIN aftercare_patients ap ON tr.donor_id = ap.id
-            WHERE ap.nic = :nic 
+            LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
+            WHERE rp.nic = :nic 
             AND tr.test_date >= DATE_SUB(CURDATE(), INTERVAL :months MONTH)
             ORDER BY tr.test_date DESC
         ";
@@ -122,7 +125,8 @@ class MedicalHistoryModel
             FROM test_results tr
             LEFT JOIN hospitals h ON tr.verified_by_hospital_id = h.id
             LEFT JOIN aftercare_patients ap ON tr.donor_id = ap.id
-            WHERE ap.nic = :nic
+            LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
+            WHERE rp.nic = :nic
             GROUP BY tr.test_name
             ORDER BY last_test_date DESC
         ";
@@ -139,8 +143,8 @@ class MedicalHistoryModel
     public function addTestResult($data)
     {
         $query = "
-            INSERT INTO test_results (donor_id, test_name, result_value, document_path, test_date, verified_by_hospital_id)
-            VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :hospital_id)
+            INSERT INTO test_results (donor_id, test_name, status, notes, document_path, test_date, verified_by_hospital_id)
+            VALUES (:donor_id, :test_name, :result_value, '', :document_path, :test_date, :hospital_id)
         ";
         
         return $this->query($query, [

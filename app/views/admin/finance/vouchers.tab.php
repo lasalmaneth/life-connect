@@ -11,8 +11,8 @@
             <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;"><?= $voucher_stats['active'] ?? 0 ?></div>
         </div>
         <div class="stat-card glass-card" style="padding: 1.5rem; border-radius: 20px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Used Vouchers</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;"><?= $voucher_stats['used'] ?? 0 ?></div>
+            <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Redemption Rate</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #6366f1;"><?= $voucher_stats['redemption_rate'] ?? 0 ?>%</div>
         </div>
         <div class="stat-card glass-card" style="padding: 1.5rem; border-radius: 20px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Total Disbursed</div>

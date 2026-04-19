@@ -1,5 +1,5 @@
 <!-- Deceased Documents & Success Stories (Combined View) -->
-<div id="deceased-documents" class="content-section" style="display: none;">
+<div id="deceased-documents" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'deceased-documents') ? 'display:block' : 'display:none'; ?>">
     <div class="cp-content-header">
         <div class="cp-content-header__content">
             <h1 class="cp-content-header__title">
@@ -58,7 +58,7 @@
                                         </div>
                                     </td>
                                     <td><code class="cp-nic-badge"><?= htmlspecialchars($sub->nic_number) ?></code></td>
-                                    <td><?= date('M d, Y', strtotime($sub->document_action_at ?: $sub->created_at)) ?></td>
+                                    <td><?= date('d/m/Y', strtotime($sub->document_action_at ?: $sub->created_at)) ?></td>
                                     <td style="text-align: center;">
                                         <?php 
                                             $ds = strtoupper($sub->document_status);
@@ -122,7 +122,7 @@
                                     <td>
                                         <span class="cp-badge cp-badge--info"><?= htmlspecialchars($story->story_type) ?></span>
                                     </td>
-                                    <td><?= date('M d, Y', strtotime($story->success_date)) ?></td>
+                                    <td><?= date('d/m/Y', strtotime($story->success_date)) ?></td>
                                     <td>
                                         <span class="cp-badge cp-badge--<?= strtolower($story->status) === 'approved' ? 'success' : 'pending' ?>">
                                             <?= htmlspecialchars($story->status) ?>

@@ -144,7 +144,9 @@ route('hospital/test-results', 'Hospital@index');
 // Backward-compatible path (Upcoming Appointments section)
 route('hospital/lab-reports', 'Hospital@index');
 route('hospital/search-donors', 'Hospital@searchDonors');
+route('hospital/fetch-donor-appointments', 'Hospital@fetchDonorAppointments');
 route('hospital/addpatient', 'Hospital@addpatient');
+route('hospital/aftercare-management', 'Hospital@aftercareManagement');
 route('hospital/addpatient/recipient', 'Hospital@addpatientRecipient');
 route('hospital/addpatient/donor', 'Hospital@addpatientDonor');
 route('hospital/fetch-donor-details', 'Hospital@fetchDonorDetails');
@@ -230,14 +232,17 @@ route('user-admin/getDashboardStats', 'admin\UserAdmin@getDashboardStats');
 route('user-admin/getUsers', 'admin\UserAdmin@getUsers');
 route('user-admin/updateUserStatus', 'admin\UserAdmin@updateUserStatus');
 route('user-admin/getNotifications', 'admin\UserAdmin@getNotifications');
+route('user-admin/getAuditLogs', 'admin\UserAdmin@getAuditLogs');
 route('user-admin/sendNotification', 'admin\UserAdmin@sendNotification');
-route('user-admin/bulkUpdateUserStatus', 'admin\UserAdmin@bulkUpdateUserStatus');
 route('user-admin/getUser', 'admin\UserAdmin@getUser');
 route('user-admin/getDetailedUser', 'admin\UserAdmin@getDetailedUser');
 route('user-admin/updateUser', 'admin\UserAdmin@updateUser');
 route('user-admin/reviewUser', 'admin\UserAdmin@reviewUser');
 route('user-admin/profile', 'admin\UserAdmin@profile');
 route('user-admin/checkUsername', 'admin\UserAdmin@checkUsername');
+route('user-admin/getFeedbacks', 'admin\UserAdmin@getFeedbacks');
+route('user-admin/updateFeedbackStatus', 'admin\UserAdmin@updateFeedbackStatus');
+route('user-admin/deleteFeedback', 'admin\UserAdmin@deleteFeedback');
 route('user-admin/bulkUpdateEntityVerification', 'admin\UserAdmin@bulkUpdateEntityVerification');
 
 // Donation Admin Routes
@@ -248,6 +253,10 @@ route('donation-admin/updateOrganStatus', 'admin\DonationAdminController@updateO
 route('donation-admin/getPledges', 'admin\DonationAdminController@getPledges');
 route('donation-admin/getHospitalRequests', 'admin\DonationAdminController@getHospitalRequests');
 route('donation-admin/runAlgorithm', 'admin\DonationAdminController@runAlgorithm');
+route('donation-admin/getFilterMetadata', 'admin\DonationAdminController@getFilterMetadata');
+route('donation-admin/getMatchDetails', 'admin\DonationAdminController@getMatchDetails');
+route('donation-admin/getPatients', 'admin\DonationAdminController@getPatients');
+route('donation-admin/getPatientDetails', 'admin\DonationAdminController@getPatientDetails');
 
 // Tributes Admin Routes
 route('tributes-admin/getHospitals', 'admin\TributesAdminController@getHospitals');

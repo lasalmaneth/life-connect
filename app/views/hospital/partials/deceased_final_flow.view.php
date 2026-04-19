@@ -1,5 +1,5 @@
 <!-- Deceased Final Flow (Stage G for Hospital) -->
-<div id="deceased-final-flow" class="content-section" style="display: none;">
+<div id="deceased-final-flow" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'deceased-final-flow') ? 'display:block' : 'display:none'; ?>">
     <div class="cp-content-header">
         <div class="cp-content-header__content">
             <h1 class="cp-content-header__title">
@@ -61,7 +61,7 @@
                                 <td><code class="cp-nic-badge"><?= htmlspecialchars($flow->nic_number) ?></code></td>
                                 <td>
                                     <?php if ($flow->final_exam_at): ?>
-                                        <div class="cp-table__filename"><?= date('d M Y', strtotime($flow->final_exam_at)) ?></div>
+                                        <div class="cp-table__filename"><?= date('d/m/Y', strtotime($flow->final_exam_at)) ?></div>
                                         <div class="cp-table__subtext"><?= date('H:i', strtotime($flow->final_exam_at)) ?></div>
                                     <?php else: ?>
                                         <span style="color: #94a3b8; font-style: italic;">Awaiting Process</span>

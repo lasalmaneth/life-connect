@@ -148,13 +148,42 @@ $admin_status = 'Active';
     </style>
 </head>
 <body>
-    <script>
-        const ROOT = "<?= ROOT ?>";
+        // Sidebar Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Generic Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
     </script>
     <script src="<?= ROOT ?>/public/assets/js/admin/aftercare.js" defer></script>
     <div class="header">
         <div class="header-content">
-            <div class="header-left">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Mobile Toggle Button -->
+                <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
                 <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
@@ -185,6 +214,9 @@ $admin_status = 'Active';
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid p-0">
         <div class="main-content">
             <div class="sidebar glass">
@@ -197,31 +229,29 @@ $admin_status = 'Active';
                     </div>
                 </div>
                 
-                <div class="menu-section">
-                    <div class="menu-section-title">Core</div>
-                    <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
-                        <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
+                <div class="sidebar-nav">
+                    <div class="menu-section">
+                        <div class="menu-section-title">Core</div>
+                        <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
+                            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Patient Care</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)">
-                        <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
-                        <span>Support Requests</span>
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('patients', this)">
-                        <span class="icon"><i class="fa-solid fa-user-injured"></i></span>
-                        <span>Aftercare Patients</span>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Patient Care</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)">
+                            <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
+                            <span>Support Requests</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section mt-auto">
-                    <a href="javascript:void(0)" onclick="logout()" class="menu-item text-danger">
-                        <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
+                    <div class="menu-section mt-auto">
+                        <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger">
+                            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -321,76 +351,9 @@ $admin_status = 'Active';
                 </div>
             </div>
 
-            <!-- Aftercare Patients -->
-            <div id="patients" class="content-section" style="display: none;">
-                <div class="content-header">
-                    <h2>Aftercare Patient Records</h2>
-                    <p>Monitor and manage post-surgery patient follow-ups and long-term care records.</p>
-                </div>
-                <div class="content-body">
-                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px; padding-top: 2rem;">
-                        <div class="search-bar" style="margin-bottom: 0; flex: 1;">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" class="search-input" placeholder="Search by Patient Name, ID, or Surgery Type..." id="patient-search">
-                        </div>
-
-                        <div class="filter-section" style="margin-bottom: 0; display: flex; gap: 12px;">
-                            <select class="filter-select" id="patient-type-filter">
-                                <option value="">All Patient Types</option>
-                                <option value="recipient">Recipient Patient</option>
-                                <option value="donor">Post-Donation Patient</option>
-                            </select>
-                            <select class="filter-select" id="blood-type-filter">
-                                <option value="">All Blood Types</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="stats-grid dashboard-metrics" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="total-patients">0</div>
-                            <div class="stat-label">Total Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="recipient-patients">0</div>
-                            <div class="stat-label">Recipient Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="donor-patients">0</div>
-                            <div class="stat-label">Post-Donation Patients</div>
-                        </div>
-                        <div class="stat-card glass-card">
-                            <div class="stat-number quick-stat-number" id="average-age">0</div>
-                            <div class="stat-label">Average Age</div>
-                        </div>
-                    </div>
-
-                    <div class="data-table">
-                        <div class="table-header">
-                            <h4>Aftercare Patient Records</h4>
-                        </div>
-                        <div class="table-content" id="patients-table">
-                            <div class="table-row header-row">
-                                <div class="table-cell" style="flex: 1.5;">Patient Details</div>
-                                <div class="table-cell">Age</div>
-                                <div class="table-cell">Blood Type</div>
-                                <div class="table-cell">Type</div>
-                                <div class="table-cell">Status</div>
-                                <div class="table-cell">Actions</div>
-                            </div>
-                            <!-- AJAX will load patient rows here -->
-                        </div>
-                    </div>
-                </div>
             </div>
+        </div>
+    </div>
         </div>
     </div>
 </div>
@@ -471,71 +434,6 @@ $admin_status = 'Active';
     </div>
 </div>
 
-<!-- Patient Details Modal (Modern Styled) -->
-<div id="patientModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Patient Profile Review</h3>
-            <button class="modal-close" style="position: absolute; top: 1.5rem; right: 1.5rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closePatientModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="review-section">
-                <div class="review-grid">
-                    <div class="review-item">
-                        <span class="review-label">Registration Number</span>
-                        <span class="review-value" id="modal-patient-id">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">Full Name</span>
-                        <span class="review-value" id="modal-patient-name">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">National ID (NIC)</span>
-                        <span class="review-value" id="modal-patient-nic">-</span>
-                    </div>
-                    <div class="review-item">
-                        <span class="review-label">Patient Status</span>
-                        <span class="review-value" id="modal-patient-status">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="review-grid" style="margin-bottom: 2rem;">
-                <div class="review-item">
-                    <span class="review-label">Age</span>
-                    <span class="review-value" id="modal-patient-age">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Blood Type</span>
-                    <span class="review-value" id="modal-patient-bloodtype">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Gender</span>
-                    <span class="review-value" id="modal-patient-gender">-</span>
-                </div>
-                <div class="review-item">
-                    <span class="review-label">Classification</span>
-                    <span class="review-value" id="modal-patient-type">-</span>
-                </div>
-            </div>
-
-            <div class="review-section">
-                <div class="review-item">
-                    <span class="review-label">Associated Hospital (Reg No)</span>
-                    <span class="review-value" id="modal-patient-hosp">-</span>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
-                <button class="btn btn-secondary" onclick="closePatientModal()" style="border-radius: 12px; padding: 0.75rem 1.5rem;">
-                    Close
-                </button>
-                <button class="btn btn-primary" style="border-radius: 12px; padding: 0.75rem 1.5rem; background: #005baa;">
-                    <i class="fa-solid fa-file-medical"></i> Clinical Records
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Notification System -->
@@ -552,18 +450,6 @@ $admin_status = 'Active';
             dropdown.classList.toggle('show');
         }
         event.stopPropagation();
-    }
-
-    function logout() {
-        if(confirm('Are you sure you want to logout?')) {
-            window.location.href = '<?= ROOT ?>/logout';
-        }
-    }
-
-    function logoLogout() {
-        if(confirm('Clicking the logo will logout. Continue?')) {
-            window.location.href = '<?= ROOT ?>/logout';
-        }
     }
 
     function showContent(sectionId, element) {
@@ -634,25 +520,6 @@ $admin_status = 'Active';
         document.getElementById('supportModal').classList.remove('show');
     }
 
-    // Patient Modal controls
-    function openPatientModal(data) {
-        if(!data) return;
-        document.getElementById('modal-patient-id').innerText = data.id || '-';
-        document.getElementById('modal-patient-name').innerText = (data.first_name || '') + ' ' + (data.last_name || '');
-        document.getElementById('modal-patient-nic').innerText = data.nic || '-';
-        document.getElementById('modal-patient-status').innerText = data.status || '-';
-        document.getElementById('modal-patient-age').innerText = data.age || '-';
-        document.getElementById('modal-patient-bloodtype').innerText = data.blood_group || '-';
-        document.getElementById('modal-patient-gender').innerText = data.gender || '-';
-        document.getElementById('modal-patient-type').innerText = data.patient_type || '-';
-        document.getElementById('modal-patient-hosp').innerText = data.associated_hospital || '-';
-        
-        document.getElementById('patientModal').classList.add('show');
-    }
-
-    function closePatientModal() {
-        document.getElementById('patientModal').classList.remove('show');
-    }
 
     function handleSupportAction(id, action) {
         // ... (action logic mapping stays the same) ...
@@ -685,9 +552,9 @@ $admin_status = 'Active';
     // Close modal on click outside
     window.onclick = function(event) {
         const supportModal = document.getElementById('supportModal');
-        const patientModal = document.getElementById('patientModal');
         if (event.target == supportModal) closeSupportModal();
-        if (event.target == patientModal) closePatientModal();
+        const logoutModal = document.getElementById('logout-modal');
+        if (event.target == logoutModal) closeModal('logout-modal');
     }
 
     // Support Request Filtering System
@@ -816,7 +683,29 @@ $admin_status = 'Active';
             notification.style.display = 'none';
         }, 3000);
     }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add('show');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+    }
 </script>
 
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -221,48 +221,48 @@ class UserAdmin {
         }
     }
 
-    public function sendNotification() {
+    public function getAuditLogs() {
         header('Content-Type: application/json');
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            $userId  = $input['user_id']  ?? null;
-            $title   = $input['title']    ?? null;
-            $message = $input['message']  ?? null;
-            $type    = $input['type']     ?? 'GENERAL';
-            // The admin who composed this message
-            $senderId = $_SESSION['user_id'] ?? null;
-
-            if (!$userId || !$title || !$message) {
-                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
-                return;
-            }
-
             $adminModel = new AdminModel();
-            $adminModel->sendNotification($userId, $title, $message, $type, $senderId);
-
-            echo json_encode(['success' => true, 'message' => 'Notification sent']);
+            $auditLogs = $adminModel->getAuditLogs();
+            echo json_encode(['success' => true, 'auditLogs' => $auditLogs]);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
-    public function bulkUpdateUserStatus() {
+    public function sendNotification() {
         header('Content-Type: application/json');
         try {
             $input = json_decode(file_get_contents('php://input'), true);
-            $userIds = $input['user_ids'] ?? [];
-            $status = $input['status'] ?? null;
-            $message = $input['message'] ?? null;
+            $target  = $input['target']   ?? 'specific'; // all, role, specific
+            $role    = $input['role']     ?? null;
+            $userId  = $input['user_id']  ?? null;
+            $title   = $input['title']    ?? null;
+            $message = $input['message']  ?? null;
+            $type    = $input['type']     ?? 'GENERAL';
+            $senderId = $_SESSION['user_id'] ?? null;
 
-            if (empty($userIds) || !$status) {
-                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+            if (!$title || !$message) {
+                echo json_encode(['success' => false, 'message' => 'Missing title or message']);
                 return;
             }
 
             $adminModel = new AdminModel();
-            $adminModel->bulkUpdateUserStatus($userIds, $status, $message);
+            
+            if ($target === 'specific') {
+                if (!$userId) {
+                    echo json_encode(['success' => false, 'message' => 'Missing user ID']);
+                    return;
+                }
+                $adminModel->sendNotification($userId, $title, $message, $type, $senderId);
+            } else {
+                // Bulk sending (all or role)
+                $adminModel->sendBulkNotification($target, $title, $message, $type, $senderId, $role);
+            }
 
-            echo json_encode(['success' => true, 'message' => count($userIds) . ' users updated']);
+            echo json_encode(['success' => true, 'message' => 'Notification dispatched successfully']);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -429,4 +429,55 @@ class UserAdmin {
         }
     }
 
+    public function getFeedbacks() {
+        header('Content-Type: application/json');
+        try {
+            $adminModel = new AdminModel();
+            $feedbacks = $adminModel->getFeedbacks();
+            echo json_encode(['success' => true, 'feedbacks' => $feedbacks]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function updateFeedbackStatus() {
+        header('Content-Type: application/json');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $id = $input['id'] ?? null;
+            $status = $input['status'] ?? null;
+
+            if (!$id || !$status) {
+                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+                return;
+            }
+
+            $adminModel = new AdminModel();
+            $adminModel->updateFeedbackStatus($id, $status);
+
+            echo json_encode(['success' => true, 'message' => 'Feedback status updated']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function deleteFeedback() {
+        header('Content-Type: application/json');
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $id = $input['id'] ?? null;
+
+            if (!$id) {
+                echo json_encode(['success' => false, 'message' => 'Missing ID']);
+                return;
+            }
+
+            $adminModel = new AdminModel();
+            $adminModel->deleteFeedback($id);
+
+            echo json_encode(['success' => true, 'message' => 'Feedback record permanently deleted']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
 }

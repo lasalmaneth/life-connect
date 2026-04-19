@@ -783,6 +783,7 @@ class Donor {
                         $dbPath = "assets/uploads/pledges/" . $filename;
                         
                         if (move_uploaded_file($file['tmp_name'], $destination)) {
+                            // 1. Update the primary target organ
                             $query = "UPDATE donor_pledges SET signed_form_path = :path, status = 'UPLOADED' 
                                      WHERE donor_id = :donor_id AND organ_id = :organ_id";
                             $this->query($query, [
@@ -790,8 +791,32 @@ class Donor {
                                 ':donor_id' => $donorId,
                                 ':organ_id' => $organId
                             ]);
+
+                            // 2. Propagation Logic for After-Death Pledges
+                            // Only propagate if the current organ is NOT a living donor pledge and NOT Full Body (ID 10)
+                            $isLivingQuery = "SELECT ldc.id FROM living_donor_consents ldc
+                                              JOIN donor_pledges dp ON ldc.donor_pledge_id = dp.id
+                                              WHERE dp.donor_id = :did AND dp.organ_id = :oid AND dp.status = 'UPLOADED'
+                                              LIMIT 1";
+                            $isLiving = $this->query($isLivingQuery, [':did' => $donorId, ':oid' => $organId]);
+
+                            if (empty($isLiving) && $organId != 10) {
+                                // Auto-fill ALL other PENDING deceased organ pledges for this donor
+                                // Using a LEFT JOIN to exclude living donor pledges (MariaDB compatible)
+                                $propagateQuery = "UPDATE donor_pledges dp
+                                                   LEFT JOIN living_donor_consents ldc ON dp.id = ldc.donor_pledge_id
+                                                   SET dp.signed_form_path = :path, dp.status = 'UPLOADED' 
+                                                   WHERE dp.donor_id = :did 
+                                                   AND dp.status = 'PENDING' 
+                                                   AND dp.organ_id != 10 
+                                                   AND ldc.id IS NULL";
+                                $this->query($propagateQuery, [':path' => $dbPath, ':did' => $donorId]);
+                                $message = "Signed document uploaded and auto-applied to all related after-death pledges!";
+                            } else {
+                                $message = "Signed document uploaded successfully! Your pledge is now being processed.";
+                            }
+                            
                             $success = true;
-                            $message = "Signed document uploaded successfully! Your pledge is now being processed.";
                         } else {
                             $message = "Failed to save the uploaded file.";
                         }
@@ -858,7 +883,7 @@ class Donor {
 
             if (stripos($item['description'] ?? '', 'living donor') !== false) {
                 $availableLiving[] = $item;
-            } elseif (in_array((int)$item['organ_id'], [9, 10])) {
+            } elseif ((int)$item['organ_id'] === 10) {
                 $availableFullBody[] = $item;
             } else {
                 $availableAfterDeath[] = $item;
@@ -871,7 +896,7 @@ class Donor {
 
             if (stripos($organ['description'], 'living donor') !== false) {
                 $selectedLiving[] = $organ;
-            } elseif (in_array((int)$organ['organ_id'], [9, 10])) {
+            } elseif ((int)$organ['organ_id'] === 10) {
                 $selectedFullBody[] = $organ;
             } else {
                 $selectedAfterDeath[] = $organ;
@@ -1407,7 +1432,7 @@ class Donor {
                     'details' => $b->status === 'WITHDRAWN' ? 'Consent Withdrawn' : 'Consent Given',
                     'status'  => $b->status,
                     'signed_form_path' => null,
-                    'withdrawal_form_path' => ($b->status === 'WITHDRAWN') ? ($withdrawalsByOrgan[9] ?? null) : null
+                    'withdrawal_form_path' => ($b->status === 'WITHDRAWN') ? ($withdrawalsByOrgan[10] ?? null) : null
                 ];
             }
         }
@@ -1578,19 +1603,27 @@ class Donor {
         }
 
         // Fetch Aftercare Appointments for this donor
-        $nic = $donorData['nic_number'] ?? '';
         $appointments = [];
-        if (!empty($nic)) {
-            $stmt = $this->query("SELECT * FROM aftercare_appointments WHERE patient_id = :nic ORDER BY appointment_date ASC", [':nic' => $nic]);
+        $userId = (int)($_SESSION['user_id'] ?? ($_SESSION['aftercare_user_id'] ?? 0));
+        if ($userId > 0) {
+            $stmt = $this->query("SELECT * FROM aftercare_appointments WHERE user_id = :uid ORDER BY appointment_date ASC", [':uid' => $userId]);
             if ($stmt) {
                 $appointments = $stmt;
             }
         }
 
         // Fetch Support Requests for this donor
+        $nic = $donorData['nic_number'] ?? '';
         $supportRequests = [];
         if (!empty($nic)) {
-            $stmt = $this->query("SELECT * FROM support_requests WHERE patient_nic = :patient_nic ORDER BY created_at DESC", [':patient_nic' => $nic]);
+            $stmt = $this->query("
+                SELECT sr.*, v.voucher_code, v.expiry_date, v.status as voucher_status 
+                FROM support_requests sr 
+                LEFT JOIN support_vouchers v ON sr.id = v.request_id 
+                WHERE sr.patient_nic = :patient_nic 
+                ORDER BY sr.created_at DESC", 
+            [':patient_nic' => $nic]);
+            
             if ($stmt) {
                 $supportRequests = $stmt;
             }
@@ -1654,12 +1687,16 @@ class Donor {
                 exit;
             }
 
+            // Ensure donor is in aftercare_patients mapping table
+            $currentUserId = (int)$_SESSION['user_id'];
+            $aftercareModel = new \App\Models\AftercarePatientModel();
+            $aftercareModel->upsertDonorPatient($nic, $donorFullName, $hospitalRegistrationNo, $currentUserId);
+
             $this->query(
-                "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status) 
-                 VALUES (:nic, :name, :host, :date, :type, :desc, 'Scheduled')",
+                "INSERT INTO aftercare_appointments (user_id, hospital_registration_no, appointment_date, appointment_type, description, status) 
+                 VALUES (:uid, :host, :date, :type, :desc, 'Requested')",
                 [
-                    ':nic' => $nic,
-                    ':name' => $donorFullName,
+                    ':uid' => $currentUserId,
                     ':host' => $hospitalRegistrationNo,
                     ':date' => $date,
                     ':type' => $type,
@@ -2191,12 +2228,25 @@ class Donor {
                     if (move_uploaded_file($file['tmp_name'], $destination)) {
                         $donorModel->updateWithdrawalPath($withdrawalId, $dbPath);
                         
+                        $witnessModel = new \App\Models\WitnessModel();
+                        $custodianModel = new \App\Models\DonorCustodianModel();
+
                         if (!empty($withdrawal->organ_id)) {
                             $donorModel->deactivateSpecificPledge($donorId, $withdrawal->organ_id);
-                            $_SESSION['success_message'] = "Withdrawal formalized. Consent for this organ has been revoked.";
+                            
+                            // Delete Witnesses and Custodians linked to this organ
+                            $witnessModel->deleteWitnessesByOrganPledge($donorId, $withdrawal->organ_id);
+                            $custodianModel->deleteCustodiansByOrganPledge($donorId, $withdrawal->organ_id);
+
+                            $_SESSION['success_message'] = "Withdrawal formalized. Consent for this organ has been revoked, and associated witnesses/custodians have been removed.";
                         } else {
                             $donorModel->deactivateAllPledges($donorId);
-                            $_SESSION['success_message'] = "Withdrawal document uploaded. All donation commitments are now revoked.";
+                            
+                            // Delete ALL organ-specific Witnesses and Custodians
+                            $witnessModel->deleteAllOrganWitnesses($donorId);
+                            $custodianModel->deleteAllOrganCustodians($donorId);
+
+                            $_SESSION['success_message'] = "Withdrawal document uploaded. All donation commitments are now revoked, and all linked witnesses/custodians have been removed.";
                         }
                         
                         unset($_SESSION['show_withdrawal']);

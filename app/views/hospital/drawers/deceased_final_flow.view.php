@@ -48,6 +48,12 @@
                         </div>
                     <?php endif; ?>
                 </div>
+                <?php if ($flow->handover_date): ?>
+                    <div class="cp-detail-item">
+                        <div class="cp-detail-label">Handover Date</div>
+                        <div class="cp-detail-value"><?= date('d/m/Y', strtotime($flow->handover_date)) ?> at <?= htmlspecialchars($flow->handover_time) ?></div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -83,6 +89,8 @@
                 <div class="dr-alert-box__meta">
                     Finalized on: <?= date('M d, Y', strtotime($flow->final_exam_at)) ?>
                 </div>
+            <div class="cp-alert cp-alert--success">
+                <i class="fas fa-certificate cp-mr-2"></i> This case was successfully completed and closed on <?= date('d/m/Y', strtotime($flow->final_exam_at)) ?>.
             </div>
         <?php endif; ?>
     <?php endif; ?>

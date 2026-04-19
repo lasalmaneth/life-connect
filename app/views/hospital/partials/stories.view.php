@@ -1,4 +1,4 @@
-<div id="stories" class="content-section" style="display: none;">
+<div id="stories" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'stories') ? 'display:block' : 'display:none'; ?>">
     <div class="stories-banner">
         <div class="stories-banner__content">
             <h2><i class="fas fa-star" style="color: #fbbf24;"></i> Success Stories Management</h2>
@@ -70,7 +70,7 @@
                                         else echo '<span class="story-type-badge badge--case"><i class="fas fa-hospital"></i> Case</span>';
                                     ?>
                                 </td>
-                                <td><?= date('M d, Y', strtotime($story->success_date)) ?></td>
+                                <td><?= date('d/m/Y', strtotime($story->success_date)) ?></td>
                                 <td>
                                     <?php 
                                         $status = strtolower($story->status ?? 'pending');

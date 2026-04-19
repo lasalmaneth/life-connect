@@ -38,6 +38,13 @@
                         <div class="dr-doc-card-slim">
                             <div class="dr-icon-box dr-icon-box--sm">
                                 <i class="fas fa-file-pdf"></i>
+                        <div class="cp-document-item" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8fafc; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e2e8f0;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <i class="fas fa-file-pdf" style="color: #ef4444; font-size: 1.5rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;"><?= htmlspecialchars($doc->document_type) ?></div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Uploaded on <?= date('d/m/Y', strtotime($doc->uploaded_at)) ?></div>
+                                </div>
                             </div>
                             <div class="flex-1">
                                 <div class="dr-doc-type"><?= htmlspecialchars($doc->document_type) ?></div>

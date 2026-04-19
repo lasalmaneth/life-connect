@@ -1,15 +1,11 @@
 <?php
-require 'app/Core/config.php';
-$pdo = new PDO('mysql:host='.DBHOST.';dbname='.DBNAME, DBUSER, DBPASS);
+require 'app/Core/init.php';
 
-echo "--- death_declarations ---\n";
-$stmt = $pdo->query('DESCRIBE death_declarations');
-while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    echo $row['Field'] . " (" . $row['Type'] . ")\n";
+class TestModel {
+    use \App\Core\Model;
+    protected $table = 'donor_patient_match';
 }
 
-echo "\n--- donation_cases ---\n";
-$stmt = $pdo->query('DESCRIBE donation_cases');
-while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    echo $row['Field'] . " (" . $row['Type'] . ")\n";
-}
+$model = new TestModel();
+$res = $model->query("DESCRIBE donor_patient_match");
+print_r($res);

@@ -46,7 +46,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                             </span>
                                         </div>
                                         <div class="notif-time-group">
-                                          <span class="notif-time"><?= date('M d, Y', strtotime($n['created_at'])) ?></span>
+                                          <span class="notif-time"><?= date('d/m/Y', strtotime($n['created_at'])) ?></span>
                                           <span class="notif-exact-time"><?= date('H:i', strtotime($n['created_at'])) ?></span>
                                         </div>
                                     </div>

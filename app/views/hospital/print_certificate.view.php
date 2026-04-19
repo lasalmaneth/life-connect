@@ -202,7 +202,7 @@
                 <div class="sig-box">
                     <div style="height: 50px;"></div>
                     <div class="sig-line">Date of Surgery</div>
-                    <div style="font-size: 0.85rem; margin-top: 5px;"><?= date('d F Y', strtotime($match->surgery_date)) ?></div>
+                    <div style="font-size: 0.85rem; margin-top: 5px;"><?= date('d/m/Y', strtotime($match->surgery_date)) ?></div>
                 </div>
                 <div class="sig-box">
                     <div style="height: 50px; display: flex; align-items: center; justify-content: center;">
@@ -219,7 +219,7 @@
 
             <div class="meta-info">
                 <span>Registry ID: MAT-<?= str_pad($match->match_id, 5, '0', STR_PAD_LEFT) ?></span>
-                <span>Issued On: <?= date('Y-m-d') ?></span>
+                <span>Issued On: <?= date('d/m/Y') ?></span>
                 <span>Verification: lifeconnect.lk/verify/<?= $match->match_id ?></span>
             </div>
         </div>

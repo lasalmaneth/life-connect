@@ -106,9 +106,20 @@
                                     </div>
                                 </div>
 
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                    <div>
+                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Email Address *</label>
+                                        <input type="email" name="recipient_email" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
+                                    <div>
+                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Phone Number *</label>
+                                        <input type="text" name="recipient_phone" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
+                                </div>
+
                                 <div style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Contact Details</label>
-                                    <input type="text" name="recipient_contact" placeholder="Phone or Address" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Contact Address</label>
+                                    <input type="text" name="recipient_contact" placeholder="Home address or primary location" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                 </div>
 
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
