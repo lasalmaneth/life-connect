@@ -145,10 +145,9 @@ class CustodianModel {
             $isCornea = ($p->organ_id == 4);
             $isSuperseded = ($p->status !== 'WITHDRAWN' && !$isCornea && $maxBodyTs > $pTs);
             
+            // Categorization
             $category = "After-Death Case"; 
-            if (in_array($p->organ_id, [2, 3])) {
-                $category = "Living Donation Case";
-            } elseif (in_array($p->organ_id, [1, 9])) {
+            if ($p->organ_id == 9) {
                 $category = "Brain-Dead Case";
             }
 
@@ -204,8 +203,28 @@ class CustodianModel {
             ];
         }
 
+        // --- FINAL REFINEMENT & DEDUPLICATION ---
+        $refined = [];
+        $seenIntents = []; // name -> type
+
         usort($timeline, fn($a, $b) => strtotime($b->date) - strtotime($a->date));
-        return $timeline;
+
+        foreach ($timeline as $t) {
+            // Clean name for display and comparison
+            $cleanName = trim(str_replace('(After death)', '', $t->item_name));
+            $t->item_name = $cleanName;
+
+            // Only deduplicate deceased intents (Pledges/Consents), outcomes stay unique
+            if (!$t->is_outcome) {
+                $key = $cleanName . '|' . $t->type;
+                if (isset($seenIntents[$key])) continue;
+                $seenIntents[$key] = true;
+            }
+
+            $refined[] = $t;
+        }
+
+        return $refined;
     }
 
     /**

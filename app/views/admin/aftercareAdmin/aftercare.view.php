@@ -1,20 +1,14 @@
 <?php
-// Start session if not already started - MUST be before any HTML output
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Get admin user information from session
-$admin_user_id = $_SESSION['user_id'] ?? null;
-$admin_username = $_SESSION['username'] ?? 'Admin User';
-$admin_role = $_SESSION['role'] ?? 'Aftercare Administrator';
-
-// Prepare admin details for header
-$admin_full_name = htmlspecialchars($admin_username);
-$admin_role_display = htmlspecialchars($admin_role);
-$admin_id_display = htmlspecialchars($admin_user_id ?? 'N/A');
-$admin_email = $_SESSION['email'] ?? 'admin@lifeconnect.lk';
-$admin_status = 'Active';
+if (session_status() === PHP_SESSION_NONE) session_start();
+$db = new class { use \App\Core\Database; };
+$uId = $_SESSION['user_id'] ?? 0;
+$adminData = $db->query("SELECT a.*, u.email, u.status 
+                         FROM admins a 
+                         JOIN users u ON a.user_id = u.id 
+                         WHERE a.user_id = :id", ['id' => $uId]);
+$admin = !empty($adminData) ? $adminData[0] : null;
+$admin_full_name = $admin ? ($admin->first_name . ' ' . $admin->last_name) : ($_SESSION['username'] ?? 'Admin User');
+$admin_role_display = htmlspecialchars($_SESSION['role'] === 'AC_ADMIN' ? 'Aftercare Admin' : 'System Admin');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -203,11 +197,19 @@ $admin_status = 'Active';
                         <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
                     </a>
                 </nav>
-                <div class="user-info">
-                    <div class="user-avatar"><?php echo strtoupper(substr($admin_full_name, 0, 1)); ?></div>
-                    <div class="user-details">
-                        <span class="user-name"><?php echo $admin_full_name; ?></span>
-                        <span class="user-role"><?php echo $admin_role_display; ?></span>
+                    <div class="user-info-wrapper" id="userProfileToggleHeader" data-profile-toggle style="cursor: pointer;">
+                        <div class="user-avatar"><?= strtoupper(substr($admin_full_name, 0, 1)) ?></div>
+                        <div class="user-details" style="display: flex; flex-direction: column; margin-left: 8px;">
+                            <span class="user-name" style="font-weight: 600; font-size: 0.9rem; color: #1e293b; line-height: 1.2;"><?= htmlspecialchars($admin_full_name) ?></span>
+                            <span class="user-role" style="font-size: 0.75rem; color: #64748b; font-weight: 500;">Aftercare Admin</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
+
+                        <?php 
+                        $adminRoleTitle = 'Aftercare Administrator';
+                        $dropdownId = 'userProfileDropdownHeader';
+                        include(dirname(__DIR__) . '/inc/profile_card.partial.php'); 
+                        ?>
                     </div>
                 </div>
             </div>
@@ -444,13 +446,17 @@ $admin_status = 'Active';
 </div>
 
 <script>
-    function toggleUserDropdown() {
-        const dropdown = document.getElementById('user-dropdown');
-        if(dropdown) {
-            dropdown.classList.toggle('show');
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('userProfileToggleHeader');
+        const dropdown = document.getElementById('userProfileDropdownHeader');
+
+        if (toggle && dropdown) {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('active');
+            });
         }
-        event.stopPropagation();
-    }
+    });
 
     function showContent(sectionId, element) {
         document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));

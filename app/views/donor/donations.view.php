@@ -2220,8 +2220,8 @@ function openMatchModal(organId, organName) {
     container.innerHTML = '';
     if (withdrawLink) withdrawLink.style.display = 'none';
 
-    // Check if any match is already accepted/approved
-    const acceptedMatch = matches.find(m => m.status === 'APPROVED' || m.status === 'PENDING');
+    // Check if any match is already accepted
+    const acceptedMatch = matches.find(m => m.status === 'ACCEPTED');
     const infoBlock = document.querySelector('#potentialMatchesModal .match-info-banner');
 
     if (acceptedMatch) {
@@ -2317,6 +2317,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <script>
 async function confirmMatchDecision(matchId, hospitalName, action) {
+    // Close the potential matches modal immediately as requested
+    closeModal('potentialMatchesModal');
+
     if (action === 'accept') {
         const result = await Swal.fire({
             title: 'Confirm Match Acceptance',

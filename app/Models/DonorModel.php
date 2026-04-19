@@ -1042,7 +1042,7 @@ class DonorModel {
                   JOIN organ_requests r ON m.request_id = r.id
                   JOIN hospitals h ON r.hospital_id = h.id
                   JOIN organs o ON dp.organ_id = o.id
-                  WHERE dp.donor_id = :donor_id AND m.donor_status IN ('MATCH', 'MATCH WITH WARNING', 'PENDING', 'APPROVED')";
+                  WHERE dp.donor_id = :donor_id AND m.donor_status IN ('PENDING', 'ACCEPTED')";
         
         return $this->query($query, [':donor_id' => $donorId]) ?: [];
     }
@@ -1070,8 +1070,8 @@ class DonorModel {
             $pledgeId = $match['donor_pledge_id'];
 
             if ($decision === 'accept') {
-                // 2. Set this match to APPROVED (accepted by donor)
-                $upd1 = $con->prepare("UPDATE donor_patient_match SET donor_status = 'APPROVED' WHERE match_id = :mid");
+                // 2. Set this match to ACCEPTED (accepted by donor)
+                $upd1 = $con->prepare("UPDATE donor_patient_match SET donor_status = 'ACCEPTED' WHERE match_id = :mid");
                 $upd1->execute([':mid' => $matchId]);
 
                 // 3. Set ALL OTHER matches for this PLEDGE to REJECTED

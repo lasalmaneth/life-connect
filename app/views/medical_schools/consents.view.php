@@ -4,18 +4,19 @@
  * Route: GET /medical-school/consents
  */
 
-$page_title  = 'Consent Registry';
+$page_title = 'Consent Registry';
 $active_page = 'consents';
 
 ob_start();
 
 // Map consent_status to badge variant
-function consentBadgeClass($status) {
-    return match($status) {
-        'GIVEN'     => 'active',
-        'PENDING'   => 'pending',
+function consentBadgeClass($status)
+{
+    return match ($status) {
+        'GIVEN' => 'active',
+        'PENDING' => 'pending',
         'WITHDRAWN' => 'danger',
-        default     => 'neutral',
+        default => 'neutral',
     };
 }
 ?>
@@ -26,7 +27,8 @@ function consentBadgeClass($status) {
             <i class="fas fa-file-signature"></i> Consent Registry
         </h1>
         <p class="cp-content-header__subtitle">
-            Pre-death body donation intent records for your institution. You may verify consent documents and flag any records with issues.
+            Pre-death body donation intent records for your institution. You may verify consent documents and flag any
+            records with issues.
         </p>
     </div>
     <div class="cp-content-header__actions">
@@ -40,15 +42,15 @@ function consentBadgeClass($status) {
     <!-- Premium Filter Bar -->
     <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
         <div class="cp-filter-tabs">
-            <?php 
+            <?php
             $statuses = [
                 'ALL' => 'All Records',
                 'GIVEN' => 'Active',
                 'WITHDRAWN' => 'Withdrawn'
             ];
-            foreach ($statuses as $val => $lbl): 
+            foreach ($statuses as $val => $lbl):
                 $active = ($active_status === $val) ? 'active' : '';
-            ?>
+                ?>
                 <a href="?status=<?= $val ?>" class="cp-filter-btn <?= $active ?>"><?= $lbl ?></a>
             <?php endforeach; ?>
         </div>
@@ -71,7 +73,8 @@ function consentBadgeClass($status) {
                             <div class="cp-empty-state">
                                 <i class="fas fa-inbox cp-empty-state__icon"></i>
                                 <div class="cp-empty-state__msg">No records match this filter</div>
-                                <div class="cp-empty-state__sub">Try switching to "All Records" to see the full list of donors assigned to your institution.</div>
+                                <div class="cp-empty-state__sub">Try switching to "All Records" to see the full list of
+                                    donors assigned to your institution.</div>
                             </div>
                         </td>
                     </tr>
@@ -102,18 +105,19 @@ function consentBadgeClass($status) {
                             </td>
                             <td>
                                 <span class="cp-badge cp-badge--<?= consentBadgeClass($donor->consent_status) ?>">
-                                    <?= htmlspecialchars($donor->consent_status) ?>
+                                    <?= ($donor->consent_status === 'GIVEN') ? 'ACTIVE' : htmlspecialchars($donor->consent_status) ?>
                                 </span>
                                 <?php if ($donor->consent_status === 'WITHDRAWN'): ?>
                                     <div class="cp-table__subtext text-danger mt-1">
-                                        <i class="fas fa-calendar-xmark"></i> <?= date('d M Y', strtotime($donor->withdrawal_date)) ?>
+                                        <i class="fas fa-calendar-xmark"></i>
+                                        <?= date('d M Y', strtotime($donor->withdrawal_date)) ?>
                                     </div>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <div class="cp-table__actions">
                                     <button class="cp-btn cp-btn--secondary cp-btn--sm"
-                                            onclick="openConsentDrawer(<?= $donor->id ?>)">
+                                        onclick="openConsentDrawer(<?= $donor->id ?>)">
                                         <i class="fas fa-eye"></i> Consent Details
                                     </button>
                                 </div>
@@ -127,21 +131,21 @@ function consentBadgeClass($status) {
 </div>
 
 <script>
-function openConsentDrawer(id) {
-    const titleEl = document.getElementById('drawerTitle');
-    const bodyEl  = document.getElementById('drawerBody');
-    if (!titleEl || !bodyEl) { alert('Drawer not initialised.'); return; }
+    function openConsentDrawer(id) {
+        const titleEl = document.getElementById('drawerTitle');
+        const bodyEl = document.getElementById('drawerBody');
+        if (!titleEl || !bodyEl) { alert('Drawer not initialised.'); return; }
 
-    titleEl.innerText = 'Consent Record Details';
-    bodyEl.innerHTML  = '<div style="padding:2rem; text-align:center;"><i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem; color:var(--blue-400);"></i></div>';
+        titleEl.innerText = 'Consent Record Details';
+        bodyEl.innerHTML = '<div style="padding:2rem; text-align:center;"><i class="fas fa-circle-notch fa-spin" style="font-size:1.5rem; color:var(--blue-400);"></i></div>';
 
-    if (window.CaseDrawer) window.CaseDrawer.open();
+        if (window.CaseDrawer) window.CaseDrawer.open();
 
-    fetch('<?= ROOT ?>/medical-school/consents/view?id=' + id)
-        .then(r => r.text())
-        .then(html => { bodyEl.innerHTML = html; })
-        .catch(() => { bodyEl.innerHTML = '<div class="cp-alert cp-alert--danger">Failed to load. Please try again.</div>'; });
-}
+        fetch('<?= ROOT ?>/medical-school/consents/view?id=' + id)
+            .then(r => r.text())
+            .then(html => { bodyEl.innerHTML = html; })
+            .catch(() => { bodyEl.innerHTML = '<div class="cp-alert cp-alert--danger">Failed to load. Please try again.</div>'; });
+    }
 </script>
 
 

@@ -174,7 +174,7 @@
 
                 <div class="menu-section">
                     <div class="menu-section-title">Account</div>
-                    <a href="<?= ROOT ?>/logout" class="menu-item" style="color: var(--danger-color);">
+                    <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger" style="color: var(--danger-color);">
                         <span class="icon"><i class="fa-solid fa-sign-out-alt"></i></span>
                         <span>Logout</span>
                     </a>
@@ -205,27 +205,44 @@
                             
                             <div class="profile-body">
                                 <form method="POST" action="">
-                                    <div class="section-title">Profile Information</div>
+                                    <div class="section-title">Personal Information</div>
                                     
-                                    <div class="form-group">
-                                        <label class="form-label">Username</label>
-                                        <input type="text" name="username" class="form-input" value="<?= htmlspecialchars($user->username ?? '') ?>" required>
+                                    <div class="feature-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">First Name</label>
+                                            <input type="text" name="first_name" class="form-input" value="<?= htmlspecialchars($admin->first_name ?? '') ?>" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Last Name</label>
+                                            <input type="text" name="last_name" class="form-input" value="<?= htmlspecialchars($admin->last_name ?? '') ?>" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="feature-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" name="username" class="form-input" value="<?= htmlspecialchars($user->username ?? '') ?>" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Email Address</label>
+                                            <input type="email" name="email" class="form-input" value="<?= htmlspecialchars($user->email ?? '') ?>" required>
+                                        </div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Email Address</label>
-                                        <input type="email" class="form-input" value="<?= htmlspecialchars($user->email ?? '') ?>" disabled style="background: #f1f5f9; cursor: not-allowed;">
-                                        <small style="color: var(--secondary-text-color); opacity: 0.8;">Email cannot be changed directly. Contact system support.</small>
+                                        <label class="form-label">Contact Number</label>
+                                        <input type="text" name="contact_number" class="form-input" value="<?= htmlspecialchars($admin->contact_number ?? '') ?>" required>
                                     </div>
 
-                                    <div class="section-title" style="margin-top: 2rem;">Security Settings</div>
+                                    <div class="section-title" style="margin-top: 2.5rem;">Security Settings</div>
                                     
                                     <div class="form-group">
                                         <label class="form-label">Current Password</label>
                                         <input type="password" name="current_password" class="form-input" placeholder="Enter current password to save changes">
+                                        <small style="color: var(--secondary-text-color); opacity: 0.8; display: block; margin-top: 0.25rem;">Required for any sensitive changes.</small>
                                     </div>
 
-                                    <div class="feature-grid" style="margin-top: 1rem; margin-bottom: 1rem; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div class="feature-grid" style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                         <div class="form-group" style="margin-bottom: 0;">
                                             <label class="form-label">New Password</label>
                                             <input type="password" name="new_password" class="form-input" placeholder="Leave blank to keep current">
@@ -236,9 +253,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="action-buttons" style="margin-top: 2rem; justify-content: flex-end;">
-                                        <button type="button" onclick="window.location.href='<?= ROOT ?>/user-admin'" class="btn btn-secondary">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    <div class="action-buttons" style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                                        <button type="button" onclick="history.back()" class="btn btn-secondary">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Profile Changes</button>
                                     </div>
                                 </form>
                             </div>
@@ -314,6 +331,46 @@
                 }
             }
         });
+
+        // Modal functions
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) {
+                        modal.style.display = 'none';
+                    }
+                }, 300);
+                document.body.style.overflow = '';
+            }
+        }
     </script>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

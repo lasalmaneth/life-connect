@@ -119,14 +119,34 @@ class Custodian {
         $registeredSummary = 'NONE';
         if (!$activeCase) {
             $registry = $this->model->getConsentRegistry($donorId);
-            $names = [];
+            $organs = [];
+            $hasBody = false;
+            
             foreach ($registry as $item) {
-                if (($item->status ?? '') !== 'WITHDRAWN') {
-                    $names[] = $item->item_name;
+                if (($item->status ?? '') === 'WITHDRAWN') continue;
+                if ($item->type === 'BODY_CONSENT') {
+                    $hasBody = true;
+                } else {
+                    $cleanName = str_replace('(After death)', '', $item->item_name);
+                    $organs[] = trim($cleanName);
                 }
             }
-            if (!empty($names)) {
-                $registeredSummary = implode(', ', array_unique($names));
+            
+            $summaryParts = [];
+            if (!empty($organs)) {
+                $uniqueOrgans = array_unique($organs);
+                if (count($uniqueOrgans) > 2) {
+                    $summaryParts[] = count($uniqueOrgans) . " Organs & Tissues";
+                } else {
+                    $summaryParts[] = implode(', ', $uniqueOrgans);
+                }
+            }
+            if ($hasBody) {
+                $summaryParts[] = "Whole Body";
+            }
+            
+            if (!empty($summaryParts)) {
+                $registeredSummary = implode(' + ', $summaryParts);
             }
         }
 
@@ -628,6 +648,7 @@ class Custodian {
             'death_declaration'     => $deathDecl,
             'isLeader'              => $isLeader,
             'leaderInfo'            => $deathDecl, // Contains declared_by_name, phone, email
+            'registered_summary'    => $donor ? ($donor->pledge_type ?? 'NONE') : 'NONE',
             'donation_case'         => $donationCase,
             'activeCase'            => $activeCase,
             'certificates'          => $certificates ?? [],
@@ -1629,7 +1650,8 @@ class Custodian {
         $timeOfDeath = $deathDecl->date_of_death . ' ' . $deathDecl->time_of_death;
         
         $donorId = $activeCase->donor_id;
-        $snapshot = $resolver->resolveAtDeath($donorId, $deathDecl->is_brain_dead, $timeOfDeath, $activeCase->kidney_decision, $activeCase->body_cornea_decision);
+        $isBrainDead = (int)($deathDecl->is_brain_dead ?? 0);
+        $snapshot = $resolver->resolveAtDeath($donorId, $isBrainDead, $timeOfDeath, $activeCase->kidney_decision, $activeCase->body_cornea_decision);
         
         $activeItems = $snapshot['items'] ?? [];
         $expirations = $snapshot['time_limits'] ?? [];

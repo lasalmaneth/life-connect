@@ -606,9 +606,15 @@
 <body>
 
     <?php
-    if (session_status() === PHP_SESSION_NONE)
-        session_start();
-    $adminName = $_SESSION['username'] ?? ($_SESSION['user_name'] ?? 'Admin');
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $db = new class { use \App\Core\Database; };
+    $uId = $_SESSION['user_id'] ?? 0;
+    $adminData = $db->query("SELECT a.*, u.email, u.status 
+                             FROM admins a 
+                             JOIN users u ON a.user_id = u.id 
+                             WHERE a.user_id = :id", ['id' => $uId]);
+    $admin = !empty($adminData) ? $adminData[0] : null;
+    $adminName = $admin ? ($admin->first_name . ' ' . $admin->last_name) : ($_SESSION['username'] ?? 'Admin');
     ?>
 
     <div class="header">
@@ -635,25 +641,36 @@
                         style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
                         <i class="fa-solid fa-house"></i>
                     </a>
-                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications"
-                        style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
-                        <i class="fa-solid fa-bell"></i>
-                        <span
-                            style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
-                    </a>
                 </nav>
 
-                <div class="user-info">
-                    <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
-                        <?= substr($adminName, 0, 1) ?></div>
+                <div class="user-info-wrapper" id="userProfileToggle" data-profile-toggle style="cursor: pointer;">
+                    <div class="user-avatar"><?= strtoupper(substr($adminName, 0, 1)) ?></div>
                     <div class="user-details">
                         <span class="user-name"><?= htmlspecialchars($adminName) ?></span>
-                        <span
-                            class="user-role"><?= isset($_SESSION['role']) && $_SESSION['role'] === 'U_ADMIN' ? 'User Admin' : 'System Admin' ?></span>
+                        <span class="user-id">ID: <?= $admin->staff_id ?? 'N/A' ?></span>
                     </div>
                     <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
+                    
+                    <?php 
+                    $adminRoleTitle = 'User Administrator';
+                    include(__DIR__ . '/inc/profile_card.partial.php'); 
+                    ?>
                 </div>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggle = document.getElementById('userProfileToggle');
+                    const dropdown = document.getElementById('userProfileDropdown');
+
+                    if (toggle && dropdown) {
+                        toggle.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            dropdown.classList.toggle('active');
+                        });
+                    }
+                });
+            </script>
         </div>
     </div>
 
@@ -1666,6 +1683,23 @@
 
 
     </div>
+    </div>
+    </div>
+
+    <!-- Logout Confirmation Modal (Moved for visibility stability) -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast" class="notification">
@@ -1673,7 +1707,32 @@
     </div>
 
     <script>
-        const ROOT = '<?= $data['ROOT'] ?>';
+        const ROOT = '<?= ROOT ?>';
+        
+        // Global Modal Helpers (moved to top for maximum reliability)
+        window.openModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        window.closeModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) {
+                        modal.style.display = 'none';
+                    }
+                }, 300);
+                document.body.style.overflow = '';
+            }
+        };
     </script>
     <script>
         // Application State
@@ -2410,11 +2469,23 @@
                             }
                         }
 
-                        document.getElementById('review-status-dropdown').value = (user.status || 'PENDING').toUpperCase();
+                        const statusDropdown = document.getElementById('review-status-dropdown');
+                        const saveBtn = document.getElementById('btn-save-details');
+                        const verifSection = document.getElementById('verification-section');
+
+                        if (isAdmin) {
+                            if (statusDropdown) statusDropdown.disabled = true;
+                            if (saveBtn) saveBtn.style.display = 'none';
+                            if (verifSection) verifSection.style.display = 'none';
+                        } else {
+                            if (statusDropdown) statusDropdown.disabled = false;
+                            if (saveBtn) saveBtn.style.display = 'flex';
+                        }
+
+                        if (statusDropdown) statusDropdown.value = (user.status || 'PENDING').toUpperCase();
                         document.getElementById('review-message').value = user.review_message || '';
 
-                        const verifSection = document.getElementById('verification-section');
-                        if (verifSection) {
+                        if (verifSection && !isAdmin) {
                             if (statusUpper === 'PENDING') {
                                 verifSection.style.display = 'block';
                                 document.getElementById('verify-genuine').checked = false;
@@ -2792,28 +2863,7 @@
             }
         });
 
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = 'flex';
-                setTimeout(() => {
-                    modal.classList.add('show');
-                }, 10);
-            }
-        }
-
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('show');
-                // Ensure inline display is also reset for premium modals
-                setTimeout(() => {
-                    if (!modal.classList.contains('show')) {
-                        modal.style.display = 'none';
-                    }
-                }, 300); // Wait for transition
-            }
-        }
+        // Modal functions have been moved to the global script block at the top of the file.
 
 
 
@@ -3216,37 +3266,7 @@
             body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
         }
 
-        // Generic Modal Helpers
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if (modal) {
-                modal.classList.remove('show');
-                document.body.style.overflow = '';
-            }
-        }
+        // Redirect helpers are defined in central script block above
     </script>
-    <!-- Logout Confirmation Modal -->
-    <div id="logout-modal" class="modal">
-        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
-            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
-                <i class="fa-solid fa-right-from-bracket"></i>
-            </div>
-            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
-            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
-                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
-            </div>
-        </div>
-    </div>
-
 </body>
-
 </html>

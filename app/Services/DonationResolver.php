@@ -46,14 +46,17 @@ class DonationResolver
         $hasCornea = false;
         $hasOther = false;
         $hasBody = !empty($bodyConsents);
-        
+
         foreach ($organPledges as $p) {
             // IDs 1 and 9 are Kidney in this schema
-            if (in_array($p->organ_id, [1, 9])) $hasKidney = true;
+            if (in_array($p->organ_id, [1, 9]))
+                $hasKidney = true;
             // ID 4 is Cornea
-            elseif ($p->organ_id == 4) $hasCornea = true;
+            elseif ($p->organ_id == 4)
+                $hasCornea = true;
             // Any other organ (ID 2 Liver, etc.) is 'Other'
-            else $hasOther = true;
+            else
+                $hasOther = true;
         }
 
         $items = [];
@@ -85,14 +88,19 @@ class DonationResolver
         }
 
         foreach ($organPledges as $p) {
-            if ($p->organ_id == 9 || $p->organ_id == 4) continue;
-            $isExpired = ($hoursSinceDeath > 20); // Tissues/Organs generally 20h
+            if ($p->organ_id == 9 || $p->organ_id == 4)
+                continue;
+
+            // USER REQ: "OTHER ORGANS EXCEPT KIDNEY IT S BRAIN DEAD 20 HOURS"
+            $isExpired = ($hoursSinceDeath > 20);
+            $canOther = ($isBrainDead == 1 && !$isExpired);
+
             $items[$p->organ_id] = [
                 'name' => $p->item_name,
                 'type' => 'HOSPITAL_TISSUE',
-                'is_actionable' => !$isExpired,
-                'status' => $isExpired ? 'expired' : 'available',
-                'reason' => $isExpired ? 'EXPIRED_20H_WINDOW' : null
+                'is_actionable' => $canOther,
+                'status' => $isExpired ? 'expired' : ($isBrainDead == 1 ? 'available' : 'unavailable'),
+                'reason' => $isExpired ? 'EXPIRED_20H_WINDOW' : (!$isBrainDead ? 'REQUIRES_BRAIN_DEATH' : null)
             ];
             $timeLimits[$p->organ_id] = date('Y-m-d H:i:s', $deathTs + (20 * 3600));
         }
@@ -112,17 +120,24 @@ class DonationResolver
         }
 
         // 2. Resolve Main Mode
-        if ($hasBody && $hasCornea) $mode = 'BODY_PLUS_CORNEA';
-        elseif ($hasBody) $mode = 'BODY_ONLY';
-        elseif ($hasKidney && ($hasCornea || $hasOther || $hasBody)) $mode = 'KIDNEY_PLUS_OTHERS';
-        elseif ($hasKidney) $mode = 'KIDNEY_ONLY';
-        elseif ($hasCornea && $hasOther) $mode = 'ORGANS_PLUS_CORNEA';
-        elseif ($hasCornea || $hasOther) $mode = 'ORGAN_ONLY';
-        else $mode = 'NONE';
+        if ($hasBody && $hasCornea)
+            $mode = 'BODY_PLUS_CORNEA';
+        elseif ($hasBody)
+            $mode = 'BODY_ONLY';
+        elseif ($hasKidney && ($hasCornea || $hasOther || $hasBody))
+            $mode = 'KIDNEY_PLUS_OTHERS';
+        elseif ($hasKidney)
+            $mode = 'KIDNEY_ONLY';
+        elseif ($hasCornea && $hasOther)
+            $mode = 'ORGANS_PLUS_CORNEA';
+        elseif ($hasCornea || $hasOther)
+            $mode = 'ORGAN_ONLY';
+        else
+            $mode = 'NONE';
 
         // 3. Resolve Operational Track
         $track = self::TRACK_NONE;
-        
+
         if ($mode === 'NONE') {
             $track = self::TRACK_NO_ACTIONABLE_ITEMS;
         } elseif ($mode === 'KIDNEY_ONLY') {
