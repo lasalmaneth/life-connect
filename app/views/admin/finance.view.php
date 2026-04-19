@@ -12,7 +12,11 @@
 
 <?php
     if (session_status() === PHP_SESSION_NONE) session_start();
-    $adminName = $_SESSION['username'] ?? ($_SESSION['user_name'] ?? 'Admin');
+    $db = new class { use \App\Core\Database; };
+    $uId = $_SESSION['user_id'] ?? 0;
+    $adminData = $db->query("SELECT a.*, u.email, u.status FROM admins a JOIN users u ON a.user_id = u.id WHERE a.user_id = :id", ['id' => $uId]);
+    $adminInfoFull = !empty($adminData) ? $adminData[0] : null;
+    $adminName = $adminInfoFull ? ($adminInfoFull->first_name . ' ' . $adminInfoFull->last_name) : ($_SESSION['username'] ?? 'Admin');
     
     // Parse KPIs - ensure it is an array even if data is missing or false
     $kpis = (isset($data['kpis']) && is_array($data['kpis'])) ? $data['kpis'] : [];
@@ -93,20 +97,41 @@
                     <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
                         <i class="fa-solid fa-house"></i>
                     </a>
-                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
-                        <i class="fa-solid fa-bell"></i>
-                        <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
-                    </a>
                 </nav>
-                <div class="user-info">
-                    <div class="user-avatar"><?= substr($adminName, 0, 1) ?></div>
-                    <div class="user-details">
-                        <span class="user-name"><?= htmlspecialchars($adminName) ?></span>
-                        <span class="user-role">Financial Administrator</span>
+
+                    <div class="user-info-wrapper" id="userProfileToggleHeader" data-profile-toggle style="cursor: pointer;">
+                        <div class="user-avatar"><?= substr($adminName, 0, 1) ?></div>
+                        <div class="user-details" style="display: flex; flex-direction: column; margin-left: 8px;">
+                            <span class="user-name" style="font-weight: 600; font-size: 0.9rem; color: #1e293b; line-height: 1.2;"><?= htmlspecialchars($adminName) ?></span>
+                            <span class="user-role" style="font-size: 0.75rem; color: #64748b; font-weight: 500;">Finance Admin</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
+
+                        <?php 
+                        $adminRoleTitle = 'Financial Administrator';
+                        $admin = $adminInfoFull; 
+                        $dropdownId = 'userProfileDropdownHeader';
+                        include(__DIR__ . '/inc/profile_card.partial.php'); 
+                        ?>
                     </div>
-                    <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
                 </div>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggle = document.getElementById('userProfileToggleHeader');
+                    const dropdown = document.getElementById('userProfileDropdownHeader');
+
+                    if (toggle && dropdown) {
+                        toggle.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            dropdown.classList.toggle('active');
+                        });
+                    }
+                });
+            </script>
+        </div>
+    </div>
         </div>
     </div>
 

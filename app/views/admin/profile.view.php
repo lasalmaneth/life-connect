@@ -205,27 +205,44 @@
                             
                             <div class="profile-body">
                                 <form method="POST" action="">
-                                    <div class="section-title">Profile Information</div>
+                                    <div class="section-title">Personal Information</div>
                                     
-                                    <div class="form-group">
-                                        <label class="form-label">Username</label>
-                                        <input type="text" name="username" class="form-input" value="<?= htmlspecialchars($user->username ?? '') ?>" required>
+                                    <div class="feature-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">First Name</label>
+                                            <input type="text" name="first_name" class="form-input" value="<?= htmlspecialchars($admin->first_name ?? '') ?>" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Last Name</label>
+                                            <input type="text" name="last_name" class="form-input" value="<?= htmlspecialchars($admin->last_name ?? '') ?>" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="feature-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Username</label>
+                                            <input type="text" name="username" class="form-input" value="<?= htmlspecialchars($user->username ?? '') ?>" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Email Address</label>
+                                            <input type="email" name="email" class="form-input" value="<?= htmlspecialchars($user->email ?? '') ?>" required>
+                                        </div>
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label">Email Address</label>
-                                        <input type="email" class="form-input" value="<?= htmlspecialchars($user->email ?? '') ?>" disabled style="background: #f1f5f9; cursor: not-allowed;">
-                                        <small style="color: var(--secondary-text-color); opacity: 0.8;">Email cannot be changed directly. Contact system support.</small>
+                                        <label class="form-label">Contact Number</label>
+                                        <input type="text" name="contact_number" class="form-input" value="<?= htmlspecialchars($admin->contact_number ?? '') ?>" required>
                                     </div>
 
-                                    <div class="section-title" style="margin-top: 2rem;">Security Settings</div>
+                                    <div class="section-title" style="margin-top: 2.5rem;">Security Settings</div>
                                     
                                     <div class="form-group">
                                         <label class="form-label">Current Password</label>
                                         <input type="password" name="current_password" class="form-input" placeholder="Enter current password to save changes">
+                                        <small style="color: var(--secondary-text-color); opacity: 0.8; display: block; margin-top: 0.25rem;">Required for any sensitive changes.</small>
                                     </div>
 
-                                    <div class="feature-grid" style="margin-top: 1rem; margin-bottom: 1rem; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div class="feature-grid" style="margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                         <div class="form-group" style="margin-bottom: 0;">
                                             <label class="form-label">New Password</label>
                                             <input type="password" name="new_password" class="form-input" placeholder="Leave blank to keep current">
@@ -236,9 +253,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="action-buttons" style="margin-top: 2rem; justify-content: flex-end;">
-                                        <button type="button" onclick="window.location.href='<?= ROOT ?>/user-admin'" class="btn btn-secondary">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    <div class="action-buttons" style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                                        <button type="button" onclick="history.back()" class="btn btn-secondary">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Profile Changes</button>
                                     </div>
                                 </form>
                             </div>

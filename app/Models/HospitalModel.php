@@ -1249,7 +1249,7 @@ class HospitalModel {
         ];
         $statusCondition = $statusConditions[$filter] ?? "cis.request_status IN ('PENDING', 'UNDER_REVIEW')";
 
-        return $this->queryJoin(
+        $results = $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id'],
@@ -1265,6 +1265,7 @@ class HospitalModel {
             "COALESCE(cis.submission_date, cis.created_at) DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+
         return $this->processIncludedItems($results);
     }
 
@@ -1333,7 +1334,7 @@ class HospitalModel {
         ];
         $statusCondition = $statusConditions[$filter] ?? "cis.document_status != 'NOT_STARTED'";
 
-        return $this->queryJoin(
+        $results = $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
@@ -1348,6 +1349,7 @@ class HospitalModel {
             "cis.document_action_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+
         return $this->processIncludedItems($results);
     }
 
@@ -1362,7 +1364,7 @@ class HospitalModel {
             $where['cis.final_exam_status'] = $status;
         }
 
-        return $this->queryJoin(
+        $results = $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
@@ -1372,6 +1374,7 @@ class HospitalModel {
             "cis.final_exam_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+
         return $this->processIncludedItems($results);
     }
 

@@ -606,9 +606,15 @@
 <body>
 
     <?php
-    if (session_status() === PHP_SESSION_NONE)
-        session_start();
-    $adminName = $_SESSION['username'] ?? ($_SESSION['user_name'] ?? 'Admin');
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $db = new class { use \App\Core\Database; };
+    $uId = $_SESSION['user_id'] ?? 0;
+    $adminData = $db->query("SELECT a.*, u.email, u.status 
+                             FROM admins a 
+                             JOIN users u ON a.user_id = u.id 
+                             WHERE a.user_id = :id", ['id' => $uId]);
+    $admin = !empty($adminData) ? $adminData[0] : null;
+    $adminName = $admin ? ($admin->first_name . ' ' . $admin->last_name) : ($_SESSION['username'] ?? 'Admin');
     ?>
 
     <div class="header">
@@ -635,25 +641,36 @@
                         style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
                         <i class="fa-solid fa-house"></i>
                     </a>
-                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications"
-                        style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
-                        <i class="fa-solid fa-bell"></i>
-                        <span
-                            style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
-                    </a>
                 </nav>
 
-                <div class="user-info">
-                    <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
-                        <?= substr($adminName, 0, 1) ?></div>
+                <div class="user-info-wrapper" id="userProfileToggle" data-profile-toggle style="cursor: pointer;">
+                    <div class="user-avatar"><?= strtoupper(substr($adminName, 0, 1)) ?></div>
                     <div class="user-details">
                         <span class="user-name"><?= htmlspecialchars($adminName) ?></span>
-                        <span
-                            class="user-role"><?= isset($_SESSION['role']) && $_SESSION['role'] === 'U_ADMIN' ? 'User Admin' : 'System Admin' ?></span>
+                        <span class="user-id">ID: <?= $admin->staff_id ?? 'N/A' ?></span>
                     </div>
                     <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
+                    
+                    <?php 
+                    $adminRoleTitle = 'User Administrator';
+                    include(__DIR__ . '/inc/profile_card.partial.php'); 
+                    ?>
                 </div>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggle = document.getElementById('userProfileToggle');
+                    const dropdown = document.getElementById('userProfileDropdown');
+
+                    if (toggle && dropdown) {
+                        toggle.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            dropdown.classList.toggle('active');
+                        });
+                    }
+                });
+            </script>
         </div>
     </div>
 

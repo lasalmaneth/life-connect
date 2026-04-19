@@ -12,6 +12,63 @@ class UserAdmin {
     use Controller;
     use Database;
 
+    public function ajaxUpdateProfile()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $userId = $_SESSION['user_id'];
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $firstName = $data['first_name'] ?? '';
+        $lastName = $data['last_name'] ?? '';
+        $contactNumber = $data['contact_number'] ?? '';
+        $email = $data['email'] ?? '';
+        $designation = $data['designation'] ?? '';
+
+        if (empty($firstName) || empty($lastName) || empty($email)) {
+            echo json_encode(['success' => false, 'message' => 'Please fill all required fields.']);
+            exit;
+        }
+
+        try {
+            // Update users table (email and phone)
+            $this->query("UPDATE users SET email = :email, phone = :phone WHERE id = :id", [
+                'email' => $email,
+                'phone' => $contactNumber,
+                'id' => $userId
+            ]);
+
+            // Update admins table (first_name, last_name, contact_number, designation)
+            $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact, designation = :des WHERE user_id = :id", [
+                'fname' => $firstName,
+                'lname' => $lastName,
+                'contact' => $contactNumber,
+                'des' => $designation,
+                'id' => $userId
+            ]);
+
+            $newName = $firstName . ' ' . $lastName;
+            
+            // Update session data for immediate UI reflected changes
+            $_SESSION['user_name'] = $newName; 
+            $_SESSION['email'] = $email;
+
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Profile updated successfully',
+                'new_name' => $newName
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
     public function profile()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -22,41 +79,57 @@ class UserAdmin {
 
         $userId = $_SESSION['user_id'];
         $userModel = new \App\Models\UserModel();
-        $user = $userModel->getUserById($userId);
+        $adminModel = new \App\Models\AdminModel();
         
+        $user = $userModel->getUserById($userId);
+        // Fetch detailed admin info
+        $adminInfo = $this->query("SELECT * FROM admins WHERE user_id = :id", ['id' => $userId]);
+        $admin = !empty($adminInfo) ? $adminInfo[0] : null;
+
         $message = '';
         $messageType = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $username = $_POST['username'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $firstName = $_POST['first_name'] ?? '';
+            $lastName = $_POST['last_name'] ?? '';
+            $contactNumber = $_POST['contact_number'] ?? '';
             $currentPassword = $_POST['current_password'] ?? '';
             $newPassword = $_POST['new_password'] ?? '';
             $confirmPassword = $_POST['confirm_password'] ?? '';
 
-            if (empty($username)) {
-                $message = "Username determines your identity.";
+            if (empty($username) || empty($email)) {
+                $message = "Username and Email are required.";
                 $messageType = "error";
             } else {
-                // Update username if changed
-                if ($username !== $user->username) {
-                    if ($userModel->usernameExists($username)) {
-                        $message = "Username already taken.";
-                        $messageType = "error";
-                    } else {
-                        // We need a method to update user details, not just status
-                        // For now, let's assume we can update directly via query or add a method to UserModel
-                        $this->query("UPDATE users SET username = :username WHERE id = :id", [
-                            'username' => $username,
-                            'id' => $userId
-                        ]);
-                        $_SESSION['username'] = $username;
-                        $user->username = $username;
-                        $message = "Profile updated successfully.";
-                        $messageType = "success";
-                    }
+                // 1. Update users table (username, email)
+                $this->query("UPDATE users SET username = :username, email = :email WHERE id = :id", [
+                    'username' => $username,
+                    'email' => $email,
+                    'id' => $userId
+                ]);
+                $_SESSION['username'] = $username;
+                $user->username = $username;
+                $user->email = $email;
+
+                // 2. Update admins table (personal details)
+                if ($admin) {
+                    $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact WHERE user_id = :id", [
+                        'fname' => $firstName,
+                        'lname' => $lastName,
+                        'contact' => $contactNumber,
+                        'id' => $userId
+                    ]);
+                    $admin->first_name = $firstName;
+                    $admin->last_name = $lastName;
+                    $admin->contact_number = $contactNumber;
                 }
 
-                // Update password if provided
+                $message = "Profile details updated successfully.";
+                $messageType = "success";
+
+                // 3. Update password if provided
                 if (!empty($currentPassword) && !empty($newPassword)) {
                     if (password_verify($currentPassword, $user->password_hash)) {
                         if ($newPassword === $confirmPassword) {
@@ -66,7 +139,7 @@ class UserAdmin {
                                     'hash' => $passwordHash,
                                     'id' => $userId
                                 ]);
-                                $message = "Password updated successfully.";
+                                $message = "Profile and password updated successfully.";
                                 $messageType = "success";
                             } else {
                                 $message = "New password must be at least 8 characters.";
@@ -85,7 +158,8 @@ class UserAdmin {
         }
 
         $this->view('admin/profile', [
-            'user' => $user, 
+            'user' => $user,
+            'admin' => $admin,
             'ROOT' => ROOT,
             'message' => $message,
             'messageType' => $messageType

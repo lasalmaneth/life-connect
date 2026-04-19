@@ -333,7 +333,14 @@
     </style>
 </head>
 <body>
-<?php if (session_status() === PHP_SESSION_NONE) session_start(); ?>
+<?php 
+if (session_status() === PHP_SESSION_NONE) session_start(); 
+$db = new class { use \App\Core\Database; };
+$uId = $_SESSION['user_id'] ?? 0;
+$adminData = $db->query("SELECT a.*, u.email, u.status FROM admins a JOIN users u ON a.user_id = u.id WHERE a.user_id = :id", ['id' => $uId]);
+$admin = !empty($adminData) ? $adminData[0] : null;
+$adminName = $admin ? ($admin->first_name . ' ' . $admin->last_name) : ($_SESSION['username'] ?? 'Admin');
+?>
 <script>const ROOT = "<?= ROOT ?>";</script>
 <script src="/life-connect/public/assets/js/admin/donation.js?v=<?= time() ?>" defer></script>
 <script src="/life-connect/public/assets/js/admin/matching.js?v=<?= time() ?>" defer></script>
@@ -360,20 +367,39 @@
                     <a href="<?= ROOT ?>" class="nav-icon-link" title="Home" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s;">
                         <i class="fa-solid fa-house"></i>
                     </a>
-                    <a href="javascript:void(0)" class="nav-icon-link" title="Notifications" style="color: #64748b; font-size: 1.2rem; transition: color 0.2s; position: relative;">
-                        <i class="fa-solid fa-bell"></i>
-                        <span style="position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ef4444; border-radius: 50%; border: 2px solid white;"></span>
-                    </a>
                 </nav>
-                <div class="user-info">
-                    <div class="user-avatar">A</div>
-                    <div class="user-details">
-                        <span class="user-name"><?= htmlspecialchars($_SESSION['username'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?></span>
-                        <span class="user-role">Donation Administrator</span>
+                    <div class="user-info-wrapper" id="userProfileToggleHeader" data-profile-toggle style="cursor: pointer;">
+                        <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
+                            <?= substr($adminName, 0, 1) ?>
+                        </div>
+                        <div class="user-details" style="display: flex; flex-direction: column; margin-left: 8px;">
+                            <span class="user-name" style="font-weight: 600; font-size: 0.9rem; color: #1e293b; line-height: 1.2;"><?= htmlspecialchars($adminName) ?></span>
+                            <span class="user-role" style="font-size: 0.75rem; color: #64748b; font-weight: 500;">Donation Admin</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down ms-2" style="font-size: 0.7rem; color: #94a3b8;"></i>
+
+                        <?php 
+                        $adminRoleTitle = 'Donation Administrator';
+                        $dropdownId = 'userProfileDropdownHeader';
+                        include(dirname(__DIR__) . '/inc/profile_card.partial.php'); 
+                        ?>
                     </div>
-                    <i class="fa-solid fa-chevron-down ms-2 opacity-50"></i>
                 </div>
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggle = document.getElementById('userProfileToggleHeader');
+                    const dropdown = document.getElementById('userProfileDropdownHeader');
+
+                    if (toggle && dropdown) {
+                        toggle.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            dropdown.classList.toggle('active');
+                        });
+                    }
+                });
+            </script>
         </div>
     </div>
 
