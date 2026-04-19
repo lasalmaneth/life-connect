@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/life-connect/public/assets/css/common/footer.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/common/legaloverview.css">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
 </head>
 <body>
     <?php include __DIR__.'/header.view.php'; ?>

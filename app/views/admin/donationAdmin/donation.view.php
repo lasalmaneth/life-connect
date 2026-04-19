@@ -33,13 +33,7 @@
         transform: translateY(-1px);
     }
     .nav-link i { font-size: 1rem; }
-    /* Sidebar scrollable — no visible scrollbar */
-    .sidebar {
-        overflow-y: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-    .sidebar::-webkit-scrollbar { display: none; }
+    /* Sidebar Custom Scrollbar removed display:none to allow themed scrollbar from style.css */
     body { background-color: #f8fafc; min-height: 100vh; }
     .stats-grid { margin-top: 20px; }
 
@@ -220,14 +214,22 @@
         display: flex;
     }
     .modal-content {
-        background: #ffffff !important;
-        border-radius: 24px !important;
-        padding: 0 !important;
-        max-width: 680px !important;
-        border: none !important;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-        overflow: hidden !important;
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 0;
+        max-width: 680px;
+        border: none;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
     }
+    
+    /* Specific overrides for large clinical modals to maintain their full-bleed layout */
+    #organModal .modal-content, 
+    #hospitalRequestModal .modal-content {
+        max-width: 680px !important;
+        padding: 0 !important;
+    }
+
     .modal-scroll-area {
         padding: 2.5rem !important;
         max-height: 85vh;
@@ -339,7 +341,12 @@
 
     <div class="header">
         <div class="header-content">
-            <div class="header-left">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Mobile Toggle Button -->
+                <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
                 <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
@@ -370,6 +377,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid p-0">
         <div class="main-content">
             <div class="sidebar glass">
@@ -382,50 +392,52 @@
                     </div>
                 </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Core</div>
-                    <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
-                        <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
+                <div class="sidebar-nav">
+                    <div class="menu-section">
+                        <div class="menu-section-title">Core</div>
+                        <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
+                            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Organ Management</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('donor-organs', this)">
-                        <span class="icon"><i class="fa-solid fa-briefcase-medical"></i></span>
-                        <span>Pledged Organs</span>
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('matching', this)">
-                        <span class="icon"><i class="fa-solid fa-handshake"></i></span>
-                        <span>Matching</span>
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('hospital-requests', this)">
-                        <span class="icon"><i class="fa-solid fa-hospital-user"></i></span>
-                        <span>Hospital Requests</span>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Organ Management</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('donor-organs', this)">
+                            <span class="icon"><i class="fa-solid fa-briefcase-medical"></i></span>
+                            <span>Pledged Organs</span>
+                        </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('matching', this)">
+                            <span class="icon"><i class="fa-solid fa-handshake"></i></span>
+                            <span>Matching</span>
+                        </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('hospital-requests', this)">
+                            <span class="icon"><i class="fa-solid fa-hospital-user"></i></span>
+                            <span>Hospital Requests</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Community</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('tributes', this)" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span class="icon"><i class="fa-solid fa-heart"></i></span>
-                            <span>Success Stories</span>
-                        </div>
-                        <span id="nav-stories-badge" style="background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; display: none;">0</span>
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('patients', this)">
-                        <span class="icon"><i class="fa-solid fa-user-injured"></i></span>
-                        <span>Aftercare Patients</span>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Community</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('tributes', this)" style="display: flex; align-items: center; justify-content: space-between; position: relative;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span class="icon"><i class="fa-solid fa-heart"></i></span>
+                                <span>Success Stories</span>
+                            </div>
+                            <span id="nav-stories-badge" style="background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; min-width: 18px; height: 18px; line-height: 18px; text-align: center; border-radius: 50%; display: none;">0</span>
+                        </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('patients', this)">
+                            <span class="icon"><i class="fa-solid fa-user-injured"></i></span>
+                            <span>Aftercare Patients</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section mt-auto">
-                    <a href="<?= ROOT ?>/logout" class="menu-item text-danger">
-                        <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
+                    <div class="menu-section mt-auto">
+                        <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger">
+                            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -1242,5 +1254,47 @@
     </div>
 </div>
 
+    <script>
+        // Sidebar Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Generic Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+    </script>
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
