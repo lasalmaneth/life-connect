@@ -12,6 +12,9 @@ ob_start();
 <?php include __DIR__ . '/partials/page-header.php'; ?>
 
 <div class="cp-content__body">
+    
+    <!-- STEP-BY-STAGE PROGRESS INDICATOR -->
+    <?php require __DIR__ . '/partials/stepper.php'; ?>
 
     <!-- Workflow Locking Notice -->
     <?php include __DIR__ . '/partials/lock-notice.php'; ?>

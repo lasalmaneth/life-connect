@@ -56,3 +56,90 @@
     transform: translateY(1px);
     box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
 }
+
+/* Flatpickr Premium Overrides */
+.flatpickr-calendar {
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 0 !important; /* Remove padding to avoid shifting header elements */
+}
+
+/* Fix Calendar Header Alignment */
+.flatpickr-months {
+    padding: 10px 0 5px 0 !important;
+}
+.flatpickr-month {
+    height: 34px !important;
+}
+.flatpickr-current-month {
+    padding: 0 !important;
+    font-weight: 700 !important;
+}
+
+/* Time Picker Size Adjustments */
+.flatpickr-time {
+    height: 48px !important;
+    line-height: 48px !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+.flatpickr-time input {
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    color: var(--blue-700) !important;
+}
+.flatpickr-am-pm {
+    color: var(--blue-600) !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+}
+.flatpickr-time .flatpickr-time-separator {
+    font-weight: 700 !important;
+    color: var(--g300) !important;
+}
+.flatpickr-calendar {
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 0 !important;
+}
+
+/* Fix Calendar Header Alignment */
+.flatpickr-months {
+    padding: 10px 0 5px 0 !important;
+}
+.flatpickr-month {
+    height: 34px !important;
+}
+.flatpickr-current-month {
+    padding: 0 !important;
+    font-weight: 700 !important;
+}
+
+/* Time Picker Size Adjustments */
+.flatpickr-time {
+    height: 48px !important;
+    line-height: 48px !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+.flatpickr-time input {
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    color: var(--blue-700) !important;
+}
+.flatpickr-am-pm {
+    color: var(--blue-600) !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+}
+.flatpickr-time .flatpickr-time-separator {
+    font-weight: 700 !important;
+    color: var(--g300) !important;
+}
+
+@media (max-width: 600px) {
+    .flatpickr-calendar {
+        width: 100% !important;
+        max-width: 300px;
+    }
+}

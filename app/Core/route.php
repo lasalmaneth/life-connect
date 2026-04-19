@@ -77,8 +77,10 @@ route('custodian/dashboard',            'Custodian@dashboard');
 route('custodian/donor-profile',        'Custodian@donorProfile');
 route('custodian/profile',              'Custodian@profile');
 route('custodian/report-death',         'Custodian@reportDeath');
-route('custodian/consent',              'Custodian@consent');
+route('custodian/consent-registry',     'Custodian@consentRegistry');
+route('custodian/decide-kidney',       'Custodian@decideKidney');
 route('custodian/institution-requests', 'Custodian@institutionRequests');
+route('custodian/persist-selection',    'Custodian@persistSelection');
 route('custodian/co-custodian',         'Custodian@coCustodian');
 route('custodian/legal-response',       'Custodian@legalResponse');
 route('custodian/cadaver-data-sheet',   'Custodian@cadaverDataSheet');
@@ -103,6 +105,7 @@ route('api/custodian/available-institutions','Custodian@getAvailableInstitutions
 route('api/custodian/select-institution',   'Custodian@selectInstitution');
 route('api/custodian/upload-document',      'Custodian@uploadDocument');
 route('api/custodian/submit-institution',   'Custodian@submitToInstitution');
+route('api/custodian/get-registry-details', 'Custodian@getRegistryDetails');
 
 
 route('hospital', 'Hospital@index');
@@ -307,6 +310,8 @@ route('deceased-donation', 'HomePages@deceasedDonation');
 route('our-story', 'HomePages@ourStory');
 route('reach-us', 'HomePages@reachUs');
 route('reach-us/submit', 'HomePages@submitContact');
+route('home/submit', 'Home@submitContact');
+route('api/contact/submit', 'Home@contactAjax');
 route('religion', 'HomePages@religion');
 route('religion/buddhism', 'HomePages@faithDetails');
 route('religion/hinduism', 'HomePages@faithDetails');

@@ -10,6 +10,7 @@ $nav_items = [
         'items' => array_filter([
             ['href' => ROOT . '/custodian/dashboard',     'icon' => 'fa-chart-line',      'label' => 'Dashboard',   'key' => 'dashboard'],
             ['href' => ROOT . '/custodian/donor-profile', 'icon' => 'fa-id-card',           'label' => 'Donor Profile',      'key' => 'donor-profile'],
+            ['href' => ROOT . '/custodian/consent-registry', 'icon' => 'fa-file-signature', 'label' => 'Consent Registry',  'key' => 'consent-registry'],
             ['href' => ROOT . '/custodian/profile',       'icon' => 'fa-users-line',      'label' => 'Custodians',        'key' => 'profile'],
             ['href' => ROOT . '/custodian/report-death', 'icon' => 'fa-heart-crack', 'label' => (!empty($death_declaration) ? 'Death Details' : 'Report Death'), 'key' => 'report-death'],
         ]),

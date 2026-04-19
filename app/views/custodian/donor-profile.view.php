@@ -1,13 +1,13 @@
-﻿<?php
+<?php
 /**
  * Custodian Portal — Donor Profile View
- * Route: GET /custodian/donor-profile
- * Active page key: donor-profile
+ * Refactored to be a lean, read-only bio/contact record.
+ * Registry and outcomes have been moved to the dedicated Consent Registry page.
  */
 
 $page_icon     = 'fa-id-card';
 $page_heading  = 'Donor Profile';
-$page_subtitle = 'View the registered donor\'s personal and medical information.';
+$page_subtitle = 'General identity and contact information for the registered donor.';
 
 ob_start();
 ?>
@@ -16,14 +16,6 @@ ob_start();
 <?php include __DIR__ . '/partials/page-header.php'; ?>
 
 <div class="cp-content__body">
-
-    <div class="cp-notice cp-notice--info mb-4">
-        <i class="fas fa-circle-info"></i>
-        <div>
-            <strong>Read-Only View</strong>
-            <p>Donor profile data is managed by the system administrator. This page is view-only.</p>
-        </div>
-    </div>
 
     <!-- -- Personal Information ---------------------------------------------- -->
     <div class="cp-section-card mb-4">
@@ -57,11 +49,11 @@ ob_start();
         <!-- -- Contact Information ------------------------------------------- -->
         <div class="cp-section-card h-100">
             <div class="cp-section-card__header">
-                <div class="cp-section-card__title"><i class="fas fa-phone"></i> Contact Details</div>
+                <div class="cp-section-card__title"><i class="fas fa-phone"></i> Contact Information</div>
             </div>
             <div class="cp-section-card__body">
                 <div class="cp-profile-form-group">
-                    <label class="cp-label">Phone</label>
+                    <label class="cp-label">Primary Phone</label>
                     <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->user_phone ?? 'N/A') ?>" disabled />
                 </div>
                 <div class="cp-profile-form-group">
@@ -69,99 +61,62 @@ ob_start();
                     <input type="email" class="cp-profile-input" value="<?= htmlspecialchars($donor->user_email ?? 'N/A') ?>" disabled />
                 </div>
                 <div class="cp-profile-form-group">
-                    <label class="cp-label">Address</label>
+                    <label class="cp-label">Residential Address</label>
                     <textarea class="cp-profile-input" style="min-height:80px; resize:none;" rows="3" disabled><?= htmlspecialchars($donor->address ?? '') ?></textarea>
                 </div>
             </div>
         </div>
 
-        <!-- -- Registration Info --------------------------------------------- -->
+        <!-- -- Registration Chain --------------------------------------------- -->
         <div class="cp-section-card h-100">
             <div class="cp-section-card__header">
-                <div class="cp-section-card__title"><i class="fas fa-file-invoice"></i> Registration Details</div>
+                <div class="cp-section-card__title"><i class="fas fa-link"></i> Registration Chain</div>
             </div>
             <div class="cp-section-card__body">
                 <div class="cp-profile-form-group">
-                    <label class="cp-label">Registration ID</label>
+                    <label class="cp-label">LifeConnect ID</label>
                     <input type="text" class="cp-profile-input" value="D-<?= str_pad($donor->id, 5, '0', STR_PAD_LEFT) ?>" disabled />
                 </div>
                 <div class="cp-profile-form-group">
-                    <label class="cp-label">Initial Pledge Type</label>
-                    <input type="text" class="cp-profile-input" value="<?= str_replace('_', ' ', $donor->pledge_type ?? '') ?>" disabled />
+                    <label class="cp-label">Initial Registration Type</label>
+                    <input type="text" class="cp-profile-input" value="<?= str_replace('_', ' ', $donor->pledge_type ?? 'NONE') ?>" disabled />
                 </div>
                 <div class="cp-profile-form-group">
-                    <label class="cp-label">Registered Date</label>
+                    <label class="cp-label">Date of Registration</label>
                     <input type="text" class="cp-profile-input" value="<?= !empty($donor->created_at) ? date('M j, Y', strtotime($donor->created_at)) : 'N/A' ?>" disabled />
+                </div>
+                
+                <div class="mt-3">
+                    <a href="<?= ROOT ?>/custodian/consent-registry" class="cp-btn cp-btn--outline cp-btn--sm w-100" style="justify-content: center;">
+                        <i class="fas fa-book-medical"></i> View Consent Registry
+                    </a>
                 </div>
             </div>
         </div>
 
-        </div>
+    </div>
 
-    <!-- -- Donation Consent History ------------------------------------------ -->
-    <div class="cp-section-card mt-4">
+    <!-- -- Medical Disclosure ---------------------------------------------- -->
+    <div class="cp-section-card mt-4 mb-5">
         <div class="cp-section-card__header">
-            <div class="cp-section-card__title">
-                <i class="fas fa-file-signature"></i> Donation Consent History Timeline
-            </div>
+            <div class="cp-section-card__title"><i class="fas fa-notes-medical"></i> Medical Disclosure</div>
         </div>
-        <div class="cp-section-card__body p-0">
-            <?php 
-                $timeline = [];
-                if (!empty($consent)) {
-                    foreach ($consent["body_consents"] ?? [] as $bc) {
-                        $timeline[] = (object)[
-                            "type"   => "BODY DONATION",
-                            "date"   => $bc->consent_date,
-                            "status" => "ACTIVE", 
-                            "details"=> ($bc->school_name ?? "Medical School")
-                        ];
-                    }
-                    foreach ($consent["organ_pledges"] ?? [] as $op) {
-                        $timeline[] = (object)[
-                            "type"   => "ORGAN PLEDGE",
-                            "date"   => $op->created_at,
-                            "status" => $op->status,
-                            "details"=> $op->organ_name
-                        ];
-                    }
-                    usort($timeline, fn($a, $b) => strtotime($b->date ?: "2000-01-01") - strtotime($a->date ?: "2000-01-01"));
-                }
-            ?>
+        <div class="cp-section-card__body">
+            <div class="cp-notice cp-notice--warning mb-3" style="font-size: 0.8rem;">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>This information was self-reported by the donor during registration and should be verified by clinical staff before procurement.</div>
+            </div>
             
-            <?php if (empty($timeline)): ?>
-                <div class="p-5 text-center cp-text-g500">No documented consent history available for this donor.</div>
-            <?php else: ?>
-                <table class="cp-table w-100 text-left">
-                    <thead>
-                        <tr class="cp-bg-g50 border-bottom">
-                            <th class="p-3">Type</th>
-                            <th class="p-3">Description</th>
-                            <th class="p-3">Registered Date</th>
-                            <th class="p-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($timeline as $t): ?>
-                            <tr class="border-bottom">
-                                <td class="p-3 cp-font-semibold" style="font-size: 0.85rem;"><?= $t->type ?></td>
-                                <td class="p-3" style="font-size: 0.85rem; color: var(--g600);"><?= htmlspecialchars($t->details) ?></td>
-                                <td class="p-3" style="font-size: 0.85rem;"><?= !empty($t->date) ? date("M j, Y", strtotime($t->date)) : "N/A" ?></td>
-                                <td class="p-3">
-                                    <?php 
-                                        $pillClass = "pending";
-                                        if ($t->status === "ACTIVE" || $t->status === "GIVEN") $pillClass = "approved";
-                                        if ($t->status === "WITHDRAWN") $pillClass = "rejected";
-                                    ?>
-                                    <span class="cp-status-pill cp-status-pill--<?= $pillClass ?>" style="padding: 2px 10px; font-size: 0.75rem;">
-                                        <?= htmlspecialchars($t->status) ?>
-                                    </span>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
+            <div class="cp-grid-2">
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Blood Group</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->blood_group ?? 'Not Specified') ?>" disabled />
+                </div>
+                <div class="cp-profile-form-group">
+                    <label class="cp-label">Chronic Conditions</label>
+                    <input type="text" class="cp-profile-input" value="<?= htmlspecialchars($donor->medical_conditions ?? 'None Reported') ?>" disabled />
+                </div>
+            </div>
         </div>
     </div>
 

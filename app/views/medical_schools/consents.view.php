@@ -44,8 +44,7 @@ function consentBadgeClass($status) {
             $statuses = [
                 'ALL' => 'All Records',
                 'GIVEN' => 'Active',
-                'WITHDRAWN' => 'Withdrawn',
-                'FLAGGED' => 'Flagged'
+                'WITHDRAWN' => 'Withdrawn'
             ];
             foreach ($statuses as $val => $lbl): 
                 $active = ($active_status === $val) ? 'active' : '';
@@ -61,8 +60,6 @@ function consentBadgeClass($status) {
                     <th>Donor</th>
                     <th>NIC Number</th>
                     <th>Consent Date</th>
-                    <th>Witnesses</th>
-                    <th>Verification</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -104,23 +101,9 @@ function consentBadgeClass($status) {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <div class="cp-table__filename"><?= htmlspecialchars($donor->witness1_name ?: 'N/A') ?></div>
-                                <div class="cp-table__subtext"><?= htmlspecialchars($donor->witness2_name ?: 'N/A') ?></div>
-                            </td>
-                            <td>
-                                <span class="cp-badge cp-badge--<?= $donor->verification_status === 'APPROVED' ? 'success' : 'warning' ?>">
-                                    <?= htmlspecialchars($donor->verification_status ?: 'PENDING') ?>
-                                </span>
-                            </td>
-                            <td>
                                 <span class="cp-badge cp-badge--<?= consentBadgeClass($donor->consent_status) ?>">
                                     <?= htmlspecialchars($donor->consent_status) ?>
                                 </span>
-                                <?php if (!empty($donor->flag_reason)): ?>
-                                    <span class="cp-badge cp-badge--danger" title="<?= htmlspecialchars($donor->flag_reason) ?>">
-                                        <i class="fas fa-flag"></i> FLAGGED
-                                    </span>
-                                <?php endif; ?>
                                 <?php if ($donor->consent_status === 'WITHDRAWN'): ?>
                                     <div class="cp-table__subtext text-danger mt-1">
                                         <i class="fas fa-calendar-xmark"></i> <?= date('d M Y', strtotime($donor->withdrawal_date)) ?>

@@ -196,6 +196,11 @@
                         every memory created, continues to guide us and bring comfort in the days ahead.”</p>
                 </div>
             </div>
+            
+            <div class="share-story-message" style="text-align: center; margin-top: 40px; color: #fff;">
+                <p style="font-size: 1.1rem; margin-bottom: 10px;">Would you like to share a story about your loved one?</p>
+                <p style="font-size: 1.1rem;">Email us at <a href="mailto:lifeconnectsrilanka@gmail.com" style="color: #fca311; text-decoration: none; font-weight: bold;">lifeconnectsrilanka@gmail.com</a></p>
+            </div>
         </div>
     </section>
 
@@ -314,25 +319,37 @@
                     <div class="contact-photo"><img src="<?= ROOT ?>/public/assets/images/medical-team.png" alt="Team">
                     </div>
                 </div>
-                <form class="contact-form" id="contactForm" novalidate>
+                <form class="contact-form" id="contactForm" action="<?= ROOT ?>/home/submit" method="POST">
                     <div class="f-group">
-                        <label for="name">Full Name</label>
-                        <input type="text" id="name" placeholder="Enter your name">
-                        <span class="f-err" id="nameErr">Name is required</span>
+                        <label for="full_name">Full Name</label>
+                        <input type="text" id="full_name" name="full_name" placeholder="Enter your name" required>
+                        <?php if(isset($_SESSION['contact_errors']) && in_array("Name is required", $_SESSION['contact_errors'])): ?>
+                            <span class="f-err" style="display:block;">Name is required</span>
+                        <?php endif; ?>
                     </div>
                     <div class="f-group">
                         <label for="email">Email Address</label>
-                        <input type="email" id="email" placeholder="Enter your email">
-                        <span class="f-err" id="emailErr">Valid email is required</span>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                        <?php if(isset($_SESSION['contact_errors']) && in_array("Valid email is required", $_SESSION['contact_errors'])): ?>
+                            <span class="f-err" style="display:block;">Valid email is required</span>
+                        <?php endif; ?>
                     </div>
                     <div class="f-group">
-                        <label for="msg">Message</label>
-                        <textarea id="msg" rows="5" placeholder="Write your message"></textarea>
-                        <span class="f-err" id="msgErr">Message cannot be empty</span>
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" rows="5" placeholder="Write your message" required></textarea>
+                        <?php if(isset($_SESSION['contact_errors']) && in_array("Message is required", $_SESSION['contact_errors'])): ?>
+                            <span class="f-err" style="display:block;">Message cannot be empty</span>
+                        <?php endif; ?>
                     </div>
+                    <input type="hidden" name="subject" value="Homepage Contact Form">
                     <button type="submit" class="btn-send">Send Message <i class="fa-solid fa-paper-plane"></i></button>
-                    <p class="f-success" id="successMsg"><i class="fa-solid fa-check-circle"></i> Your message has been
-                        sent successfully!</p>
+                    <?php if(isset($_SESSION['contact_success'])): ?>
+                        <p class="f-success" style="display:flex;"><i class="fa-solid fa-check-circle"></i> <?= $_SESSION['contact_success'] ?></p>
+                        <?php unset($_SESSION['contact_success']); ?>
+                    <?php endif; ?>
+                    <?php if(isset($_SESSION['contact_errors'])): ?>
+                        <?php unset($_SESSION['contact_errors']); unset($_SESSION['contact_data']); ?>
+                    <?php endif; ?>
                 </form>
             </div>
         </div>
@@ -419,16 +436,6 @@
                 document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
                 if (!open) item.classList.add('open');
             });
-        });
-        // Contact form
-        document.getElementById('contactForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            let ok = true;
-            document.querySelectorAll('.f-err').forEach(el => el.style.display = 'none');
-            if (!document.getElementById('name').value.trim()) { document.getElementById('nameErr').style.display = 'block'; ok = false; }
-            if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(document.getElementById('email').value)) { document.getElementById('emailErr').style.display = 'block'; ok = false; }
-            if (!document.getElementById('msg').value.trim()) { document.getElementById('msgErr').style.display = 'block'; ok = false; }
-            if (ok) { document.getElementById('successMsg').style.display = 'flex'; this.reset(); setTimeout(() => { document.getElementById('successMsg').style.display = 'none'; }, 4000); }
         });
 
         // Animate stats
