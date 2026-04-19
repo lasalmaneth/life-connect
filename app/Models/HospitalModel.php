@@ -685,17 +685,8 @@ class HospitalModel {
     public function getAftercareAppointments($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT aa.*, 
-                    COALESCE(d.nic_number, rp.nic) as nic,
-                    COALESCE(CONCAT(d.first_name, ' ', d.last_name), rp.full_name) as patient_name,
-                    ap.patient_type
-                  FROM aftercare_appointments aa
-                  LEFT JOIN aftercare_patients ap ON aa.user_id = ap.user_id
-                  LEFT JOIN donors d ON ap.user_id = d.user_id AND ap.patient_type = 'DONOR'
-                  LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id AND ap.patient_type = 'RECIPIENT'
-                  WHERE aa.hospital_registration_no = :reg_no 
-                  ORDER BY aa.appointment_date ASC";
-        return $this->query($query, [':reg_no' => $regNo]) ?: [];
+        $query = "SELECT * FROM aftercare_appointments WHERE hospital_registration_no = :reg_no ORDER BY appointment_date ASC";
+        return $this->query($query, [':reg_no' => $regNo]);
     }
 
     /**
@@ -704,22 +695,6 @@ class HospitalModel {
      */
     public function ensureAftercareAppointmentsSchema(): void
     {
-        // Add user_id column if missing
-        try {
-            $colUser = $this->query("SHOW COLUMNS FROM aftercare_appointments LIKE 'user_id'");
-            if (empty($colUser)) {
-                $con = $this->connect();
-                $con->exec("ALTER TABLE aftercare_appointments ADD COLUMN user_id INT NOT NULL AFTER hospital_registration_no");
-            }
-        } catch (\Throwable $e) { /* ignore */ }
-
-        // Drop legacy columns if they exist
-        try {
-            $con = $this->connect();
-            $con->exec("ALTER TABLE aftercare_appointments DROP COLUMN IF EXISTS patient_id");
-            $con->exec("ALTER TABLE aftercare_appointments DROP COLUMN IF EXISTS user_name");
-        } catch (\Throwable $e) { /* ignore */ }
-
         // Add rejection_reason column if missing
         try {
             $col = $this->query("SHOW COLUMNS FROM aftercare_appointments LIKE 'rejection_reason'");
@@ -756,47 +731,10 @@ class HospitalModel {
     public function getAftercareAppointmentRequests($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT aa.*, ap.full_name as patient_name 
-                  FROM aftercare_appointments aa
-                  JOIN aftercare_patients ap ON aa.user_id = ap.user_id
-                  WHERE aa.hospital_registration_no = :reg_no
-                    AND aa.status = 'Requested'
-                  ORDER BY aa.appointment_date ASC";
-        return $this->query($query, [':reg_no' => $regNo]) ?: [];
-    }
-
-    public function getDonorAftercareAppointments($regNo)
-    {
-        $this->ensureAftercareAppointmentsSchema();
-        // Use LEFT JOINs to ensure requests show up even if the mapping is partial
-        $query = "SELECT aa.*, d.first_name, d.last_name, d.nic_number as nic
-                  FROM aftercare_appointments aa
-                  LEFT JOIN aftercare_patients ap ON aa.user_id = ap.user_id
-                  LEFT JOIN donors d ON aa.user_id = d.user_id
-                  WHERE aa.hospital_registration_no = :reg_no
-                    AND (ap.patient_type = 'DONOR' OR ap.patient_type IS NULL)
-                    AND aa.status IN ('Requested', 'Scheduled', 'Approved')
-                  ORDER BY aa.appointment_date ASC";
-        
-        $results = $this->query($query, [':reg_no' => $regNo]) ?: [];
-        foreach($results as $r) {
-            $r->patient_name = trim(($r->first_name ?? '') . ' ' . ($r->last_name ?? ''));
-            if ($r->patient_name === '') $r->patient_name = 'Donor';
-        }
-        return $results;
-    }
-
-    public function getRecipientAftercareAppointments($regNo)
-    {
-        $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT aa.*, rp.full_name as patient_name, rp.nic as nic 
-                  FROM aftercare_appointments aa
-                  JOIN aftercare_patients ap ON aa.user_id = ap.user_id
-                  JOIN recipient_patient rp ON ap.user_id = rp.user_id
-                  WHERE aa.hospital_registration_no = :reg_no
-                    AND ap.patient_type = 'RECIPIENT'
-                    AND aa.status IN ('Requested', 'Scheduled', 'Approved')
-                  ORDER BY aa.appointment_date ASC";
+        $query = "SELECT * FROM aftercare_appointments
+                  WHERE hospital_registration_no = :reg_no
+                    AND status = 'Requested'
+                  ORDER BY appointment_date ASC";
         return $this->query($query, [':reg_no' => $regNo]) ?: [];
     }
 
@@ -835,38 +773,13 @@ class HospitalModel {
 
     public function notifyDonorByNic($nic, $title, $message, $type = 'INFO')
     {
-        return $this->notifyPatientByNic($nic, $title, $message, $type);
-    }
-
-    public function notifyPatientByUserId($userId, $title, $message, $type = 'INFO')
-    {
-        return $this->createNotification((int)$userId, $title, $message, $type);
-    }
-
-    public function notifyPatientByNic($nic, $title, $message, $type = 'INFO')
-    {
         $nic = trim((string)$nic);
         if ($nic === '') return false;
 
-        // 1. Check Donors table
         $res = $this->query("SELECT user_id FROM donors WHERE nic_number = :nic LIMIT 1", [':nic' => $nic]);
-        if ($res && isset($res[0]->user_id)) {
-            return $this->createNotification((int)$res[0]->user_id, $title, $message, $type);
-        }
-
-        // 2. Check Aftercare Patients table
-        $res = $this->query("SELECT user_id FROM aftercare_patients WHERE nic = :nic LIMIT 1", [':nic' => $nic]);
-        if ($res && !empty($res[0]->user_id)) {
-            return $this->createNotification((int)$res[0]->user_id, $title, $message, $type);
-        }
-
-        // 3. Fallback: check if username matches NIC directly (common for some recipient logins)
-        $res = $this->query("SELECT id FROM users WHERE username = :nic LIMIT 1", [':nic' => $nic]);
-        if ($res && isset($res[0]->id)) {
-            return $this->createNotification((int)$res[0]->id, $title, $message, $type);
-        }
-
-        return false;
+        if (!$res) return false;
+        $userId = (int)$res[0]->user_id;
+        return $this->createNotification($userId, $title, $message, $type);
     }
 
     // Aftercare Support Requests
@@ -882,18 +795,6 @@ class HospitalModel {
                   LIMIT $limit";
 
         return $this->query($query, [':reg_no' => $regNo]) ?: [];
-    }
-
-    public function getSupportRequestById($id)
-    {
-        $res = $this->query("SELECT * FROM support_requests WHERE id = :id LIMIT 1", [':id' => $id]);
-        return $res ? $res[0] : null;
-    }
-
-    public function getAftercareAppointmentById($id)
-    {
-        $res = $this->query("SELECT * FROM aftercare_appointments WHERE appointment_id = :id LIMIT 1", [':id' => $id]);
-        return $res ? $res[0] : null;
     }
 
     public function approveSupportRequest($requestId, $regNo, $reviewedBy = 'Hospital')
@@ -1249,7 +1150,7 @@ class HospitalModel {
         ];
         $statusCondition = $statusConditions[$filter] ?? "cis.request_status IN ('PENDING', 'UNDER_REVIEW')";
 
-        $results = $this->queryJoin(
+        return $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id'],
@@ -1261,12 +1162,10 @@ class HospitalModel {
                 'cis.track' => 'ORGAN',
                 $statusCondition
             ],
-            "dc.id as case_id, dc.case_number, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
+            "dc.id as case_id, dc.case_number, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
             "COALESCE(cis.submission_date, cis.created_at) DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
-
-        return $this->processIncludedItems($results);
     }
 
     public function getDeceasedRequestDetails($hospitalId, $cisId)
@@ -1279,16 +1178,9 @@ class HospitalModel {
                 ['table' => 'custodians c', 'on' => 'd.id = c.donor_id AND (c.custodian_number = 1 OR c.custodian_number IS NULL)', 'type' => 'LEFT JOIN']
             ],
             ['cis.id' => $cisId, 'cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
-            "cis.*, cis.id as cis_id, cis.included_items_json, dc.case_number, dc.operational_items_json, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
+            "cis.*, cis.id as cis_id, dc.case_number, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
             "", 1, 0, "case_institution_status cis"
-        );
-        $res = $this->processIncludedItems($res);
-        return $res[0] ?? false;
-    }
-
-    public function getCustodiansForDonor($donorId)
-    {
-        return $this->query("SELECT name, relationship, phone, email, nic_number FROM custodians WHERE donor_id = :donor_id", [':donor_id' => $donorId]) ?: [];
+        )[0] ?? false;
     }
 
     public function updateDeceasedRequestStatus($hospitalId, $cisId, $status, $reason, $userId)
@@ -1334,7 +1226,7 @@ class HospitalModel {
         ];
         $statusCondition = $statusConditions[$filter] ?? "cis.document_status != 'NOT_STARTED'";
 
-        $results = $this->queryJoin(
+        return $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
@@ -1345,12 +1237,10 @@ class HospitalModel {
                 'cis.request_status' => 'ACCEPTED',
                 $statusCondition
             ],
-            "dc.id as case_id, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.document_action_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
-
-        return $this->processIncludedItems($results);
     }
 
     public function getDeceasedFinalFlow($hospitalId, $status = 'ALL')
@@ -1364,40 +1254,16 @@ class HospitalModel {
             $where['cis.final_exam_status'] = $status;
         }
 
-        $results = $this->queryJoin(
+        return $this->queryJoin(
             [
                 ['table' => 'donation_cases dc', 'on' => 'cis.donation_case_id = dc.id'],
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
             ],
             $where,
-            "dc.id as case_id, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.final_exam_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
-
-        return $this->processIncludedItems($results);
-    }
-
-    private function processIncludedItems($results) {
-        if (!$results) return $results;
-        foreach ($results as &$row) {
-            if (!empty($row->included_items_json) && !empty($row->operational_items_json)) {
-                $itemIds = json_decode($row->included_items_json, true);
-                $snapshot = json_decode($row->operational_items_json, true);
-                if (is_array($itemIds) && is_array($snapshot)) {
-                    $names = [];
-                    foreach ($itemIds as $id) {
-                        if (isset($snapshot[$id])) {
-                            $names[] = $snapshot[$id]['name'];
-                        }
-                    }
-                    if (!empty($names)) {
-                        $row->requested_organs = implode(', ', $names);
-                    }
-                }
-            }
-        }
-        return $results;
     }
 
     public function updateDeceasedFinalFlowStatus($hospitalId, $cisId, $status, $reason, $notes, $userId)
