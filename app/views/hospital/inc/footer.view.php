@@ -194,15 +194,10 @@
         }
 
         function editProfile() {
-                        const dropdown = document.getElementById('user-dropdown');
-            if (dropdown) {
-                dropdown.classList.remove('show');
-            }
-            
-                        const modal = document.getElementById('edit-profile-modal');
-            if (modal) {
-                modal.classList.add('show');
-            }
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown) dropdown.classList.remove('show');
+            const modal = document.getElementById('profile-modal');
+            if (modal) modal.classList.add('show');
         }
 
         function logout() {

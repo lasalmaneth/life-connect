@@ -248,7 +248,7 @@ if (!empty($pending_matches)) {
                         function buildSuspensionTip(array $organ): string {
                             $organName = $organ['organ_name'] ?? 'this organ';
                             $nextDate  = $organ['next_eligible_date'] ?? null;
-                            $formatted = $nextDate ? date('d M Y', strtotime($nextDate)) : 'TBD';
+                            $formatted = $nextDate ? date('d/m/Y', strtotime($nextDate)) : 'TBD';
                             
                             return "You are currently in the recovery period for " . htmlspecialchars($organName) . ". You will be eligible to re-pledge after " . $formatted . ".";
                         }

@@ -41,7 +41,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                             <tbody>
                                 <?php foreach ($consent_history as $item): ?>
                                     <tr>
-                                        <td><?= date('M d, Y', strtotime($item['date'])) ?></td>
+                                        <td><?= date('d/m/Y', strtotime($item['date'])) ?></td>
                                         <td>
                                             <?php if ($item['type'] === 'ORGAN'): ?>
                                                 <span class="d-status" style="background: var(--blue-50); color: var(--blue-700);"><i class="fas fa-heart"></i> Organ</span>

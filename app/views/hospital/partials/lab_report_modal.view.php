@@ -18,7 +18,9 @@
                     <select class="form-select" id="lab-organ-id">
                         <option value="">Select Organ</option>
                         <?php foreach (($organs ?? []) as $organ): ?>
-                            <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                            <?php if (in_array($organ->name, ['Kidney', 'Part of Liver', 'Bone Marrow'])): ?>
+                                <option value="<?= (int)$organ->id ?>"><?= htmlspecialchars($organ->name) ?></option>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -36,9 +38,30 @@
                         placeholder="Enter other test name(s)..." style="display: none; margin-top: 10px;">
                     <input type="hidden" id="lab-test-type" value="">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Test Date <span style="color: #e74c3c;">*</span></label>
-                    <input type="date" class="form-input" id="lab-test-date">
+                <!-- Scheduling Duration Logic -->
+                <div class="form-group" id="scheduling-duration-group" style="display: none;">
+                    <label class="form-label">Clinical Protocol Duration <span style="color: #e74c3c;">*</span></label>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <button class="duration-btn active" onclick="setScheduleDuration(1, this)" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-weight: 700; cursor: pointer; font-size: 0.75rem;">1 Day</button>
+                        <button class="duration-btn" onclick="setScheduleDuration(2, this)" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-weight: 700; cursor: pointer; font-size: 0.75rem;">2 Days</button>
+                        <button class="duration-btn" onclick="setScheduleDuration(3, this)" style="padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-weight: 700; cursor: pointer; font-size: 0.75rem;">3 Days</button>
+                    </div>
+                    <input type="hidden" id="lab-schedule-duration" value="1">
+                </div>
+
+                <div id="lab-dates-container">
+                    <div class="form-group" id="date-group-1">
+                        <label class="form-label" id="date-label-1">Test Date <span style="color: #e74c3c;">*</span></label>
+                        <input type="date" class="form-input" id="lab-test-date">
+                    </div>
+                    <div class="form-group" id="date-group-2" style="display: none;">
+                        <label class="form-label">Day 2 Test Date <span style="color: #e74c3c;">*</span></label>
+                        <input type="date" class="form-input" id="lab-test-date-2">
+                    </div>
+                    <div class="form-group" id="date-group-3" style="display: none;">
+                        <label class="form-label">Day 3 Test Date <span style="color: #e74c3c;">*</span></label>
+                        <input type="date" class="form-input" id="lab-test-date-3">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Notes (Optional)</label>

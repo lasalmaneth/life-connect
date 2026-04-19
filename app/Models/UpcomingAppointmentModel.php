@@ -46,7 +46,7 @@ class UpcomingAppointmentModel
      */
     public function approveAppointment($id)
     {
-        $query = "UPDATE {$this->table} SET status = 'Approved' WHERE id = :id AND status = 'Pending'";
+        $query = "UPDATE {$this->table} SET status = 'Approved' WHERE id = :id AND (status = 'Pending' OR status = 'Scheduled')";
         return $this->query($query, [':id' => $id]);
     }
 
@@ -55,7 +55,7 @@ class UpcomingAppointmentModel
      */
     public function rejectAppointment($id, $reason)
     {
-        $query = "UPDATE {$this->table} SET status = 'Rejected', notes = :reason WHERE id = :id AND status = 'Pending'";
+        $query = "UPDATE {$this->table} SET status = 'Rejected', notes = :reason WHERE id = :id AND (status = 'Pending' OR status = 'Scheduled')";
         return $this->query($query, [':reason' => $reason, ':id' => $id]);
     }
 
@@ -98,8 +98,8 @@ class UpcomingAppointmentModel
         $line = "[Reschedule Request] Proposed date: {$proposedDate} | Reason: {$reason} | Requested at: {$stamp}";
         $newNotes = $existing ? ($existing . "\n" . $line) : $line;
 
-        // Keep status Pending for compatibility (some DBs use enum).
-        $query = "UPDATE {$this->table} SET notes = :notes WHERE id = :id AND status = 'Pending'";
+        // Change status to Requested so the hospital knows a change is needed.
+        $query = "UPDATE {$this->table} SET notes = :notes, status = 'Requested' WHERE id = :id AND (status = 'Pending' OR status = 'Scheduled')";
         return $this->execUpdate($query, [':notes' => $newNotes, ':id' => $id]);
     }
 

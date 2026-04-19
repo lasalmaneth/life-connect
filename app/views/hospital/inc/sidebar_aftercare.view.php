@@ -14,9 +14,13 @@
             <span class="icon"><i class="fas fa-users"></i></span>
             <span>Recipient Patients</span>
         </a>
-        <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], 'addpatient') !== false) ? 'active' : ''; ?>" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+        <a href="<?php echo ROOT; ?>/hospital/addpatient" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], 'addpatient') !== false && strpos($_SERVER['REQUEST_URI'], 'addpatient-') === false) ? 'active' : ''; ?>" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-user-plus"></i></span>
             <span>Add Patient Access</span>
+        </a>
+        <a href="<?php echo ROOT; ?>/hospital/aftercare-management" class="menu-item <?php echo (strpos($_SERVER['REQUEST_URI'], 'aftercare-management') !== false) ? 'active' : ''; ?>" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
+            <span class="icon"><i class="fas fa-hand-holding-medical"></i></span>
+            <span>Request Management</span>
         </a>
     </div>
 

@@ -35,12 +35,12 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <i class="fas fa-file-medical text-accent"></i> <?= htmlspecialchars($test->test_name) ?>
                                 </div>
                                 <div style="font-size: 0.8rem; color: var(--g500); display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
-                                    <span><i class="far fa-calendar-alt"></i> <?= date('M d, Y', strtotime($test->test_date)) ?></span>
+                                    <span><i class="far fa-calendar-alt"></i> <?= date('d/m/Y', strtotime($test->test_date)) ?></span>
                                     <span><i class="far fa-hospital"></i> <?= htmlspecialchars($test->hospital_name ?? 'LifeConnect Lab') ?></span>
                                 </div>
                                 
                                 <div style="font-size: 0.85rem; padding: 0.5rem 0.75rem; background: var(--g50); border-radius: 6px; border-left: 3px solid var(--success); display: inline-block;">
-                                    <span style="color: var(--g600);">Result:</span> <span style="font-weight: 700; color: var(--success); margin-left: 0.25rem;"><?= htmlspecialchars($test->result_value) ?></span>
+                                    <span style="color: var(--g600);">Status:</span> <span style="font-weight: 700; color: var(--success); margin-left: 0.25rem;"><?= htmlspecialchars($test->status ?? 'Report Available') ?></span>
                                 </div>
                             </div>
                             <div>

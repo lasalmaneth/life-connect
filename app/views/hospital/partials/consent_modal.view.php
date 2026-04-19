@@ -2,13 +2,18 @@
 <div id="consent-details-modal" class="modal-overlay">
     <div class="modal-container" style="max-width: 900px; width: 95%;">
         <div class="modal-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; background: rgba(37, 99, 235, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #2563eb;">
-                    <i class="fas fa-file-contract" style="font-size: 1.2rem;"></i>
-                </div>
-                <div>
-                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">Consent Record Details</h3>
-                    <p style="margin: 2px 0 0; font-size: 0.8rem; color: #64748b;">Reviewing official legal donation consent document.</p>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button onclick="closeConsentDetailsModal()" style="background: #f1f5f9; border: none; width: 32px; height: 32px; border-radius: 8px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                    <i class="fas fa-arrow-left" style="font-size: 0.9rem;"></i>
+                </button>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; background: rgba(37, 99, 235, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #2563eb;">
+                        <i class="fas fa-file-contract" style="font-size: 1.2rem;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0f172a;">Consent Record Details</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.8rem; color: #64748b;">Reviewing official legal donation consent document.</p>
+                    </div>
                 </div>
             </div>
             <button class="close-modal" onclick="closeConsentDetailsModal()">&times;</button>
@@ -17,7 +22,12 @@
         <div class="modal-body" style="padding: 0;">
             <div style="display: grid; grid-template-columns: 350px 1fr; min-height: 500px;">
                 <!-- Left Column: Patient Details -->
-                <div style="background: #f8fafc; border-right: 1px solid #e2e8f0; padding: 25px;">
+                <div style="background: #f8fafc; border-right: 1px solid #e2e8f0; padding: 25px; display: flex; flex-direction: column;">
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="closeConsentDetailsModal()" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 8px 15px; color: #475569; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02);" onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1';" onmouseout="this.style.background='white'; this.style.borderColor='#e2e8f0';">
+                            <i class="fas fa-arrow-left"></i> Back to Registry
+                        </button>
+                    </div>
                     <div style="margin-bottom: 30px;">
                         <h4 style="margin: 0 0 15px; font-size: 0.9rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-user-circle"></i> Personal Information
@@ -147,10 +157,11 @@
         background: rgba(15, 23, 42, 0.6);
         backdrop-filter: blur(4px);
         display: none;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
         z-index: 9999;
-        padding: 20px;
+        padding: 40px 20px;
+        overflow-y: auto;
     }
     
     .modal-overlay.show {
@@ -161,9 +172,10 @@
     .modal-container {
         background: white;
         border-radius: 20px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
         overflow: hidden;
         animation: slideUp 0.3s ease-out;
+        margin-bottom: 40px;
     }
     
     .modal-header {

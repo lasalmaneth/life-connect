@@ -1,4 +1,4 @@
-<div id="organ-testing" class="content-section" style="display: none;">
+<div id="organ-testing" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'organ-testing') ? 'display:block' : 'display:none'; ?>">
     <div class="content-header" style="background: white; border-bottom: 1px solid #e2e8f0; padding: 25px 30px; border-radius: 16px 16px 0 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 15px;">

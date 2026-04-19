@@ -1603,19 +1603,27 @@ class Donor {
         }
 
         // Fetch Aftercare Appointments for this donor
-        $nic = $donorData['nic_number'] ?? '';
         $appointments = [];
-        if (!empty($nic)) {
-            $stmt = $this->query("SELECT * FROM aftercare_appointments WHERE patient_id = :nic ORDER BY appointment_date ASC", [':nic' => $nic]);
+        $userId = (int)($_SESSION['user_id'] ?? ($_SESSION['aftercare_user_id'] ?? 0));
+        if ($userId > 0) {
+            $stmt = $this->query("SELECT * FROM aftercare_appointments WHERE user_id = :uid ORDER BY appointment_date ASC", [':uid' => $userId]);
             if ($stmt) {
                 $appointments = $stmt;
             }
         }
 
         // Fetch Support Requests for this donor
+        $nic = $donorData['nic_number'] ?? '';
         $supportRequests = [];
         if (!empty($nic)) {
-            $stmt = $this->query("SELECT * FROM support_requests WHERE patient_nic = :patient_nic ORDER BY created_at DESC", [':patient_nic' => $nic]);
+            $stmt = $this->query("
+                SELECT sr.*, v.voucher_code, v.expiry_date, v.status as voucher_status 
+                FROM support_requests sr 
+                LEFT JOIN support_vouchers v ON sr.id = v.request_id 
+                WHERE sr.patient_nic = :patient_nic 
+                ORDER BY sr.created_at DESC", 
+            [':patient_nic' => $nic]);
+            
             if ($stmt) {
                 $supportRequests = $stmt;
             }
@@ -1679,12 +1687,16 @@ class Donor {
                 exit;
             }
 
+            // Ensure donor is in aftercare_patients mapping table
+            $currentUserId = (int)$_SESSION['user_id'];
+            $aftercareModel = new \App\Models\AftercarePatientModel();
+            $aftercareModel->upsertDonorPatient($nic, $donorFullName, $hospitalRegistrationNo, $currentUserId);
+
             $this->query(
-                "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status) 
-                 VALUES (:nic, :name, :host, :date, :type, :desc, 'Scheduled')",
+                "INSERT INTO aftercare_appointments (user_id, hospital_registration_no, appointment_date, appointment_type, description, status) 
+                 VALUES (:uid, :host, :date, :type, :desc, 'Requested')",
                 [
-                    ':nic' => $nic,
-                    ':name' => $donorFullName,
+                    ':uid' => $currentUserId,
                     ':host' => $hospitalRegistrationNo,
                     ':date' => $date,
                     ':type' => $type,

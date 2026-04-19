@@ -1,4 +1,4 @@
-<div id="organ-requests" class="content-section" style="display: none;">
+<div id="organ-requests" class="content-section" style="<?php echo (isset($initialSection) && $initialSection === 'organ-requests') ? 'display:block' : 'display:none'; ?>">
     <div class="content-header">
         <h2>Organ Requests Management</h2>
         <p>Create, edit, and delete organ requests with urgency selection.</p>

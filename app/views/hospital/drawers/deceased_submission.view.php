@@ -15,7 +15,7 @@
                                 <i class="fas fa-file-pdf" style="color: #ef4444; font-size: 1.5rem;"></i>
                                 <div>
                                     <div style="font-weight: 600; font-size: 0.9rem;"><?= htmlspecialchars($doc->document_type) ?></div>
-                                    <div style="font-size: 0.75rem; color: #64748b;">Uploaded on <?= date('M d, Y', strtotime($doc->uploaded_at)) ?></div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Uploaded on <?= date('d/m/Y', strtotime($doc->uploaded_at)) ?></div>
                                 </div>
                             </div>
                             <a href="<?= ROOT ?>/<?= htmlspecialchars($doc->file_path) ?>" target="_blank" class="cp-btn cp-btn--secondary cp-btn--sm">

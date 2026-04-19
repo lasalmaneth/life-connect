@@ -199,7 +199,7 @@ class Login {
             // Aftercare recipients log in via the main login, but use the Aftercare session context.
             if ($role === 'AFTERCARE_PATIENT' || $role === 'RECIPIENT_PATIENT') {
                 $aftercareModel = new AftercarePatientModel();
-                $patient = $aftercareModel->getByRegistrationNumber((string)$user->username);
+                $patient = $aftercareModel->getByUserId((int)$user->id);
 
                 if (!$patient) {
                     echo json_encode([
@@ -215,7 +215,7 @@ class Login {
 
                 $_SESSION['aftercare_user_id'] = (int)$user->id;
                 $_SESSION['aftercare_patient_id'] = (int)$patient->id;
-                $_SESSION['aftercare_registration_number'] = (string)$patient->registration_number;
+                $_SESSION['aftercare_registration_number'] = (string)($patient->registration_number ?? '');
                 $_SESSION['aftercare_must_change_password'] = !empty($user->must_change_credentials) ? 1 : 0;
 
                 session_write_close();
@@ -247,10 +247,11 @@ class Login {
 
         // Fallback: Aftercare Recipient login via main login page
         // Username = registration_number (e.g., REG-2026-0001)
-        $looksLikeAftercareReg = (bool)preg_match('/^REG-\d{4}-\d{4}$/', $username);
-        if ($looksLikeAftercareReg) {
+        $userModel = new UserModel();
+        $user = $userModel->first(['username' => $username]);
+        if ($user) {
             $aftercareModel = new AftercarePatientModel();
-            $patient = $aftercareModel->getByRegistrationNumber($username);
+            $patient = $aftercareModel->getByUserId((int)$user->id);
 
             if (
                 $patient &&
@@ -289,6 +290,13 @@ class Login {
                                     $aftercareModel->query(
                                         "UPDATE aftercare_patients SET user_id = :uid WHERE id = :pid LIMIT 1",
                                         [':uid' => (int)$newUid, ':pid' => (int)$patient->id]
+                                    );
+                                }
+                                $hasRpcUserIdCol = $aftercareModel->query("SHOW COLUMNS FROM recipient_patient LIKE 'user_id'");
+                                if (!empty($hasRpcUserIdCol)) {
+                                    $aftercareModel->query(
+                                        "UPDATE recipient_patient SET user_id = :uid WHERE registration_number = :rn",
+                                        [':uid' => (int)$newUid, ':rn' => $username]
                                     );
                                 }
                             } catch (\Throwable $e) {

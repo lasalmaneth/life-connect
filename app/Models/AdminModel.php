@@ -4,25 +4,27 @@ namespace App\Models;
 
 use App\Core\Database;
 
-class AdminModel {
+class AdminModel
+{
     use Database;
 
-    public function getDashboardStats() {
+    public function getDashboardStats()
+    {
         $stats = [];
-        
+
         // Total Users
         $res = $this->query("SELECT COUNT(*) as count FROM users");
         $stats['totalUsers'] = $res[0]->count ?? 0;
 
         // Count by Status
         $res = $this->query("SELECT status, COUNT(*) as count FROM users GROUP BY status");
-        foreach($res as $row) {
+        foreach ($res as $row) {
             $stats['status_' . $row->status] = $row->count;
         }
 
         // Count by Role
         $res = $this->query("SELECT role, COUNT(*) as count FROM users GROUP BY role");
-        foreach($res as $row) {
+        foreach ($res as $row) {
             $stats['role_' . $row->role] = $row->count;
         }
 
@@ -46,7 +48,7 @@ class AdminModel {
                              JOIN donor_categories c ON d.category_id = c.id 
                              GROUP BY c.category_name");
         if ($res) {
-            foreach($res as $row) {
+            foreach ($res as $row) {
                 $stats['donor_cat_' . $row->category_name] = $row->count;
             }
         }
@@ -57,7 +59,7 @@ class AdminModel {
                              WHERE category_id = 3 
                              GROUP BY pledge_type");
         if ($res) {
-            foreach($res as $row) {
+            foreach ($res as $row) {
                 if ($row->pledge_type !== 'NONE') {
                     $stats['pledge_' . $row->pledge_type] = $row->count;
                 }
@@ -67,16 +69,16 @@ class AdminModel {
         // Month-to-date counts for stat change UI
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['usersThisMonth'] = $res[0]->count ?? 0;
-        
+
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'PENDING' OR status = 'pending') AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['pendingThisMonth'] = $res[0]->count ?? 0;
-        
+
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'SUSPENDED' OR status = 'suspended') AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['suspendedThisMonth'] = $res[0]->count ?? 0;
 
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'WITHDRAW_REQUEST' OR status = 'withdraw_request') AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['withdrawnThisMonth'] = $res[0]->count ?? 0;
-        
+
         $res = $this->query("SELECT COUNT(*) as count FROM donors WHERE created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['donorsThisMonth'] = $res[0]->count ?? 0;
 
@@ -112,15 +114,16 @@ class AdminModel {
                              FROM users 
                              WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) 
                              GROUP BY DATE(created_at)");
-        
+
         $currentWeeklyTotal = 0;
         $peakDayValue = 0;
         if ($resWeb) {
             foreach ($resWeb as $row) {
                 if (isset($weeklyData[$row->date])) {
-                    $weeklyData[$row->date]['count'] = (int)$row->count;
-                    $currentWeeklyTotal += (int)$row->count;
-                    if ((int)$row->count > $peakDayValue) $peakDayValue = (int)$row->count;
+                    $weeklyData[$row->date]['count'] = (int) $row->count;
+                    $currentWeeklyTotal += (int) $row->count;
+                    if ((int) $row->count > $peakDayValue)
+                        $peakDayValue = (int) $row->count;
                 }
             }
         }
@@ -135,7 +138,7 @@ class AdminModel {
                              WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY) 
                              AND created_at < DATE_SUB(CURDATE(), INTERVAL 6 DAY)");
         $prevWeeklyTotal = $resPrev[0]->count ?? 0;
-        
+
         if ($prevWeeklyTotal > 0) {
             $growth = (($currentWeeklyTotal - $prevWeeklyTotal) / $prevWeeklyTotal) * 100;
             $stats['weekly_growth'] = round($growth, 1);
@@ -148,7 +151,8 @@ class AdminModel {
         return $stats;
     }
 
-    public function getActivityLogs($limit = 3) {
+    public function getActivityLogs($limit = 3)
+    {
         $activities = [];
 
         // 1. Latest Registrations from users table
@@ -162,12 +166,12 @@ class AdminModel {
                 $icon = ($status === 'ACTIVE') ? 'circle-check' : 'circle-plus';
 
                 $activities[] = [
-                    'type'     => $icon,
+                    'type' => $icon,
                     'category' => 'success',
-                    'title'    => 'New User Registered',
-                    'detail'   => $reg->title . ' joined as ' . strtolower($reg->detail),
-                    'status'   => $status,
-                    'date'     => $reg->date
+                    'title' => 'New User Registered',
+                    'detail' => $reg->title . ' joined as ' . strtolower($reg->detail),
+                    'status' => $status,
+                    'date' => $reg->date
                 ];
             }
         }
@@ -184,44 +188,45 @@ class AdminModel {
 
         if ($logs) {
             foreach ($logs as $log) {
-                $newVal  = strtoupper($log->new_value ?? '');
-                $icon     = 'circle-info';
+                $newVal = strtoupper($log->new_value ?? '');
+                $icon = 'circle-info';
                 $category = 'info';
-                $detail   = 'Administrative Review: Profile record updated';
+                $detail = 'Administrative Review: Profile record updated';
 
                 if ($newVal === 'ACTIVE') {
                     $category = 'success';
-                    $icon     = 'circle-check';
-                    $detail   = 'Administrative Audit: Account status promoted to ACTIVE';
+                    $icon = 'circle-check';
+                    $detail = 'Administrative Audit: Account status promoted to ACTIVE';
                 } elseif (in_array($newVal, ['SUSPENDED', 'REJECTED'])) {
                     $category = 'error';
-                    $icon     = 'circle-xmark';
-                    $detail   = 'Administrative Audit: Account access SUSPENDED';
+                    $icon = 'circle-xmark';
+                    $detail = 'Administrative Audit: Account access SUSPENDED';
                 } elseif ($newVal === 'PENDING') {
                     $category = 'info';
-                    $icon     = 'circle-info';
-                    $detail   = 'Administrative Review: Account returned to PENDING';
+                    $icon = 'circle-info';
+                    $detail = 'Administrative Review: Account returned to PENDING';
                 }
 
                 $activities[] = [
-                    'type'     => $icon,
+                    'type' => $icon,
                     'category' => $category,
-                    'title'    => ucwords(strtolower(str_replace('_', ' ', $log->action))),
-                    'detail'   => $detail,
-                    'date'     => $log->date
+                    'title' => ucwords(strtolower(str_replace('_', ' ', $log->action))),
+                    'detail' => $detail,
+                    'date' => $log->date
                 ];
             }
         }
 
         // Sort by date DESC and slice
-        usort($activities, function($a, $b) {
+        usort($activities, function ($a, $b) {
             return strtotime($b['date']) - strtotime($a['date']);
         });
 
         return array_slice($activities, 0, $limit);
     }
 
-    public function getUsers($searchTerm = '', $role = '', $status = '') {
+    public function getUsers($searchTerm = '', $role = '', $status = '')
+    {
         $params = [];
         $query = "SELECT u.id, u.username, u.email, u.role, u.status, u.created_at 
                   FROM users u 
@@ -247,7 +252,8 @@ class AdminModel {
         return $this->query($query, $params) ?: [];
     }
 
-    public function updateUserStatus($userId, $status, $message = null) {
+    public function updateUserStatus($userId, $status, $message = null)
+    {
         // 1. Update the main users table
         $this->query(
             "UPDATE users SET status = :status, review_message = :message WHERE id = :id",
@@ -256,12 +262,12 @@ class AdminModel {
 
         // 2. Sync verification_status in role-specific profile tables
         //    Map users.status → profile table verification_status value
-        $profileStatus = match(strtoupper($status)) {
-            'ACTIVE'    => 'APPROVED',
+        $profileStatus = match (strtoupper($status)) {
+            'ACTIVE' => 'APPROVED',
             'SUSPENDED' => 'SUSPENDED',
-            'PENDING'   => 'PENDING',
+            'PENDING' => 'PENDING',
             'WITHDRAW_REQUEST' => 'REJECTED',
-            default     => null
+            default => null
         };
 
         if ($profileStatus !== null) {
@@ -290,14 +296,20 @@ class AdminModel {
                 "UPDATE aftercare_patients SET status = :s WHERE user_id = :uid",
                 ['s' => strtoupper($status), 'uid' => $userId]
             );
-            
-            // Recipient Patients table (NO user_id, use registration_number from aftercare_patients)
-            $res = $this->query("SELECT registration_number FROM aftercare_patients WHERE user_id = :uid", ['uid' => $userId]);
+
+            // Recipient Patients table (Sync status if they have a profile)
+            $res = $this->query(
+                "SELECT r.registration_number 
+                 FROM aftercare_patients ap
+                 JOIN recipient_patient r ON ap.user_id = r.user_id 
+                 WHERE ap.user_id = :uid",
+                ['uid' => $userId]
+            );
             if (!empty($res) && !empty($res[0]->registration_number)) {
                 $regNo = $res[0]->registration_number;
                 $this->query(
                     "UPDATE recipient_patient SET status = :s WHERE registration_number = :rn",
-                    ['s' => strtoupper($status), ':rn' => $regNo]
+                    ['s' => strtoupper($status), 'rn' => $regNo]
                 );
             }
         }
@@ -309,26 +321,28 @@ class AdminModel {
 
 
 
-    public function sendNotification($userId, $title, $message, $type = 'GENERAL', $senderId = null) {
+    public function sendNotification($userId, $title, $message, $type = 'GENERAL', $senderId = null)
+    {
         // user_id  = RECIPIENT (who receives the message)
         // sender_id = who sent it (admin user_id, NULL = system-generated)
         $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) VALUES (:user_id, :sender_id, :title, :message, :type)";
         return $this->query($query, [
-            'user_id'   => $userId,
+            'user_id' => $userId,
             'sender_id' => $senderId,
-            'title'     => $title,
-            'message'   => $message,
-            'type'      => $type
+            'title' => $title,
+            'message' => $message,
+            'type' => $type
         ]);
     }
 
-    public function sendBulkNotification($target, $title, $message, $type, $senderId, $role = null) {
+    public function sendBulkNotification($target, $title, $message, $type, $senderId, $role = null)
+    {
         $query = "";
         $params = [
             'sender_id' => $senderId,
-            'title'     => $title,
-            'message'   => $message,
-            'type'      => $type
+            'title' => $title,
+            'message' => $message,
+            'type' => $type
         ];
 
         if ($target === 'all') {
@@ -346,21 +360,23 @@ class AdminModel {
         return false;
     }
 
-    public function logAdminAction($adminId, $targetUserId, $action, $oldValue = null, $newValue = null, $notes = null) {
+    public function logAdminAction($adminId, $targetUserId, $action, $oldValue = null, $newValue = null, $notes = null)
+    {
         // Permanent audit record — never shown to end users
         $query = "INSERT INTO admin_audit_logs (admin_id, target_user_id, action, old_value, new_value, notes) 
                   VALUES (:admin_id, :target_user_id, :action, :old_value, :new_value, :notes)";
         return $this->query($query, [
-            'admin_id'       => $adminId,
+            'admin_id' => $adminId,
             'target_user_id' => $targetUserId,
-            'action'         => $action,
-            'old_value'      => $oldValue,
-            'new_value'      => $newValue,
-            'notes'          => $notes
+            'action' => $action,
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
+            'notes' => $notes
         ]);
     }
 
-    public function getNotifications($limit = 50) {
+    public function getNotifications($limit = 50)
+    {
         return $this->query(
             "SELECT n.*, 
                     u.username as recipient,
@@ -373,7 +389,8 @@ class AdminModel {
         );
     }
 
-    public function getAuditLogs($limit = 100) {
+    public function getAuditLogs($limit = 100)
+    {
         return $this->query(
             "SELECT a.*, 
                     u_admin.username as admin_name,
@@ -388,7 +405,8 @@ class AdminModel {
 
     private function usersHasColumn(string $column): bool
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) return false;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column))
+            return false;
         try {
             // SHOW ... LIKE cannot reliably use placeholders in some drivers.
             $res = $this->query("SHOW COLUMNS FROM users LIKE '{$column}'");
@@ -398,23 +416,29 @@ class AdminModel {
         }
     }
 
-    public function getUserById($id) {
+    public function getUserById($id)
+    {
         $cols = ['id', 'username', 'email', 'role', 'created_at'];
-        if ($this->usersHasColumn('phone')) $cols[] = 'phone';
-        if ($this->usersHasColumn('status')) $cols[] = 'status';
-        if ($this->usersHasColumn('review_message')) $cols[] = 'review_message';
+        if ($this->usersHasColumn('phone'))
+            $cols[] = 'phone';
+        if ($this->usersHasColumn('status'))
+            $cols[] = 'status';
+        if ($this->usersHasColumn('review_message'))
+            $cols[] = 'review_message';
 
         $select = implode(', ', array_map(function ($c) {
             return "`{$c}`";
         }, $cols));
 
-        $res = $this->query("SELECT {$select} FROM users WHERE id = :id", ['id' => (int)$id]);
+        $res = $this->query("SELECT {$select} FROM users WHERE id = :id", ['id' => (int) $id]);
         return $res[0] ?? null;
     }
 
-    public function getDetailedUserById($id, $role) {
+    public function getDetailedUserById($id, $role)
+    {
         $user = $this->getUserById($id);
-        if (!$user) return null;
+        if (!$user)
+            return null;
 
         $details = [];
         $role = strtoupper($role);
@@ -422,28 +446,32 @@ class AdminModel {
         if ($role === 'DONOR' || $role === 'FINANCIAL_DONOR') {
             try {
                 $donor = $this->query("SELECT * FROM donors WHERE user_id = :id", ['id' => $id]);
-                if (!empty($donor)) $details = (array) $donor[0];
+                if (!empty($donor))
+                    $details = (array) $donor[0];
             } catch (\Throwable $e) {
                 // ignore
             }
         } elseif ($role === 'HOSPITAL') {
             try {
                 $hosp = $this->query("SELECT *, name as first_name, '' as last_name, registration_number as nic FROM hospitals WHERE user_id = :id", ['id' => $id]);
-                if (!empty($hosp)) $details = (array) $hosp[0];
+                if (!empty($hosp))
+                    $details = (array) $hosp[0];
             } catch (\Throwable $e) {
                 // ignore
             }
         } elseif ($role === 'MEDICAL_SCHOOL') {
             try {
                 $med = $this->query("SELECT school_name, university_affiliation, ugc_accreditation_number, address, district, contact_person_name, contact_person_phone FROM medical_schools WHERE user_id = :id", ['id' => $id]);
-                if (!empty($med)) $details = (array) $med[0];
+                if (!empty($med))
+                    $details = (array) $med[0];
             } catch (\Throwable $e) {
                 // ignore
             }
         } elseif ($role === 'PATIENT') {
             try {
                 $pat = $this->query("SELECT first_name, last_name, nic, gender FROM patients WHERE user_id = :id", ['id' => $id]);
-                if (!empty($pat)) $details = (array) $pat[0];
+                if (!empty($pat))
+                    $details = (array) $pat[0];
             } catch (\Throwable $e) {
                 // Ignore if patient table schema is incomplete
             }
@@ -485,7 +513,7 @@ class AdminModel {
         $user->district = $details['district'] ?? '';
         $user->ds_division = $details['ds_division'] ?? $details['divisional_secretariat'] ?? '';
         $user->gn_division = $details['gn_division'] ?? $details['grama_niladhari_division'] ?? '';
-        
+
         // Fetch withdrawal details if user is in withdraw_request status
         $statusUpper = strtoupper($user->status ?? '');
         if ($statusUpper === 'WITHDRAW_REQUEST' || $statusUpper === 'WITHDRAWN') {
@@ -494,7 +522,7 @@ class AdminModel {
                     "SELECT reason_summary as reason, created_at as date 
                      FROM consent_withdrawals 
                      WHERE user_id = :id 
-                     ORDER BY created_at DESC LIMIT 1", 
+                     ORDER BY created_at DESC LIMIT 1",
                     ['id' => $id]
                 );
                 if (!empty($withdrawal)) {
@@ -505,7 +533,7 @@ class AdminModel {
                 // ignore
             }
         }
-        
+
         // Medical School Specific Fields
         $user->school_name = $details['school_name'] ?? '';
         $user->univ_affiliation = $details['university_affiliation'] ?? '';
@@ -541,7 +569,8 @@ class AdminModel {
         return $user;
     }
 
-    public function updateUserDetails($id, $role, $data) {
+    public function updateUserDetails($id, $role, $data)
+    {
         // Update users table phone
         if (isset($data['phone'])) {
             $this->query("UPDATE users SET phone = :phone WHERE id = :id", ['phone' => $data['phone'], 'id' => $id]);
@@ -591,39 +620,45 @@ class AdminModel {
         return true;
     }
 
-    public function updateUser($id, $data) {
+    public function updateUser($id, $data)
+    {
         $fields = [];
         $params = ['id' => $id];
-        
+
         foreach ($data as $key => $value) {
             $fields[] = "$key = :$key";
             $params[$key] = $value;
         }
-        
-        if (empty($fields)) return false;
-        
+
+        if (empty($fields))
+            return false;
+
         $query = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = :id";
         return $this->query($query, $params);
     }
 
-    public function getFeedbacks() {
+    public function getFeedbacks()
+    {
         // Try to order by id desc since we aren't 100% sure about created_at
         return $this->query("SELECT * FROM contact_messages ORDER BY id DESC") ?: [];
     }
 
-    public function getFeedbackById($id) {
+    public function getFeedbackById($id)
+    {
         $res = $this->query("SELECT * FROM contact_messages WHERE id = :id", ['id' => $id]);
         return $res[0] ?? null;
     }
 
-    public function updateFeedbackStatus($id, $status) {
+    public function updateFeedbackStatus($id, $status)
+    {
         return $this->query("UPDATE contact_messages SET status = :status WHERE id = :id", [
             'status' => $status,
             'id' => $id
         ]);
     }
 
-    public function deleteFeedback($id) {
+    public function deleteFeedback($id)
+    {
         return $this->query("DELETE FROM contact_messages WHERE id = :id", ['id' => $id]);
     }
 }
