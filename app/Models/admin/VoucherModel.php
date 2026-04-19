@@ -77,6 +77,7 @@ class VoucherModel {
             'total_disbursed' => 0
         ];
 
+        $totalCount = 0;
         $res = $this->query("SELECT status, COUNT(*) as count, SUM(amount) as total_amt FROM $this->table GROUP BY status");
         if ($res) {
             foreach ($res as $row) {
@@ -84,9 +85,13 @@ class VoucherModel {
                 if (isset($stats[$status])) {
                     $stats[$status] = $row->count;
                 }
+                $totalCount += $row->count;
                 $stats['total_disbursed'] += $row->total_amt;
             }
         }
+
+        $stats['issued_count'] = $totalCount;
+        $stats['redemption_rate'] = $totalCount > 0 ? round(($stats['used'] / $totalCount) * 100, 1) : 0;
 
         return $stats;
     }

@@ -106,12 +106,19 @@ class FinancialDonationModel
                    COALESCE(CONCAT(dn.first_name, ' ', dn.last_name), u.username) AS donor_name,
                    d.amount, d.created_at AS date, d.status
             FROM donations d
-            JOIN users u ON u.id = d.user_id
+            LEFT JOIN users u ON u.id = d.user_id
             LEFT JOIN donors dn ON dn.user_id = u.id
             ORDER BY d.created_at DESC
             LIMIT 3
         "));
         $kpis['recent_transactions'] = is_array($recentRes) ? $recentRes : [];
+
+        // Count successful donations made today
+        $res = $this->query("SELECT COUNT(*) AS total FROM donations WHERE status IN ('SUCCESS', 'COMPLETED') AND DATE(created_at) = CURRENT_DATE()");
+        $kpis['today_donations_count'] = $res ? $res[0]->total : 0;
+
+        // Calculate Average Gift Size
+        $kpis['avg_gift_size'] = $kpis['total_contributors'] > 0 ? ($kpis['total_amount'] / $kpis['total_contributors']) : 0;
 
         return $kpis;
     }

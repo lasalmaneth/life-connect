@@ -75,7 +75,7 @@ function loadPaymentsFromApi() {
 function populateDonorDatalist() {
     const list = document.getElementById('donor-list');
     if (!list) return;
-    
+
     // Extract unique names from ALL payments
     const names = [...new Set(allPayments.map(p => p.full_name))].filter(Boolean).sort();
     list.innerHTML = names.map(name => `<option value="${name}">`).join('');
@@ -85,17 +85,17 @@ function populateDonorDatalist() {
 function setQuickRange(months) {
     const startEl = document.getElementById('export-start-date');
     const endEl = document.getElementById('export-end-date');
-    
+
     const today = new Date();
     const fromDate = new Date();
     fromDate.setMonth(today.getMonth() - months);
-    
+
     endEl.value = today.toISOString().split('T')[0];
     startEl.value = fromDate.toISOString().split('T')[0];
-    
+
     // Store context for report heading
     activeRangeContext = months === 12 ? "Annual Report (Last 12 Months)" : `Custom Report (Last ${months} Months)`;
-    
+
     // Toggle active UI state
     document.querySelectorAll('.quick-range-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -103,7 +103,7 @@ function setQuickRange(months) {
         btn.style.color = '#475569';
         btn.style.fontWeight = '600';
     });
-    
+
     const activeBtn = document.getElementById(`btn-${months}m`);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -111,7 +111,7 @@ function setQuickRange(months) {
         activeBtn.style.color = '#0369a1';
         activeBtn.style.fontWeight = '700';
     }
-    
+
     handleFilter();
 }
 
@@ -170,7 +170,7 @@ function handleFilter() {
     const amountVal = document.getElementById('amount-range-filter').value;
 
     const todayStr = new Date().toISOString().split('T')[0];
-    
+
     if (startDate) {
         endEl.min = startDate;
         endEl.max = todayStr;
@@ -263,7 +263,7 @@ function resetDateRange() {
     document.getElementById('export-end-date').value = '';
     document.getElementById('export-donor-search').value = '';
     activeRangeContext = '';
-    
+
     // Reset buttons
     document.querySelectorAll('.quick-range-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -271,7 +271,7 @@ function resetDateRange() {
         btn.style.color = '#475569';
         btn.style.fontWeight = '600';
     });
-    
+
     handleFilter();
     toggleDateRangePicker();
 }
@@ -483,13 +483,13 @@ function showToast(type, message) {
         toast.style.transform = 'translateX(0)';
     });
 
-    // Auto-remove
+    // Auto-remove (Increased duration for better readability)
     setTimeout(() => {
         if (toast.parentElement) {
             toast.style.transform = 'translateX(120%)';
             setTimeout(() => toast.remove(), 300);
         }
-    }, 4500);
+    }, 8000);
 }
 
 // Support Requests State
@@ -504,7 +504,7 @@ function filterSupportRequests() {
     rows.forEach(row => {
         const searchData = row.getAttribute('data-search');
         const statusData = row.getAttribute('data-status');
-        
+
         const matchesSearch = searchData.includes(query);
         const matchesStatus = (statusFilter === 'ALL' || statusData === statusFilter);
 
@@ -512,79 +512,115 @@ function filterSupportRequests() {
     });
 }
 
-// Refresh Support Requests (Reload Page)
-function refreshSupportRequests() {
-    location.reload();
-}
+// Refresh Support Requests (Reload Page) - REMOVED
 
 // Update Support Status (AJAX)
 function updateSupportStatus(id, newStatus) {
-    if (!confirm(`Are you sure you want to ${newStatus.toLowerCase()} this support request?`)) return;
-
     const formData = new FormData();
     formData.append('id', id);
     formData.append('status', newStatus);
 
-    const endpoint = (typeof USER_ROLE !== 'undefined' && USER_ROLE === 'AC_ADMIN') 
-        ? `${ROOT}/aftercare-admin/updateSupportStatus` 
+    const endpoint = (typeof USER_ROLE !== 'undefined' && USER_ROLE === 'AC_ADMIN')
+        ? `${ROOT}/aftercare-admin/updateSupportStatus`
         : `${ROOT}/financial-admin/updateSupportStatus`;
 
     fetch(endpoint, {
         method: 'POST',
         body: formData
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast("success", `Request #${id} has been ${newStatus.toLowerCase()} successfully.`);
-            // Update UI locally or reload
-            const row = document.querySelector(`.support-row[onclick*="${id}"]`) || document.querySelector(`tr:has(button[onclick*="${id}"])`);
-            if (row) {
-                location.reload(); // Simplest to keep stats in sync
-            } else {
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast("success", `Request #${id} has been ${newStatus.toLowerCase()} successfully.`);
                 location.reload();
+            } else {
+                showToast("error", data.message || "Failed to update status.");
             }
-        } else {
-            showToast("error", data.message || "Failed to update status.");
-        }
-    })
-    .catch(err => {
-        console.error('Update failed:', err);
-        showToast("error", "Network error. Please try again.");
-    });
+        })
+        .catch(err => {
+            console.error('Update failed:', err);
+            showToast("error", "Network error. Please try again.");
+        });
 }
 
 // Modal Logic for Support
 function openSupportDetails(req) {
     currentSupportReq = req;
+
+    // Reset confirmation box
+    const confirmBox = document.getElementById('voucher-confirm-box');
+    if (confirmBox) confirmBox.style.display = 'none';
+
+    // Basic Details
     document.getElementById('modal-req-id').innerText = req.id;
-    document.getElementById('modal-req-name').innerText = req.patient_name;
+    document.getElementById('modal-req-patient-name').innerText = req.patient_name;
     document.getElementById('modal-req-nic').innerText = req.patient_nic;
     document.getElementById('modal-req-date').innerText = formatDate(req.submitted_date);
     document.getElementById('modal-req-reason').innerText = req.reason;
-    document.getElementById('modal-req-desc').innerText = `"${req.description || 'No detailed description provided.'}"`;
+    document.getElementById('modal-req-description').innerText = req.description || 'No detailed description provided.';
     document.getElementById('modal-req-amount').innerText = `LKR ${parseFloat(req.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
-    
-    const tag = document.getElementById('modal-req-status-tag');
-    tag.innerText = req.status;
-    tag.style.cssText = `padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;`;
-    
-    if (req.status === 'APPROVED') { tag.style.background = '#ecfdf5'; tag.style.color = '#10b981'; }
-    else if (req.status === 'REJECTED') { tag.style.background = '#fff1f2'; tag.style.color = '#f43f5e'; }
-    else { tag.style.background = '#f0f9ff'; tag.style.color = '#0ea5e9'; }
 
-    const actionBox = document.getElementById('modal-req-actions');
-    actionBox.style.display = (req.status === 'PENDING') ? 'flex' : 'none';
+    // Status Theming
+    const status = (req.status || 'PENDING').toUpperCase();
+    const statusEl = document.getElementById('modal-req-status');
+    const iconEl = document.getElementById('modal-req-status-icon');
+    const iconBox = document.getElementById('modal-req-status-icon-box');
+
+    statusEl.innerText = status;
+
+    if (status === 'APPROVED') {
+        statusEl.style.color = '#10b981';
+        iconEl.className = 'fa-solid fa-circle-check';
+        iconEl.style.color = '#10b981';
+        iconBox.style.background = '#ecfdf5';
+    } else if (status === 'REJECTED') {
+        statusEl.style.color = '#f43f5e';
+        iconEl.className = 'fa-solid fa-circle-xmark';
+        iconEl.style.color = '#f43f5e';
+        iconBox.style.background = '#fff1f2';
+    } else {
+        // PENDING
+        statusEl.style.color = '#0ea5e9';
+        iconEl.className = 'fa-solid fa-clock';
+        iconEl.style.color = '#0ea5e9';
+        iconBox.style.background = '#f0f9ff';
+    }
+
+    // Action Buttons Logic
+    const approveBtn = document.getElementById('btn-modal-approve');
+    const rejectBtn = document.getElementById('btn-modal-reject');
+
+    // Finance Admin can approve VERIFIED and PENDING (matching existing view logic)
+    // Aftercare Admin can approve PENDING
+    const canAct = (status === 'PENDING' || status === 'VERIFIED');
+
+    if (approveBtn) approveBtn.style.display = canAct ? 'flex' : 'none';
+    if (rejectBtn) rejectBtn.style.display = canAct ? 'flex' : 'none';
 
     const modal = document.getElementById('supportRequestModal');
-    modal.style.display = 'flex';
+    modal.classList.add('show');
+    modal.onclick = e => { if (e.target === modal) closeSupportModal(); };
+    document.addEventListener('keydown', function esc(e) {
+        if (e.key === 'Escape') { closeSupportModal(); document.removeEventListener('keydown', esc); }
+    });
 }
 
 function closeSupportModal() {
-    document.getElementById('supportRequestModal').style.display = 'none';
+    document.getElementById('supportRequestModal').classList.remove('show');
+    currentSupportReq = null;
 }
 
 function approveFromModal() {
+    const confirmBox = document.getElementById('voucher-confirm-box');
+    if (confirmBox) confirmBox.style.display = 'block';
+}
+
+function cancelVoucherApproval() {
+    const confirmBox = document.getElementById('voucher-confirm-box');
+    if (confirmBox) confirmBox.style.display = 'none';
+}
+
+function confirmVoucherApproval() {
     if (currentSupportReq) updateSupportStatus(currentSupportReq.id, 'APPROVED');
 }
 

@@ -55,19 +55,20 @@
     
     $svgW = 600;
     $svgH = 120;
+    $chartPadding = 30; // pixels to keep labels inside
     $paddingSteps = count($monthlyTrend) > 1 ? (count($monthlyTrend) - 1) : 1;
-    $xStep = $svgW / $paddingSteps;
+    $xStep = ($svgW - (2 * $chartPadding)) / $paddingSteps;
 
-    $polyPoints = "0,$svgH ";
+    $polyPoints = "$chartPadding,$svgH ";
     $linePoints = "";
     
     foreach($monthlyTrend as $i => $t) {
-        $x = $i * $xStep;
+        $x = $chartPadding + ($i * $xStep);
         $y = $svgH - (($t->total / $svgMax) * $svgH * 0.85);
         $polyPoints .= "$x,$y ";
         $linePoints .= "$x,$y ";
     }
-    $polyPoints .= "$svgW,$svgH";
+    $polyPoints .= ($svgW - $chartPadding) . ",$svgH";
 ?>
 
     <div class="header">
@@ -108,10 +109,10 @@
         <div class="main-content">
             <div class="sidebar glass">
                 <div class="sidebar-user-card">
-                    <div class="sidebar-user-avatar">A</div>
+                    <div class="sidebar-user-avatar">S</div>
                     <div class="sidebar-user-info">
-                        <span class="sidebar-user-name">admin_4</span>
-                        <span class="sidebar-user-id">ID-00004</span>
+                        <span class="sidebar-user-name">Sewmini</span>
+                        <span class="sidebar-user-id">ID-00002</span>
                         <span class="sidebar-user-role">Finance Admin</span>
                     </div>
                 </div>
@@ -126,9 +127,14 @@
 
                 <div class="menu-section">
                     <div class="menu-section-title">Support Management</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)">
-                        <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
-                        <span>Support Requests</span>
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
+                            <span>Support Requests</span>
+                        </div>
+                        <?php if(($support_stats['pending'] ?? 0) > 0): ?>
+                            <span style="background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $support_stats['pending'] ?></span>
+                        <?php endif; ?>
                     </a>
                     <a href="javascript:void(0)" class="menu-item" onclick="showContent('vouchers', this)">
                         <span class="icon"><i class="fa-solid fa-ticket"></i></span>
@@ -138,9 +144,14 @@
 
                 <div class="menu-section">
                     <div class="menu-section-title">Donation Management</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('payments', this)">
-                        <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
-                        <span>Financial Donations</span>
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('payments', this)" style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
+                            <span>Financial Donations</span>
+                        </div>
+                        <?php if(($kpis['today_donations_count'] ?? 0) > 0): ?>
+                            <span style="background: #10b981; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $kpis['today_donations_count'] ?></span>
+                        <?php endif; ?>
                     </a>
                 </div>
 
