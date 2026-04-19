@@ -116,6 +116,9 @@ class DonationResolver
                     'reason' => $isExpired ? 'EXPIRED_48H_WINDOW' : null
                 ];
                 $timeLimits['BODY_' . $bc->id] = date('Y-m-d H:i:s', $deathTs + (48 * 3600));
+                
+                // Compatibility key for the dashboard view
+                $timeLimits['10'] = date('Y-m-d H:i:s', $deathTs + (48 * 3600));
             }
         }
 

@@ -205,7 +205,19 @@ class DonationAdminController {
 
         $query = "UPDATE donor_pledges SET status = :status WHERE id = :id";
         $this->query($query, ['status' => $status, 'id' => $id]);
-        
+
+        // If this is a body donation (organ_id == 10) and status is APPROVED, set consent ACTIVE
+        if (strtoupper($status) === 'APPROVED') {
+            $organ = $this->query("SELECT organ_id, donor_id FROM donor_pledges WHERE id = :id", ['id' => $id]);
+            if ($organ && (int)$organ[0]->organ_id === 10) {
+                // Set body_donation_consents to ACTIVE for this donor
+                $this->query(
+                    "UPDATE body_donation_consents SET status = 'ACTIVE' WHERE donor_id = :donor_id AND status != 'WITHDRAWN'",
+                    ['donor_id' => $organ[0]->donor_id]
+                );
+            }
+        }
+
         echo json_encode(['success' => true, 'message' => 'Status updated']);
     }
 

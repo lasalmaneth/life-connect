@@ -641,14 +641,28 @@ async function decideKidney(decision) {
 function updateCountdowns() {
     const elements = document.querySelectorAll('.countdown');
     elements.forEach(el => {
-        const expireTs = new Date(el.dataset.expire).getTime();
+        const expireStr = el.dataset.expire;
+        if (!expireStr || expireStr === '...') {
+            el.innerText = "No Limit";
+            return;
+        }
+
+        const expireDate = new Date(expireStr);
+        if (isNaN(expireDate.getTime())) {
+            el.innerText = "No Limit";
+            return;
+        }
+
+        const expireTs = expireDate.getTime();
         const now = new Date().getTime();
         const dist = expireTs - now;
         
         if (dist < 0) {
             el.innerText = "EXPIRED";
-            el.closest('.cp-item-row').classList.remove('available');
-            el.closest('.cp-item-row').classList.add('expired');
+            const row = el.closest('.cp-item-row');
+            if (row) {
+                row.classList.remove('available'); row.classList.add('expired');
+            }
             return;
         }
         

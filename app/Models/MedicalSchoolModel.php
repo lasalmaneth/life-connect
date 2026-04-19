@@ -203,7 +203,8 @@ class  MedicalSchoolModel {
 
     public function getPreDeathConsents($schoolId, $status = 'ALL')
     {
-        $statusMap = ['GIVEN' => 'GIVEN', 'WITHDRAWN' => 'WITHDRAWN'];
+
+        $statusMap = ['ACTIVE' => 'ACTIVE', 'WITHDRAWN' => 'WITHDRAWN'];
         $where = [
             'bdc.medical_school_id' => $schoolId,
             'd.verification_status' => 'APPROVED'
@@ -212,7 +213,7 @@ class  MedicalSchoolModel {
         if (isset($statusMap[$status])) {
             $where['d.consent_status'] = $statusMap[$status];
         } else {
-            $where[] = "d.consent_status IN ('GIVEN', 'WITHDRAWN')";
+            $where[] = "d.consent_status IN ('ACTIVE', 'WITHDRAWN')";
         }
 
         return $this->queryJoin(

@@ -178,23 +178,10 @@ include __DIR__ . '/inc/sidebar.view.php';
                 </div>
 
                 <div class="d-sidebar-section">
-                    <div class="d-sidebar-section__title">
-                        <i class="fas fa-info-circle text-accent"></i> About Me
-                        <button onclick="openEditProfileModal()" style="margin-left: auto; background: none; border: none; color: var(--blue-600); font-size: 0.75rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                            <i class="fas fa-edit"></i> EDIT
-                        </button>
-                    </div>
+                    <div class="d-sidebar-section__title"><i class="fas fa-info-circle text-accent"></i> About Me</div>
                     <div class="d-detail-item">
                         <label>National ID (NIC)</label>
                         <span><i class="fas fa-fingerprint text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['nic_number'] ?? 'N/A') ?></span>
-                    </div>
-                    <div class="d-detail-item">
-                        <label>Contact Number</label>
-                        <span id="display_phone"><i class="fas fa-phone text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['phone'] ?? $donor_data['phone_number'] ?? 'N/A') ?></span>
-                    </div>
-                    <div class="d-detail-item">
-                        <label>Residential Address</label>
-                        <span id="display_address" style="line-height: 1.4;"><i class="fas fa-map-marker-alt text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['address'] ?? 'Not Provided') ?></span>
                     </div>
                     <div class="d-detail-item">
                         <label>Blood Group</label>
@@ -204,6 +191,10 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <label>Age</label>
                         <span><i class="fas fa-calendar-alt text-blue-500" style="font-size:0.8rem;"></i> <?= $age ?> Years</span>
                     </div>
+                    <div class="d-detail-item">
+                        <label>Contact Number</label>
+                        <span><i class="fas fa-phone text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['phone_number'] ?? 'N/A') ?></span>
+                    </div>
                 </div>
 
             </aside>
@@ -211,68 +202,10 @@ include __DIR__ . '/inc/sidebar.view.php';
             <!-- Right Column: Activity Feed -->
             <div class="d-activity-feed">
                 
-                <!-- Deceased Donation Mode Status Banner (Sri Lankan Practice) -->
-                <?php 
-                    $modeMeta = [
-                        'NONE' => ['title' => '-', 'icon' => 'fa-clipboard-list', 'color' => '#64748b', 'bg' => '#f1f5f9', 'desc' => 'Your deceased donation intent is not yet recorded.'],
-                        'EYE_ONLY' => ['title' => 'Cornea/Eye Donor', 'icon' => 'fa-eye', 'color' => '#0ea5e9', 'bg' => '#f0f9ff', 'desc' => 'Consent recorded for tissue donation only.'],
-                        'BODY_ONLY' => ['title' => 'Whole Body Donor', 'icon' => 'fa-university', 'color' => '#8b5cf6', 'bg' => '#f5f3ff', 'desc' => 'Authorized for anatomical medical study.'],
-                        'BODY_PLUS_CORNEA' => ['title' => 'Body + Cornea Donor', 'icon' => 'fa-graduation-cap', 'color' => '#8b5cf6', 'bg' => '#f5f3ff', 'desc' => 'Full body donation with tissue recovery.'],
-                        'ORGAN_ONLY' => ['title' => 'Deceased Organ Donor', 'icon' => 'fa-dna', 'color' => '#3b82f6', 'bg' => '#eff6ff', 'desc' => 'Specified organ recovery after death.'],
-                        'ORGANS_PLUS_CORNEA' => ['title' => 'Organs + Cornea Donor', 'icon' => 'fa-heartbeat', 'color' => '#3b82f6', 'bg' => '#eff6ff', 'desc' => 'Organs and tissues authorized for recovery.']
-                    ];
-                    $curr = $modeMeta[$deceased_mode ?? 'NONE'] ?? $modeMeta['NONE'];
-                ?>
-                <div style="background: <?= $curr['bg'] ?>; border: 1.5px solid <?= $curr['color'] ?>22; border-radius: 20px; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 10px 30px -10px <?= $curr['color'] ?>22; position: relative; overflow: hidden;">
-                    <div style="position: absolute; right: -20px; top: -10px; font-size: 6rem; opacity: 0.04; color: <?= $curr['color'] ?>;"><i class="fas <?= $curr['icon'] ?>"></i></div>
-                    <div style="display: flex; align-items: center; gap: 1.5rem; position: relative; z-index: 1;">
-                        <div style="width: 56px; height: 56px; border-radius: 16px; background: <?= $curr['color'] ?>; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 8px 20px -5px <?= $curr['color'] ?>88;">
-                            <i class="fas <?= $curr['icon'] ?>"></i>
-                        </div>
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
-                                <span style="font-size: 0.75rem; font-weight: 800; color: <?= $curr['color'] ?>; text-transform: uppercase; letter-spacing: 1px;">Deceased Donation Intent</span>
-                                <span style="padding: 2px 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 100px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase;">Verified</span>
-                                <?php if(!empty($hasActiveLiving)): ?>
-                                    <span style="padding: 2px 8px; background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; border-radius: 100px; font-size: 0.63rem; font-weight: 800; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
-                                        <i class="fas fa-hand-holding-heart"></i> Active Living Donor
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                            <h4 style="margin: 0; font-size: 1.35rem; font-weight: 900; color: #1e293b; letter-spacing: -0.02em;"><?= $curr['title'] ?></h4>
-                            <p style="margin: 4px 0 0; font-size: 0.85rem; color: #64748b; font-weight: 500;"><?= $curr['desc'] ?></p>
-                        </div>
-                    </div>
-                    <button class="d-btn d-btn--sm" style="border-radius: 12px; background: white; border: 1px solid #e2e8f0; color: #475569; font-weight: 700; padding: 0.75rem 1.25rem; position: relative; z-index: 1;" onclick="window.location.href='<?= ROOT ?>/donor/donations'">
-                        Manage <i class="fas fa-external-link-alt" style="margin-left: 6px; font-size: 0.75rem; opacity: 0.5;"></i>
-                    </button>
-                </div>
-                
-                <!-- Completed Organs Summary -->
-                <?php 
-                $compact_completed = array_filter($pledged_organs ?? [], function($o) {
-                    return strtoupper($o['status'] ?? '') === 'COMPLETED';
-                });
-                if (!empty($compact_completed)): ?>
-                <div class="d-sidebar-section" style="border-left: 5px solid #10b981; margin-bottom: 20px;">
-                    <div class="d-sidebar-section__title" style="margin-bottom:1rem; color: #166534;">
-                        <i class="fas fa-check-circle"></i> Completed Donations
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                        <?php foreach ($compact_completed as $o): ?>
-                            <div style="background: #ecfdf5; border: 1px solid #d1fae5; padding: 0.5rem 1rem; border-radius: 50px; font-size: 0.8rem; font-weight: 700; color: #065f46; display: flex; align-items: center; gap: 8px;" title="Contribution Completed">
-                                <span style="font-size: 1rem;"><?= $o['organ_icon'] ?></span> <?= htmlspecialchars($o['organ_name']) ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
-
                 <!-- Completed Donations Acknowledgement -->
                 <?php 
                 $completed_list = array_filter($pledged_organs ?? [], function($o) {
-                    $status = strtoupper($o['status'] ?? '');
-                    return $status === 'COMPLETED' || (!empty($o['recovery_status']) && strtoupper($o['recovery_status']) === 'RECOVERED');
+                    return ($o['status'] ?? '') === 'COMPLETED' || (!empty($o['recovery_status']) && $o['recovery_status'] === 'RECOVERED');
                 });
                 if (!empty($completed_list)): foreach ($completed_list as $o): ?>
                     <div class="d-feed-card" style="border-left: 5px solid #10b981; background: #f0fdf4;">
@@ -404,7 +337,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <div class="d-feed-card__content">
                             <div style="background: #f0fdf4; padding: 1rem; border-radius: 12px; border: 1px solid #dcfce7;">
                                 <strong style="color: #166534;"><?= htmlspecialchars($latest_health->test_name) ?></strong>
-                                <p style="margin: 0.5rem 0 0; font-size: 1.1rem; color: #10b981; font-weight: 800;"><?= htmlspecialchars($latest_health->status ?? 'Document Uploaded') ?></p>
+                                <p style="margin: 0.5rem 0 0; font-size: 1.1rem; color: #10b981; font-weight: 800;"><?= htmlspecialchars($latest_health->result_value) ?></p>
                             </div>
                         </div>
                         <div class="d-feed-card__actions">
@@ -506,7 +439,9 @@ include __DIR__ . '/inc/sidebar.view.php';
                 </button>
             </div>
         </div>
-    </div>    <script>
+    </div>
+
+    <script>
         function toggleRoleCard(card) {
             const role = card.dataset.role;
             const isSelected = card.classList.contains('selected');
@@ -566,5 +501,4 @@ include __DIR__ . '/inc/sidebar.view.php';
     </script>
 <?php endif; ?>
 
-
-<?php include __DIR__ . '/inc/footer.view.php'; ?>
+<?php include __DIR__ . '/inc/footer.view.php'; ?>
