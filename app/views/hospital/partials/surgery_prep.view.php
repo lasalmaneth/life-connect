@@ -1,3 +1,34 @@
+<?php
+// --- SAMPLE DATA FOR DEMO/DEV ---
+if (!isset($inprogress_matches) || !is_array($inprogress_matches) || count($inprogress_matches) === 0) {
+    $inprogress_matches = [
+        (object) [
+            'match_id' => 1001,
+            'donor_first_name' => 'Nimal',
+            'donor_last_name' => 'Perera',
+            'organ_name' => 'Kidney',
+            'surgery_date' => date('Y-m-d H:i:s', strtotime('+2 days 10:00')), // 2 days from now
+            'hospital_match_status' => 'PENDING',
+        ],
+        (object) [
+            'match_id' => 1002,
+            'donor_first_name' => 'Sunil',
+            'donor_last_name' => 'Fernando',
+            'organ_name' => 'Liver',
+            'surgery_date' => date('Y-m-d H:i:s', strtotime('+5 days 14:30')), // 5 days from now
+            'hospital_match_status' => 'ACCEPTED',
+        ],
+        (object) [
+            'match_id' => 1003,
+            'donor_first_name' => 'Kumari',
+            'donor_last_name' => 'Silva',
+            'organ_name' => 'Heart',
+            'surgery_date' => date('Y-m-d H:i:s', strtotime('+1 week 09:00')), // 1 week from now
+            'hospital_match_status' => 'REJECTED',
+        ],
+    ];
+}
+?>
 <div id="surgery-prep" class="content-section"
     style="<?php echo (isset($initialSection) && $initialSection === 'surgery-prep') ? 'display:block' : 'display:none'; ?>">
     <div class="content-header"
@@ -9,7 +40,7 @@
                     <i class="fas fa-calendar-check" style="font-size: 1.25rem;"></i>
                 </div>
                 <div>
-                    <h2 style="margin: 0; font-size: 1.5rem; color: #0f172a; font-weight: 800;">Donor Approval Registry
+                    <h2 style="margin: 0; font-size: 1.5rem; color: #0f172a; font-weight: 800;">Surgery Completion Registry
                     </h2>
                     <p style="margin: 4px 0 0; color: #64748b; font-size: 0.85rem; font-weight: 500;">Manage clinical
                         approvals and generate donation certificates for matched donors.</p>
@@ -46,8 +77,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (!empty($surgery_matches)): ?>
-                        <?php foreach ($surgery_matches as $match): ?>
+                    <?php if (!empty($inprogress_matches)): ?>
+                        <?php foreach ($inprogress_matches as $match): ?>
                             <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
                                 <td style="padding: 18px 24px;">
                                     <span
@@ -237,6 +268,14 @@
                         document.getElementById('matchDocsSection').style.display = 'none';
                     }
                     document.getElementById('matchStatusBadgeContainer').innerHTML = statusHtml;
+                    
+                    // Surgery Completion Section (IN_PROGRESS check)
+                    const completionSection = document.getElementById('surgeryCompletionSection');
+                    if (data.pledge_status === 'IN_PROGRESS') {
+                        completionSection.style.display = 'block';
+                    } else {
+                        completionSection.style.display = 'none';
+                    }
 
                     modal.style.display = 'block';
                 } else {
@@ -291,6 +330,36 @@
                 })
                 .catch(err => {
                     console.error('Error submitting match action:', err);
+                    notify('An error occurred. Please try again.', 'error');
+                });
+        });
+    }
+
+    function confirmSurgeryCompletion() {
+        hcConfirm('Are you sure you want to mark this surgery as COMPLETED? This will finalize the donor record and update the registry status permanently.').then(ok => {
+            if (!ok) return;
+
+            const formData = new FormData();
+            formData.append('match_id', currentMatchId);
+
+            fetch(`${ROOT}/hospital/complete-surgery`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(res => {
+                    if (res.success) {
+                        notify(res.message, 'success');
+                        setTimeout(() => {
+                            closeSurgeryMatchModal();
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        notify(res.message, 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error completing surgery:', err);
                     notify('An error occurred. Please try again.', 'error');
                 });
         });
