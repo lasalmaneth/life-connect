@@ -1282,6 +1282,11 @@ class HospitalModel {
         )[0] ?? false;
     }
 
+    public function getCustodiansForDonor($donorId)
+    {
+        return $this->query("SELECT name, relationship, phone, email, nic_number FROM custodians WHERE donor_id = :donor_id", [':donor_id' => $donorId]) ?: [];
+    }
+
     public function updateDeceasedRequestStatus($hospitalId, $cisId, $status, $reason, $userId)
     {
         $data = [

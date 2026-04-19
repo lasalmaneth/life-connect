@@ -15,7 +15,7 @@
                     return strtoupper(trim((string)$r->request_status)) === 'ACCEPTED';
                 });
             ?>
-            <button class="cp-badge cp-badge--info cp-badge--lg" onclick="document.getElementById('retrievalQueueDropdown').classList.toggle('cp-d-none')" style="cursor: pointer; border: none; font-family: inherit; position: relative;">
+            <button class="cp-badge cp-badge--info cp-badge--lg" onclick="const dq = document.getElementById('retrievalQueueDropdown'); dq.style.display = (dq.style.display === 'none') ? 'block' : 'none';" style="cursor: pointer; border: none; font-family: inherit; position: relative;">
                 <i class="fas fa-truck-medical cp-mr-2"></i> Retrieval Queue
                 <?php if (count($retrievalQueue) > 0): ?>
                     <span style="position: absolute; top: -8px; right: -8px; background: #ef4444; color: white; border-radius: 20px; padding: 2px 8px; font-size: 0.7rem; font-weight: 800; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -25,7 +25,7 @@
             </button>
 
             <!-- Displaced Logic Dropdown for Accepted Cases -->
-            <div id="retrievalQueueDropdown" class="cp-d-none" style="position: absolute; right: 0; top: 100%; margin-top: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 340px; z-index: 1050; padding: 12px; text-align: left;">
+            <div id="retrievalQueueDropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 340px; z-index: 1050; padding: 12px; text-align: left;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px;">
                     <h4 style="margin: 0; font-size: 0.95rem; color: #0f172a; font-weight: 700;">
                         <i class="fas fa-clipboard-check text-accent" style="margin-right: 6px;"></i> Accepted Queue
@@ -65,10 +65,10 @@
         <!-- Premium Filter Bar -->
         <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
             <div class="cp-filter-tabs">
-                <button onclick="filterDeceasedRequests('ALL', this)" class="cp-filter-btn active">All Requests</button>
-                <button onclick="filterDeceasedRequests('PENDING', this)" class="cp-filter-btn">Pending Review</button>
-                <button onclick="filterDeceasedRequests('ACCEPTED', this)" class="cp-filter-btn">Accepted</button>
-                <button onclick="filterDeceasedRequests('REJECTED', this)" class="cp-filter-btn">Rejected</button>
+                <button onclick="filterDeceasedRequests('ALL', this)" class="cp-filter-btn" data-tab="ALL">All Requests</button>
+                <button onclick="filterDeceasedRequests('PENDING', this)" class="cp-filter-btn" data-tab="PENDING">Pending Review</button>
+                <button onclick="filterDeceasedRequests('ACCEPTED', this)" class="cp-filter-btn" data-tab="ACCEPTED">Accepted</button>
+                <button onclick="filterDeceasedRequests('REJECTED', this)" class="cp-filter-btn" data-tab="REJECTED">Rejected</button>
             </div>
         </div>
 
@@ -149,7 +149,7 @@ function filterDeceasedRequests(status, btn) {
     const tabs = document.querySelectorAll('#deceased-requests .cp-filter-btn');
     
     tabs.forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
 
     let visibleCount = 0;
     rows.forEach(row => {
@@ -166,6 +166,13 @@ function filterDeceasedRequests(status, btn) {
         emptyRow.style.display = visibleCount === 0 ? '' : 'none';
     }
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') ? urlParams.get('tab').toUpperCase() : 'ALL';
+    const btn = document.querySelector(`.cp-filter-btn[data-tab='${initialTab}']`) || document.querySelector('.cp-filter-btn[data-tab="ALL"]');
+    if (btn) filterDeceasedRequests(initialTab, btn);
+});
 
 function openDeceasedRequestDrawer(id) {
     const titleEl = document.getElementById('drawerTitle');

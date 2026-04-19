@@ -266,7 +266,7 @@ class Hospital
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                 $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
             }
-            redirect('hospital/deceased-requests');
+            redirect('hospital/deceased-requests?tab=ACCEPTED');
         }
     }
 
@@ -280,7 +280,7 @@ class Hospital
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                 $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'REJECTED', $reason, $_SESSION['user_id']);
             }
-            redirect('hospital/deceased-requests');
+            redirect('hospital/deceased-requests?tab=REJECTED');
         }
     }
 
