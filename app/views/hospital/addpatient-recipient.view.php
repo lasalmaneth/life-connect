@@ -72,7 +72,7 @@
                                     </div>
                                     <div>
                                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">NIC *</label>
-                                        <input type="text" name="recipient_nic" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <input type="text" name="recipient_nic" id="recipient_nic" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                     <div>
                                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Registration Number</label>
@@ -83,11 +83,11 @@
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                                     <div>
                                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Age</label>
-                                        <input type="number" name="recipient_age" min="0" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <input type="number" name="recipient_age" id="recipient_age" min="0" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                     <div>
                                         <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Gender</label>
-                                        <select name="recipient_gender" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
+                                        <select name="recipient_gender" id="recipient_gender" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
                                             <option value="">Select</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
@@ -205,6 +205,55 @@
             w.focus();
             w.print();
         }
+
+        // NIC to Age and Gender logic
+        document.getElementById('recipient_nic')?.addEventListener('input', function() {
+            const nic = this.value.trim();
+            let year, days, gender;
+
+            if (nic.length === 10 && (nic.toLowerCase().endsWith('v') || nic.toLowerCase().endsWith('x'))) {
+                // Old NIC: 9 digits + V/X
+                year = 1900 + parseInt(nic.substring(0, 2));
+                days = parseInt(nic.substring(2, 5));
+            } else if (nic.length === 12 && /^\d+$/.test(nic)) {
+                // New NIC: 12 digits
+                year = parseInt(nic.substring(0, 4));
+                days = parseInt(nic.substring(4, 7));
+            } else {
+                return;
+            }
+
+            // Gender logic
+            if (days > 500) {
+                gender = 'Female';
+                days -= 500;
+            } else if (days > 0) {
+                gender = 'Male';
+            } else {
+                return;
+            }
+
+            // Simple boundary check
+            if (days < 1 || days > 366) return;
+
+            // Set Gender
+            const genderEl = document.getElementById('recipient_gender');
+            if (genderEl) genderEl.value = gender;
+
+            // Calculate Age
+            const today = new Date();
+            const birthDate = new Date(year, 0); // Jan 1st of birth year
+            birthDate.setDate(days); // Roll to the day of year
+
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+
+            const ageEl = document.getElementById('recipient_age');
+            if (ageEl) ageEl.value = age >= 0 ? age : 0;
+        });
     </script>
 
     <?php include __DIR__ . '/inc/footer.view.php'; ?>

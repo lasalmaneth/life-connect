@@ -69,6 +69,22 @@ class AftercarePatientModel
         return $res ? $res[0] : false;
     }
 
+    public function getByRegistrationNumber(string $registrationNumber)
+    {
+        $registrationNumber = trim($registrationNumber);
+        if ($registrationNumber === '') return false;
+
+        $res = $this->query(
+            "SELECT ap.*, rp.full_name 
+             FROM {$this->table} ap
+             LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id
+             WHERE rp.registration_number = :rn LIMIT 1",
+            [':rn' => $registrationNumber]
+        );
+
+        return $res ? $res[0] : false;
+    }
+
     public function getByNic(string $nic)
     {
         $nic = trim($nic);
@@ -120,7 +136,7 @@ class AftercarePatientModel
                 'role' => 'RECIPIENT_PATIENT',
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
-                'status' => 'PENDING',
+                'status' => 'ACTIVE',
                 'must_change_credentials' => 1,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
@@ -221,7 +237,7 @@ class AftercarePatientModel
 
         $res = $this->query(
             "SELECT registration_number
-             FROM {$this->table}
+             FROM recipient_patient
              WHERE registration_number LIKE :p
              ORDER BY registration_number DESC
              LIMIT 1",
@@ -271,7 +287,7 @@ class AftercarePatientModel
                 :medical_details,
                 :surgery_type,
                 :surgery_date,
-                'PENDING',
+                'ACTIVE',
                 NOW()
             )",
             [
@@ -305,26 +321,21 @@ class AftercarePatientModel
             throw new \InvalidArgumentException('Missing required fields');
         }
 
-        $existing = $this->getByNic($nic);
+        $existingResult = $this->query("SELECT * FROM {$this->table} WHERE user_id = :uid LIMIT 1", [':uid' => $userId]);
+        $existing = $existingResult ? $existingResult[0] : null;
+
         if ($existing) {
-            $updateFields = [
-                'full_name' => $fullName,
-                'hospital_registration_no' => $hospitalReg,
-                'nic' => $nic,
-            ];
             $this->query(
                 "UPDATE {$this->table} SET patient_type = 'DONOR' WHERE user_id = :uid LIMIT 1",
                 [':uid' => $userId]
             );
-            return (string)($existing->registration_number ?? '');
+            return '';
         }
 
         $year = (int)date('Y');
         $attempts = 0;
         while ($attempts < 10) {
             $attempts++;
-            $registrationNumber = $this->generateNextRegistrationNumber($year);
-
 
             try {
                 $this->query(
@@ -339,7 +350,7 @@ class AftercarePatientModel
                         ':uid' => $userId
                     ]
                 );
-                return $registrationNumber;
+                return ''; // Donors don't have a traditional aftercare registration number yet
             } catch (\PDOException $e) {
                 $code = (string)$e->getCode();
                 if ($code === '23000') {
