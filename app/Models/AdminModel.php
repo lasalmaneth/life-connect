@@ -637,25 +637,6 @@ class AdminModel
         return $this->query($query, $params);
     }
 
-    public function bulkUpdateUserStatus($userIds, $status, $message = null)
-    {
-        if (empty($userIds))
-            return false;
-
-        $status = strtoupper($status);
-        if (!$message) {
-            $message = ($status === 'ACTIVE')
-                ? "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved."
-                : "Account suspended for administrative review.";
-        }
-
-        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $query = "UPDATE users SET status = ?, review_message = ? WHERE id IN ($placeholders)";
-
-        $params = array_merge([$status, $message], $userIds);
-        return $this->query($query, $params);
-    }
-
     public function getFeedbacks()
     {
         // Try to order by id desc since we aren't 100% sure about created_at

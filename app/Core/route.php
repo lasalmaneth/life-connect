@@ -231,7 +231,6 @@ route('user-admin/updateUserStatus', 'admin\UserAdmin@updateUserStatus');
 route('user-admin/getNotifications', 'admin\UserAdmin@getNotifications');
 route('user-admin/getAuditLogs', 'admin\UserAdmin@getAuditLogs');
 route('user-admin/sendNotification', 'admin\UserAdmin@sendNotification');
-route('user-admin/bulkUpdateUserStatus', 'admin\UserAdmin@bulkUpdateUserStatus');
 route('user-admin/getUser', 'admin\UserAdmin@getUser');
 route('user-admin/getDetailedUser', 'admin\UserAdmin@getDetailedUser');
 route('user-admin/updateUser', 'admin\UserAdmin@updateUser');

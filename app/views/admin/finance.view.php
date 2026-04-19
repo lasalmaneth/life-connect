@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/admin/style.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
     <title>Financial Donations | LifeConnect</title>
 </head>
 <body style="background-color: #f8fafc; min-height: 100vh;">
@@ -73,7 +73,12 @@
 
     <div class="header">
         <div class="header-content">
-            <div class="header-left">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Mobile Toggle Button -->
+                <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                
                 <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
@@ -105,6 +110,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid p-0">
         <div class="main-content">
             <div class="sidebar glass">
@@ -117,49 +125,51 @@
                     </div>
                 </div>
                 
-                <div class="menu-section">
-                    <div class="menu-section-title">Core</div>
-                    <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
-                        <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
+                <div class="sidebar-nav">
+                    <div class="menu-section">
+                        <div class="menu-section-title">Core</div>
+                        <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
+                            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Support Management</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)" style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
-                            <span>Support Requests</span>
-                        </div>
-                        <?php if(($support_stats['pending'] ?? 0) > 0): ?>
-                            <span style="background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $support_stats['pending'] ?></span>
-                        <?php endif; ?>
-                    </a>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('vouchers', this)">
-                        <span class="icon"><i class="fa-solid fa-ticket"></i></span>
-                        <span>Voucher Management</span>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Support Management</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)" style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
+                                <span>Support Requests</span>
+                            </div>
+                            <?php if(($support_stats['pending'] ?? 0) > 0): ?>
+                                <span style="background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $support_stats['pending'] ?></span>
+                            <?php endif; ?>
+                        </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('vouchers', this)">
+                            <span class="icon"><i class="fa-solid fa-ticket"></i></span>
+                            <span>Voucher Management</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Donation Management</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('payments', this)" style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
-                            <span>Financial Donations</span>
-                        </div>
-                        <?php if(($kpis['today_donations_count'] ?? 0) > 0): ?>
-                            <span style="background: #10b981; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $kpis['today_donations_count'] ?></span>
-                        <?php endif; ?>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Donation Management</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('payments', this)" style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
+                                <span>Financial Donations</span>
+                            </div>
+                            <?php if(($kpis['today_donations_count'] ?? 0) > 0): ?>
+                                <span style="background: #10b981; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 10px; border-radius: 20px; margin-right: 8px; display: inline-flex; align-items: center; justify-content: center;">+<?= $kpis['today_donations_count'] ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </div>
 
-                <div class="menu-section mt-auto">
-                    <a href="<?= ROOT ?>/financial-admin/logout" class="menu-item text-danger">
-                        <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
+                    <div class="menu-section mt-auto">
+                        <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger">
+                            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -277,7 +287,48 @@
             }
             event.stopPropagation();
         }
+
+        // Sidebar Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Generic Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
     </script>
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
     <!-- Custom Toast Notification Container -->
     <div id="toast-container" style="position: fixed; top: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; pointer-events: none;"></div>
     
