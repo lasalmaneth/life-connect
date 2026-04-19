@@ -404,7 +404,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <div class="d-feed-card__content">
                             <div style="background: #f0fdf4; padding: 1rem; border-radius: 12px; border: 1px solid #dcfce7;">
                                 <strong style="color: #166534;"><?= htmlspecialchars($latest_health->test_name) ?></strong>
-                                <p style="margin: 0.5rem 0 0; font-size: 1.1rem; color: #10b981; font-weight: 800;"><?= htmlspecialchars($latest_health->result_value) ?></p>
+                                <p style="margin: 0.5rem 0 0; font-size: 1.1rem; color: #10b981; font-weight: 800;"><?= htmlspecialchars($latest_health->status ?? 'Document Uploaded') ?></p>
                             </div>
                         </div>
                         <div class="d-feed-card__actions">

@@ -40,7 +40,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                 </div>
                                 
                                 <div style="font-size: 0.85rem; padding: 0.5rem 0.75rem; background: var(--g50); border-radius: 6px; border-left: 3px solid var(--success); display: inline-block;">
-                                    <span style="color: var(--g600);">Result:</span> <span style="font-weight: 700; color: var(--success); margin-left: 0.25rem;"><?= htmlspecialchars($test->result_value) ?></span>
+                                    <span style="color: var(--g600);">Status:</span> <span style="font-weight: 700; color: var(--success); margin-left: 0.25rem;"><?= htmlspecialchars($test->status ?? 'Report Available') ?></span>
                                 </div>
                             </div>
                             <div>
