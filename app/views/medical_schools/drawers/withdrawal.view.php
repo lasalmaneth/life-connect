@@ -12,20 +12,21 @@
             </div>
             <div class="dr-label-group">
                 <div class="dr-label">Date of Birth</div>
-                <div class="dr-value dr-value--small"><?= $donor->date_of_birth ? date('Y-m-d', strtotime($donor->date_of_birth)) : 'N/A' ?></div>
+                <div class="dr-value dr-value--small">
+                    <?= $donor->date_of_birth ? date('Y-m-d', strtotime($donor->date_of_birth)) : 'N/A' ?></div>
             </div>
             <div class="dr-label-group">
                 <div class="dr-label">Age</div>
                 <div class="dr-value dr-value--small">
-                    <?php 
-                        if ($donor->date_of_birth) {
-                            $birthDate = new DateTime($donor->date_of_birth);
-                            $today = new DateTime();
-                            $age = $today->diff($birthDate)->y;
-                            echo $age;
-                        } else {
-                            echo 'N/A';
-                        }
+                    <?php
+                    if ($donor->date_of_birth) {
+                        $birthDate = new DateTime($donor->date_of_birth);
+                        $today = new DateTime();
+                        $age = $today->diff($birthDate)->y;
+                        echo $age;
+                    } else {
+                        echo 'N/A';
+                    }
                     ?>
                 </div>
             </div>
@@ -50,7 +51,8 @@
         </h4>
         <div class="dr-banner dr-banner--info bg-rose-50 border-rose-100">
             <div class="dr-banner__title-sm text-rose-600">Withdrawal Date / Status Update</div>
-            <div class="dr-banner__title text-rose-900"><?= date('M d, Y', strtotime($donor->consent_date)) ?></div>
+            <div class="dr-banner__title text-rose-900">
+                <?= !empty($donor->withdrawal_date) ? date('M d, Y', strtotime($donor->withdrawal_date)) : 'N/A' ?></div>
         </div>
 
         <div class="mb-6">

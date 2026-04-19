@@ -143,3 +143,109 @@
         max-width: 300px;
     }
 }
+
+/* --- SUCCESS CARD PREMIUM STYLES --- */
+.cp-report-success-card {
+    max-width: 440px;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 2.5rem;
+    text-align: center;
+    border: 1px solid var(--g200);
+    position: relative;
+    overflow: hidden;
+    margin: 3rem auto;
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08);
+}
+
+.cp-report-success-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(to right, #10b981, #059669);
+}
+
+.cp-success-icon-wrap {
+    width: 72px;
+    height: 72px;
+    background: #ecfdf5;
+    color: #059669;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 1.8rem;
+    box-shadow: 0 0 0 10px #f8fafc;
+    animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.cp-success-data-box {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: left;
+    margin: 1.5rem 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.data-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.data-icon {
+    width: 32px;
+    height: 32px;
+    background: #ffffff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blue-600);
+    border: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.data-content .lbl {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.25rem;
+}
+
+.data-content .val {
+    color: #1e293b;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.cp-success-id {
+    margin-top: 1.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}

@@ -64,6 +64,7 @@ $has_non = in_array('non', $active_roles, true);
   <title><?= $page_title ?? 'Donor Portal' ?> | LifeConnect</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     crossorigin="anonymous" referrerpolicy="no-referrer">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/donor/donor.css?v=<?= time() ?>">
   <?php if (!empty($page_css)):
     foreach ($page_css as $css): ?>

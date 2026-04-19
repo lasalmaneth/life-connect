@@ -60,7 +60,17 @@ ob_start();
                                 </td>
                                 <td>
                                     <div class="cp-intent-title">
-                                        <i class="fas <?= $t->type === 'BODY_CONSENT' ? 'fa-university' : 'fa-hand-holding-medical' ?> cp-text-blue-500"></i>
+                                        <?php 
+                                            $icon = 'fa-hand-holding-medical';
+                                            $color = 'cp-text-blue-500';
+                                            if ($t->type === 'BODY_CONSENT') $icon = 'fa-university';
+                                            if ($t->category === 'Living Donation Case') {
+                                                $icon = 'fa-heart';
+                                                $color = 'cp-text-rose-500';
+                                            }
+                                            if ($isWithdrawn) $color = 'cp-text-g400';
+                                        ?>
+                                        <i class="fas <?= $icon ?> <?= $color ?>"></i>
                                         <?= htmlspecialchars($t->item_name) ?>
                                     </div>
                                 </td>
@@ -68,7 +78,7 @@ ob_start();
                                     <span class="cp-category-tag"><?= $t->category ?? 'General' ?></span>
                                 </td>
                                 <td>
-                                    <span class="cp-entity-lbl"><?= htmlspecialchars($t->holding_entity ?? $t->item_name) ?></span>
+                                    <span class="cp-entity-lbl"><?= htmlspecialchars($t->holding_entity ?? 'System Resolution') ?></span>
                                 </td>
                                 <td>
                                     <?php if ($isWithdrawn): ?>

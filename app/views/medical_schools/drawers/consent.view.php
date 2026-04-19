@@ -12,20 +12,21 @@
             </div>
             <div class="dr-label-group">
                 <div class="dr-label">Date of Birth</div>
-                <div class="dr-value dr-value--small"><?= $donor->date_of_birth ? date('Y-m-d', strtotime($donor->date_of_birth)) : 'N/A' ?></div>
+                <div class="dr-value dr-value--small">
+                    <?= $donor->date_of_birth ? date('Y-m-d', strtotime($donor->date_of_birth)) : 'N/A' ?></div>
             </div>
             <div class="dr-label-group">
                 <div class="dr-label">Age</div>
                 <div class="dr-value dr-value--small">
-                    <?php 
-                        if ($donor->date_of_birth) {
-                            $birthDate = new DateTime($donor->date_of_birth);
-                            $today = new DateTime();
-                            $age = $today->diff($birthDate)->y;
-                            echo $age;
-                        } else {
-                            echo 'N/A';
-                        }
+                    <?php
+                    if ($donor->date_of_birth) {
+                        $birthDate = new DateTime($donor->date_of_birth);
+                        $today = new DateTime();
+                        $age = $today->diff($birthDate)->y;
+                        echo $age;
+                    } else {
+                        echo 'N/A';
+                    }
                     ?>
                 </div>
             </div>
@@ -65,10 +66,18 @@
             </div>
             <div class="dr-item bg-gray-50 text-center">
                 <div class="dr-label mb-1">Registry Status</div>
-                <div class="dr-value"><?= htmlspecialchars($donor->consent_status) ?></div>
+                <div class="dr-value">
+                    <?php
+                    $status = $donor->consent_status ?? 'N/A';
+                    if ($status === 'GIVEN')
+                        echo 'ACTIVE';
+                    else
+                        echo htmlspecialchars($status);
+                    ?>
+                </div>
             </div>
         </div>
-        
+
         <!-- Witnesses Section (Premium 'Nice Card' Style) -->
         <div class="dr-card dr-card--blue shadow-sm mt-4">
             <div class="dr-section-title">
@@ -77,7 +86,7 @@
                     <span>Witness Information</span>
                 </div>
             </div>
-            
+
             <div class="dr-item-list">
                 <div class="dr-item">
                     <span class="dr-item-marker">1</span>
@@ -103,11 +112,13 @@
                     <div class="dr-doc-meta mt-1">Archive copy of signed willingness form.</div>
                 </div>
                 <?php if ($donor->signed_form_path): ?>
-                    <a href="<?= ROOT ?>/<?= htmlspecialchars($donor->signed_form_path) ?>" target="_blank" class="cp-btn dr-btn-xs bg-white border-blue-500 text-blue-600">
+                    <a href="<?= ROOT ?>/<?= htmlspecialchars($donor->signed_form_path) ?>" target="_blank"
+                        class="cp-btn dr-btn-xs bg-white border-blue-500 text-blue-600">
                         <i class="fas fa-eye mr-1"></i> View Signed form
                     </a>
                 <?php else: ?>
-                    <button class="cp-btn dr-btn-xs bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" disabled title="Donor has not uploaded the signed form yet.">
+                    <button class="cp-btn dr-btn-xs bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed" disabled
+                        title="Donor has not uploaded the signed form yet.">
                         <i class="fas fa-clock mr-1"></i> Pending Upload
                     </button>
                 <?php endif; ?>
