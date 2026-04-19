@@ -174,7 +174,7 @@
 
                 <div class="menu-section">
                     <div class="menu-section-title">Account</div>
-                    <a href="<?= ROOT ?>/logout" class="menu-item" style="color: var(--danger-color);">
+                    <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger" style="color: var(--danger-color);">
                         <span class="icon"><i class="fa-solid fa-sign-out-alt"></i></span>
                         <span>Logout</span>
                     </a>
@@ -314,6 +314,46 @@
                 }
             }
         });
+
+        // Modal functions
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) {
+                        modal.style.display = 'none';
+                    }
+                }, 300);
+                document.body.style.overflow = '';
+            }
+        }
     </script>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

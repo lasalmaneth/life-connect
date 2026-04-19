@@ -176,7 +176,20 @@ class UserAdmin {
             
             // Get user info
             $user = $adminModel->getUserById($userId);
-            $oldStatus = $user ? strtoupper($user->status) : 'UNKNOWN';
+            if (!$user) {
+                echo json_encode(['success' => false, 'message' => 'User not found']);
+                return;
+            }
+
+            // Target protection: Prevent changing status of ANY Admin account
+            $targetRole = strtoupper($user->role ?? '');
+            $adminRoles = ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'];
+            if (in_array($targetRole, $adminRoles)) {
+                echo json_encode(['success' => false, 'message' => "Restricted: Administrative accounts (Role: $targetRole) are protected and their status cannot be modified here."]);
+                return;
+            }
+
+            $oldStatus = strtoupper($user->status ?? 'UNKNOWN');
             $message = $input['review_message'] ?? null;
             $adminModel->updateUserStatus($userId, $status, $message);
 

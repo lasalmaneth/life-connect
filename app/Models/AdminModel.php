@@ -264,10 +264,9 @@ class AdminModel
         //    Map users.status → profile table verification_status value
         $profileStatus = match (strtoupper($status)) {
             'ACTIVE' => 'APPROVED',
-            'SUSPENDED' => 'SUSPENDED',
             'PENDING' => 'PENDING',
             'WITHDRAW_REQUEST' => 'REJECTED',
-            default => null
+            default => null // SUSPENDED is not an ENUM in profile tables
         };
 
         if ($profileStatus !== null) {
@@ -291,11 +290,7 @@ class AdminModel
                 "UPDATE custodians SET status = :vs WHERE user_id = :uid",
                 ['vs' => $profileStatus, 'uid' => $userId]
             );
-            // Aftercare Patients summary table (HAS user_id)
-            $this->query(
-                "UPDATE aftercare_patients SET status = :s WHERE user_id = :uid",
-                ['s' => strtoupper($status), 'uid' => $userId]
-            );
+            // aftercare_patients table schema has been updated and no longer maintains a status column.
 
             // Recipient Patients table (Sync status if they have a profile)
             $res = $this->query(

@@ -14,9 +14,18 @@ class AftercareAdminModel {
      */
     public function getAllPatients($type = null, $blood = null, $search = null) {
         $params = [];
-        $query = "SELECT a.id, a.registration_number, a.nic, a.full_name, a.patient_type, r.age, r.blood_group, a.status, a.hospital_registration_no, a.created_at 
+        $query = "SELECT a.id, a.user_id, a.patient_type,
+                         COALESCE(r.registration_number, CONCAT('DN-', d.id)) as registration_number,
+                         COALESCE(r.nic, d.nic_number) as nic,
+                         COALESCE(r.full_name, CONCAT(d.first_name, ' ', d.last_name)) as full_name,
+                         r.age,
+                         COALESCE(r.blood_group, d.blood_group) as blood_group,
+                         COALESCE(r.status, d.verification_status) as status,
+                         r.hospital_registration_no,
+                         COALESCE(r.created_at, d.created_at) as created_at
                   FROM {$this->table} a
-                  LEFT JOIN recipient_patient r ON a.registration_number = r.registration_number
+                  LEFT JOIN recipient_patient r ON a.user_id = r.user_id
+                  LEFT JOIN donors d ON a.user_id = d.user_id
                   WHERE 1=1";
 
         if ($type) {
@@ -25,16 +34,22 @@ class AftercareAdminModel {
         }
 
         if ($blood) {
-            $query .= " AND r.blood_group = :blood";
+            $query .= " AND COALESCE(r.blood_group, d.blood_group) = :blood";
             $params['blood'] = $blood;
         }
 
         if ($search) {
-            $query .= " AND (a.full_name LIKE :search OR a.registration_number LIKE :search OR a.nic LIKE :search)";
+            $query .= " AND (
+                r.full_name LIKE :search 
+                OR CONCAT(d.first_name, ' ', d.last_name) LIKE :search 
+                OR r.registration_number LIKE :search 
+                OR d.nic_number LIKE :search 
+                OR r.nic LIKE :search
+            )";
             $params['search'] = "%$search%";
         }
 
-        $query .= " ORDER BY a.created_at DESC";
+        $query .= " ORDER BY created_at DESC";
         
         $results = $this->query($query, $params);
         return $results ? $results : [];
@@ -47,32 +62,22 @@ class AftercareAdminModel {
      * Get full details for a single patient with selective table joining
      */
     public function getPatientById($id) {
-        $query = "SELECT a.*, 
-                         r.age as r_age, r.gender as r_gender, r.blood_group as r_blood, 
-                         r.contact_details, r.medical_details, r.surgery_type, r.surgery_date,
-                         d.blood_group as d_blood, d.gender as d_gender
-                   FROM {$this->table} a
-                   LEFT JOIN recipient_patient r ON a.registration_number = r.registration_number
-                   LEFT JOIN donors d ON a.user_id = d.user_id
-                   WHERE a.id = :id LIMIT 1";
+        $query = "SELECT a.id, a.user_id, a.patient_type,
+                         COALESCE(r.registration_number, CONCAT('DN-', d.id)) as registration_number,
+                         COALESCE(r.nic, d.nic_number) as nic,
+                         COALESCE(r.full_name, CONCAT(d.first_name, ' ', d.last_name)) as full_name,
+                         COALESCE(r.blood_group, d.blood_group) as blood_group,
+                         COALESCE(r.gender, d.gender) as gender,
+                         r.age, r.contact_details, r.medical_details, r.surgery_type, r.surgery_date,
+                         r.hospital_registration_no,
+                         COALESCE(r.created_at, d.created_at) as created_at
+                    FROM {$this->table} a
+                    LEFT JOIN recipient_patient r ON a.user_id = r.user_id
+                    LEFT JOIN donors d ON a.user_id = d.user_id
+                    WHERE a.id = :id LIMIT 1";
         
         $results = $this->query($query, ['id' => $id]);
-        if (!$results) return null;
-
-        $p = $results[0];
-        
-        // Normalize fields based on patient type
-        if ($p->patient_type === 'RECIPIENT') {
-            $p->age = $p->r_age;
-            $p->gender = $p->r_gender;
-            $p->blood_group = $p->r_blood;
-        } else {
-            $p->gender = $p->d_gender;
-            $p->blood_group = $p->d_blood;
-            $p->age = null; // Donors don't have age in this specific join requirement
-        }
-
-        return $p;
+        return $results ? $results[0] : null;
     }
 
     /**
