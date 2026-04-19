@@ -206,8 +206,8 @@ ob_start();
                 </div>
             </div>
             
-            <!-- STAGE-BY-STAGE BANNER -->
-            <?php require __DIR__ . '/partials/dashboard-stage-banner.php'; ?>
+            <!-- STEP-BY-STAGE PROGRESS INDICATOR -->
+            <?php require __DIR__ . '/partials/stepper.php'; ?>
             
             <div class="cp-dashboard-grid mb-4">
 
@@ -255,7 +255,7 @@ ob_start();
                             <div class="cp-section-card__header cp-bg-amber-100 text-amber-900 font-bold">
                                 <div class="cp-section-card__title"><i class="fas fa-balance-scale"></i> Critical Track Decision</div>
                             </div>
-                            <div class="cp-section-card__body p-5">
+                            <div class="cp-section-card__body p-5" style="min-height: 320px; display: flex; flex-direction: column;">
                                 <?php if ($isBrainDead): ?>
                                     <?php if ($kidneyDecision === 'PENDING'): ?>
                                         <div style="display: flex; align-items: flex-start; gap: 1.5rem;">
@@ -286,17 +286,50 @@ ob_start();
                                         </div>
                                     <?php elseif ($kidneyDecision === 'PROCEED'): ?>
                                         <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-check-circle text-success mr-2"></i> Path: Treating Hospital (Kidney Included)</h4>
-                                        <p class="cp-text-amber-800 cp-text-sm mt-2 mb-0">The decision was made to proceed with kidney recovery bedside. Coordination for all selected items is active at this facility.</p>
+                                        <p class="cp-text-amber-800 cp-text-sm mt-3 leading-relaxed">
+                                            The decision was made to proceed with kidney recovery bedside. Coordination for all selected items (including kidneys) is active at this facility, ensuring a streamlined surgical process.
+                                        </p>
+                                        <div class="mt-auto pt-4">
+                                            <div class="p-4 rounded-xl bg-green-50 border border-green-100 flex items-center gap-4">
+                                                <div class="cp-text-2xl text-green-600"><i class="fas fa-hospital-user"></i></div>
+                                                <div class="cp-text-xs cp-text-green-700">
+                                                    <strong>Logistical Summary:</strong><br>
+                                                    The treating hospital serves as the primary recovery center. No external hospital nomination is required for tissue harvesting in this mode.
+                                                </div>
+                                            </div>
+                                        </div>
                                     <?php elseif ($kidneyDecision === 'DECLINE' || $kidneyDecision === 'DECLINED' || $kidneyDecision === 'SKIPPED'): ?>
-                                        <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-times-circle text-danger mr-2"></i> Path: Item-Specific Hospital Selection (Kidney Skipped)</h4>
-                                        <p class="cp-text-amber-800 cp-text-sm mt-2 mb-0">Kidney donation was explicitly declined. You may now manually nominate hospitals for the remaining tissues in the section below.</p>
+                                        <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-times-circle text-danger mr-2"></i> Path: Specified Hospital (Kidney Deffered)</h4>
+                                        <p class="cp-text-amber-800 cp-text-sm mt-3 leading-relaxed">
+                                            The custodian team has chosen to **donate other organs** (such as cornea and heart valves) while electing to skip kidney recovery. This choice allows the team to nominate a specialized **Transplantation Hospital** for the retrieval process.
+                                        </p>
+                                        <div class="mt-auto pt-4">
+                                            <div class="p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-4">
+                                                <div class="cp-text-2xl text-amber-600"><i class="fas fa-route"></i></div>
+                                                <div class="cp-text-xs cp-text-amber-700">
+                                                    <strong>Logistical Summary:</strong><br>
+                                                    The process has transitioned to a **Directed Tissue Track**. You can now manually nominate the best-suited hospital for the remaining items in the section on the right.
+                                                </div>
+                                            </div>
+                                        </div>
                                     <?php else: ?>
                                         <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-info-circle text-info mr-2"></i> Decision Recorded</h4>
                                         <p class="cp-text-amber-800 cp-text-sm mt-2 mb-0">Status: <strong><?= htmlspecialchars(str_replace('_', ' ', $kidneyDecision)) ?></strong>. Coordination is proceeding based on this logistical choice.</p>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-info-circle mr-2 text-info"></i> Clinical Track: Hospital-Managed Recovery</h4>
-                                    <p class="cp-text-amber-800 cp-text-sm mt-2 mb-0">Kidney recovery is unavailable (Brain death: NO). Other consented tissues (Cornea, etc.) remain actionable via hospital selection below.</p>
+                                    <h4 class="cp-text-amber-900 m-0 font-bold"><i class="fas fa-info-circle mr-2 text-info"></i> Clinical Track: Directed Tissue Recovery</h4>
+                                    <p class="cp-text-amber-800 cp-text-sm mt-3 leading-relaxed">
+                                        Kidney recovery is clinically unavailable (Brain death criteria not met). The custodian has proceeded with the **Tissue Donation track** for all other consented items.
+                                    </p>
+                                    <div class="mt-auto pt-4">
+                                        <div class="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-center gap-4">
+                                            <div class="cp-text-2xl text-blue-600"><i class="fas fa-info-circle"></i></div>
+                                            <div class="cp-text-xs cp-text-blue-700">
+                                                <strong>Logistical Summary:</strong><br>
+                                                Recovery will be managed by the **Hospital-Managed Section** on the right. Please ensure the nominated hospital accepts the tissue retrieval request.
+                                            </div>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>

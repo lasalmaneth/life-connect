@@ -154,6 +154,8 @@ class DonationResolver
         return [
             'resolved_deceased_mode' => $mode,
             'resolved_operational_track' => $track,
+            'items' => $items,
+            'time_limits' => $timeLimits,
             'operational_items_json' => json_encode($items),
             'operational_time_limits_json' => json_encode($timeLimits),
             'kidney_decision' => $kidneyDecision,

@@ -769,15 +769,18 @@ class CustodianModel {
      */
     public function getAppreciationLetters($caseId)
     {
-        // Letters are issued from body usage records
+        // Letters are issued from body usage records or organ retrieval logs
         return $this->queryJoin(
             [
                 ['table' => 'body_usage_logs bul', 'on' => 'appreciation_letters.usage_log_id = bul.id', 'type' => 'JOIN'],
-                ['table' => 'medical_schools ms', 'on' => 'bul.medical_school_id = ms.id', 'type' => 'JOIN'],
+                ['table' => 'medical_schools ms', 'on' => 'bul.medical_school_id = ms.id', 'type' => 'LEFT'],
+                ['table' => 'hospitals h', 'on' => 'bul.medical_school_id = h.id', 'type' => 'LEFT'],
                 ['table' => 'donation_cases dc', 'on' => 'bul.donor_id = dc.donor_id', 'type' => 'JOIN']
             ],
             ['dc.id' => $caseId],
-            'appreciation_letters.*, ms.school_name AS institution_name, bul.usage_type',
+            'appreciation_letters.*, 
+             CASE WHEN bul.usage_type = "Organ Retrieval" THEN h.name ELSE COALESCE(ms.school_name, h.name, "Host Institution") END AS institution_name, 
+             bul.usage_type',
             'appreciation_letters.issued_at DESC',
             100,
             0,

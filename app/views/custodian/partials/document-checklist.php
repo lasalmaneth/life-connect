@@ -46,8 +46,9 @@ $isACCEPTED = $anyAccepted || ($currentInstRequest && (($currentInstRequest->ins
 $bundleStatus = $activeCase ? ($activeCase->bundle_status ?? 'PENDING') : 'PENDING';
 $isBody = ($donationType === 'BODY' || $donationType === 'BODY_AND_CORNEA');
 
-// Determine if the checklist should be interactive or hidden based on review status
-$docStatus = $currentInstRequest->document_status ?? 'NOT_STARTED';
+// 4. Institution Context Aliasing & Safety
+$currentInst = $currentInstRequest;
+$docStatus = ($currentInst) ? ($currentInst->document_status ?? 'NOT_STARTED') : 'NOT_STARTED';
 $isUnderReview = ($docStatus === 'PENDING_REVIEW');
 $isReviewCompleted = ($docStatus === 'ACCEPTED');
 $showChecklist = !$isUnderReview && !$isReviewCompleted;
@@ -363,26 +364,43 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                 </div>
                 <div class="cp-checklist-body">
                     <?php if ($showChecklist): ?>
-                        <p style="font-size: 0.85rem; color: var(--cp-gray-500); margin-bottom: 1.5rem;">Fill out these digital forms first. They generate the core legal documents required by the institution.</p>
+                        <p style="font-size: 0.85rem; color: var(--cp-gray-500); margin-bottom: 1.5rem;">
+                            <?= ($donationType === 'ORGAN') ? 'Please follow the institutional directives below to complete legal prerequisites.' : 'Fill out these digital forms first. They generate the core legal documents required by the institution.' ?>
+                        </p>
                     <?php else: ?>
                         <p style="font-size: 0.85rem; color: var(--cp-gray-500); margin-bottom: 1.5rem;">Your digital forms are completed. You can re-print them here if needed for physical handover.</p>
                     <?php endif; ?>
                     
-                    <div class="cp-item-row" style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100);">
-                        <div class="cp-item-info">
-                            <span class="cp-item-title">Sworn Statement & Declaration</span>
-                            <span class="cp-item-desc">Confirm your identity and the donor's consent legally.</span>
+                    <?php if ($donationType === 'ORGAN'): ?>
+                        <div style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center;">
+                            <div style="width: 44px; height: 44px; background: var(--cp-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                                <i class="fas fa-hospital-user"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <p style="margin: 0; font-size: 0.85rem; color: var(--cp-gray-800); font-weight: 600; line-height: 1.5;">
+                                    For organ and cornea recovery, custodians must visit 
+                                    <span style="color: var(--cp-accent);"><?= htmlspecialchars($currentInstRequest->institution_name ?? 'the chosen hospital') ?></span> 
+                                    in person to sign the official consent forms.
+                                </p>
+                            </div>
                         </div>
-                        <?php if (!$isACCEPTED || $is_expired): ?>
-                            <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="<?= $is_expired ? 'Clinical window expired' : 'Waiting for institutional acceptance' ?>">
-                                <i class="fas <?= $is_expired ? 'fa-calendar-times' : 'fa-lock' ?>"></i> <?= $is_expired ? 'Expired' : 'Locked' ?>
-                            </button>
-                        <?php else: ?>
-                            <a href="<?= ROOT ?>/custodian/document-form?type=sworn" class="compact-action-btn <?= empty($hasSworn) ? 'compact-action-btn--primary' : 'compact-action-btn--outline' ?>">
-                                <i class="fas <?= empty($hasSworn) ? ($isLeader ? 'fa-pen-nib' : 'fa-eye') : 'fa-check-circle' ?>"></i> <?= empty($hasSworn) ? ($isLeader ? 'Fill Form' : 'View') : 'View & Print' ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
+                    <?php else: ?>
+                        <div class="cp-item-row" style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100);">
+                            <div class="cp-item-info">
+                                <span class="cp-item-title">Sworn Statement & Declaration</span>
+                                <span class="cp-item-desc">Confirm your identity and the donor's consent legally.</span>
+                            </div>
+                            <?php if (!$isACCEPTED || $is_expired): ?>
+                                <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="<?= $is_expired ? 'Clinical window expired' : 'Waiting for institutional acceptance' ?>">
+                                    <i class="fas <?= $is_expired ? 'fa-calendar-times' : 'fa-lock' ?>"></i> <?= $is_expired ? 'Expired' : 'Locked' ?>
+                                </button>
+                            <?php else: ?>
+                                <a href="<?= ROOT ?>/custodian/document-form?type=sworn" class="compact-action-btn <?= empty($hasSworn) ? 'compact-action-btn--primary' : 'compact-action-btn--outline' ?>">
+                                    <i class="fas <?= empty($hasSworn) ? ($isLeader ? 'fa-pen-nib' : 'fa-eye') : 'fa-check-circle' ?>"></i> <?= empty($hasSworn) ? ($isLeader ? 'Fill Form' : 'View') : 'View & Print' ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($isBody): ?>
                     <div class="cp-item-row <?= (empty($hasSworn) && $isACCEPTED) ? 'locked' : '' ?>" style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100);">
@@ -409,7 +427,8 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
     <?php if ($showChecklist): ?>
         <!-- STEP 2: PHYSICAL DOCUMENTS CHECKLIST -->
         <?php 
-            $canProceedToStep2 = $hasSworn && ($isBody ? $hasDatasheet : true);
+            // For organ donations, we skip the digital affidavit requirement as it's handled in person at the hospital
+            $canProceedToStep2 = ($donationType === 'ORGAN') ? $isACCEPTED : ($hasSworn && ($isBody ? $hasDatasheet : true));
         ?>
         <div class="cp-step <?= ($canProceedToStep2 || !$isACCEPTED) ? 'cp-step--active' : '' ?>" id="step2">
             <div class="cp-checklist-card">
@@ -483,32 +502,45 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                     <div class="cp-question-wrapper">
                         <?php if ($donationType === 'ORGAN'): ?>
                             <!-- ORGAN SPECIFIC ADDITIONAL DOCS -->
-                            <div class="cp-question-row mb-4">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                    <p style="font-weight: 600; font-size: 0.9rem; margin: 0;">Are there any of the following available ?</p>
-                                </div>
-                                
-                                <?php 
-                                $organExtra = [
-                                    ['id' => 'medical_summary', 'title' => 'Medical Information Summary', 'desc' => 'Summary of past medical history.'],
-                                    ['id' => 'police_report', 'title' => 'Police Report', 'desc' => 'Required for accidental or legal cases.'],
-                                    ['id' => 'medico_legal', 'title' => 'Medico-Legal Clearance', 'desc' => 'Legal permission for organ retrieval.'],
-                                    ['id' => 'hospital_records', 'title' => 'Hospital Medical Records', 'desc' => 'Complete patient file from the clinical ward.']
-                                ];
-                                ?>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                                    <?php foreach ($organExtra as $ext): ?>
-                                        <div class="cp-item-row" style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100); margin-bottom: 0;">
-                                            <input type="checkbox" class="extra-check d-none" data-id="<?= $ext['id'] ?>" id="ext_<?= $ext['id'] ?>" <?= !$isLeader ? 'disabled' : '' ?>>
-                                            <div class="cp-custom-checkbox" style="<?= !$isLeader ? 'cursor: default;' : '' ?>"><i class="fas fa-check"></i></div>
-                                            <div class="cp-item-info">
-                                                <span class="cp-item-title" style="font-size: 0.85rem;"><?= $ext['title'] ?></span>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
+                            <div class="cp-notice cp-notice--info mb-4 shadow-sm" style="border-radius: 12px; border-left: 4px solid #3b82f6; background: #eff6ff;">
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 10px;">
+                                    <div style="background: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #2563eb; flex-shrink: 0;">
+                                        <i class="fas fa-hospital-user"></i>
+                                    </div>
+                                    <p style="margin: 0; font-size: 0.85rem; color: #1e3a8a; font-weight: 600;">
+                                        If other documents are approved, the custodian <strong>must visit</strong> the chosen hospital in person.
+                                    </p>
                                 </div>
                             </div>
+
+                            <?php foreach ($organQuestions as $oq): ?>
+                                <div class="cp-question-row mb-4">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <p style="font-weight: 600; font-size: 0.9rem; margin: 0;"><?= htmlspecialchars($oq['q']) ?></p>
+                                        <?php if (!$isACCEPTED): ?>
+                                            <button type="button" class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;">
+                                                <i class="fas fa-lock"></i> Locked
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($isACCEPTED): ?>
+                                        <div style="display: flex; gap: 20px; font-weight: 600; font-size: 0.9rem; color: #475569;">
+                                            <label style="cursor: pointer;"><input type="radio" name="q_<?= $oq['id'] ?>" value="yes" onclick="toggleExtraDoc('<?= $oq['id'] ?>', true)" <?= !$isLeader ? 'disabled' : '' ?>> Yes</label>
+                                            <label style="cursor: pointer;"><input type="radio" name="q_<?= $oq['id'] ?>" value="no" onclick="toggleExtraDoc('<?= $oq['id'] ?>', false)" checked <?= !$isLeader ? 'disabled' : '' ?>> No</label>
+                                        </div>
+                                        <div id="extra_<?= $oq['id'] ?>" style="display: none; margin-top: 10px;">
+                                            <label class="cp-item-row" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                                                <input type="checkbox" class="extra-check d-none" data-id="<?= $oq['id'] ?>" <?= !$isLeader ? 'disabled' : '' ?>>
+                                                <div class="cp-custom-checkbox" style="<?= !$isLeader ? 'cursor: default;' : '' ?>"><i class="fas fa-check"></i></div>
+                                                <div class="cp-item-info">
+                                                    <span class="cp-item-title"><?= htmlspecialchars($oq['title']) ?></span>
+                                                    <span class="cp-item-desc"><?= htmlspecialchars($oq['desc']) ?></span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
                         <?php else: ?>
                             <!-- BODY SPECIFIC SPECIAL CONDITIONS -->
                             <div class="cp-question-row mb-4">
@@ -672,25 +704,57 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
         <div class="cp-step cp-step--active">
             <div class="cp-checklist-card">
                 <div class="cp-checklist-header">
-                    <i class="fas fa-clipboard-check cp-text-success"></i>
-                    <h4>Submission Summary</h4>
+                    <div style="background: #eef2ff; color: #4338ca; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-right: 15px;">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; color: #1e1b4b;">Submission Hub</h4>
+                        <p style="margin: 0; font-size: 0.75rem; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Digital Bundle Transmitted</p>
+                    </div>
                 </div>
                 <div class="cp-checklist-body">
-                    <div style="background: <?= $isReviewCompleted ? '#f0fdf4' : 'var(--cp-gray-50)' ?>; padding: 20px; border-radius: 12px; border: 1px solid <?= $isReviewCompleted ? '#bbf7d0' : 'var(--cp-gray-200)' ?>;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                            <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--cp-success);"></div>
-                            <span style="font-weight: 700; color: <?= $isReviewCompleted ? '#166534' : 'var(--cp-gray-800)' ?>;">
-                                <?= $isReviewCompleted ? 'Bundle Verified & Accepted' : 'Bundle Files Uploaded' ?>
-                            </span>
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                        <div style="background: <?= $isReviewCompleted ? '#f0fdf4' : '#f8fafc' ?>; padding: 20px; border-bottom: 1px solid #e2e8f0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="width: 12px; height: 12px; border-radius: 50%; background: <?= $isReviewCompleted ? '#22c55e' : '#f59e0b' ?>; box-shadow: 0 0 0 4px <?= $isReviewCompleted ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)' ?>;"></div>
+                                    <span style="font-weight: 800; font-size: 1rem; color: #1e293b;">
+                                        <?= $isReviewCompleted ? 'Review Finalized' : 'Audit in Progress' ?>
+                                    </span>
+                                </div>
+                                <span style="background: white; border: 1px solid #e2e8f0; padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; color: #64748b;">
+                                    ID: <?= htmlspecialchars($activeCase->case_number) ?>
+                                </span>
+                            </div>
                         </div>
-                        <p style="font-size: 0.9rem; color: <?= $isReviewCompleted ? '#15803d' : 'var(--cp-gray-600)' ?>; line-height: 1.6;">
-                            <?php if ($isReviewCompleted): ?>
-                                The medical school has successfully verified and accepted your document bundle. All legal prerequisites are complete.
-                            <?php else: ?>
-                                Your documentation bundle has been securely transmitted. You can no longer make changes until the medical school reviews the files. 
-                                <strong>If the submission is rejected</strong>, you will be notified here with instructions on what to correct.
+                        
+                        <div style="padding: 24px;">
+                            <p style="font-size: 0.95rem; color: #475569; line-height: 1.7; margin-bottom: 20px;">
+                                <?php if ($isReviewCompleted): ?>
+                                    The documentation bundle has been successfully verified. <strong><?= htmlspecialchars($currentInstRequest->institution_name ?? 'The Institution') ?></strong> has accepted the formal prerequisites for this donation.
+                                <?php else: ?>
+                                    Your documentation bundle is currently being audited by <strong><?= htmlspecialchars($currentInstRequest->institution_name ?? 'the chosen facility') ?></strong>. 
+                                    Confirmation or rejection notices will be issued shortly.
+                                <?php endif; ?>
+                            </p>
+
+                            <!-- Document Manifest -->
+                            <?php if (!empty($submittedDocs)): ?>
+                                <div style="background: #fdfdfd; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 20px;">
+                                    <h6 style="margin: 0 0 15px 0; font-size: 0.8rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">
+                                        Submitted Manifest
+                                    </h6>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+                                        <?php foreach ($submittedDocs as $docName): ?>
+                                            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600; color: #334155;">
+                                                <i class="fas fa-check-circle" style="color: #22c55e;"></i>
+                                                <?= htmlspecialchars($docName) ?>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             <?php endif; ?>
-                        </p>
+                        </div>
                     </div>
 
                     <?php if ($isReviewCompleted): ?>
@@ -700,14 +764,14 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                                  <h5 style="margin: 0; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">
                                      <i class="fas fa-handshake mr-2"></i> Final Handover Directive
                                  </h5>
-                                 <span style="background: <?= ($currentInst->final_exam_status === 'ACCEPTED') ? '#22c55e' : 'rgba(255,255,255,0.2)' ?>; padding: 4px 10px; border-radius: 50px; font-size: 0.7rem; font-weight: 700; color: white; box-shadow: <?= ($currentInst->final_exam_status === 'ACCEPTED') ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' ?>;">
-                                     STATUS: <?= ($currentInst->final_exam_status === 'ACCEPTED') ? 'DONATION SUCCESSFUL' : 'EXAMINATION PENDING' ?>
+                                 <span style="background: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? '#22c55e' : 'rgba(255,255,255,0.2)' ?>; padding: 4px 10px; border-radius: 50px; font-size: 0.7rem; font-weight: 700; color: white; box-shadow: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? '0 2px 4px rgba(0,0,0,0.1)' : 'none' ?>;">
+                                     STATUS: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? 'DONATION SUCCESSFUL' : 'EXAMINATION PENDING' ?>
                                  </span>
                              </div>
 
                              <div style="background: white; border: 1px solid #166534; border-top: none; padding: 20px; border-radius: 0 0 12px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
                                  
-                                 <?php if ($currentInst->final_exam_status === 'ACCEPTED'): ?>
+                                 <?php if (($currentInst->final_exam_status ?? '') === 'ACCEPTED'): ?>
                                       <!-- PREMIUM SUCCESS SECTION -->
                                       <div class="cp-completion-banner">
                                           <div class="cp-completion-icon">
@@ -715,25 +779,38 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                                           </div>
                                           <h4 class="cp-completion-title">Anatomical Donation Successfully Completed</h4>
                                           <p class="cp-completion-text">
-                                              The whole body donation process for <strong><?= htmlspecialchars($donor->first_name) ?></strong> has been formally finalized by <strong><?= htmlspecialchars($currentInst->institution_name) ?></strong>.
+                                              The whole <?= ($donationType === 'ORGAN') ? 'organ' : 'body' ?> donation process for <strong><?= htmlspecialchars($donor->first_name) ?></strong> has been formally finalized by <strong><?= htmlspecialchars($currentInst->institution_name) ?></strong>. Your **Certificate of Appreciation** and **Resolution Letter** are now available in your recognition hub.
                                           </p>
 
-                                          <div class="cp-completion-actions">
-                                              <?php 
-                                                 $certUrl = !empty($certificates) ? ROOT . "/medical-school/certificates/view?id=" . $certificates[0]->id : '';
-                                                 $letterUrl = !empty($appreciation_letters) ? ROOT . "/medical-school/appreciation/view?id=" . $appreciation_letters[0]->id : '';
-                                              ?>
-                                              <button onclick="openRecognitionBundle('<?= $certUrl ?>', '<?= $letterUrl ?>')" class="cp-btn-bundle">
-                                                  <i class="fas fa-certificate text-warning"></i>
-                                                  View Certificate
-                                              </button>
+                                          <div class="cp-completion-actions" style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+                                              <?php if ($donationType === 'ORGAN'): ?>
+                                                  <!-- Single Unified Button for Organ Tracks -->
+                                                  <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn-bundle" style="background: var(--cp-accent); color: white; padding: 14px 28px; border-radius: 12px; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">
+                                                      <i class="fas fa-award" style="font-size: 1.1rem;"></i>
+                                                      View Recognition Bundle
+                                                  </a>
+                                              <?php else: ?>
+                                                  <!-- Separate Buttons for Body Donation -->
+                                                  <?php 
+                                                     $certUrl = !empty($certificates) ? ROOT . "/medical-school/certificates/view?id=" . $certificates[0]->id : '#';
+                                                     $letterUrl = !empty($appreciation_letters) ? ROOT . "/medical-school/appreciation/view?id=" . $appreciation_letters[0]->id : '#';
+                                                  ?>
+                                                  <a href="<?= $certUrl ?>" target="_blank" class="cp-btn-bundle" style="background: var(--cp-accent); color: white; padding: 12px 20px; border-radius: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);">
+                                                      <i class="fas fa-certificate text-warning"></i>
+                                                      View Certificate
+                                                  </a>
+                                                  <a href="<?= $letterUrl ?>" target="_blank" class="cp-btn-bundle" style="background: white; color: var(--cp-accent); border: 2px solid var(--cp-accent); padding: 12px 20px; border-radius: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                                                      <i class="fas fa-envelope-open-text"></i>
+                                                      View Resolution Letter
+                                                  </a>
+                                              <?php endif; ?>
                                           </div>
                                       </div>
                                  <?php endif; ?>
 
                                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                                      <!-- Sleek Appointment Card -->
-                                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 12px; opacity: <?= ($currentInst->final_exam_status === 'ACCEPTED') ? '0.6' : '1' ?>;">
+                                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 12px; opacity: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? '0.6' : '1' ?>;">
                                          <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #15803d; text-transform: uppercase; margin-bottom: 8px;">Scheduled Handover</span>
                                          <div style="display: flex; align-items: center; gap: 12px;">
                                              <div style="width: 36px; height: 36px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #166534; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
@@ -760,88 +837,62 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                                      </div>
                                  </div>
 
-                                 <?php if ($currentInst->final_exam_status !== 'ACCEPTED'): ?>
-                                     <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                                         <p style="font-size: 0.85rem; color: #92400e; margin: 0; line-height: 1.5;">
-                                             <strong>Handover Instructions:</strong> Please bring the body and all physical document copies to the <strong><?= htmlspecialchars($currentInst->institution_name ?? 'Faculty') ?></strong>. Final physical examination will be conducted upon arrival.
-                                         </p>
-                                         <?php if (!empty($currentInstRequest->handover_message)): ?>
-                                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
-                                                 <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">"<?= nl2br(htmlspecialchars($currentInstRequest->handover_message)) ?>"</p>
-                                             </div>
-                                         <?php endif; ?>
-                                     </div>
-                                 <?php endif; ?>
+                                 <?php if (($currentInst->final_exam_status ?? '') !== 'ACCEPTED'): ?>
+                                      <div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                                          <p style="font-size: 0.85rem; color: #92400e; margin: 0; line-height: 1.5;">
+                                              <strong>Next Steps:</strong> <?= ($donationType === 'ORGAN') ? 'Please proceed to the clinical ward for the <strong>Final Physical Examination</strong>.' : 'Please bring the body and all physical document copies to the <strong>Faculty</strong>.' ?>
+                                          </p>
+                                          <?php if (!empty($currentInstRequest->handover_message)): ?>
+                                              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
+                                                  <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">"<?= nl2br(htmlspecialchars($currentInstRequest->handover_message)) ?>"</p>
+                                              </div>
+                                          <?php endif; ?>
+                                      </div>
+                                  <?php endif; ?>
 
-                                 <!-- Location Footer -->
-                                 <div style="display: flex; align-items: center; gap: 10px; padding: 0 5px;">
-                                     <i class="fas fa-location-dot" style="color: #64748b; font-size: 0.8rem;"></i>
-                                     <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;"><?= htmlspecialchars($currentInst->institution_address ?? 'Contact Faculty for exact location.') ?></span>
-                                 </div>
-                             </div>
-                             
-                             <!-- LEGAL RULES & CONDITIONS ACCORDION -->
-                             <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-                                 <div style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; font-weight: 800; color: #334155; font-size: 0.9rem;">
-                                     <i class="fas fa-scale-balanced mr-2"></i> Body Donation – Rules & Conditions
-                                 </div>
-                                 <div style="padding: 20px; font-size: 0.8rem; color: #475569; max-height: 350px; overflow-y: auto; line-height: 1.6;">
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Legal and Consent Requirements</strong>
-                                     Body donation is accepted only with the consent of the legal custodian. The custodian is responsible for the entire handover process. The intention to donate the body must be clearly stated in the official death documentation.<br><br>
-                                     
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Coordination with Faculty</strong>
-                                     The custodian must contact the relevant faculty or department and follow the instructions provided before bringing the body for donation.<br><br>
+                                  <!-- Location Footer -->
+                                  <div style="display: flex; align-items: center; gap: 10px; padding: 0 5px;">
+                                      <i class="fas fa-location-dot" style="color: #64748b; font-size: 0.8rem;"></i>
+                                      <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;"><?= htmlspecialchars($currentInst->institution_address ?? 'Contact facility for exact location.') ?></span>
+                                  </div>
+                              </div>
+                              
+                              <!-- LEGAL RULES & CONDITIONS ACCORDION -->
+                              <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                                  <div style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; font-weight: 800; color: #334155; font-size: 0.9rem;">
+                                      <i class="fas fa-scale-balanced mr-2"></i> <?= ($donationType === 'ORGAN') ? 'Organ Retrieval – Protocols & Conditions' : 'Body Donation – Rules & Conditions' ?>
+                                  </div>
+                                  <div style="padding: 20px; font-size: 0.8rem; color: #475569; max-height: 350px; overflow-y: auto; line-height: 1.6;">
+                                      <?php if ($donationType === 'ORGAN'): ?>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Clinical Suitability</strong>
+                                        Organ retrieval is contingent upon the clinical condition of the patient at the designated time. Medical suitability for transplantation is determined by the surgical team.<br><br>
+                                        
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Mandatory Physical Examination</strong>
+                                        A final physical examination and medical assessment will be conducted by the hospital team prior to the scheduling of the recovery theater.<br><br>
 
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Mandatory Documentation</strong>
-                                     The following documents must be provided at the time of handover:
-                                     <ul style="margin: 5px 0 10px 0; padding-left: 20px;">
-                                         <li>Original Death Certificate or Notice of Death</li>
-                                         <li>Affidavit of Legal Custodian (certified by a Justice of Peace)</li>
-                                         <li>Copy of Custodian’s National Identity Card (certified)</li>
-                                         <li>Required medical or health reports as specified</li>
-                                     </ul>
-                                     Incomplete or incorrect documentation will result in rejection. All submitted documents will be retained and will not be returned.<br><br>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Guardian / Custodian Presence</strong>
+                                        The legal custodian must be present at the hospital to sign the final 'Consent for Organ Recovery' form after the medical explanation is provided by the clinical coordinator.<br><br>
 
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Body Preparation Requirements</strong>
-                                     The body must be properly prepared according to accepted medical standards. No unauthorized cutting, damage, or disfigurement of the body is permitted prior to handover.<br><br>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Coordination with Recovery Team</strong>
+                                        The retrieval process is high-priority and depends on the specialized surgical team's availability. Custodians must follow the logistical instructions of the transplant coordinator exactly.<br><br>
 
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">5. Conditions for Acceptance</strong>
-                                     The faculty reserves the right to refuse acceptance of a body if it is not suitable for medical education or research purposes. This includes, but is not limited to:
-                                     <ul style="margin: 5px 0 10px 0; padding-left: 20px;">
-                                         <li>Decomposed bodies</li>
-                                         <li>Infectious conditions</li>
-                                         <li>Bodies with major surgical damage or open wounds</li>
-                                         <li>Bodies that have undergone post-mortem examination</li>
-                                     </ul>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">5. Post-Retrieval Handover</strong>
+                                        After the successful recovery of organs/tissues, the deceased will be handed back to the family for final rites at the hospital morgue or as per the agreed arrangement.
+                                      <?php else: ?>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Legal and Consent Requirements</strong>
+                                        Body donation is accepted only with the consent of the legal custodian. The custodian is responsible for the entire handover process.<br><br>
+                                        
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Coordination with Faculty</strong>
+                                        The custodian must contact the relevant faculty or department and follow the instructions provided before bringing the body for donation.<br><br>
 
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">6. Transport and Logistics</strong>
-                                     The faculty does not provide transportation. The custodian must arrange all transport and related services. Any coffin or casket used to transport the body must be removed from the premises after handover.<br><br>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Conditions for Acceptance</strong>
+                                        The faculty reserves the right to refuse acceptance of a body if it is not suitable for medical education (e.g., infectious conditions, major disfigurement).<br><br>
 
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">7. Finality of Donation</strong>
-                                     Once the body is accepted by the faculty, the donation is final and irreversible. The body will not be returned under any circumstances, and no parts of the body will be returned at a later stage.<br><br>
-
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">8. Restrictions After Handover</strong>
-                                     After the body is handed over:
-                                     <ul style="margin: 5px 0 10px 0; padding-left: 20px;">
-                                         <li>No viewing or access to the body will be permitted</li>
-                                         <li>No ceremonies or respects may be conducted at the faculty</li>
-                                         <li>No requests for preservation or return will be entertained</li>
-                                     </ul>
-
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">9. Use of Donated Body</strong>
-                                     The body may be used for medical education, research, and related academic purposes. The faculty may preserve and utilize the body or its parts in accordance with institutional requirements.<br><br>
-
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">10. Rejection Handling</strong>
-                                     If the body is not accepted, the custodian is responsible for immediately removing it from the premises. The faculty holds no responsibility after rejection.<br><br>
-
-                                     <strong style="color: #1e293b; display: block; margin-bottom: 5px;">11. Payments</strong>
-                                     No payment is required for body donation. Custodians must not provide any payment or benefit to staff members under any circumstances.<br><br>
-
-                                     <div style="margin-top: 15px; padding: 15px; background: #f1f5f9; border-left: 4px solid #94a3b8; border-radius: 4px;">
-                                         <strong style="color: #1e293b;">Final Acknowledgement:</strong> By proceeding with the donation, the custodian confirms that all conditions have been understood and accepted, and that the donation is made in full compliance with the applicable requirements.
-                                     </div>
-                                 </div>
-                             </div>
+                                        <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Finality of Donation</strong>
+                                        Once the body is accepted by the faculty, the donation is final. The body will not be returned under any circumstances.
+                                      <?php endif; ?>
+                                  </div>
+                              </div>       </div>
 
                         </div>
                     <?php endif; ?>

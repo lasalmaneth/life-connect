@@ -33,6 +33,17 @@ if (!$currentInstRequest) return;
                 </div>
             </div>
             <button class="cp-btn cp-btn--primary cp-btn--fw cp-btn--locked" disabled>Process Document Bundle (Locked)</button>
+        <?php elseif ($activeCase->overall_status === 'COMPLETED' || $activeCase->overall_status === 'SUCCESSFUL' || ($currentInstRequest->final_exam_status ?? '') === 'ACCEPTED'): ?>
+            <div class="cp-notice cp-notice--success mb-4" style="background: #f5f3ff; border: 1px solid #ddd6fe; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);">
+                <i class="fas fa-award" style="color: #7c3aed; font-size: 1.25rem;"></i>
+                <div>
+                    <strong style="color: #5b21b6;">Donation Journey Successful</strong>
+                    <p style="color: #6d28d9; margin-top: 2px;">The hospital has finalized the certification. All recognition documents are now ready.</p>
+                </div>
+            </div>
+            <div class="mt-auto">
+                <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn cp-btn--fw" style="background: #7c3aed; color: white; border: none; font-weight: 700; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);"><i class="fas fa-certificate mr-1"></i> View Recognition Bundle</a>
+            </div>
         <?php elseif ($currentInstRequest->institution_status === 'PENDING'): ?>
             <div class="cp-notice cp-notice--warning mb-4">
                 <i class="fas fa-clock"></i>
@@ -57,17 +68,6 @@ if (!$currentInstRequest) return;
             <?php endif; ?>
             <div class="mt-auto">
                 <a href="<?= ROOT ?>/custodian/documents" class="cp-btn cp-btn--secondary cp-btn--fw"><i class="fas fa-folder-open"></i> View Documents</a>
-            </div>
-        <?php elseif ($activeCase->overall_status === 'COMPLETED'): ?>
-            <div class="cp-notice cp-notice--success mb-4" style="background: #f5f3ff; border-color: #ddd6fe;">
-                <i class="fas fa-award text-purple-600"></i>
-                <div>
-                    <strong>Donation Completed</strong>
-                    <p>The <?= strtolower(str_replace('_', ' ', $currentInstRequest->institution_type)) ?> process was successfully completed.</p>
-                </div>
-            </div>
-            <div class="mt-auto">
-                <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn cp-btn--primary cp-btn--fw" style="background: var(--purple-600); border-color: var(--purple-600);"><i class="fas fa-certificate"></i> View Certificates</a>
             </div>
         <?php else: ?>
             <div class="mt-auto">

@@ -560,24 +560,55 @@ class Custodian {
                 
                 $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
                 
-                // If no result on ORGAN, try BODY (for body-only cases) and vice versa
-                if (!$currentInstRequest && $cisTrack === 'ORGAN') {
-                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'BODY');
-                } elseif (!$currentInstRequest && $cisTrack === 'BODY') {
-                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'ORGAN');
-                }
-                // Also try CORNEA track for body+cornea cases
-                if (!$currentInstRequest && str_contains($opTrack, 'CORNEA')) {
-                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'CORNEA');
+                // --- ROBUSTNESS FALLBACK ---
+                // If the specific track mapping failed (e.g. data corrupt or track mismatch), 
+                // look for ANY active request for this case to unlock the Documents page.
+                if (!$currentInstRequest) {
+                    $allReqs = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
+                    foreach ($allReqs as $r) {
+                        if (($r->is_current ?? 0) == 1) {
+                            $currentInstRequest = $r;
+                            break;
+                        }
+                    }
                 }
                 
                 $currentRequest = $currentInstRequest;
                 
                 // Get ALL institution statuses for dashboard timeline/history
                 $allInstitutionStatuses = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
+
+                // --- SUBMITTED DOCUMENTS MAPPING ---
+                $submittedDocs = [];
+                if ($activeCase->bundle_status === 'SUBMITTED' && $currentInstRequest && !empty($currentInstRequest->submitted_checklist_json)) {
+                    $docIds = json_decode($currentInstRequest->submitted_checklist_json, true) ?: [];
+                    
+                    $mapping = [
+                        'sworn'              => 'Sworn Statement of Legal Custodian',
+                        'datasheet'          => 'Cadaver Data Sheet (Clinical Details)',
+                        'death_certificate'  => 'Official Death Certificate',
+                        'nic_copy_donor'     => 'NIC Copy of Deceased',
+                        'nic_copy_custodian' => 'NIC Copy of Legal Custodian',
+                        'medical_summary'    => 'Medical Information Summary',
+                        'police_report'      => 'Police Report / Post-Mortem Authorization',
+                        'medico_legal'       => 'Medico-Legal Clearance',
+                        'hospital_records'   => 'Hospital Medical Records (BHT)',
+                        'pm_report'          => 'Pathology Post-Mortem Report'
+                    ];
+
+                    foreach ($docIds as $id) {
+                        $submittedDocs[] = $mapping[$id] ?? ucwords(str_replace('_', ' ', $id));
+                    }
+                }
+                $extraData['submittedDocs'] = $submittedDocs;
             }
         }
-        $window = $this->getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw);
+        $isLeader = false;
+        if ($deathDecl) {
+            $isLeader = ($deathDecl->declared_by_custodian_id == $cidRaw);
+        }
+
+        $window = $this->getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw);
         if ($window) {
             $extraData['clinical_deadline'] = $window['deadline'];
             $extraData['is_expired']         = $window['is_expired'];
@@ -606,7 +637,115 @@ class Custodian {
             'allInstitutionStatuses' => $allInstitutionStatuses ?? [],
             'hasSworn'              => $hasSworn ?? false,
             'hasDatasheet'          => $hasDatasheet ?? false,
+            'organQuestions'        => [
+                ['id' => 'medical_summary', 'title' => 'Medical Information Summary', 'q' => 'Is there a known medical history or a Medical Information Summary available?', 'desc' => 'Summary of past medical history.'],
+                ['id' => 'police_report', 'title' => 'Police Report', 'q' => 'Was the death accidental or does it require a Police Report?', 'desc' => 'Required for accidental or legal cases.'],
+                ['id' => 'medico_legal', 'title' => 'Medico-Legal Clearance', 'q' => 'Is Medico-Legal Clearance required for this case?', 'desc' => 'Legal permission for organ retrieval.'],
+                ['id' => 'hospital_records', 'title' => 'Hospital Medical Records', 'q' => 'Are there detailed Hospital Medical Records available?', 'desc' => 'Complete patient file from the clinical ward.']
+            ]
         ], $extraData);
+
+        // --- PROGRESS STEPPER LOGIC ---
+        $stepperData = [
+            'type' => 'NONE',
+            'current' => 0,
+            'steps' => []
+        ];
+
+        if ($activeCase) {
+            $mode = $activeCase->resolved_deceased_mode;
+            $opTrack = $activeCase->resolved_operational_track ?? 'NONE';
+            $kidneyDecision = $activeCase->kidney_decision ?? 'PENDING';
+            $bodyDecision = $activeCase->body_cornea_decision ?? 'PENDING';
+            $isBrainDead = ($deathDecl->is_brain_dead ?? 0) == 1;
+
+            // Scenario A: Decision Required (Hybrid / Complex Starts)
+            if ($opTrack === 'DECISION_REQUIRED' || $opTrack === 'BODY_CORNEA_DECISION_REQUIRED') {
+                $stepperData['type'] = 'DECISION';
+                $stepperData['current'] = 1;
+                $stepperData['steps'] = [
+                    ['l' => 'Path Choice', 'i' => 'fa-shuffle'],
+                    ['l' => 'Selection', 'i' => 'fa-hospital'],
+                    ['l' => 'Agreement', 'i' => 'fa-file-signature'],
+                    ['l' => 'Execution', 'i' => 'fa-heart-pulse'],
+                    ['l' => 'Completion', 'i' => 'fa-award']
+                ];
+            } 
+            // Scenario B: Kidney Only (Bedside Coordination)
+            elseif ($mode === 'KIDNEY_ONLY' && $isBrainDead) {
+                $stepperData['type'] = 'KIDNEY';
+                $stepperData['current'] = 2; // Always at least 'In progress' if here
+                $stepperData['steps'] = [
+                    ['l' => 'Report Death', 'i' => 'fa-heart-crack'],
+                    ['l' => 'Bedside Prep', 'i' => 'fa-bed-pulse'],
+                    ['l' => 'Hospital Visit', 'i' => 'fa-user-doctor'],
+                    ['l' => 'Retrieval', 'i' => 'fa-heart'],
+                    ['l' => 'Honor', 'i' => 'fa-certificate']
+                ];
+                if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') $stepperData['current'] = 4;
+                if (!empty($certificates)) $stepperData['current'] = 5;
+                if (!empty($certificates) && (!empty($appreciation_letters) || ($activeCase->overall_status === 'COMPLETED'))) $stepperData['current'] = 6;
+            }
+            // Scenario C: Organ / Hospital Track
+            elseif (str_contains($mode, 'ORGAN') || $opTrack === 'HOSPITAL_TISSUE') {
+                $stepperData['type'] = 'ORGAN';
+                $stepperData['steps'] = [
+                    ['l' => 'Selection', 'i' => 'fa-hospital'],
+                    ['l' => 'Documentation', 'i' => 'fa-folder-open'],
+                    ['l' => 'Scheduling', 'i' => 'fa-calendar-check'],
+                    ['l' => 'Retrieval', 'i' => 'fa-heart-pulse'],
+                    ['l' => 'Certification', 'i' => 'fa-award']
+                ];
+                $step = 1;
+                if ($currentInstRequest) {
+                    $step = 2; // Selection done, Documentation active
+                    
+                    // If documents were accepted, move to Scheduling
+                    if (($currentInstRequest->document_status ?? '') === 'ACCEPTED') {
+                        $step = 3;
+                    }
+                    
+                    // If overall case is successful, move to Retrieval (meaning it just happened) or Certification
+                    if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') {
+                        $step = 4;
+                    }
+
+                    // If certificate is issued, move to Step 5
+                    if (!empty($certificates)) {
+                        $step = 5;
+                    }
+
+                    // If both documents are issued or case is COMPLETED, mark final step as DONE
+                    if (!empty($certificates) && !empty($appreciation_letters)) {
+                        $step = 6;
+                    }
+                }
+                $stepperData['current'] = $step;
+            }
+            // Scenario D: Body (Medical School) Track
+            else {
+                $stepperData['type'] = 'BODY';
+                $stepperData['steps'] = [
+                    ['l' => 'Selection', 'i' => 'fa-building-columns'],
+                    ['l' => 'Affidavits', 'i' => 'fa-file-signature'],
+                    ['l' => 'Bundle', 'i' => 'fa-briefcase'],
+                    ['l' => 'Handover', 'i' => 'fa-handshake'],
+                    ['l' => 'Completion', 'i' => 'fa-award']
+                ];
+                $step = 1;
+                if ($currentInstRequest) {
+                    $step = 2;
+                    if ($hasSworn && $hasDatasheet) {
+                        $step = 3;
+                        if ($activeCase->bundle_status === 'SUBMITTED' || ($currentInstRequest->document_status ?? '') === 'ACCEPTED') $step = 4;
+                        if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') $step = 5;
+                        if (($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') && !empty($certificates)) $step = 6;
+                    }
+                }
+                $stepperData['current'] = $step;
+            }
+        }
+        $viewData['stepperData'] = $stepperData;
 
         $this->view($viewName, $viewData);
     }
@@ -1339,7 +1478,7 @@ class Custodian {
                 exit;
             }
 
-            $statusRec = $this->model->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id AND is_current = 1 AND request_status = 'ACCEPTED'", [':id' => $activeCase->id]);
+            $statusRec = $this->model->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id AND is_current = 1 AND institution_status = 'ACCEPTED'", [':id' => $activeCase->id]);
             $statusId = $statusRec[0]->id ?? null;
 
             if ($statusId) {
@@ -1492,14 +1631,14 @@ class Custodian {
         $donorId = $activeCase->donor_id;
         $snapshot = $resolver->resolveAtDeath($donorId, $deathDecl->is_brain_dead, $timeOfDeath, $activeCase->kidney_decision, $activeCase->body_cornea_decision);
         
-        $activeItems = $snapshot['items'];
-        $expirations = $snapshot['time_limits'];
+        $activeItems = $snapshot['items'] ?? [];
+        $expirations = $snapshot['time_limits'] ?? [];
         $currentDeadline = $deathDecl->window_expires_at; // 48h default
 
         $track = $activeCase->resolved_operational_track;
         if (str_contains($track, 'HOSPITAL_TISSUE') || str_contains($track, 'ORGAN')) {
             foreach ($activeItems as $id => $item) {
-                if ($item['type'] === 'HOSPITAL_TISSUE' && isset($expirations[$id])) {
+                if (isset($item['type']) && $item['type'] === 'HOSPITAL_TISSUE' && isset($expirations[$id])) {
                     $currentDeadline = $expirations[$id];
                     break;
                 }
