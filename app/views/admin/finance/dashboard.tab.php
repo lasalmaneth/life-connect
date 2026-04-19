@@ -15,14 +15,14 @@
                 <div class="stat-change positive" id="change-total-amount">↑ <?= fmtLKR($thisMonth) ?> this month</div>
             </div>
             <div class="stat-card glass-card">
-                <div class="stat-number quick-stat-number" id="stat-retention"><?= $retentionRate ?>%</div>
-                <div class="stat-label">Donor Retention Rate</div>
-                <div class="stat-change" style="color: #64748b" id="change-retention">from last year</div>
+                <div class="stat-number quick-stat-number" id="stat-avg-gift"><?= fmtLKR($kpis['avg_gift_size'] ?? 0) ?></div>
+                <div class="stat-label">Average Donation Value</div>
+                <div class="stat-change" style="color: #64748b" id="change-avg-gift">per contributor</div>
             </div>
             <div class="stat-card glass-card">
-                <div class="stat-number quick-stat-number" id="stat-failed-transactions"><?= number_format($failedTransactions) ?></div>
-                <div class="stat-label"><span style="color: #ef4444">Failed</span> Transactions</div>
-                <div class="stat-change <?= $failedThisMonth > 0 ? 'negative' : 'positive' ?>" id="change-failed-transactions"><?= $failedThisMonth > 0 ? '↑' : '' ?> <?= number_format($failedThisMonth) ?> this month</div>
+                <div class="stat-number quick-stat-number" id="stat-pending-requests" style="color: #f59e0b;"><?= number_format($support_stats['pending'] ?? 0) ?></div>
+                <div class="stat-label">Pending Support Requests</div>
+                <div class="stat-change" style="color: #64748b" id="change-pending-requests">Awaiting Review</div>
             </div>
         </div>
 
@@ -68,7 +68,7 @@
                         
                         <!-- Interactive plotting points -->
                         <?php foreach($monthlyTrend as $i => $t): 
-                            $x = $i * $xStep;
+                            $x = $chartPadding + ($i * $xStep);
                             $y = $svgH - (($t->total / $svgMax) * $svgH * 0.85);
                             $monthLabel = $t->month_label;
                             $valLabel = 'LKR ' . number_format($t->total, 2);
@@ -107,43 +107,32 @@
                 </div>
             </div>
             
-            <div style="width:100%; border-radius:8px; overflow:hidden; border:1px solid #f1f5f9;">
-                <div style="display:grid; grid-template-columns: 1.2fr 1fr 1.5fr 1fr; padding:12px 16px; background:#f8fafc; font-size:0.75rem; color:#94a3b8; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;">
+            <div style="width:100%; border-radius:12px; overflow:hidden; border:1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="display:grid; grid-template-columns: 1fr 2fr 1.5fr 1.5fr; padding:14px 20px; background:#f8fafc; border-bottom: 2px solid #e2e8f0; font-size:0.75rem; color:#475569; font-weight:700; letter-spacing:0.05em; text-transform:uppercase;">
+                    <div>Payment ID</div>
+                    <div>Donor Name</div>
+                    <div>Amount</div>
                     <div>Date</div>
-                    <div style="text-align:right;">Amount</div>
-                    <div style="padding-left: 20px;">Payment Name</div>
-                    <div style="text-align:center;">Status</div>
                 </div>
                 <?php 
                 $recentTx = $kpis['recent_transactions'] ?? [];
                 foreach($recentTx as $tx): 
-                    $dateStr = date('d M H:i', strtotime($tx->date));
+                    $dateStr = date('M d, Y', strtotime($tx->date));
                     $amountStr = number_format($tx->amount, 2);
                     $donor = htmlspecialchars($tx->donor_name);
-                    $status = strtoupper($tx->status ?? 'PENDING');
-                    
-                    $statusColor = '#94a3b8';
-                    $statusBg = '#f1f5f9';
-                    if ($status === 'SUCCESS' || $status === 'COMPLETED') {
-                        $statusColor = '#16a34a';
-                        $statusBg = '#dcfce7';
-                    } elseif ($status === 'FAILED') {
-                        $statusColor = '#ef4444';
-                        $statusBg = '#fee2e2';
-                    }
                 ?>
-                <div style="display:grid; grid-template-columns: 1.2fr 1fr 1.5fr 1fr; padding:16px; border-bottom:1px solid #f8fafc; align-items:center;">
-                    <div style="font-size:0.85rem; color:#334155; font-weight:500;"><?= $dateStr ?></div>
-                    <div style="font-size:0.85rem; color:#64748b; font-weight:600; text-align:right;">LKR <?= $amountStr ?></div>
-                    <div style="padding-left:20px; display:flex; align-items:center; gap:10px;">
-                        <div style="width:28px; height:28px; border-radius:50%; background:#f1f5f9; color:#005baa; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:bold;"><i class="fa-solid fa-user" style="opacity: 0.6;"></i></div>
-                        <span style="font-size:0.85rem; color:#334155; font-weight:500;"><?= $donor ?></span>
-                    </div>
-                    <div style="text-align:center;">
-                        <span style="display:inline-block; padding:4px 10px; border-radius:12px; font-size:0.7rem; font-weight:600; color:<?= $statusColor ?>; background:<?= $statusBg ?>;"><?= $status ?></span>
-                    </div>
+                <div class="recent-tx-row" 
+                     onclick="showPaymentModal(<?= htmlspecialchars(json_encode($tx)) ?>)"
+                     style="display:grid; grid-template-columns: 1fr 2fr 1.5fr 1.5fr; padding:18px 20px; border-bottom:1px solid #f1f5f9; align-items:center; cursor:pointer; transition: background 0.2s;">
+                    <div style="font-size:0.85rem; color:#1e293b; font-weight:700;">#<?= $tx->id ?></div>
+                    <div style="font-size:0.85rem; color:#475569; font-weight:500;"><?= $donor ?></div>
+                    <div style="font-size:0.95rem; color:#0f172a; font-weight:800;">LKR <?= $amountStr ?></div>
+                    <div style="font-size:0.85rem; color:#64748b; font-weight:500;"><?= $dateStr ?></div>
                 </div>
                 <?php endforeach; ?>
+                <style>
+                    .recent-tx-row:hover { background: #f0f7ff !important; }
+                </style>
                 <?php if(empty($recentTx)): ?>
                 <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 0.85rem;">No recent transactions found.</div>
                 <?php endif; ?>

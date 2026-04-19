@@ -6,9 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/admin/style.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
-        integrity="sha512-DxV+EoADOkOygM4IR9yXP8Sb2qwgidEmeqAEmDKIOfPRQZOWbXCzLC6vjbZyy0vPisbH2SyW27+ddLVCN+OMzQ=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
 
     <title>User Admin | LifeConnect</title>
     <style>
@@ -470,6 +468,136 @@
         .nav-link i {
             font-size: 1rem;
         }
+
+        /* Status Badge for Withdrawn */
+        .status-badge.status-withdrawn, .status-badge.status-withdraw_request {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* User Management Tabs */
+        .user-tabs {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .user-tab {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .user-tab:hover {
+            color: #005baa;
+        }
+
+        .user-tab.active {
+            color: #005baa;
+        }
+
+        .user-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.6rem;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #005baa;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .user-tab-count {
+            background: #f1f5f9;
+            color: #64748b;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .user-tab.active .user-tab-count {
+            background: #005baa;
+            color: white;
+        }
+
+        .clickable-row:hover {
+            background-color: #f1f5f9 !important;
+            transition: background-color 0.2s ease;
+        }
+
+        /* ====== Modal System ====== */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Prevent page scroll */
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: auto;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            position: relative;
+            animation: modalFadeIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Critical for horizontal scroll fix */
+        }
+
+        .modal-scroll-area {
+            padding: 2rem;
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            flex: 1;
+        }
+
+        .modal-break-word {
+            word-break: break-all;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-close {
+            color: #64748b;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #1e293b;
+        }
     </style>
 
 
@@ -529,12 +657,12 @@
             <div class="sidebar glass">
                 <div class="sidebar-user-card">
                     <div class="sidebar-user-avatar">
-                        A
+                        R
                     </div>
                     <div class="sidebar-user-info">
-                        <span class="sidebar-user-name">admin_4</span>
-                        <span class="sidebar-user-id">ID-00004</span>
-                        <span class="sidebar-user-role">System Admin</span>
+                        <span class="sidebar-user-name">Reema</span>
+                        <span class="sidebar-user-id">ID-00001</span>
+                        <span class="sidebar-user-role">User Admin</span>
                     </div>
                 </div>
 
@@ -568,9 +696,17 @@
                         <span>Notifications</span>
                     </a>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')">
-                        <span class="icon"><i class="fa-solid fa-comment-dots"></i></span>
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')"
+                        style="display: flex; align-items: center;">
+                        <span class="icon"><i class="fa-solid fa-comments"></i></span>
                         <span>Feedbacks</span>
+                        <span id="nav-pending-feedbacks-badge" class="badge"
+                            style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
+                    </a>
+
+                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('audit-logs')">
+                        <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                        <span>System Audit Logs</span>
                     </a>
                 </div>
 
@@ -609,6 +745,12 @@
                                 <div class="stat-number" id="stat-active-users" style="color: #059669;">0</div>
                                 <div class="stat-label">Total Active Users</div>
                                 <div class="stat-change positive" id="change-active-users" style="color: #059669;">
+                                </div>
+                            </div>
+                            <div class="stat-card glass-card">
+                                <div class="stat-number" id="stat-withdrawn-users" style="color: #64748b;">0</div>
+                                <div class="stat-label">Withdrawn Accounts</div>
+                                <div class="stat-change negative" id="change-withdrawn-users" style="color: #64748b;">
                                 </div>
                             </div>
                         </div>
@@ -707,6 +849,24 @@
                         <p>Navigate through user profiles, manage registration statuses, and oversee account security.</p>
                     </div>
                     <div class="content-body">
+                        <div class="user-tabs">
+                            <div class="user-tab active" data-status="" onclick="setUserTab(this)">
+                                All Users <span class="user-tab-count" id="tab-count-all">0</span>
+                            </div>
+                            <div class="user-tab" data-status="active" onclick="setUserTab(this)">
+                                Active <span class="user-tab-count" id="tab-count-active">0</span>
+                            </div>
+                            <div class="user-tab" data-status="pending" onclick="setUserTab(this)">
+                                Pending <span class="user-tab-count" id="tab-count-pending">0</span>
+                            </div>
+                            <div class="user-tab" data-status="suspended" onclick="setUserTab(this)">
+                                Suspended <span class="user-tab-count" id="tab-count-suspended">0</span>
+                            </div>
+                            <div class="user-tab" data-status="withdraw_request" onclick="setUserTab(this)">
+                                Withdrawn <span class="user-tab-count" id="tab-count-withdrawn">0</span>
+                            </div>
+                        </div>
+
                         <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 24px;">
                             <div class="search-bar" style="margin-bottom: 0; flex: 1;">
                                 <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -716,11 +876,12 @@
                             </div>
 
                             <div class="filter-section" style="margin-bottom: 0; display: flex; gap: 12px;">
-                                <select class="filter-select" id="status-filter" onchange="fetchUsers()">
+                                <select class="filter-select" id="status-filter" onchange="syncTabsWithFilter(); fetchUsers();" style="display: none;">
                                     <option value="">All Statuses</option>
                                     <option value="active">Active</option>
                                     <option value="suspended">Suspended</option>
                                     <option value="pending">Pending</option>
+                                    <option value="withdraw_request">Withdrawn</option>
                                 </select>
                                 <select class="filter-select" id="role-filter" onchange="fetchUsers()">
                                     <option value="">All Roles</option>
@@ -772,23 +933,9 @@
                         <p>Draft and dispatch critical system updates, approvals, and reminders to specific user groups.</p>
                     </div>
                     <div class="content-body">
-                        <div class="action-section">
-                            <h3>Send Notifications</h3>
-                            <div class="action-buttons">
-                                <button class="btn btn-primary" onclick="showNotificationModal('compose')">Compose
-                                    Notification</button>
-                                <button class="btn btn-success" onclick="sendApprovalNotifications()">Send Approval
-                                    Notices</button>
-                                <button class="btn btn-danger" onclick="sendRejectionNotifications()">Send Rejection
-                                    Notices</button>
-                                <button class="btn btn-secondary" onclick="sendReminderNotifications()">Send
-                                    Reminders</button>
-                            </div>
-                        </div>
-
                         <div class="data-table">
-                            <div class="table-header">
-                                <h4>Recent Notifications</h4>
+                            <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem;">
+                                <h4 style="margin: 0;">Recent Notifications</h4>
                             </div>
                             <div class="table-content" id="notifications-table">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
@@ -796,7 +943,6 @@
                                     <div class="table-cell">Type</div>
                                     <div class="table-cell">Status</div>
                                     <div class="table-cell">Sent Date</div>
-                                    <div class="table-cell">Actions</div>
                                 </div>
                             </div>
                         </div>
@@ -873,32 +1019,37 @@
 
 
                 <!-- Feedbacks -->
-<div id="feedbacks" class="content-section" style="display: none;">
-    <div class="content-header">
-        <h2>Feedback Management</h2>
-        <p>Audit user testimonials and inquiries to improve overall platform satisfaction and support.</p>
-    </div>
-    <div class="content-body">
-        <div class="action-section">
-            <h3>Feedback Actions</h3>
-            <div class="action-buttons">
-                <button class="btn btn-danger" id="bulk-delete-feedbacks" onclick="bulkDeleteFeedbacks()" disabled>Bulk Delete</button>
-            </div>
-        </div>
+                <?php include 'feedback_management.php'; ?>
 
-        <div class="data-table">
-            <div class="table-header">
-                <h4>Feedback Messages</h4>
-            </div>
-            <div class="table-content" id="feedbacks-table">
-                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
-                    <div class="table-cell">
-                        <input type="checkbox" id="select-all-feedbacks" onchange="toggleSelectAllFeedbacks()"> User Details
+                <!-- System Audit Logs -->
+                <div id="audit-logs" class="content-section" style="display: none;">
+                    <div class="content-header">
+                        <h2>System Audit Logs</h2>
+                        <p>Track all administrative actions, status changes, and security events for full system accountability.</p>
+                    </div>
+                    <div class="content-body">
+                        <div class="search-bar">
+                            <span class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input type="text" class="search-input" placeholder="Search logs by admin, target, or action..." id="audit-search" onkeyup="renderAuditTable()">
+                        </div>
+
+                        <div class="data-table">
+                            <div class="table-header">
+                                <h4>Activity Trail</h4>
+                            </div>
+                            <div class="table-content" id="audit-table">
+                                <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
+                                    <div class="table-cell">Admin (Actor)</div>
+                                    <div class="table-cell">Action</div>
+                                    <div class="table-cell">Target User</div>
+                                    <div class="table-cell">Date</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
-    </div>
 
     <!-- Edit User Modal -->
     <div id="edit-user-modal" class="modal">
@@ -925,6 +1076,7 @@
                         <option value="hospital">Hospital</option>
                         <option value="financial">Financial Donor</option>
                         <option value="medical_school">Medical School</option>
+                        <option value="custodian">Custodian</option>
                     </select>
                 </div>
                 <div class="action-buttons" style="margin-top: 2rem;">
@@ -1004,7 +1156,7 @@
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Full
                                 Name</span>
                             <div id="review-fullname-text"
-                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
                         </div>
                         <div>
                             <span id="label-nic"
@@ -1083,7 +1235,7 @@
                             <span
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">District</span>
                             <div id="review-hosp-district"
-                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
                         </div>
                         <div>
                             <span
@@ -1096,7 +1248,7 @@
                             <span
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Hospital
                                 Address</span>
-                            <div id="review-hosp-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">
+                            <div id="review-hosp-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">
                                 -</div>
                         </div>
                     </div>
@@ -1129,7 +1281,7 @@
                         </div>
                         <div style="grid-column: span 2;">
                             <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Institution Address</span>
-                            <div id="review-med-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                            <div id="review-med-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
                         </div>
                     </div>
 
@@ -1181,6 +1333,34 @@
                         </div>
                     </div>
 
+                    <!-- Custodian Identity Section -->
+                    <div id="custodian-identity-section" style="display: none; contents;">
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Represented Donor (Guardian for)</span>
+                            <div id="review-custodian-donor" style="font-size: 1rem; font-weight: 800; color: #1e293b; word-break: break-all;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Relationship</span>
+                            <div id="review-custodian-relationship" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Full Name</span>
+                            <div id="review-custodian-name" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">NIC Number</span>
+                            <div id="review-custodian-nic" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div>
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Contact Phone</span>
+                            <div id="review-custodian-phone" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Residential Address</span>
+                            <div id="review-custodian-address" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
+                        </div>
+                    </div>
+
                     <!-- Organ Donor Administrative Section (Conditional Grid Row) -->
                     <div id="organ-donor-section" style="display: contents;">
                         <div>
@@ -1188,20 +1368,20 @@
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">District
                                 / DS Division</span>
                             <div id="review-location-text"
-                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-</div>
+                                style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-</div>
                         </div>
                         <div>
                             <span
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">GN
                                 Division</span>
-                            <div id="review-gn-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">-
+                            <div id="review-gn-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">-
                             </div>
                         </div>
                         <div style="grid-column: span 2;">
                             <span
                                 style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Residential
                                 Address</span>
-                            <div id="review-address-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b;">
+                            <div id="review-address-text" style="font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all;">
                                 -</div>
                         </div>
                     </div>
@@ -1288,6 +1468,7 @@
                             <option value="PENDING">Pending</option>
                             <option value="ACTIVE">Active</option>
                             <option value="SUSPENDED">Suspended</option>
+                            <option value="WITHDRAW_REQUEST">Withdrawn</option>
                         </select>
                     </div>
 
@@ -1324,70 +1505,113 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Details Modal (Premium View) -->
+    <div id="notif-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-scroll-area">
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="event.stopPropagation(); closeModal('notif-details-modal')">&times;</button>
+                
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <div id="notif-type-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #eff6ff; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i id="notif-type-icon" class="fa-solid fa-bell" style="font-size: 20px; color: #3b82f6;"></i>
+                    </div>
+                    <div>
+                        <h2 id="notif-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Notification Details</h2>
+                    </div>
+                </div>
+
+                <p id="notif-modal-date" style="margin: 0; color: #64748b; font-size: 0.9rem; font-weight: 500;">Sent on: -</p>
+
+                <div style="background: #f0f7ff; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Recipient</span>
+                        <div id="notif-recipient-text" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Status / Type</span>
+                        <div id="notif-status-badge-container">
+                             <span id="notif-status-text" class="status-badge" style="font-size: 0.8rem;">-</span>
+                        </div>
+                        <div id="notif-type-text" style="font-size: 0.8rem; color: #64748b; margin-top: 4px; font-weight: 600;">-</div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Message Content</span>
+                    <div id="notif-message-body" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; font-size: 0.95rem; color: #1e293b; line-height: 1.6; min-height: 100px;">
+                        -
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                    <button type="button" onclick="event.stopPropagation(); closeModal('notif-details-modal')" style="background: #005baa; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Audit Details Modal (Premium View) -->
+    <div id="audit-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-scroll-area">
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
+                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="event.stopPropagation(); closeModal('audit-details-modal')">&times;</button>
+                
+                <div style="display: flex; align-items: center; gap: 1.25rem;">
+                    <div style="flex-shrink: 0; width: 48px; height: 48px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-shield-halved" style="font-size: 20px; color: #64748b;"></i>
+                    </div>
+                    <div>
+                        <h2 id="audit-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Audit Event Details</h2>
+                    </div>
+                </div>
+
+                <p id="audit-modal-date" style="margin: 0; color: #64748b; font-size: 0.9rem; font-weight: 500;">Recorded on: -</p>
+
+                <!-- Actor & Target Section -->
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Administrator</span>
+                        <div id="audit-admin-text" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Target Account</span>
+                        <div id="audit-target-text" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                    </div>
+                </div>
+
+                <!-- Values Comparison -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 0.5rem;">
+                     <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Previous Value</span>
+                        <div id="audit-old-val" style="background: #fff1f2; color: #991b1b; padding: 0.75rem; border-radius: 10px; font-weight: 700; font-family: monospace; text-align: center;">-</div>
+                    </div>
+                    <div>
+                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">New Value</span>
+                        <div id="audit-new-val" style="background: #ecfdf5; color: #065f46; padding: 0.75rem; border-radius: 10px; font-weight: 700; font-family: monospace; text-align: center;">-</div>
+                    </div>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Administrative Notes</span>
+                    <div id="audit-notes-body" style="background: white; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; font-size: 0.95rem; color: #1e293b; line-height: 1.6; min-height: 80px;">
+                        -
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                    <button type="button" onclick="event.stopPropagation(); closeModal('audit-details-modal')" style="background: #1e293b; color: white; border: none; padding: 0.75rem 2rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Secure Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Notification Compose Modal -->
-    <div id="notification-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Compose Notification</h3>
-                <button class="modal-close" onclick="closeModal('notification-modal')">&times;</button>
-            </div>
-            <form id="notification-form">
-                <div class="form-group">
-                    <label class="form-label">Recipient</label>
-                    <select class="form-select" id="notification-recipient" required>
-                        <option value="">Select Recipient</option>
-                        <option value="all-users">All Users</option>
-                        <option value="donors">All Donors</option>
-                        <option value="patients">All Patients</option>
-                        <option value="hospitals">All Hospitals</option>
-                        <option value="specific">Specific User</option>
-                    </select>
-                </div>
-                <div class="form-group" id="specific-user-group" style="display: none;">
-                    <label class="form-label">Specific User Email</label>
-                    <input type="email" class="form-input" id="specific-user-email">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Notification Type</label>
-                    <select class="form-select" id="notification-type" required>
-                        <option value="">Select Type</option>
-                        <option value="approval">Approval Notice</option>
-                        <option value="rejection">Rejection Notice</option>
-                        <option value="reminder">Reminder</option>
-                        <option value="update">Status Update</option>
-                        <option value="welcome">Welcome Message</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Subject</label>
-                    <input type="text" class="form-input" id="notification-subject" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Message</label>
-                    <textarea class="form-textarea" id="notification-message" required
-                        placeholder="Enter your notification message..."></textarea>
-                </div>
-                <div class="form-group" id="rejection-reason-group" style="display: none;">
-                    <label class="form-label">Rejection Reason</label>
-                    <textarea class="form-textarea" id="rejection-reason"
-                        placeholder="Provide detailed reason for rejection..."></textarea>
-                </div>
-                <div class="action-buttons" style="margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary">
-                        <span class="loading" id="notification-form-loading" style="display: none;"></span>
-                        <span id="notification-form-text">Send Notification</span>
-                    </button>
-                    <button type="button" class="btn btn-secondary"
-                        onclick="closeModal('notification-modal')">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <!-- Eligibility Update Modal -->
     <div id="eligibility-modal" class="modal">
@@ -1435,40 +1659,7 @@
         </div>
     </div>
 
-    <!-- Feedback Message Modal -->
-    <div id="feedback-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Feedback Message</h3>
-                <button class="modal-close" onclick="closeModal('feedback-modal')">&times;</button>
-            </div>
-            <div id="feedback-details">
-                <div class="form-group">
-                    <label class="form-label">From</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-from"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-email"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Message</label>
-                    <div class="form-textarea"
-                        style="background: var(--gray-bg-color); min-height: 150px; white-space: pre-wrap;"
-                        id="feedback-message"></div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Submitted</label>
-                    <div class="form-input" style="background: var(--gray-bg-color);" id="feedback-date"></div>
-                </div>
-            </div>
-            <div class="action-buttons" style="margin-top: 2rem;">
-                <button type="button" class="btn btn-danger" onclick="deleteFeedback(currentFeedbackId)">Delete
-                    Feedback</button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('feedback-modal')">Close</button>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Bulk Action Authorization Modal (Existing) -->
     <div id="bulk-action-modal" class="modal">
@@ -1529,10 +1720,14 @@
             documents: [],
             notifications: [],
             feedbacks: [],
+            auditLogs: [],
             selectedUsers: [],
             selectedDocuments: [],
             selectedEligibility: [],
-            selectedFeedbacks: []
+            selectedFeedbacks: [],
+            isProcessingNotif: false,
+            isProcessingAudit: false,
+            isProcessingFeedback: false
         };
 
         // Navigation Functions
@@ -1581,15 +1776,17 @@
                 case 'accounts':
                     fetchUsers();
                     break;
-
                 case 'notifications':
                     fetchNotifications();
+                    break;
+                case 'audit-logs':
+                    fetchAuditLogs();
                     break;
                 case 'eligibility':
                     renderEligibilityTable();
                     break;
                 case 'feedbacks':
-                    renderFeedbacksTable();
+                    // Handled in feedback_management.php
                     break;
             }
         }
@@ -1617,6 +1814,7 @@
             setText('stat-pending-docs', (Number(stats.status_PENDING || stats.status_pending || 0)));
             setText('stat-suspended-users', (Number(stats.status_SUSPENDED || stats.status_suspended || 0)));
             setText('stat-active-users', (Number(stats.status_ACTIVE || stats.status_active || 0)));
+            setText('stat-withdrawn-users', (Number(stats.status_WITHDRAW_REQUEST || stats.status_withdraw_request || stats.status_WITHDRAWN || stats.status_withdrawn || 0)));
             setText('stat-patients', stats.role_PATIENT ?? 0);
             setText('stat-hospitals', stats.role_HOSPITAL ?? 0);
 
@@ -1637,8 +1835,16 @@
             setChange('change-pending-docs', stats.pendingThisMonth ?? 0);
             setChange('change-suspended-users', stats.suspendedThisMonth ?? 0);
             setChange('change-active-users', stats.activeThisMonth ?? 0);
+            setChange('change-withdrawn-users', stats.withdrawnThisMonth ?? 0);
             setChange('change-patients', stats.patientsThisMonth ?? 0);
             setChange('change-hospitals', stats.hospitalsThisMonth ?? 0);
+
+            // Update tab counts
+            setText('tab-count-all', stats.totalUsers ?? 0);
+            setText('tab-count-active', Number(stats.status_ACTIVE || stats.status_active || 0));
+            setText('tab-count-pending', Number(stats.status_PENDING || stats.status_pending || 0));
+            setText('tab-count-suspended', Number(stats.status_SUSPENDED || stats.status_suspended || 0));
+            setText('tab-count-withdrawn', Number(stats.status_WITHDRAW_REQUEST || stats.status_withdraw_request || stats.status_WITHDRAWN || stats.status_withdrawn || 0));
 
             // Update pending users badge in nav
             const pendingUsers = Number(stats.status_PENDING || stats.status_pending || 0);
@@ -1877,6 +2083,35 @@
         }
 
         setInterval(updateActivityFeedServer, 30000);
+        
+        // Tab synchronization with status filter
+        function setUserTab(el) {
+            // Update UI
+            document.querySelectorAll('.user-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            
+            // Update hidden filter and fetch
+            const status = el.getAttribute('data-status');
+            const statusEl = document.getElementById('status-filter');
+            if (statusEl) {
+                statusEl.value = status;
+                fetchUsers();
+            }
+        }
+
+        function syncTabsWithFilter() {
+            const statusEl = document.getElementById('status-filter');
+            if (!statusEl) return;
+            const status = statusEl.value;
+            
+            document.querySelectorAll('.user-tab').forEach(t => {
+                if (t.getAttribute('data-status') === status) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+        }
 
         // User Account Management Functions
         async function fetchUsers() {
@@ -2029,6 +2264,7 @@
                 }
 
                 const user = data.user;
+                const statusUpper = (user.status || '').toUpperCase();
                 console.log("Detailed User Data Received:", user);
 
                     try {
@@ -2054,6 +2290,7 @@
                         const isDonor = (user.role && user.role.toUpperCase() === 'DONOR');
                         const isMedSchool = (user.role && user.role.toUpperCase() === 'MEDICAL_SCHOOL');
                         const isRecipient = (user.role && (user.role.toUpperCase() === 'RECIPIENT_PATIENT' || user.role.toUpperCase() === 'AFTERCARE_PATIENT'));
+                        const isCustodian = (user.role && user.role.toUpperCase() === 'CUSTODIAN');
                         const isAdmin = (user.role && ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'].includes(user.role.toUpperCase()));
 
                         // Reset display
@@ -2068,6 +2305,8 @@
                         if (organDonorSection) organDonorSection.style.display = 'none';
                         const recipientIdentity = document.getElementById('recipient-identity-section');
                         if (recipientIdentity) recipientIdentity.style.display = 'none';
+                        const custodianIdentity = document.getElementById('custodian-identity-section');
+                        if (custodianIdentity) custodianIdentity.style.display = 'none';
                         if (deepDetails) deepDetails.style.display = 'none';
 
                         if (isDonor) {
@@ -2167,31 +2406,60 @@
                         } else if (isRecipient) {
                             if (recipientIdentity) recipientIdentity.style.display = 'contents';
 
-                            const rUid = document.getElementById('review-recipient-uid');
-                            if (rUid) rUid.innerText = user.id || 'N/A';
-
-                            const rReg = document.getElementById('review-recipient-reg');
-                            if (rReg) rReg.innerText = user.registration_number || 'N/A';
-
-                            const rNic = document.getElementById('review-recipient-nic');
-                            if (rNic) rNic.innerText = user.nic || 'N/A';
-
-                            const rFullname = document.getElementById('review-recipient-fullname');
-                            if (rFullname) rFullname.innerText = user.full_name || 'N/A';
-
                             const rType = document.getElementById('review-recipient-type');
                             if (rType) rType.innerText = user.patient_type || 'N/A';
+                        } else if (isCustodian) {
+                            if (custodianIdentity) custodianIdentity.style.display = 'contents';
+
+                            const cDonor = document.getElementById('review-custodian-donor');
+                            if (cDonor) cDonor.innerText = user.represented_donor_name || 'N/A';
+
+                            const cRel = document.getElementById('review-custodian-relationship');
+                            if (cRel) cRel.innerText = user.relationship || '-';
+
+                            const cName = document.getElementById('review-custodian-name');
+                            if (cName) cName.innerText = (user.first_name || '-') + (user.last_name ? ' ' + user.last_name : '');
+
+                            const cNic = document.getElementById('review-custodian-nic');
+                            if (cNic) cNic.innerText = user.nic || '-';
+
+                            const cPhone = document.getElementById('review-custodian-phone');
+                            if (cPhone) cPhone.innerText = user.custodian_phone || user.phone || 'N/A';
+
+                            const cAddress = document.getElementById('review-custodian-address');
+                            if (cAddress) cAddress.innerText = user.address || 'No address provided';
                         }
 
                         document.getElementById('review-firstname').value = user.first_name || user.school_name || user.name || '';
                         document.getElementById('review-lastname').value = user.last_name || '';
                         document.getElementById('review-phone').value = user.phone || '';
 
+                        // Reset notices
+                        const suspNotice = document.getElementById('suspension-notice');
+                        const withNotice = document.getElementById('withdrawal-notice');
+                        if (suspNotice) suspNotice.style.display = 'none';
+                        if (withNotice) withNotice.style.display = 'none';
+
+                        if (statusUpper === 'SUSPENDED') {
+                            if (suspNotice) {
+                                suspNotice.style.display = 'flex';
+                                const reasonEl = document.getElementById('suspension-reason-text');
+                                if (reasonEl) reasonEl.innerText = user.review_message || 'No reason specified.';
+                            }
+                        } else if (statusUpper === 'WITHDRAW_REQUEST' || statusUpper === 'WITHDRAWN') {
+                            if (withNotice) {
+                                withNotice.style.display = 'flex';
+                                const withReasonEl = document.getElementById('withdrawal-reason-text');
+                                const withDateEl = document.getElementById('withdrawal-date-text');
+                                if (withReasonEl) withReasonEl.innerText = user.withdrawal_reason || 'User has requested to withdraw from the system.';
+                                if (withDateEl) withDateEl.innerText = 'Requested on: ' + (user.withdrawal_date ? new Date(user.withdrawal_date).toLocaleString() : 'N/A');
+                            }
+                        }
+
                         document.getElementById('review-status-dropdown').value = (user.status || 'PENDING').toUpperCase();
                         document.getElementById('review-message').value = user.review_message || '';
 
                         const verifSection = document.getElementById('verification-section');
-                        const statusUpper = (user.status || '').toUpperCase();
                         if (verifSection) {
                             if (statusUpper === 'PENDING') {
                                 verifSection.style.display = 'block';
@@ -2202,7 +2470,7 @@
                             const hospitalControls = document.getElementById('hospital-verification-controls');
                             const medControls = document.getElementById('medical-school-verification-controls');
                             
-                            if (user.role && user.role.toLowerCase() === 'donor') {
+                            if (user.role && (user.role.toLowerCase() === 'donor' || user.role.toLowerCase() === 'custodian')) {
                                 if (donorControls) donorControls.style.display = 'block';
                                 if (hospitalControls) hospitalControls.style.display = 'none';
                                 if (medControls) medControls.style.display = 'none';
@@ -2259,7 +2527,7 @@
             if (status === 'ACTIVE') {
                 if (originalStatus === 'PENDING') {
                     // Force verification for donors/hospitals
-                    if (currentRole === 'donor') {
+                    if (currentRole === 'donor' || currentRole === 'custodian') {
                         canSave = genuine && donorRegistry;
                     } else if (currentRole === 'hospital') {
                         canSave = genuine && hospitalRegistry;
@@ -2293,7 +2561,7 @@
                 const donorControls = document.getElementById('donor-verification-controls');
                 const hospitalControls = document.getElementById('hospital-verification-controls');
                 const medControls = document.getElementById('medical-school-verification-controls');
-                if (currentRole === 'donor') {
+                if (currentRole === 'donor' || currentRole === 'custodian') {
                     if (donorControls) donorControls.style.display = 'block';
                     if (hospitalControls) hospitalControls.style.display = 'none';
                     if (medControls) medControls.style.display = 'none';
@@ -2340,18 +2608,25 @@
                 icon.style.color = '#059669';
             } else if (status === 'SUSPENDED') {
                 btnSave.style.background = '#dc2626'; // Red-600
-                btnText.innerText = 'Confirm Suspension';
-                btnIcon.className = 'fa-solid fa-circle-xmark';
+                btnText.innerText = 'Suspend Account';
+                btnIcon.className = 'fa-solid fa-user-lock';
                 iconBox.style.background = '#fee2e2'; // Red-50
                 icon.className = 'fa-solid fa-circle-xmark';
                 icon.style.color = '#dc2626';
+            } else if (status === 'WITHDRAWN' || status === 'WITHDRAW_REQUEST') {
+                btnSave.style.background = '#475569'; // Slate-600
+                btnText.innerText = 'Finalize Withdrawal';
+                btnIcon.className = 'fa-solid fa-user-slash';
+                iconBox.style.background = '#f1f5f9'; // Slate-50
+                icon.className = 'fa-solid fa-user-slash';
+                icon.style.color = '#475569';
             } else {
-                btnSave.style.background = '#3b82f6'; // Blue-600
-                btnText.innerText = 'Update Record';
-                btnIcon.className = 'fa-solid fa-circle-info';
+                btnSave.style.background = '#1e56a0'; // Default Blue
+                btnText.innerText = 'Save Changes';
+                btnIcon.className = 'fa-solid fa-save';
                 iconBox.style.background = '#eff6ff'; // Blue-50
                 icon.className = 'fa-solid fa-circle-info';
-                icon.style.color = '#3b82f6';
+                icon.style.color = '#1e56a0';
             }
         }
 
@@ -2360,6 +2635,8 @@
             const registry = document.getElementById('verify-registry').checked;
             const status = document.getElementById('review-status-dropdown').value;
             const msgBox = document.getElementById('review-message');
+
+            const originalStatus = document.getElementById('review-user-status').value;
 
             // Don't overwrite if the admin has already typed something custom 
             // (Only auto-generate if message is empty or matches standard patterns)
@@ -2372,19 +2649,24 @@
                 "Verification failed: Profile data authenticity concerns and NIC record could not be verified.",
                 "Verification reset: This account has been returned to pending status for details re-evaluation.",
                 "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.",
-                "Account suspended for administrative review."
+                "Account suspended for administrative review.",
+                "user requested to withdraw so now suspended account"
             ];
 
             if (currentMsg !== "" && !standardPatterns.includes(currentMsg)) return;
 
             if (status === 'ACTIVE') {
-                const originalStatus = document.getElementById('review-user-status').value;
                 if (originalStatus === 'SUSPENDED') {
                     msgBox.value = "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.";
                 } else {
                     msgBox.value = "Account verified successfully. All documentation matches official records.";
                 }
             } else if (status === 'SUSPENDED') {
+                 if (originalStatus === 'WITHDRAW_REQUEST' || originalStatus === 'WITHDRAWN') {
+                     msgBox.value = "user requested to withdraw so now suspended account";
+                     return;
+                 }
+
                  const donorRegistry = document.getElementById('verify-registry').checked;
                  const hospitalRegistry = document.getElementById('verify-hospital-registry').checked;
                  const medRegistryEl = document.getElementById('verify-med-registry');
@@ -2557,8 +2839,27 @@
             }
         });
 
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    modal.classList.add('show');
+                }, 10);
+            }
+        }
+
         function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+                // Ensure inline display is also reset for premium modals
+                setTimeout(() => {
+                    if (!modal.classList.contains('show')) {
+                        modal.style.display = 'none';
+                    }
+                }, 300); // Wait for transition
+            }
         }
 
         function toggleSelectAll() {
@@ -2678,11 +2979,6 @@
 
 
         // Notification Functions
-        function showNotificationModal(action) {
-            const modal = document.getElementById('notification-modal');
-            modal.classList.add('show');
-        }
-
         async function fetchNotifications() {
             try {
                 const response = await fetch(`${ROOT}/user-admin/getNotifications`);
@@ -2698,269 +2994,178 @@
 
         function renderNotificationsTable() {
             const tableContent = document.getElementById('notifications-table');
-            const headerRow = tableContent.querySelector('.table-row');
+            const headerRow = tableContent ? tableContent.querySelector('.table-row') : null;
+            if (!tableContent || !headerRow) return;
 
             tableContent.innerHTML = '';
             tableContent.appendChild(headerRow);
 
-            appState.notifications.forEach(notification => {
+            // Add delegation listener once if not already present
+            if (!tableContent.dataset.hasListener) {
+                tableContent.addEventListener('click', (e) => {
+                    const row = e.target.closest('.clickable-row');
+                    if (row && row.dataset.notifId) {
+                        e.stopImmediatePropagation();
+                        openNotificationDetail(row.dataset.notifId);
+                    }
+                });
+                tableContent.dataset.hasListener = 'true';
+            }
+
+            const notifs = Array.isArray(appState.notifications) ? appState.notifications : [];
+
+            notifs.forEach(notification => {
                 const row = document.createElement('div');
-                row.className = 'table-row';
+                row.className = 'table-row clickable-row';
+                row.style.cursor = 'pointer';
+                row.dataset.notifId = notification.id;
+                
                 row.innerHTML = `
                     <div class="table-cell name" data-label="Notification">
-                        <strong>${notification.recipient}</strong><br>
+                        <strong>${notification.recipient_name || notification.recipient || 'System Record'}</strong><br>
                         <small>${notification.title}</small>
                     </div>
-                    <div class="table-cell" data-label="Type">${notification.type}</div>
+                    <div class="table-cell" data-label="Type">${(notification.type || 'SYSTEM').toUpperCase()}</div>
                     <div class="table-cell status" data-label="Status">
                         <span class="status-badge status-${notification.is_read ? 'active' : 'pending'}">${notification.is_read ? 'Read' : 'Unread'}</span>
                     </div>
-                    <div class="table-cell" data-label="Sent">${new Date(notification.created_at).toLocaleString()}</div>
-                    <div class="table-cell" data-label="Actions">
-                        <button class="btn btn-secondary btn-small" onclick="alert('${notification.message.replace(/'/g, "\\'")}')">View</button>
-                    </div>
+                    <div class="table-cell" data-label="Sent">${notification.created_at ? new Date(notification.created_at).toLocaleString() : 'N/A'}</div>
                 `;
                 tableContent.appendChild(row);
             });
         }
 
-        async function sendUserNotification(userId, title, message) {
-            try {
-                const response = await fetch(`${ROOT}/user-admin/sendNotification`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, title: title, message: message })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showToast('success', 'Notification sent');
-                    fetchNotifications();
-                }
-            } catch (error) {
-                console.error('Error sending notification:', error);
-            }
-        }
+        function openNotificationDetail(notifId) {
+            if (appState.isProcessingNotif) return;
+            appState.isProcessingNotif = true;
+            setTimeout(() => { appState.isProcessingNotif = false; }, 300);
 
-        function sendApprovalNotifications() {
-            const approvedDocs = appState.documents.filter(d => d.status === 'approved');
-            let count = 0;
-
-            approvedDocs.forEach(doc => {
-                const user = appState.users.find(u => u.id === doc.userId);
-                if (user) {
-                    sendUserNotification(user, 'Document Approval Confirmation', `Your ${formatDocType(doc.type)} has been approved.`);
-                    count++;
-                }
-            });
-
-            showToast('success', `${count} approval notifications sent.`);
-        }
-
-        function sendRejectionNotifications() {
-            const rejectedDocs = appState.documents.filter(d => d.status === 'rejected');
-            let count = 0;
-
-            rejectedDocs.forEach(doc => {
-                const user = appState.users.find(u => u.id === doc.userId);
-                if (user) {
-                    sendUserNotification(user, 'Document Rejection Notice', `Your ${formatDocType(doc.type)} has been rejected. Please resubmit with corrections.`);
-                    count++;
-                }
-            });
-
-            showToast('warning', `${count} rejection notifications sent.`);
-        }
-
-        function sendReminderNotifications() {
-            const pendingUsers = appState.users.filter(u => u.status === 'pending');
-            let count = 0;
-
-            pendingUsers.forEach(user => {
-                sendUserNotification(user, 'Account Activation Reminder', 'Please complete your registration to activate your account.');
-                count++;
-            });
-
-            showToast('info', `${count} reminder notifications sent.`);
-        }
-
-        function viewNotification(notificationId) {
-            const notification = appState.notifications.find(n => n.id === notificationId);
+            console.log('Requesting Notification Detail for ID:', notifId);
+            console.trace('Notification detail trigger source:');
+            
+            // Ensure modal is unique and on body
+            ensureModalOnBody('notif-details-modal');
+            const notification = (appState.notifications || []).find(n => n.id == notifId);
             if (notification) {
-                alert(`Notification Details:\nTo: ${notification.recipient}\nSubject: ${notification.subject}\nType: ${notification.type}\nStatus: ${notification.status}`);
-            }
-        }
-
-        function resendNotification(notificationId) {
-            const notification = appState.notifications.find(n => n.id === notificationId);
-            if (notification) {
-                notification.status = 'delivered';
-                notification.sentDate = new Date().toISOString().slice(0, 16).replace('T', ' ');
-                renderNotificationsTable();
-                showToast('success', `Notification resent to ${notification.recipient}.`);
-            }
-        }
-
-        // Donor Eligibility Functions
-        function renderEligibilityTable() {
-            const tableContent = document.getElementById('eligibility-table');
-            const headerRow = tableContent.querySelector('.table-row');
-
-            tableContent.innerHTML = '';
-            tableContent.appendChild(headerRow);
-
-            const donors = appState.users.filter(u => u.role === 'donor');
-            donors.forEach(donor => {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-                    <div class="table-cell name" data-label="Donor">
-                        <input type="checkbox" class="eligibility-checkbox" data-donor-id="${donor.id}">
-                        <span style="margin-left: 0.5rem;">
-                            <strong>${donor.name}</strong><br>
-                            <small>ID: DNR-${String(donor.id).padStart(3, '0')} | Blood Type: ${donor.bloodType}</small>
-                        </span>
-                    </div>
-                    <div class="table-cell" data-label="Blood Type">${donor.bloodType}</div>
-                    <div class="table-cell status" data-label="Status">
-                        <span class="status-badge status-${donor.eligibility || 'pending'}">${formatEligibility(donor.eligibility)}</span>
-                    </div>
-                    <div class="table-cell" data-label="Assessment">${donor.registrationDate}</div>
-                    <div class="table-cell" data-label="Actions">
-                        <button class="btn btn-primary btn-small" onclick="updateDonorEligibility(${donor.id})">Update Status</button>
-                        <button class="btn btn-secondary btn-small" onclick="viewDonorDetails(${donor.id})">View Details</button>
-                    </div>
-                `;
-                tableContent.appendChild(row);
-            });
-
-            // Add event listeners
-            document.querySelectorAll('.eligibility-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedEligibility);
-            });
-        }
-
-        function showEligibilityModal() {
-            const modal = document.getElementById('eligibility-modal');
-            const donorSelect = document.getElementById('eligibility-donor');
-
-            // Populate donor dropdown
-            donorSelect.innerHTML = '<option value="">Select Donor</option>';
-            const donors = appState.users.filter(u => u.role === 'donor');
-            donors.forEach(donor => {
-                const option = document.createElement('option');
-                option.value = donor.id;
-                option.textContent = `${donor.name} (${donor.bloodType})`;
-                donorSelect.appendChild(option);
-            });
-
-            modal.classList.add('show');
-        }
-
-        function toggleSelectAllEligibility() {
-            const selectAll = document.getElementById('select-all-eligibility');
-            const checkboxes = document.querySelectorAll('.eligibility-checkbox');
-
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-            });
-
-            updateSelectedEligibility();
-        }
-
-        function updateSelectedEligibility() {
-            const checkboxes = document.querySelectorAll('.eligibility-checkbox:checked');
-            appState.selectedEligibility = Array.from(checkboxes).map(cb => parseInt(cb.dataset.donorId));
-            updateEligibilityBulkButtons();
-        }
-
-        function updateEligibilityBulkButtons() {
-            const buttons = ['bulk-approve-eligibility', 'bulk-temp-ineligible', 'bulk-perm-ineligible'];
-            buttons.forEach(id => {
-                const button = document.getElementById(id);
-                if (button) {
-                    button.disabled = appState.selectedEligibility.length === 0;
+                const titleEl = document.getElementById('notif-modal-title');
+                const dateEl = document.getElementById('notif-modal-date');
+                const recipientEl = document.getElementById('notif-recipient-text');
+                const typeEl = document.getElementById('notif-type-text');
+                const statusEl = document.getElementById('notif-status-text');
+                const bodyEl = document.getElementById('notif-message-body');
+                
+                if(titleEl) titleEl.textContent = notification.title;
+                if(dateEl) dateEl.textContent = 'Sent on: ' + (notification.created_at ? new Date(notification.created_at).toLocaleString() : 'N/A');
+                if(recipientEl) recipientEl.textContent = notification.recipient_name || notification.recipient;
+                if(typeEl) typeEl.textContent = (notification.type || 'SYSTEM').toUpperCase();
+                
+                if (statusEl) {
+                    statusEl.textContent = notification.is_read ? 'Read' : 'Unread';
+                    statusEl.className = `status-badge status-${notification.is_read ? 'active' : 'pending'}`;
                 }
-            });
-        }
-
-        function updateDonorEligibility(donorId) {
-            const donor = appState.users.find(u => u.id === donorId);
-            if (donor) {
-                document.getElementById('eligibility-donor').value = donorId;
-                showEligibilityModal();
-            }
-        }
-
-        function bulkApproveEligibility() {
-            if (appState.selectedEligibility.length === 0) return;
-
-            if (confirm(`Mark ${appState.selectedEligibility.length} donor(s) as eligible?`)) {
-                appState.selectedEligibility.forEach(donorId => {
-                    const donor = appState.users.find(u => u.id === donorId);
-                    if (donor) {
-                        donor.eligibility = 'eligible';
-                        sendUserNotification(donor, 'Eligibility Status Update', 'You have been approved as an eligible donor.');
+                
+                if(bodyEl) {
+                    bodyEl.textContent = notification.message;
+                    bodyEl.className = 'modal-break-word'; // Prevent horizontal scroll
+                }
+                
+                const icon = document.getElementById('notif-type-icon');
+                const iconBox = document.getElementById('notif-type-icon-box');
+                
+                if (icon && iconBox) {
+                    if (notification.type === 'alert') {
+                        icon.className = 'fa-solid fa-triangle-exclamation';
+                        icon.style.color = '#dc2626';
+                        iconBox.style.background = '#fee2e2';
+                    } else if (notification.type === 'approval') {
+                        icon.className = 'fa-solid fa-circle-check';
+                        icon.style.color = '#059669';
+                        iconBox.style.background = '#ecfdf5';
+                    } else {
+                        icon.className = 'fa-solid fa-bell';
+                        icon.style.color = '#3b82f6';
+                        iconBox.style.background = '#eff6ff';
                     }
-                });
-                renderEligibilityTable();
-                showToast('success', `${appState.selectedEligibility.length} donors marked as eligible.`);
-                appState.selectedEligibility = [];
-                document.getElementById('select-all-eligibility').checked = false;
+                }
+                
+                const modal = document.getElementById('notif-details-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    modal.classList.add('show');
+                }
+            } else {
+                console.warn('Notification not found in state for ID:', notifId);
             }
         }
 
-        function bulkTempIneligible() {
-            if (appState.selectedEligibility.length === 0) return;
 
-            const reason = prompt('Please provide reason for temporary ineligibility:');
-            if (reason) {
-                appState.selectedEligibility.forEach(donorId => {
-                    const donor = appState.users.find(u => u.id === donorId);
-                    if (donor) {
-                        donor.eligibility = 'temp-ineligible';
-                        sendUserNotification(donor, 'Temporary Ineligibility Notice', `You are temporarily ineligible for donation. Reason: ${reason}`);
+        document.getElementById('eligibility-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const donorId = parseInt(document.getElementById('eligibility-donor').value);
+            const newStatus = document.getElementById('new-eligibility-status').value;
+            const reason = document.getElementById('eligibility-reason').value;
+            const notes = document.getElementById('assessment-notes').value;
+
+            const loading = document.getElementById('eligibility-form-loading');
+            const text = document.getElementById('eligibility-form-text');
+
+            loading.style.display = 'inline-block';
+            text.textContent = 'Updating...';
+
+            setTimeout(() => {
+                const donor = appState.users.find(u => u.id === donorId);
+                if (donor) {
+                    donor.eligibility = newStatus;
+
+                    // Send notification based on status
+                    let notificationMessage = '';
+                    if (newStatus === 'eligible') {
+                        notificationMessage = 'Congratulations! You are now eligible for donation.';
+                    } else if (newStatus === 'temp-ineligible') {
+                        notificationMessage = `You are temporarily ineligible for donation. ${reason ? 'Reason: ' + reason : ''}`;
+                    } else if (newStatus === 'perm-ineligible') {
+                        notificationMessage = `You are permanently ineligible for donation. ${reason ? 'Reason: ' + reason : ''}`;
                     }
-                });
-                renderEligibilityTable();
-                showToast('warning', `${appState.selectedEligibility.length} donors marked as temporarily ineligible.`);
-                appState.selectedEligibility = [];
-                document.getElementById('select-all-eligibility').checked = false;
-            }
-        }
 
-        function bulkPermIneligible() {
-            if (appState.selectedEligibility.length === 0) return;
-
-            const reason = prompt('Please provide reason for permanent ineligibility:');
-            if (reason && confirm('This action cannot be undone. Proceed?')) {
-                appState.selectedEligibility.forEach(donorId => {
-                    const donor = appState.users.find(u => u.id === donorId);
-                    if (donor) {
-                        donor.eligibility = 'perm-ineligible';
-                        sendUserNotification(donor, 'Permanent Ineligibility Notice', `You are permanently ineligible for donation. Reason: ${reason}`);
+                    if (notificationMessage) {
+                        sendUserNotification(donor, 'Eligibility Status Update', notificationMessage);
                     }
-                });
-                renderEligibilityTable();
-                showToast('error', `${appState.selectedEligibility.length} donors marked as permanently ineligible.`);
-                appState.selectedEligibility = [];
-                document.getElementById('select-all-eligibility').checked = false;
-            }
-        }
 
-        function viewDonorDetails(donorId) {
-            const donor = appState.users.find(u => u.id === donorId);
-            if (donor) {
-                alert(`Donor Details:\nName: ${donor.name}\nEmail: ${donor.email}\nBlood Type: ${donor.bloodType}\nEligibility: ${formatEligibility(donor.eligibility)}\nRegistered: ${donor.registrationDate}`);
+                    if (appState.currentSection === 'eligibility') {
+                        renderEligibilityTable();
+                    }
+
+                    closeModal('eligibility-modal');
+                    showToast('success', `Eligibility status updated for ${donor.name}.`);
+                }
+
+                loading.style.display = 'none';
+                text.textContent = 'Update Status';
+            }, 1000);
+        });
+
+        // Event Listeners
+        // NOTE: notification-recipient listener removed as it is now handled by updateNotifTargeting()
+
+        document.getElementById('new-eligibility-status').addEventListener('change', function (e) {
+            const reasonGroup = document.getElementById('eligibility-reason-group');
+            if (e.target.value === 'temp-ineligible' || e.target.value === 'perm-ineligible') {
+                reasonGroup.style.display = 'block';
+            } else {
+                reasonGroup.style.display = 'none';
             }
-        }
+        });
 
         // Utility Functions
         function formatRole(role) {
             const roleMap = {
                 'donor': 'Donor',
+                'custodian': 'Custodian',
                 'patient': 'Patient',
                 'hospital': 'Hospital',
                 'financial': 'Financial Donor',
+                'medical_school': 'Medical School',
                 'recipient_patient': 'Aftercare Recipient',
                 'aftercare_patient': 'Aftercare Patient'
             };
@@ -2974,9 +3179,11 @@
                 'suspended': 'Suspended',
                 'approved': 'Approved',
                 'rejected': 'Rejected',
-                'delivered': 'Delivered'
+                'delivered': 'Delivered',
+                'withdrawn': 'Withdrawn',
+                'withdraw_request': 'Withdrawn'
             };
-            return statusMap[status] || status;
+            return statusMap[String(status).toLowerCase()] || status;
         }
 
         function formatDocType(type) {
@@ -3033,13 +3240,9 @@
         function showToast(type, message) {
             const toast = document.getElementById('toast');
             const messageEl = document.getElementById('toast-message');
+            if (!toast || !messageEl) return;
 
-            // Fallback for empty messages
-            if (!message) {
-                message = type === 'success' ? 'Action completed successfully' : 'An error occurred. Please try again.';
-            }
-
-            messageEl.textContent = message;
+            messageEl.textContent = message || (type === 'success' ? 'Action completed successfully' : 'An error occurred.');
             toast.className = `notification ${type} show`;
 
             setTimeout(() => {
@@ -3047,227 +3250,7 @@
             }, 5000);
         }
 
-        // Removed user-form event listener
 
-        document.getElementById('notification-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const recipient = document.getElementById('notification-recipient').value;
-            const type = document.getElementById('notification-type').value;
-            const subject = document.getElementById('notification-subject').value;
-            const message = document.getElementById('notification-message').value;
-
-            const loading = document.getElementById('notification-form-loading');
-            const text = document.getElementById('notification-form-text');
-
-            loading.style.display = 'inline-block';
-            text.textContent = 'Sending...';
-
-            setTimeout(() => {
-                let recipientCount = 0;
-
-                if (recipient === 'specific') {
-                    recipientCount = 1;
-                } else {
-                    const roleMap = {
-                        'all-users': appState.users.length,
-                        'donors': appState.users.filter(u => u.role === 'donor').length,
-                        'patients': appState.users.filter(u => u.role === 'patient').length,
-                        'hospitals': appState.users.filter(u => u.role === 'hospital').length
-                    };
-                    recipientCount = roleMap[recipient] || 0;
-                }
-
-                // Add to notifications
-                const newNotification = {
-                    id: appState.notifications.length + 1,
-                    recipient: recipient === 'specific' ? document.getElementById('specific-user-email').value : `${recipientCount} users`,
-                    subject: subject,
-                    type: type,
-                    status: 'delivered',
-                    sentDate: new Date().toISOString().slice(0, 16).replace('T', ' ')
-                };
-
-                appState.notifications.unshift(newNotification);
-
-                if (appState.currentSection === 'notifications') {
-                    renderNotificationsTable();
-                }
-
-                closeModal('notification-modal');
-                showToast('success', `Notification sent to ${recipientCount} recipient(s).`);
-
-                loading.style.display = 'none';
-                text.textContent = 'Send Notification';
-            }, 1000);
-        });
-
-        document.getElementById('eligibility-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const donorId = parseInt(document.getElementById('eligibility-donor').value);
-            const newStatus = document.getElementById('new-eligibility-status').value;
-            const reason = document.getElementById('eligibility-reason').value;
-            const notes = document.getElementById('assessment-notes').value;
-
-            const loading = document.getElementById('eligibility-form-loading');
-            const text = document.getElementById('eligibility-form-text');
-
-            loading.style.display = 'inline-block';
-            text.textContent = 'Updating...';
-
-            setTimeout(() => {
-                const donor = appState.users.find(u => u.id === donorId);
-                if (donor) {
-                    donor.eligibility = newStatus;
-
-                    // Send notification based on status
-                    let notificationMessage = '';
-                    if (newStatus === 'eligible') {
-                        notificationMessage = 'Congratulations! You are now eligible for donation.';
-                    } else if (newStatus === 'temp-ineligible') {
-                        notificationMessage = `You are temporarily ineligible for donation. ${reason ? 'Reason: ' + reason : ''}`;
-                    } else if (newStatus === 'perm-ineligible') {
-                        notificationMessage = `You are permanently ineligible for donation. ${reason ? 'Reason: ' + reason : ''}`;
-                    }
-
-                    if (notificationMessage) {
-                        sendUserNotification(donor, 'Eligibility Status Update', notificationMessage);
-                    }
-
-                    if (appState.currentSection === 'eligibility') {
-                        renderEligibilityTable();
-                    }
-
-                    closeModal('eligibility-modal');
-                    showToast('success', `Eligibility status updated for ${donor.name}.`);
-                }
-
-                loading.style.display = 'none';
-                text.textContent = 'Update Status';
-            }, 1000);
-        });
-
-        // Event Listeners
-        document.getElementById('notification-recipient').addEventListener('change', function (e) {
-            const specificGroup = document.getElementById('specific-user-group');
-            if (e.target.value === 'specific') {
-                specificGroup.style.display = 'block';
-            } else {
-                specificGroup.style.display = 'none';
-            }
-        });
-
-        document.getElementById('notification-type').addEventListener('change', function (e) {
-            const reasonGroup = document.getElementById('rejection-reason-group');
-            if (e.target.value === 'rejection') {
-                reasonGroup.style.display = 'block';
-            } else {
-                reasonGroup.style.display = 'none';
-            }
-        });
-
-        document.getElementById('new-eligibility-status').addEventListener('change', function (e) {
-            const reasonGroup = document.getElementById('eligibility-reason-group');
-            if (e.target.value === 'temp-ineligible' || e.target.value === 'perm-ineligible') {
-                reasonGroup.style.display = 'block';
-            } else {
-                reasonGroup.style.display = 'none';
-            }
-        });
-
-        // Feedback Functions
-        function renderFeedbacksTable() {
-            const tableContent = document.getElementById('feedbacks-table');
-            const headerRow = tableContent.querySelector('.table-row');
-
-            tableContent.innerHTML = '';
-            tableContent.appendChild(headerRow);
-
-            appState.feedbacks.forEach(feedback => {
-                const row = document.createElement('div');
-                row.className = 'table-row';
-                row.innerHTML = `
-            <div class="table-cell name" data-label="User">
-                <input type="checkbox" class="feedback-checkbox" data-feedback-id="${feedback.id}">
-                <span style="margin-left: 0.5rem;">
-                    <strong>${feedback.name}</strong><br>
-                    <small>${feedback.email}</small>
-                </span>
-            </div>
-            <div class="table-cell" data-label="Message">
-                <div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${feedback.message}
-                </div>
-            </div>
-            <div class="table-cell" data-label="Date">${feedback.date}</div>
-            <div class="table-cell" data-label="Actions">
-                <button class="btn btn-primary btn-small" onclick="viewFeedback(${feedback.id})">View</button>
-                <button class="btn btn-danger btn-small" onclick="deleteFeedback(${feedback.id})">Delete</button>
-            </div>
-        `;
-                tableContent.appendChild(row);
-            });
-
-            document.querySelectorAll('.feedback-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedFeedbacks);
-            });
-        }
-
-        let currentFeedbackId = null;
-
-        function viewFeedback(feedbackId) {
-            const feedback = appState.feedbacks.find(f => f.id === feedbackId);
-            if (feedback) {
-                currentFeedbackId = feedbackId;
-                document.getElementById('feedback-from').textContent = feedback.name;
-                document.getElementById('feedback-email').textContent = feedback.email;
-                document.getElementById('feedback-message').textContent = feedback.message;
-                document.getElementById('feedback-date').textContent = feedback.date;
-
-                document.getElementById('feedback-modal').classList.add('show');
-            }
-        }
-
-        function deleteFeedback(feedbackId) {
-            if (confirm('Are you sure you want to delete this feedback?')) {
-                appState.feedbacks = appState.feedbacks.filter(f => f.id !== feedbackId);
-                renderFeedbacksTable();
-                closeModal('feedback-modal');
-                showToast('warning', 'Feedback deleted successfully.');
-            }
-        }
-
-        function toggleSelectAllFeedbacks() {
-            const selectAll = document.getElementById('select-all-feedbacks');
-            const checkboxes = document.querySelectorAll('.feedback-checkbox');
-
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-            });
-
-            updateSelectedFeedbacks();
-        }
-
-        function updateSelectedFeedbacks() {
-            const checkboxes = document.querySelectorAll('.feedback-checkbox:checked');
-            appState.selectedFeedbacks = Array.from(checkboxes).map(cb => parseInt(cb.dataset.feedbackId));
-
-            const deleteBtn = document.getElementById('bulk-delete-feedbacks');
-            if (deleteBtn) deleteBtn.disabled = appState.selectedFeedbacks.length === 0;
-        }
-
-        function bulkDeleteFeedbacks() {
-            if (appState.selectedFeedbacks.length === 0) return;
-
-            if (confirm(`Delete ${appState.selectedFeedbacks.length} feedback message(s)?`)) {
-                appState.feedbacks = appState.feedbacks.filter(f => !appState.selectedFeedbacks.includes(f.id));
-                renderFeedbacksTable();
-                showToast('warning', `${appState.selectedFeedbacks.length} feedback(s) deleted.`);
-                appState.selectedFeedbacks = [];
-                document.getElementById('select-all-feedbacks').checked = false;
-            }
-        }
 
 
 
@@ -3275,6 +3258,112 @@
         document.addEventListener('DOMContentLoaded', function () {
             // initDashboard is already called via window.onload
         });
+
+        async function fetchAuditLogs() {
+            try {
+                const response = await fetch(`${ROOT}/user-admin/getAuditLogs`);
+                const data = await response.json();
+                if (data.success) {
+                    appState.auditLogs = data.auditLogs;
+                    renderAuditTable();
+                }
+            } catch (error) {
+                console.error('Error fetching audit logs:', error);
+            }
+        }
+
+        function renderAuditTable() {
+            const tableContent = document.getElementById('audit-table');
+            if (!tableContent) return;
+            const headerRow = tableContent.querySelector('.table-row');
+            const searchInput = document.getElementById('audit-search');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+            tableContent.innerHTML = '';
+            if (headerRow) tableContent.appendChild(headerRow);
+
+            // Add delegation listener once if not already present
+            if (!tableContent.dataset.hasListener) {
+                tableContent.addEventListener('click', (e) => {
+                    const row = e.target.closest('.clickable-row');
+                    if (row && row.dataset.logId) {
+                        e.stopImmediatePropagation();
+                        openAuditDetail(row.dataset.logId);
+                    }
+                });
+                tableContent.dataset.hasListener = 'true';
+            }
+
+            const filteredLogs = (appState.auditLogs || []).filter(log => {
+                const admin = (log.admin_name || '').toLowerCase();
+                const target = (log.target_name || '').toLowerCase();
+                const action = (log.action || '').toLowerCase();
+                return admin.includes(searchTerm) || target.includes(searchTerm) || action.includes(searchTerm);
+            });
+
+            filteredLogs.forEach(log => {
+                const row = document.createElement('div');
+                row.className = 'table-row clickable-row';
+                row.style.cursor = 'pointer';
+                row.dataset.logId = log.id;
+                
+                row.innerHTML = `
+                    <div class="table-cell">
+                        <strong>${log.admin_name || 'System'}</strong>
+                    </div>
+                    <div class="table-cell"><span class="status-badge" style="background:#f1f5f9; color:#475569;">${log.action || 'Unknown'}</span></div>
+                    <div class="table-cell">${log.target_name || '<span style="color:#94a3b8">Global System</span>'}</div>
+                    <div class="table-cell">${log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}</div>
+                `;
+                tableContent.appendChild(row);
+            });
+        }
+
+        function openAuditDetail(logId) {
+            if (appState.isProcessingAudit) return;
+            appState.isProcessingAudit = true;
+            setTimeout(() => { appState.isProcessingAudit = false; }, 300);
+
+            console.log('Requesting Audit Detail for ID:', logId);
+            console.trace('Audit detail trigger source:');
+
+            // Ensure modal is unique and on body
+            ensureModalOnBody('audit-details-modal');
+            const log = (appState.auditLogs || []).find(l => l.id == logId);
+            if (log) {
+                document.getElementById('audit-modal-title').textContent = (log.action || 'Event').replace(/_/g, ' ');
+                document.getElementById('audit-modal-date').textContent = 'Recorded on: ' + (log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A');
+                
+                const adminEl = document.getElementById('audit-admin-text');
+                const targetEl = document.getElementById('audit-target-text');
+                const oldValEl = document.getElementById('audit-old-val');
+                const newValEl = document.getElementById('audit-new-val');
+                const notesEl = document.getElementById('audit-notes-body');
+
+                if (adminEl) adminEl.textContent = log.admin_name || 'System';
+                if (targetEl) targetEl.textContent = log.target_name || 'Global System';
+                if (oldValEl) {
+                    oldValEl.textContent = log.old_value || 'NULL';
+                    oldValEl.className = 'modal-break-word';
+                }
+                if (newValEl) {
+                    newValEl.textContent = log.new_value || 'NULL';
+                    newValEl.className = 'modal-break-word';
+                }
+                if (notesEl) {
+                    notesEl.textContent = log.notes || 'No additional notes provided.';
+                    notesEl.className = 'modal-break-word';
+                }
+                
+                const modal = document.getElementById('audit-details-modal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    modal.classList.add('show');
+                }
+            } else {
+                console.warn('Audit Log not found in state for ID:', logId);
+            }
+        }
 
         // Auto-hide notifications
         setTimeout(() => {
@@ -3284,9 +3373,6 @@
             });
         }, 10000);
     </script>
-</body>
-
-</html>cript>
 </body>
 
 </html>

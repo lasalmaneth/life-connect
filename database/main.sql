@@ -996,7 +996,6 @@ CREATE TABLE `organ_requests` (
   `hla_b2` varchar(20) DEFAULT NULL,
   `hla_dr1` varchar(20) DEFAULT NULL,
   `hla_dr2` varchar(20) DEFAULT NULL,
-  `hla_typing` varchar(255) DEFAULT NULL,
   `transplant_reason` text DEFAULT NULL,
   `priority_level` enum('NORMAL','URGENT','CRITICAL') DEFAULT 'NORMAL',
   `edited_reason` text DEFAULT NULL,

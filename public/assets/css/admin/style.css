@@ -714,9 +714,10 @@
 
 /* Tables with 4 columns (avoid generic 5-col grid squishing content) */
 #feedbacks-table .table-row {
-    grid-template-columns:
-        minmax(320px, 1.5fr) minmax(360px, 2.5fr) minmax(140px, 0.9fr) minmax(140px, 180px);
-    min-width: 1020px;
+    display: grid;
+    grid-template-columns: 1.5fr 2fr 120px 120px;
+    min-width: 0;
+    width: 100%;
 }
 
 .status-badge {

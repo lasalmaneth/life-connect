@@ -98,6 +98,12 @@ function renderTributesTable(stories) {
             <div class="table-cell" style="font-weight: 500; color: #1e293b;">
                 ${story.title}
             </div>
+            <div class="table-cell" style="color: #475569; font-weight: 500;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-user-circle" style="color: #94a3b8;"></i>
+                    ${story.submitted_by_name || 'System User'}
+                </div>
+            </div>
             <div class="table-cell" style="color: #64748b; font-size: 0.9rem;">
                 <div class="message-preview" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${descriptionPreview}</div>
             </div>
@@ -171,12 +177,12 @@ function viewTributeDetails(storyId) {
             if (data.success) {
                 showTributeModal(data.story);
             } else {
-                alert('Error loading story details: ' + data.message);
+                showToast('error', 'Error loading story details: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error loading story details.');
+            showToast('error', 'Error loading story details.');
         });
 }
 
@@ -193,11 +199,25 @@ function showTributeModal(story) {
     setEl('modal-title', story.title);
     setEl('modal-hospital-reg', story.hospital_registration_no);
     setEl('modal-success-date', story.success_date ? new Date(story.success_date).toLocaleDateString() : 'N/A');
+    setEl('modal-submitted-by', story.submitted_by_name || 'Unknown User');
+    setEl('modal-user-role', story.user_role ? story.user_role.replace('_', ' ') : 'N/A');
     
+    setEl('modal-story-type', story.story_type || 'General Success Story');
+    setEl('modal-donors-count', story.donors_count || '0');
+    setEl('modal-students-helped', story.students_helped || '0');
+    setEl('modal-author-name', story.author_name ? 'By ' + story.author_name : '');
+
     const statusElement = document.getElementById('modal-status');
     if (statusElement) {
-        statusElement.textContent = story.status || 'N/A';
-        statusElement.className = 'status-badge status-' + (story.status ? story.status.toLowerCase() : 'pending');
+        const status = story.status || 'Pending';
+        statusElement.textContent = status;
+        
+        // Colorize based on status for the new summary-card style
+        statusElement.style.fontWeight = '700';
+        if (status === 'Approved') statusElement.style.color = '#16a34a';
+        else if (status === 'Pending') statusElement.style.color = '#ca8a04';
+        else if (status === 'Archived') statusElement.style.color = '#64748b';
+        else statusElement.style.color = '#1e293b';
     }
     
     setEl('modal-description', story.description || 'No description provided.');
@@ -211,7 +231,7 @@ function showTributeModal(story) {
     }
 
     const modal = document.getElementById('tributeModal');
-    if (modal) modal.style.display = 'block';
+    if (modal) modal.style.display = 'flex';
 }
 
 /**
@@ -249,47 +269,40 @@ function updateTributeStatusAction() {
     });
 }
 
-function showAddStoryModal() {
-    document.getElementById('story-form-title').textContent = 'Add New Success Story';
-    document.getElementById('storyForm').reset();
-    document.getElementById('form-story-id').value = '';
+
+function deleteTribute() {
+    const storyId = document.getElementById('modal-story-id').textContent.replace('#', '');
+    if (!storyId || storyId === '0') return;
+
+    // Show the custom confirmation overlay instead of browser confirm()
+    const overlay = document.getElementById('delete-confirmation-overlay');
+    if (overlay) overlay.style.display = 'flex';
+}
+
+function cancelDeleteTribute() {
+    const overlay = document.getElementById('delete-confirmation-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function confirmDeleteTribute() {
+    const storyId = document.getElementById('modal-story-id').textContent.replace('#', '');
+    const overlay = document.getElementById('delete-confirmation-overlay');
     
-    loadHospitals().then(() => {
-        document.getElementById('storyFormModal').style.display = 'block';
-    });
-}
+    if (!storyId || storyId === '0') return;
 
-function loadHospitals() {
-    return fetch('/life-connect/public/tributes-admin/getHospitals')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const hospitalSelect = document.getElementById('form-hospital-reg');
-                hospitalSelect.innerHTML = '<option value="">Select Hospital</option>';
-                data.hospitals.forEach(hospital => {
-                    const option = document.createElement('option');
-                    option.value = hospital.registration_no;
-                    option.textContent = hospital.h_name + ' (' + hospital.registration_no + ')';
-                    hospitalSelect.appendChild(option);
-                });
-            }
-        })
-        .catch(error => console.error('Error loading hospitals:', error));
-}
+    const formData = new FormData();
+    formData.append('story_id', storyId);
 
-function handleStoryFormSubmit(event) {
-    event.preventDefault();
-    const formData = new FormData(event.target);
-
-    fetch('/life-connect/public/tributes-admin/saveStory', {
+    fetch('/life-connect/public/tributes-admin/deleteTribute', {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast('success', data.message);
-            closeStoryFormModal();
+            showToast('warning', data.message);
+            if (overlay) overlay.style.display = 'none';
+            closeTributeModal();
             fetchTributes(); // Dynamic refresh
             updateSidebarBadge();
         } else {
@@ -297,55 +310,30 @@ function handleStoryFormSubmit(event) {
         }
     })
     .catch(error => {
-        console.error('Error saving story:', error);
-        showToast('error', 'Error saving story.');
+        console.error('Error deleting story:', error);
+        showToast('error', 'Error deleting story.');
     });
-}
-
-function deleteTribute() {
-    const storyId = document.getElementById('modal-story-id').textContent.replace('#', '');
-    if (!storyId || storyId === '0') return;
-
-    if (confirm('Are you sure you want to delete this success story permanently?')) {
-        const formData = new FormData();
-        formData.append('story_id', storyId);
-
-        fetch('/life-connect/public/tributes-admin/deleteTribute', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('warning', data.message);
-                closeTributeModal();
-                fetchTributes(); // Dynamic refresh
-                updateSidebarBadge();
-            } else {
-                showToast('error', 'Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting story:', error);
-            showToast('error', 'Error deleting story.');
-        });
-    }
 }
 
 function closeTributeModal() {
     document.getElementById('tributeModal').style.display = 'none';
 }
 
-function closeStoryFormModal() {
-    document.getElementById('storyFormModal').style.display = 'none';
-}
 
-// Utility for toasts if not already globally defined
+// Utility for toasts - Standard implementation using the global #toast element
 function showToast(type, message) {
-    if (typeof window.showToast === 'function') {
-        window.showToast(type, message);
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    
+    if (toast && toastMessage) {
+        toastMessage.textContent = message;
+        toast.className = 'notification show ' + type; // success, error, warning
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
     } else {
-        alert(message);
+        console.log('Toast feedback:', message);
     }
 }
 

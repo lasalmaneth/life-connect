@@ -73,6 +73,9 @@ class AdminModel {
         
         $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'SUSPENDED' OR status = 'suspended') AND created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['suspendedThisMonth'] = $res[0]->count ?? 0;
+
+        $res = $this->query("SELECT COUNT(*) as count FROM users WHERE (status = 'WITHDRAW_REQUEST' OR status = 'withdraw_request') AND created_at >= NOW() - INTERVAL 1 MONTH");
+        $stats['withdrawnThisMonth'] = $res[0]->count ?? 0;
         
         $res = $this->query("SELECT COUNT(*) as count FROM donors WHERE created_at >= NOW() - INTERVAL 1 MONTH");
         $stats['donorsThisMonth'] = $res[0]->count ?? 0;
@@ -257,6 +260,7 @@ class AdminModel {
             'ACTIVE'    => 'APPROVED',
             'SUSPENDED' => 'SUSPENDED',
             'PENDING'   => 'PENDING',
+            'WITHDRAW_REQUEST' => 'REJECTED',
             default     => null
         };
 
@@ -274,6 +278,11 @@ class AdminModel {
             // Medical schools table
             $this->query(
                 "UPDATE medical_schools SET verification_status = :vs WHERE user_id = :uid",
+                ['vs' => $profileStatus, 'uid' => $userId]
+            );
+            // Custodians table
+            $this->query(
+                "UPDATE custodians SET status = :vs WHERE user_id = :uid",
                 ['vs' => $profileStatus, 'uid' => $userId]
             );
             // Aftercare Patients summary table (HAS user_id)
@@ -313,6 +322,30 @@ class AdminModel {
         ]);
     }
 
+    public function sendBulkNotification($target, $title, $message, $type, $senderId, $role = null) {
+        $query = "";
+        $params = [
+            'sender_id' => $senderId,
+            'title'     => $title,
+            'message'   => $message,
+            'type'      => $type
+        ];
+
+        if ($target === 'all') {
+            $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) 
+                      SELECT id, :sender_id, :title, :message, :type FROM users WHERE status = 'active'";
+        } elseif ($target === 'role' && $role) {
+            $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) 
+                      SELECT id, :sender_id, :title, :message, :type FROM users WHERE role = :role AND status = 'active'";
+            $params['role'] = $role;
+        }
+
+        if (!empty($query)) {
+            return $this->query($query, $params);
+        }
+        return false;
+    }
+
     public function logAdminAction($adminId, $targetUserId, $action, $oldValue = null, $newValue = null, $notes = null) {
         // Permanent audit record — never shown to end users
         $query = "INSERT INTO admin_audit_logs (admin_id, target_user_id, action, old_value, new_value, notes) 
@@ -336,6 +369,19 @@ class AdminModel {
              JOIN users u ON n.user_id = u.id 
              LEFT JOIN users s ON n.sender_id = s.id
              ORDER BY n.created_at DESC 
+             LIMIT $limit"
+        );
+    }
+
+    public function getAuditLogs($limit = 100) {
+        return $this->query(
+            "SELECT a.*, 
+                    u_admin.username as admin_name,
+                    u_target.username as target_name
+             FROM admin_audit_logs a
+             JOIN users u_admin ON a.admin_id = u_admin.id
+             LEFT JOIN users u_target ON a.target_user_id = u_target.id
+             ORDER BY a.created_at DESC 
              LIMIT $limit"
         );
     }
@@ -414,16 +460,22 @@ class AdminModel {
             } catch (\Throwable $e) {
                 // ignore
             }
-        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'], true)) {
+        } elseif ($role === 'CUSTODIAN') {
             try {
-                $admin = $this->query("SELECT * FROM admins WHERE user_id = :id", ['id' => $id]);
-                if (!empty($admin)) $details = (array) $admin[0];
+                $cust = $this->query("SELECT c.*, d.first_name as dfn, d.last_name as dln 
+                                     FROM custodians c 
+                                     LEFT JOIN donors d ON c.donor_id = d.id 
+                                     WHERE c.user_id = :id", ['id' => $id]);
+                if (!empty($cust)) {
+                    $details = (array) $cust[0];
+                    $details['represented_donor_name'] = trim(($details['dfn'] ?? '') . ' ' . ($details['dln'] ?? ''));
+                }
             } catch (\Throwable $e) {
                 // ignore
             }
         }
 
-        $user->first_name = $details['first_name'] ?? $details['school_name'] ?? '';
+        $user->first_name = $details['first_name'] ?? $details['school_name'] ?? $details['name'] ?? '';
         $user->last_name = $details['last_name'] ?? '';
         $user->nic = $details['nic'] ?? $details['nic_number'] ?? $details['ugc_accreditation_number'] ?? '';
         $user->gender = $details['gender'] ?? '';
@@ -433,6 +485,26 @@ class AdminModel {
         $user->district = $details['district'] ?? '';
         $user->ds_division = $details['ds_division'] ?? $details['divisional_secretariat'] ?? '';
         $user->gn_division = $details['gn_division'] ?? $details['grama_niladhari_division'] ?? '';
+        
+        // Fetch withdrawal details if user is in withdraw_request status
+        $statusUpper = strtoupper($user->status ?? '');
+        if ($statusUpper === 'WITHDRAW_REQUEST' || $statusUpper === 'WITHDRAWN') {
+            try {
+                $withdrawal = $this->query(
+                    "SELECT reason_summary as reason, created_at as date 
+                     FROM consent_withdrawals 
+                     WHERE user_id = :id 
+                     ORDER BY created_at DESC LIMIT 1", 
+                    ['id' => $id]
+                );
+                if (!empty($withdrawal)) {
+                    $user->withdrawal_reason = $withdrawal[0]->reason;
+                    $user->withdrawal_date = $withdrawal[0]->date;
+                }
+            } catch (\Throwable $e) {
+                // ignore
+            }
+        }
         
         // Medical School Specific Fields
         $user->school_name = $details['school_name'] ?? '';
@@ -458,6 +530,13 @@ class AdminModel {
         $user->staff_id = $details['staff_id'] ?? '';
         $user->designation = $details['designation'] ?? '';
         $user->admin_contact = $details['contact_number'] ?? '';
+
+        // Custodian Specific Fields
+        $user->relationship = $details['relationship'] ?? '';
+        $user->custodian_number = $details['custodian_number'] ?? '';
+        $user->represented_donor_name = $details['represented_donor_name'] ?? '';
+        $user->custodian_phone = $details['phone'] ?? '';
+        $user->custodian_email = $details['email'] ?? '';
 
         return $user;
     }
@@ -542,5 +621,26 @@ class AdminModel {
         
         $params = array_merge([$status, $message], $userIds);
         return $this->query($query, $params);
+    }
+
+    public function getFeedbacks() {
+        // Try to order by id desc since we aren't 100% sure about created_at
+        return $this->query("SELECT * FROM contact_messages ORDER BY id DESC") ?: [];
+    }
+
+    public function getFeedbackById($id) {
+        $res = $this->query("SELECT * FROM contact_messages WHERE id = :id", ['id' => $id]);
+        return $res[0] ?? null;
+    }
+
+    public function updateFeedbackStatus($id, $status) {
+        return $this->query("UPDATE contact_messages SET status = :status WHERE id = :id", [
+            'status' => $status,
+            'id' => $id
+        ]);
+    }
+
+    public function deleteFeedback($id) {
+        return $this->query("DELETE FROM contact_messages WHERE id = :id", ['id' => $id]);
     }
 }

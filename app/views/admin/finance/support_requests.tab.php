@@ -12,15 +12,17 @@
         </div>
         <div class="stat-card glass-card" style="padding: 1.5rem; border-radius: 20px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">
-                <?= $_SESSION['role'] === 'AC_ADMIN' ? 'Requests Pending Verification' : 'Verified Requests' ?>
+                Approved Requests
             </div>
-            <div id="support-pending-count" style="font-size: 1.5rem; font-weight: 700; color: #0ea5e9;">
-                <?= $_SESSION['role'] === 'AC_ADMIN' ? ($support_stats['pending'] ?? 0) : ($support_stats['verified'] ?? 0) ?>
+            <div id="support-approved-count-card" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">
+                <?= $support_stats['approved'] ?? 0 ?>
             </div>
         </div>
         <div class="stat-card glass-card" style="padding: 1.5rem; border-radius: 20px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-            <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Disbursed Aid</div>
-            <div id="support-approved-count" style="font-size: 1.5rem; font-weight: 700; color: #10b981;"><?= $support_stats['approved'] ?? 0 ?></div>
+            <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Total Approved Aid</div>
+            <div id="support-approved-amount" style="font-size: 1.5rem; font-weight: 700; color: #1e293b;">
+                <span style="font-size: 0.9rem; color: #64748b; font-weight: 600;">LKR</span> <?= number_format($support_stats['approved_amount'] ?? 0, 0) ?>
+            </div>
         </div>
         <div class="stat-card glass-card" style="padding: 1.5rem; border-radius: 20px; background: white; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Rejected Requests</div>
@@ -44,9 +46,6 @@
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
             </select>
-            <button onclick="refreshSupportRequests()" style="padding: 0.75rem 1.25rem; border-radius: 14px; border: none; background: #f1f5f9; color: #475569; cursor: pointer; font-weight: 600; transition: background 0.2s;">
-                <i class="fa-solid fa-rotate"></i>
-            </button>
         </div>
     </div>
 
@@ -60,7 +59,6 @@
                     <th style="padding: 1.25rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">Requested Amount</th>
                     <th style="padding: 1.25rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">Date</th>
                     <th style="padding: 1.25rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem;">Status</th>
-                    <th style="padding: 1.25rem 1.5rem; font-weight: 600; color: #475569; font-size: 0.875rem; text-align: right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,12 +66,16 @@
                     <tr>
                         <td colspan="6" style="padding: 3rem; text-align: center; color: #94a3b8;">
                             <div style="font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-folder-open"></i></div>
-                            <div>No <?= $_SESSION['role'] === 'AC_ADMIN' ? 'pending' : 'verified' ?> support requests to review.</div>
+                            <div>No support requests found in the system.</div>
                         </td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($support_requests as $req): ?>
-                        <tr class="support-row" data-status="<?= $req->status ?>" data-search="<?= strtolower($req->patient_name . ' ' . $req->patient_nic . ' ' . $req->reason) ?>" style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                        <tr class="support-row" 
+                            data-status="<?= $req->status ?>" 
+                            data-search="<?= strtolower($req->patient_name . ' ' . $req->patient_nic . ' ' . $req->reason) ?>" 
+                            onclick="openSupportDetails(<?= htmlspecialchars(json_encode($req)) ?>)"
+                            style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer;">
                             <td style="padding: 1.25rem 1.5rem;">
                                 <div style="font-weight: 600; color: #1e293b;"><?= htmlspecialchars($req->patient_name) ?></div>
                                 <div style="font-size: 0.8rem; color: #64748b;"><?= htmlspecialchars($req->patient_nic) ?></div>
@@ -94,27 +96,11 @@
                                     $statusBg = '#f1f5f9';
                                     if ($req->status === 'APPROVED') { $statusColor = '#10b981'; $statusBg = '#ecfdf5'; }
                                     elseif ($req->status === 'REJECTED') { $statusColor = '#f43f5e'; $statusBg = '#fff1f2'; }
-                                    elseif ($req->status === 'VERIFIED') { $statusColor = '#8b5cf6'; $statusBg = '#f5f3ff'; }
                                     elseif ($req->status === 'PENDING') { $statusColor = '#0ea5e9'; $statusBg = '#f0f9ff'; }
                                 ?>
                                 <span style="padding: 0.375rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: <?= $statusBg ?>; color: <?= $statusColor ?>; text-transform: uppercase; letter-spacing: 0.025em;">
                                     <?= $req->status ?>
                                 </span>
-                            </td>
-                            <td style="padding: 1.25rem 1.5rem; text-align: right;">
-                                <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-                                    <button onclick="openSupportDetails(<?= htmlspecialchars(json_encode($req)) ?>)" title="View Details" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                                        <i class="fa-solid fa-eye"></i>
-                                    </button>
-                                    <?php if ($req->status === 'PENDING' || $req->status === 'VERIFIED'): ?>
-                                        <button onclick="updateSupportStatus(<?= $req->id ?>, 'approved')" title="<?= $_SESSION['role'] === 'AC_ADMIN' ? 'Verify & Forward' : 'Approve & Issue Voucher' ?>" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #1b4f72; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                                            <i class="fa-solid fa-<?= $_SESSION['role'] === 'AC_ADMIN' ? 'check-double' : 'ticket' ?>"></i>
-                                        </button>
-                                        <button onclick="updateSupportStatus(<?= $req->id ?>, 'REJECTED')" title="Reject Request" style="width: 32px; height: 32px; border-radius: 8px; border: none; background: #f43f5e; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                                            <i class="fa-solid fa-xmark"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -124,66 +110,93 @@
     </div>
 </div>
 
-<!-- Support Request Details Modal -->
+<!-- Support Request Details Modal (Premium Overhaul) -->
 <div id="supportRequestModal" class="modal">
     <div class="modal-content">
         <div class="modal-scroll-area">
-            <div style="display: flex; flex-direction: column; gap: 1.5rem; position: relative;">
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
                 <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeSupportModal()">&times;</button>
             
-            <div style="text-align: center; margin-bottom: 1rem;">
-                <div id="modal-req-icon-box" style="width: 64px; height: 64px; background: #f0f9ff; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                    <i class="fa-solid fa-hand-holding-heart" style="font-size: 28px; color: #0ea5e9;"></i>
+            <div style="display: flex; align-items: center; gap: 1.25rem;">
+                <!-- Status Icon -->
+                <div id="modal-req-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #f0f9ff; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                    <i id="modal-req-status-icon" class="fa-solid fa-hand-holding-heart" style="font-size: 20px; color: #0ea5e9;"></i>
                 </div>
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0;">Support Application Details</h3>
-                <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.25rem;">Reference Case #<span id="modal-req-id">--</span></p>
+
+                <!-- Title -->
+                <div>
+                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Request Details</h2>
+                    <p style="margin: 0; color: #64748b; font-size: 0.85rem; font-weight: 500;">Reference Case #<span id="modal-req-id">--</span></p>
+                </div>
             </div>
 
-            <div style="background: #f8fafc; border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Patient Applicant</div>
-                        <div id="modal-req-name" style="font-weight: 600; color: #1e293b;">--</div>
-                        <div id="modal-req-nic" style="font-size: 0.85rem; color: #64748b;">--</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Date Submitted</div>
-                        <div id="modal-req-date" style="font-weight: 600; color: #1e293b;">--</div>
-                    </div>
-                </div>
+            <p style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Reviewing patient application for medical assistance and financial support.</p>
 
-                <div style="height: 1px; background: #e2e8f0;"></div>
+            <!-- Details Card (2-Column Grid) -->
+            <div style="background: #f0f7ff; border-radius: 16px; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Patient Name</span>
+                    <div id="modal-req-patient-name" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</div>
+                </div>
+                <div>
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Status</span>
+                    <div id="modal-req-status" style="font-size: 0.95rem; font-weight: 700; color: #0ea5e9;">-</div>
+                </div>
+                
+                <div style="grid-column: span 2;">
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Patient NIC Number</span>
+                    <div id="modal-req-nic" style="font-size: 1rem; font-weight: 700; color: #1e293b;">-</div>
+                </div>
 
                 <div>
-                    <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Reason for Support</div>
-                    <div id="modal-req-reason" style="font-weight: 600; color: #334155;">--</div>
-                    <div id="modal-req-desc" style="font-size: 0.875rem; color: #64748b; margin-top: 0.5rem; line-height: 1.5; font-style: italic;">"--"</div>
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Requested Amount</span>
+                    <div id="modal-req-amount" style="font-size: 1.1rem; font-weight: 800; color: #0f172a;">-</div>
+                </div>
+                <div>
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Submission Date</span>
+                    <div id="modal-req-date" style="font-size: 0.95rem; font-weight: 600; color: #0f172a;">-</div>
                 </div>
 
-                <div style="height: 1px; background: #e2e8f0;"></div>
+                <div style="grid-column: span 2;">
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Subject / Reason</span>
+                    <div id="modal-req-reason" style="font-size: 0.95rem; font-weight: 700; color: #1e293b; background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 4px;">-</div>
+                </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Requested Support Amt</div>
-                        <div id="modal-req-amount" style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">LKR 0.00</div>
+                <div style="grid-column: span 2;">
+                    <span style="display: block; font-size: 0.65rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px;">Patient's Description</span>
+                    <div id="modal-req-description" style="font-size: 0.9rem; font-weight: 500; color: #475569; font-style: italic; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 5px;">-</div>
+                </div>
+            </div>
+
+            <!-- Inline Confirmation Box (Hidden by default) -->
+            <div id="voucher-confirm-box" style="display: none; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; padding: 1.25rem; margin-top: 0.5rem; animation: slideDown 0.3s ease;">
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <div style="width: 40px; height: 40px; background: #ffedd5; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid fa-triangle-exclamation" style="color: #f97316;"></i>
                     </div>
-                    <div id="modal-req-status-tag">--</div>
+                    <div>
+                        <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #9a3412;">Issue Financial Voucher?</h4>
+                        <p style="margin: 4px 0 0; font-size: 0.8rem; color: #c2410c; line-height: 1.4;">This will approve the patient's request and automatically generate a unique financial voucher for the requested amount.</p>
+                        
+                        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+                            <button type="button" onclick="confirmVoucherApproval()" style="background: #ea580c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">Yes, Issue Voucher</button>
+                            <button type="button" onclick="cancelVoucherApproval()" style="background: white; color: #9a3412; border: 1px solid #fed7aa; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">Cancel</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="modal-req-actions" style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                <button onclick="approveFromModal()" style="flex: 1; padding: 1rem; border-radius: 12px; border: none; background: #1b4f72; color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.2s;">
-                    <i class="fa-solid fa-<?= $_SESSION['role'] === 'AC_ADMIN' ? 'check-double' : 'ticket' ?>"></i> 
-                    <?= $_SESSION['role'] === 'AC_ADMIN' ? 'Verify Request' : 'Issue Voucher' ?>
+            <!-- Footer Buttons -->
+            <div id="modal-req-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                <button type="button" onclick="approveFromModal()" id="btn-modal-approve" style="background: #10b981; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                    <i class="fa-solid fa-<?= $_SESSION['role'] === 'AC_ADMIN' ? 'check-double' : 'ticket' ?>"></i>
+                    <?= $_SESSION['role'] === 'AC_ADMIN' ? 'Verify' : 'Issue Voucher' ?>
                 </button>
-                <button onclick="rejectFromModal()" style="flex: 1; padding: 1rem; border-radius: 12px; border: none; background: #f43f5e; color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: transform 0.2s;">
-                    <i class="fa-solid fa-times-circle"></i> Reject Request
+                <button type="button" onclick="rejectFromModal()" id="btn-modal-reject" style="background: #f43f5e; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                    <i class="fa-solid fa-xmark"></i> Reject
                 </button>
+                <button type="button" onclick="closeSupportModal()" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Close</button>
             </div>
-            
-            <button onclick="closeSupportModal()" style="width: 100%; padding: 0.75rem; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-                Dismiss
-            </button>
             </div>
         </div>
     </div>
@@ -192,5 +205,9 @@
 <style>
     .support-row:hover {
         background: #f8fafc;
+    }
+    @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 </style>
