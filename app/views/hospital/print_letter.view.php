@@ -164,7 +164,7 @@
             </div>
         </div>
 
-        <div class="date"><?= date('F d, Y') ?></div>
+        <div class="date"><?= date('d/m/Y') ?></div>
 
         <div class="recipient-info">
             <strong>To: <?= htmlspecialchars($match->donor_first_name . ' ' . $match->donor_last_name) ?></strong><br>
@@ -179,7 +179,7 @@
             
             <p>Your generous pledge of your <strong><?= htmlspecialchars($match->organ_name) ?></strong> has successfully transitioned into a clinical match that will directly impact a patient's life today. This act of kindness represents the highest form of humanitarian service, transcending individual boundaries to offer hope where it was once fading.</p>
 
-            <p>Clinical approval for this procedure was granted on <?= date('M d, Y', strtotime($match->match_date)) ?>. Our surgical and clinical coordinator teams are committed to ensuring the highest standards of care and respect throughout this process. Your legacy of giving is now officially recorded in the National Donor Registry.</p>
+            <p>Clinical approval for this procedure was granted on <?= date('d/m/Y', strtotime($match->match_date)) ?>. Our surgical and clinical coordinator teams are committed to ensuring the highest standards of care and respect throughout this process. Your legacy of giving is now officially recorded in the National Donor Registry.</p>
 
             <p>Thank you once again for your courage and for embodying the spirit of life-giving that makes our mission possible.</p>
         </div>

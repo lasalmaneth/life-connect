@@ -137,7 +137,7 @@ $has_non = in_array('non', $active_roles, true);
                   </div>
                   <div class="notification-content">
                     <p class="notification-title"><?= htmlspecialchars($nTitle) ?></p>
-                    <p class="notification-time"><?= !empty($nCreatedAt) ? date('M d, H:i', strtotime($nCreatedAt)) : '' ?></p>
+                    <p class="notification-time"><?= !empty($nCreatedAt) ? date('d/m/Y H:i', strtotime($nCreatedAt)) : '' ?></p>
                   </div>
                 </a>
               <?php endforeach; ?>

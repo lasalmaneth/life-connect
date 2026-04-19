@@ -91,7 +91,7 @@ include __DIR__ . '/../inc/sidebar.view.php';
                         <?php foreach ($history as $row): ?>
                         <tr style="border-bottom: 1px solid var(--g200); transition: background 0.15s;" onmouseover="this.style.background='var(--g50)'" onmouseout="this.style.background='transparent'">
                             <td style="padding: 1rem 1.5rem; font-size: 0.875rem; font-weight: 600; color: var(--slate);">
-                                <?= date('M d, Y', strtotime($row->created_at)) ?>
+                                <?= date('d/m/Y', strtotime($row->created_at)) ?>
                             </td>
                             <td style="padding: 1rem 1.5rem; font-size: 0.8rem; color: var(--g500); font-family: monospace;">
                                 #<?= str_pad($row->id, 8, '0', STR_PAD_LEFT) ?>

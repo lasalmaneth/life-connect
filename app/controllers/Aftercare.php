@@ -29,9 +29,10 @@ class Aftercare
 
         $patientModel = new AftercarePatientModel();
         $patient = $patientModel->query(
-            "SELECT id, registration_number, nic, full_name, patient_type, hospital_registration_no
-             FROM aftercare_patients
-             WHERE id = :id AND patient_type = 'RECIPIENT'
+            "SELECT ap.id, rp.registration_number, rp.nic, rp.full_name, ap.patient_type, rp.hospital_registration_no
+             FROM aftercare_patients ap
+             JOIN recipient_patient rp ON ap.user_id = rp.user_id
+             WHERE ap.id = :id AND ap.patient_type = 'RECIPIENT'
              LIMIT 1",
             [':id' => (int)$_SESSION['aftercare_patient_id']]
         );
@@ -55,12 +56,15 @@ class Aftercare
         
         if ($nic !== '') {
             $appointments = $patientModel->query(
-                "SELECT * FROM aftercare_appointments WHERE patient_id = :nic ORDER BY appointment_date ASC",
-                [':nic' => $nic]
+                "SELECT * FROM aftercare_appointments WHERE user_id = :uid ORDER BY appointment_date ASC",
+                [':uid' => (int)($_SESSION['aftercare_user_id'] ?? 0)]
             ) ?: [];
 
             $supportRequests = $patientModel->query(
-                "SELECT * FROM support_requests WHERE patient_nic = :nic ORDER BY created_at DESC",
+                "SELECT sr.*, v.voucher_code, v.expiry_date, v.status as voucher_status 
+                 FROM support_requests sr 
+                 LEFT JOIN support_vouchers v ON sr.id = v.request_id 
+                 WHERE sr.patient_nic = :nic ORDER BY sr.created_at DESC",
                 [':nic' => $nic]
             ) ?: [];
 
@@ -97,9 +101,10 @@ class Aftercare
         try {
             $patientModel = new AftercarePatientModel();
             $rows = $patientModel->query(
-                "SELECT id, nic, full_name, patient_type, status
-                 FROM aftercare_patients
-                 WHERE id = :id AND patient_type = 'RECIPIENT' LIMIT 1",
+                "SELECT ap.id, rp.nic, rp.full_name, ap.patient_type, rp.status
+                 FROM aftercare_patients ap
+                 JOIN recipient_patient rp ON ap.user_id = rp.user_id
+                 WHERE ap.id = :id AND ap.patient_type = 'RECIPIENT' LIMIT 1",
                 [':id' => (int)$_SESSION['aftercare_patient_id']]
             );
             $patient = $rows ? $rows[0] : null;
@@ -134,11 +139,10 @@ class Aftercare
             $mysqlDate = $dt->format('Y-m-d H:i:s');
 
             $patientModel->query(
-                "INSERT INTO aftercare_appointments (patient_id, patient_name, hospital_registration_no, appointment_date, appointment_type, description, status)
-                 VALUES (:nic, :name, :hosp, :date, :type, :desc, 'Scheduled')",
+                "INSERT INTO aftercare_appointments (user_id, hospital_registration_no, appointment_date, appointment_type, description, status)
+                 VALUES (:uid, :hosp, :date, :type, :desc, 'Requested')",
                 [
-                    ':nic' => (string)$patient->nic,
-                    ':name' => (string)$patient->full_name,
+                    ':uid' => (int)($_SESSION['aftercare_user_id'] ?? 0),
                     ':hosp' => $hospitalRegistrationNo,
                     ':date' => $mysqlDate,
                     ':type' => $type,
@@ -189,9 +193,10 @@ class Aftercare
             }
 
             $rows = $patientModel->query(
-                "SELECT id, nic, full_name, patient_type, status
-                 FROM aftercare_patients
-                 WHERE id = :id AND patient_type = 'RECIPIENT' LIMIT 1",
+                "SELECT ap.id, rp.nic, rp.full_name, ap.patient_type, rp.status
+                 FROM aftercare_patients ap
+                 JOIN recipient_patient rp ON ap.user_id = rp.user_id
+                 WHERE ap.id = :id AND ap.patient_type = 'RECIPIENT' LIMIT 1",
                 [':id' => (int)$_SESSION['aftercare_patient_id']]
             );
             $patient = $rows ? $rows[0] : null;

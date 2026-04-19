@@ -73,7 +73,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                             <i class="fas fa-file-pdf" style="color: #ef4444; font-size: 1.2rem;"></i>
                                             <div>
                                                 <div style="font-weight: 600; color: var(--blue-900); font-size: 0.9rem;"><?= htmlspecialchars($pledge->organ_name) ?> Consent</div>
-                                                <div style="font-size: 0.75rem; color: var(--blue-600);">Uploaded: <?= date('M d, Y', strtotime($pledge->pledge_date)) ?></div>
+                                                <div style="font-size: 0.75rem; color: var(--blue-600);">Uploaded: <?= date('d/m/Y', strtotime($pledge->pledge_date)) ?></div>
                                             </div>
                                         </div>
                                         <a href="<?= ROOT ?>/<?= htmlspecialchars($pledge->signed_form_path) ?>" target="_blank" class="d-btn d-btn--sm d-btn--outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
@@ -121,7 +121,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                             <i class="fas fa-certificate" style="color: var(--blue-600); font-size: 1.1rem;"></i>
                                             <div>
                                                 <div style="font-weight: 600; color: var(--blue-800); font-size: 0.9rem;"><?= htmlspecialchars($pledge->organ_name) ?> Certificate</div>
-                                                <div style="font-size: 0.75rem; color: var(--g500);">Issued: <?= date('M d, Y', strtotime($pledge->pledge_date)) ?></div>
+                                                <div style="font-size: 0.75rem; color: var(--g500);">Issued: <?= date('d/m/Y', strtotime($pledge->pledge_date)) ?></div>
                                             </div>
                                         </div>
                                         <button type="button" onclick="viewCertificate('<?= ROOT ?>/donor/download-pdf?type=certificate&pledge_id=<?= $pledge->id ?>')" class="d-btn d-btn--sm d-btn--outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-color: var(--blue-600); color: var(--blue-600);">

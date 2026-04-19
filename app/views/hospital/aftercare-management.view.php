@@ -60,7 +60,7 @@
                                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                                     <td style="padding: 15px;">
                                                         <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($req->patient_name ?? 'Donor') ?></div>
-                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($req->patient_id) ?></div>
+                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($req->nic ?? 'N/A') ?></div>
                                                     </td>
                                                     <td style="padding: 15px; color: #2563eb; font-weight: 700; font-size: 0.9rem;"><?= date('d/m/Y h:i A', strtotime($req->appointment_date)) ?></td>
                                                     <td style="padding: 15px; color: #475569; font-size: 0.85rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= htmlspecialchars(($req->appointment_type ? '['.$req->appointment_type.'] ' : '') . ($req->description ?: 'No details provided')) ?></td>
@@ -106,7 +106,7 @@
                                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                                     <td style="padding: 15px;">
                                                         <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($apt->patient_name ?? 'Recipient') ?></div>
-                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($apt->patient_id) ?></div>
+                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($apt->nic ?? 'N/A') ?></div>
                                                     </td>
                                                     <td style="padding: 15px; color: #2563eb; font-weight: 700; font-size: 0.9rem;"><?= date('d/m/Y h:i A', strtotime($apt->appointment_date)) ?></td>
                                                     <td style="padding: 15px; color: #475569; font-size: 0.85rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= htmlspecialchars($apt->description ?: 'No details provided') ?></td>

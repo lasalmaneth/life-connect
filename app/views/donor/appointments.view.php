@@ -425,7 +425,7 @@ function extractRescheduleProposedDate($notes): ?string
                                     <div class="appt-type"><?= htmlspecialchars($apt->test_type ?? 'Investigation') ?></div>
                                     <div class="appt-meta">
                                         <i class="far fa-calendar-alt"></i>
-                                        <?= !empty($apt->test_date) ? date('M d, Y', strtotime($apt->test_date)) : 'N/A' ?>
+                                        <?= !empty($apt->test_date) ? date('d/m/Y', strtotime($apt->test_date)) : 'N/A' ?>
                                         <?php if (!empty($apt->hospital_registration_no)): ?>
                                             &nbsp;·&nbsp; <i class="fas fa-hospital"></i>
                                             <?= htmlspecialchars($apt->hospital_registration_no) ?>

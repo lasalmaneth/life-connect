@@ -685,8 +685,17 @@ class HospitalModel {
     public function getAftercareAppointments($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT * FROM aftercare_appointments WHERE hospital_registration_no = :reg_no ORDER BY appointment_date ASC";
-        return $this->query($query, [':reg_no' => $regNo]);
+        $query = "SELECT aa.*, 
+                    COALESCE(d.nic_number, rp.nic) as nic,
+                    COALESCE(CONCAT(d.first_name, ' ', d.last_name), rp.full_name) as patient_name,
+                    ap.patient_type
+                  FROM aftercare_appointments aa
+                  LEFT JOIN aftercare_patients ap ON aa.user_id = ap.user_id
+                  LEFT JOIN donors d ON ap.user_id = d.user_id AND ap.patient_type = 'DONOR'
+                  LEFT JOIN recipient_patient rp ON ap.user_id = rp.user_id AND ap.patient_type = 'RECIPIENT'
+                  WHERE aa.hospital_registration_no = :reg_no 
+                  ORDER BY aa.appointment_date ASC";
+        return $this->query($query, [':reg_no' => $regNo]) ?: [];
     }
 
     /**
@@ -759,17 +768,20 @@ class HospitalModel {
     public function getDonorAftercareAppointments($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT aa.*, d.first_name as first_name, d.last_name as last_name
+        // Use LEFT JOINs to ensure requests show up even if the mapping is partial
+        $query = "SELECT aa.*, d.first_name, d.last_name, d.nic_number as nic
                   FROM aftercare_appointments aa
-                  JOIN aftercare_patients ap ON aa.user_id = ap.user_id
-                  JOIN donors d ON ap.user_id = d.user_id
+                  LEFT JOIN aftercare_patients ap ON aa.user_id = ap.user_id
+                  LEFT JOIN donors d ON aa.user_id = d.user_id
                   WHERE aa.hospital_registration_no = :reg_no
-                    AND ap.patient_type = 'DONOR'
-                    AND aa.status = 'Requested'
+                    AND (ap.patient_type = 'DONOR' OR ap.patient_type IS NULL)
+                    AND aa.status IN ('Requested', 'Scheduled', 'Approved')
                   ORDER BY aa.appointment_date ASC";
+        
         $results = $this->query($query, [':reg_no' => $regNo]) ?: [];
         foreach($results as $r) {
-            $r->patient_name = ($r->first_name ?? '') . ' ' . ($r->last_name ?? '');
+            $r->patient_name = trim(($r->first_name ?? '') . ' ' . ($r->last_name ?? ''));
+            if ($r->patient_name === '') $r->patient_name = 'Donor';
         }
         return $results;
     }
@@ -777,13 +789,13 @@ class HospitalModel {
     public function getRecipientAftercareAppointments($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT aa.*, rp.full_name as patient_name 
+        $query = "SELECT aa.*, rp.full_name as patient_name, rp.nic as nic 
                   FROM aftercare_appointments aa
                   JOIN aftercare_patients ap ON aa.user_id = ap.user_id
                   JOIN recipient_patient rp ON ap.user_id = rp.user_id
                   WHERE aa.hospital_registration_no = :reg_no
                     AND ap.patient_type = 'RECIPIENT'
-                    AND aa.status = 'Requested'
+                    AND aa.status IN ('Requested', 'Scheduled', 'Approved')
                   ORDER BY aa.appointment_date ASC";
         return $this->query($query, [':reg_no' => $regNo]) ?: [];
     }

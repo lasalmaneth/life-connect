@@ -131,12 +131,13 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <th>Amount</th>
                                     <th>Description</th>
                                     <th>Status</th>
+                                    <th>Assigned Voucher</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if (!empty($support_requests)): foreach ($support_requests as $req): ?>
                                     <tr>
-                                        <td><i class="far fa-calendar text-accent"></i> <?= date('M d, Y', strtotime($req->created_at)) ?></td>
+                                        <td><i class="far fa-calendar text-accent"></i> <?= date('d/m/Y', strtotime($req->created_at)) ?></td>
                                         <td style="font-weight: 500; color: var(--blue-800);"><?= htmlspecialchars($req->reason) ?></td>
                                         <td style="font-weight: 700; color: var(--blue-800);">
                                             <?php if (isset($req->amount) && $req->amount !== '' && is_numeric($req->amount)): ?>
@@ -173,10 +174,24 @@ include __DIR__ . '/inc/sidebar.view.php';
                                                 <?= htmlspecialchars($req->status ?: 'PENDING') ?>
                                             </div>
                                         </td>
+                                        <td>
+                                            <?php if (!empty($req->voucher_code)): ?>
+                                                <div style="font-size: 0.8rem;">
+                                                    <strong style="color: #2563eb;">Code:</strong> <?= htmlspecialchars($req->voucher_code) ?><br>
+                                                    <strong style="color: #64748b;">Expires:</strong> <?= htmlspecialchars(date('d/m/Y', strtotime($req->expiry_date))) ?><br>
+                                                    <?php $vStatus = $req->voucher_status ?? 'ACTIVE'; ?>
+                                                    <span style="display: inline-block; margin-top: 3px; font-size: 0.7rem; padding: 2px 5px; border-radius: 4px; background: <?= $vStatus === 'ACTIVE' ? '#dcfce7' : ($vStatus === 'USED' ? '#e2e8f0' : '#fee2e2') ?>; color: <?= $vStatus === 'ACTIVE' ? '#166534' : ($vStatus === 'USED' ? '#475569' : '#991b1b') ?>; font-weight: 600;">
+                                                        <?= htmlspecialchars($vStatus) ?>
+                                                    </span>
+                                                </div>
+                                            <?php else: ?>
+                                                <span style="color: #94a3b8; font-size: 0.8rem; font-style: italic;">No voucher assigned</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; else: ?>
                                     <tr>
-                                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--g500); font-style: italic;">
+                                        <td colspan="6" style="text-align: center; padding: 2rem; color: var(--g500); font-style: italic;">
                                             No support requests submitted yet.
                                         </td>
                                     </tr>

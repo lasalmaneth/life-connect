@@ -35,7 +35,7 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <i class="fas fa-file-medical text-accent"></i> <?= htmlspecialchars($test->test_name) ?>
                                 </div>
                                 <div style="font-size: 0.8rem; color: var(--g500); display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
-                                    <span><i class="far fa-calendar-alt"></i> <?= date('M d, Y', strtotime($test->test_date)) ?></span>
+                                    <span><i class="far fa-calendar-alt"></i> <?= date('d/m/Y', strtotime($test->test_date)) ?></span>
                                     <span><i class="far fa-hospital"></i> <?= htmlspecialchars($test->hospital_name ?? 'LifeConnect Lab') ?></span>
                                 </div>
                                 

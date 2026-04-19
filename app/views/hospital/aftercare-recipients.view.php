@@ -73,7 +73,7 @@
                                         <div class="table-cell" data-label="NIC"><?php echo htmlspecialchars($recipient->nic ?? 'N/A'); ?></div>
                                         <div class="table-cell" data-label="NAME"><?php echo htmlspecialchars($recipient->full_name ?? 'N/A'); ?></div>
                                         <div class="table-cell" data-label="ORGAN RECEIVED"><?php echo htmlspecialchars($recipient->surgery_type ?? 'N/A'); ?></div>
-                                        <div class="table-cell" data-label="SURGERY DATE"><?php echo !empty($recipient->surgery_date) ? date('Y-m-d', strtotime($recipient->surgery_date)) : 'N/A'; ?></div>
+                                        <div class="table-cell" data-label="SURGERY DATE"><?php echo !empty($recipient->surgery_date) ? date('d/m/Y', strtotime($recipient->surgery_date)) : 'N/A'; ?></div>
                                         <div class="table-cell" data-label="STATUS">
                                             <span class="status-badge <?php echo ($recipient->status === 'ACTIVE') ? 'status-active' : 'status-pending'; ?>" style="font-size: 0.75rem;">
                                                 <?php echo htmlspecialchars($recipient->status ?? 'PENDING'); ?>

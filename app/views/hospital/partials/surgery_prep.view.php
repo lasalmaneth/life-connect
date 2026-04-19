@@ -44,7 +44,7 @@
                                 </td>
                                 <td style="padding: 18px 24px;">
                                     <div style="font-weight: 600; color: #1e293b; font-size: 0.9rem;">
-                                        <?= date('M d, Y', strtotime($match->surgery_date)) ?>
+                                        <?= date('d/m/Y', strtotime($match->surgery_date)) ?>
                                     </div>
                                     <div style="font-size: 0.75rem; color: #94a3b8;"><?= date('h:i A', strtotime($match->surgery_date)) ?></div>
                                 </td>

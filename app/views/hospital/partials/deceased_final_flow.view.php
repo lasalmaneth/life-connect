@@ -61,7 +61,7 @@
                                 <td><code class="cp-nic-badge"><?= htmlspecialchars($flow->nic_number) ?></code></td>
                                 <td>
                                     <?php if ($flow->final_exam_at): ?>
-                                        <div class="cp-table__filename"><?= date('d M Y', strtotime($flow->final_exam_at)) ?></div>
+                                        <div class="cp-table__filename"><?= date('d/m/Y', strtotime($flow->final_exam_at)) ?></div>
                                         <div class="cp-table__subtext"><?= date('H:i', strtotime($flow->final_exam_at)) ?></div>
                                     <?php else: ?>
                                         <span style="color: #94a3b8; font-style: italic;">Awaiting Process</span>

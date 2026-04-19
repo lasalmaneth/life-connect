@@ -83,7 +83,7 @@
                                     <code style="background: #f1f5f9; color: #2563eb; padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; font-family: inherit;"><?= htmlspecialchars($p->nic_number ?? 'N/A') ?></code>
                                 </td>
                                 <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
-                                    <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;"><?= htmlspecialchars(isset($p->pledge_date) ? date('d M Y', strtotime($p->pledge_date)) : 'N/A') ?></div>
+                                    <div style="font-weight: 700; color: #1e293b; font-size: 0.85rem;"><?= htmlspecialchars(isset($p->pledge_date) ? date('d/m/Y', strtotime($p->pledge_date)) : 'N/A') ?></div>
                                     <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;"><?= htmlspecialchars(isset($p->pledge_date) ? date('H:i', strtotime($p->pledge_date)) : '') ?></div>
                                 </td>
                                 <td style="padding: 15px; border-bottom: 1px solid #f1f5f9;">
