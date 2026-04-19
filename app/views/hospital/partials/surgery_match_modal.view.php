@@ -88,7 +88,7 @@
                 <div style="color: #475569; font-size: 0.9rem; font-weight: 500; line-height: 1.5;" id="hospitalRemarksText"></div>
             </div>
 
-            <!-- Action Form (Conditional) -->
+            <!-- Action Form (Conditional....) -->
             <div id="matchActionForm" style="display: none; margin-top: 30px; padding-top: 25px; border-top: 1px solid #e2e8f0;">
                 <h4 style="margin: 0 0 15px; color: #1e293b; font-size: 1rem; font-weight: 700;">Confirm Decision</h4>
                 <div class="form-group" style="margin-bottom: 20px;">
