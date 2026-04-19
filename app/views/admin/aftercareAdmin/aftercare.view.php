@@ -148,13 +148,42 @@ $admin_status = 'Active';
     </style>
 </head>
 <body>
-    <script>
-        const ROOT = "<?= ROOT ?>";
+        // Sidebar Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Generic Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
     </script>
     <script src="<?= ROOT ?>/public/assets/js/admin/aftercare.js" defer></script>
     <div class="header">
         <div class="header-content">
-            <div class="header-left">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Mobile Toggle Button -->
+                <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
                 <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
@@ -185,6 +214,9 @@ $admin_status = 'Active';
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid p-0">
         <div class="main-content">
             <div class="sidebar glass">
@@ -197,27 +229,29 @@ $admin_status = 'Active';
                     </div>
                 </div>
                 
-                <div class="menu-section">
-                    <div class="menu-section-title">Core</div>
-                    <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
-                        <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
+                <div class="sidebar-nav">
+                    <div class="menu-section">
+                        <div class="menu-section-title">Core</div>
+                        <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard', this)">
+                            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">Patient Care</div>
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)">
-                        <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
-                        <span>Support Requests</span>
-                    </a>
-                </div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">Patient Care</div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('support-requests', this)">
+                            <span class="icon"><i class="fa-solid fa-hand-holding-heart"></i></span>
+                            <span>Support Requests</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section mt-auto">
-                    <a href="javascript:void(0)" onclick="logout()" class="menu-item text-danger">
-                        <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
+                    <div class="menu-section mt-auto">
+                        <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger">
+                            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -418,18 +452,6 @@ $admin_status = 'Active';
         event.stopPropagation();
     }
 
-    function logout() {
-        if(confirm('Are you sure you want to logout?')) {
-            window.location.href = '<?= ROOT ?>/logout';
-        }
-    }
-
-    function logoLogout() {
-        if(confirm('Clicking the logo will logout. Continue?')) {
-            window.location.href = '<?= ROOT ?>/logout';
-        }
-    }
-
     function showContent(sectionId, element) {
         document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
         element.classList.add('active');
@@ -531,6 +553,8 @@ $admin_status = 'Active';
     window.onclick = function(event) {
         const supportModal = document.getElementById('supportModal');
         if (event.target == supportModal) closeSupportModal();
+        const logoutModal = document.getElementById('logout-modal');
+        if (event.target == logoutModal) closeModal('logout-modal');
     }
 
     // Support Request Filtering System
@@ -659,7 +683,29 @@ $admin_status = 'Active';
             notification.style.display = 'none';
         }, 3000);
     }
+
+    function openModal(id) {
+        document.getElementById(id).classList.add('show');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+    }
 </script>
 
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

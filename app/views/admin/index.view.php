@@ -550,7 +550,7 @@
         }
 
         .modal.show {
-            display: flex;
+            display: flex !important;
         }
 
         .modal-content {
@@ -613,7 +613,12 @@
 
     <div class="header">
         <div class="header-content">
-            <div class="header-left">
+            <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+                <!-- Mobile Toggle Button -->
+                <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
                 <a href="<?= ROOT ?>" style="text-decoration:none; display:flex; align-items:center; gap:10px;">
                     <img src="<?= ROOT ?>/public/assets/images/logo.png" alt="LifeConnect" style="height:40px;">
                     <div>
@@ -652,6 +657,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <div class="container-fluid p-0">
         <div class="main-content">
             <div class="sidebar glass">
@@ -666,55 +674,57 @@
                     </div>
                 </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">CORE</div>
-                    <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard')">
-                        <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
-                        <span>Dashboard</span>
-                    </a>
-                </div>
+                <div class="sidebar-nav">
+                    <div class="menu-section">
+                        <div class="menu-section-title">CORE</div>
+                        <a href="javascript:void(0)" class="menu-item active" onclick="showContent('dashboard')">
+                            <span class="icon"><i class="fa-solid fa-chart-line"></i></span>
+                            <span>Dashboard</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">USERS & SECURITY</div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">USERS & SECURITY</div>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('accounts')"
-                        style="display: flex; align-items: center;">
-                        <span class="icon"><i class="fa-solid fa-users-gear"></i></span>
-                        <span>User Accounts</span>
-                        <span id="nav-pending-users-badge" class="badge"
-                            style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
-                    </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('accounts')"
+                            style="display: flex; align-items: center;">
+                            <span class="icon"><i class="fa-solid fa-users-gear"></i></span>
+                            <span>User Accounts</span>
+                            <span id="nav-pending-users-badge" class="badge"
+                                style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
+                        </a>
 
 
-                </div>
+                    </div>
 
-                <div class="menu-section">
-                    <div class="menu-section-title">COMMUNICATION</div>
+                    <div class="menu-section">
+                        <div class="menu-section-title">COMMUNICATION</div>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('notifications')">
-                        <span class="icon"><i class="fa-solid fa-bell"></i></span>
-                        <span>Notifications</span>
-                    </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('notifications')">
+                            <span class="icon"><i class="fa-solid fa-bell"></i></span>
+                            <span>Notifications</span>
+                        </a>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')"
-                        style="display: flex; align-items: center;">
-                        <span class="icon"><i class="fa-solid fa-comments"></i></span>
-                        <span>Feedbacks</span>
-                        <span id="nav-pending-feedbacks-badge" class="badge"
-                            style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
-                    </a>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('feedbacks')"
+                            style="display: flex; align-items: center;">
+                            <span class="icon"><i class="fa-solid fa-comments"></i></span>
+                            <span>Feedbacks</span>
+                            <span id="nav-pending-feedbacks-badge" class="badge"
+                                style="display:none; background:#ef4444; color:white; border-radius:12px; padding:2px 7px; font-size:0.7rem; margin-left:auto; font-weight:bold;"></span>
+                        </a>
 
-                    <a href="javascript:void(0)" class="menu-item" onclick="showContent('audit-logs')">
-                        <span class="icon"><i class="fa-solid fa-list-check"></i></span>
-                        <span>System Audit Logs</span>
-                    </a>
-                </div>
+                        <a href="javascript:void(0)" class="menu-item" onclick="showContent('audit-logs')">
+                            <span class="icon"><i class="fa-solid fa-list-check"></i></span>
+                            <span>System Audit Logs</span>
+                        </a>
+                    </div>
 
-                <div class="menu-section mt-auto">
-                    <a href="<?= ROOT ?>/logout" class="menu-item text-danger">
-                        <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
-                        <span>Logout</span>
-                    </a>
+                    <div class="menu-section mt-auto">
+                        <a href="javascript:void(0)" onclick="openModal('logout-modal')" class="menu-item text-danger">
+                            <span class="icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+                            <span>Logout</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -902,18 +912,11 @@
                             <div class="table-header"
                                 style="display: flex; justify-content: space-between; align-items: center; padding-right: 1.5rem;">
                                 <h4>User Accounts</h4>
-                                <div class="action-buttons" style="margin-top: 0; display: flex; gap: 0.5rem;">
-                                    <button class="btn btn-success" id="bulk-activate" onclick="bulkActivate()" disabled
-                                        style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Bulk Activate</button>
-                                    <button class="btn btn-danger" id="bulk-suspend" onclick="bulkSuspend()" disabled
-                                        style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Bulk Suspend</button>
-                                </div>
                             </div>
                             <div class="table-content" id="users-table">
                                 <div class="table-row" style="font-weight: 600; background: var(--gray-bg-color);">
                                     <div class="table-cell name">
-                                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()"> User
-                                        Details
+                                        User Details
                                     </div>
                                     <div class="table-cell">Role</div>
                                     <div class="table-cell">Status</div>
@@ -1661,46 +1664,6 @@
 
 
 
-    <!-- Bulk Action Authorization Modal (Existing) -->
-    <div id="bulk-action-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-scroll-area">
-                <div style="display: flex; flex-direction: column; gap: 1.25rem; position: relative;">
-                    <button class="modal-close" style="position: absolute; top: -15px; right: -15px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #f1f5f9; border: none; cursor: pointer; color: #64748b; z-index: 10;" onclick="closeModal('bulk-action-modal')">&times;</button>
-                    
-                    <div style="display: flex; align-items: center; gap: 1.25rem;">
-                        <div id="bulk-status-icon-box" style="flex-shrink: 0; width: 48px; height: 48px; background: #ecfdf5; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                            <i id="bulk-status-icon" class="fa-solid fa-circle-check" style="font-size: 20px; color: #059669;"></i>
-                        </div>
-                        <div>
-                            <h2 id="bulk-modal-title" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.2;">Authorize Bulk Action</h2>
-                        </div>
-                    </div>
-
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; display: flex; align-items: center; gap: 10px;">
-                        <span id="bulk-user-count-badge" style="background: #3b82f6; color: white; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">0 Users</span>
-                        <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Selected for status update</span>
-                    </div>
-
-                    <p id="bulk-modal-desc" style="margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.5; font-weight: 500;">Authorize the following status transition and customize the review notification message below.</p>
-
-                    <div>
-                        <span style="display: block; font-size: 0.7rem; font-weight: 800; color: #3b82f6; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Review Message (Editable)</span>
-                        <textarea id="bulk-review-message" rows="4" style="width: 100%; padding: 0.75rem; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 0.9rem; color: #1e293b; outline: none; transition: border-color 0.2s; resize: none; font-weight: 500; line-height: 1.4;"></textarea>
-                    </div>
-
-                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                        <button type="button" onclick="closeModal('bulk-action-modal')" style="background: #f1f5f9; color: #475569; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer;">Cancel</button>
-                        <button type="button" id="btn-confirm-bulk" onclick="executeBulkUpdate()" style="background: #059669; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
-                            <i id="bulk-confirm-icon" class="fa-solid fa-circle-check"></i>
-                            <span id="bulk-confirm-text">Confirm Activation</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <input type="hidden" id="bulk-target-status">
-        </div>
-    </div>
 
     </div>
 
@@ -1721,7 +1684,6 @@
             notifications: [],
             feedbacks: [],
             auditLogs: [],
-            selectedUsers: [],
             selectedDocuments: [],
             selectedEligibility: [],
             selectedFeedbacks: [],
@@ -1925,7 +1887,7 @@
                 { label: "Patients", value: Number(stats.role_PATIENT || 0), color: "#a4c8e1" },
                 { label: "Custodians", value: Number(stats.role_CUSTODIAN || 0), color: "#059669" },
                 { label: "Hospitals", value: Number(stats.role_HOSPITAL || 0), color: "#74b9ff" },
-                { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#e8f5e8" }
+                { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#80c880ff" }
             ];
 
             // Update HTML legend counts
@@ -2145,10 +2107,6 @@
                     : (data.users ? Object.values(data.users) : []);
 
                 appState.users = users;
-                appState.selectedUsers = [];
-                const selectAll = document.getElementById('select-all');
-                if (selectAll) selectAll.checked = false;
-                updateBulkButtons();
                 renderUsersTable();
             } catch (error) {
                 console.error('Error fetching users:', error);
@@ -2181,8 +2139,7 @@
 
                 row.innerHTML = `
             <div class="table-cell name" data-label="User">
-                <input type="checkbox" class="user-checkbox" data-user-id="${user.id}">
-                <span style="margin-left: 0.5rem;">
+                <span>
                     <strong>${user.username}</strong><br>
                     <small>${user.email}</small>
                 </span>
@@ -2206,9 +2163,6 @@
 
             });
 
-            document.querySelectorAll('.user-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', updateSelectedUsers);
-            });
         }
 
         async function updateUserStatus(userId, status) {
@@ -2502,7 +2456,7 @@
 
                         checkVerificationStatus();
                         ensureModalOnBody('review-user-modal');
-                        document.getElementById('review-user-modal').classList.add('show');
+                        openModal('review-user-modal');
                     } catch (uiErr) {
                         console.error("UI Population Error:", uiErr);
                         showToast('error', 'Critical UI error. Check console.');
@@ -2800,8 +2754,7 @@
                     document.getElementById('edit-username').value = user.username;
                     document.getElementById('edit-email').value = user.email;
                     document.getElementById('edit-role').value = user.role.toLowerCase();
-                    ensureModalOnBody('edit-user-modal');
-                    document.getElementById('edit-user-modal').classList.add('show');
+                    openModal('edit-user-modal');
                 } else {
                     showToast('error', data.message);
                 }
@@ -2862,119 +2815,6 @@
             }
         }
 
-        function toggleSelectAll() {
-            const selectAll = document.getElementById('select-all');
-            const checkboxes = document.querySelectorAll('.user-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-            });
-
-            updateSelectedUsers();
-        }
-
-        function updateSelectedUsers() {
-            const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-            appState.selectedUsers = Array.from(checkboxes).map(cb => parseInt(cb.dataset.userId));
-            updateBulkButtons();
-        }
-
-        function updateBulkButtons() {
-            const activateBtn = document.getElementById('bulk-activate');
-            const suspendBtn = document.getElementById('bulk-suspend');
-
-            if (!activateBtn && !suspendBtn) return;
-
-            if (appState.selectedUsers.length === 0) {
-                if (activateBtn) activateBtn.disabled = true;
-                if (suspendBtn) suspendBtn.disabled = true;
-                return;
-            }
-
-            const selectedUserData = appState.users.filter(u => appState.selectedUsers.includes(parseInt(u.id)));
-
-            if (activateBtn) {
-                activateBtn.disabled = !selectedUserData.every(u => (u.status || '').toUpperCase() === 'SUSPENDED');
-            }
-
-            if (suspendBtn) {
-                suspendBtn.disabled = !selectedUserData.every(u => (u.status || '').toUpperCase() === 'ACTIVE');
-            }
-        }
-
-
-        function bulkUpdateStatus(status) {
-            if (appState.selectedUsers.length === 0) return;
-
-            const modal = document.getElementById('bulk-action-modal');
-            const iconBox = document.getElementById('bulk-status-icon-box');
-            const icon = document.getElementById('bulk-status-icon');
-            const title = document.getElementById('bulk-modal-title');
-            const confirmBtn = document.getElementById('btn-confirm-bulk');
-            const confirmIcon = document.getElementById('bulk-confirm-icon');
-            const confirmText = document.getElementById('bulk-confirm-text');
-            const countBadge = document.getElementById('bulk-user-count-badge');
-            const messageArea = document.getElementById('bulk-review-message');
-            const targetStatusInput = document.getElementById('bulk-target-status');
-
-            targetStatusInput.value = status;
-            countBadge.innerText = `${appState.selectedUsers.length} Users`;
-
-            if (status === 'ACTIVE') {
-                iconBox.style.background = '#ecfdf5';
-                icon.className = 'fa-solid fa-circle-check';
-                icon.style.color = '#059669';
-                title.innerText = 'Authorize Bulk Activation';
-                confirmBtn.style.background = '#059669';
-                confirmIcon.className = 'fa-solid fa-circle-check';
-                confirmText.innerText = 'Confirm Activation';
-                messageArea.value = "Account reactivated: Following administrative review, your access has been restored and all issues have been resolved.";
-            } else {
-                iconBox.style.background = '#fee2e2';
-                icon.className = 'fa-solid fa-circle-xmark';
-                icon.style.color = '#dc2626';
-                title.innerText = 'Authorize Bulk Suspension';
-                confirmBtn.style.background = '#dc2626';
-                confirmIcon.className = 'fa-solid fa-circle-xmark';
-                confirmText.innerText = 'Confirm Suspension';
-                messageArea.value = "Account suspended for administrative review.";
-            }
-
-            modal.classList.add('show');
-        }
-
-        async function executeBulkUpdate() {
-            const status = document.getElementById('bulk-target-status').value;
-            const message = document.getElementById('bulk-review-message').value;
-
-            try {
-                const response = await fetch(`${ROOT}/user-admin/bulkUpdateUserStatus`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_ids: appState.selectedUsers,
-                        status: status,
-                        message: message
-                    })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showToast('success', data.message);
-                    closeModal('bulk-action-modal');
-                    appState.selectedUsers = [];
-                    document.getElementById('select-all').checked = false;
-                    fetchUsers();
-                    fetchDashboardStats();
-                } else {
-                    showToast('error', data.message);
-                }
-            } catch (error) {
-                console.error('Error in bulk update:', error);
-                showToast('error', 'Failed to perform mass update. Check connection.');
-            }
-        }
-
-        function bulkActivate() { bulkUpdateStatus('ACTIVE'); }
-        function bulkSuspend() { bulkUpdateStatus('SUSPENDED'); }
 
 
 
@@ -3088,11 +2928,7 @@
                     }
                 }
                 
-                const modal = document.getElementById('notif-details-modal');
-                if (modal) {
-                    modal.style.display = 'flex';
-                    modal.classList.add('show');
-                }
+                openModal('notif-details-modal');
             } else {
                 console.warn('Notification not found in state for ID:', notifId);
             }
@@ -3355,11 +3191,7 @@
                     notesEl.className = 'modal-break-word';
                 }
                 
-                const modal = document.getElementById('audit-details-modal');
-                if (modal) {
-                    modal.style.display = 'flex';
-                    modal.classList.add('show');
-                }
+                openModal('audit-details-modal');
             } else {
                 console.warn('Audit Log not found in state for ID:', logId);
             }
@@ -3372,7 +3204,49 @@
                 notification.classList.remove('show');
             });
         }, 10000);
+
+        // Sidebar Mobile Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const body = document.body;
+            
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+            body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        // Generic Modal Helpers
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
     </script>
+    <!-- Logout Confirmation Modal -->
+    <div id="logout-modal" class="modal">
+        <div class="modal-content" style="max-width: 420px; text-align: center; padding: 2.5rem;">
+            <div style="font-size: 2.5rem; color: #003b6e; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">Confirm Logout</h3>
+            <p style="color: #64748b; line-height: 1.5; margin-bottom: 2rem;">Are you sure you want to logout? You will need to login again to access your dashboard.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="closeModal('logout-modal')" class="btn btn-secondary" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Cancel</button>
+                <button onclick="window.location.href='<?= ROOT ?>/logout'" class="btn btn-danger" style="flex: 1; border-radius: 50px; padding: 0.75rem;">Logout</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

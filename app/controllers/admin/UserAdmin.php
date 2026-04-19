@@ -268,28 +268,6 @@ class UserAdmin {
         }
     }
 
-    public function bulkUpdateUserStatus() {
-        header('Content-Type: application/json');
-        try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            $userIds = $input['user_ids'] ?? [];
-            $status = $input['status'] ?? null;
-            $message = $input['message'] ?? null;
-
-            if (empty($userIds) || !$status) {
-                echo json_encode(['success' => false, 'message' => 'Missing parameters']);
-                return;
-            }
-
-            $adminModel = new AdminModel();
-            $adminModel->bulkUpdateUserStatus($userIds, $status, $message);
-
-            echo json_encode(['success' => true, 'message' => count($userIds) . ' users updated']);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
-
     public function getUser() {
         header('Content-Type: application/json');
         try {
