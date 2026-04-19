@@ -203,18 +203,22 @@ class  MedicalSchoolModel {
 
     public function getPreDeathConsents($schoolId, $status = 'ALL')
     {
-        $statusMap = ['GIVEN' => 'GIVEN', 'PENDING' => 'PENDING', 'WITHDRAWN' => 'WITHDRAWN', 'FLAGGED' => 'FLAGGED'];
-        $where = ['bdc.medical_school_id' => $schoolId];
+        $statusMap = ['GIVEN' => 'GIVEN', 'WITHDRAWN' => 'WITHDRAWN'];
+        $where = [
+            'bdc.medical_school_id' => $schoolId,
+            'd.verification_status' => 'APPROVED'
+        ];
+
         if (isset($statusMap[$status])) {
             $where['d.consent_status'] = $statusMap[$status];
         } else {
-            $where[] = "d.consent_status IN ('PENDING', 'GIVEN', 'WITHDRAWN', 'FLAGGED')";
+            $where[] = "d.consent_status IN ('GIVEN', 'WITHDRAWN')";
         }
 
         return $this->queryJoin(
             [
                 ['table' => 'donors d', 'on' => 'bdc.donor_id = d.id'],
-                ['table' => 'donor_pledges dp', 'on' => 'd.id = dp.donor_id AND dp.organ_id = 9', 'type' => 'LEFT JOIN']
+                ['table' => 'donor_pledges dp', 'on' => 'd.id = dp.donor_id AND dp.organ_id = 10', 'type' => 'LEFT JOIN']
             ],
             $where,
             "d.id, d.first_name, d.last_name, d.nic_number, d.consent_status, d.verification_status, bdc.consent_date, bdc.withdrawal_reason, bdc.withdrawal_date, bdc.flag_reason, bdc.flagged_at, bdc.witness1_name, bdc.witness2_name, dp.signed_form_path",
@@ -251,7 +255,7 @@ class  MedicalSchoolModel {
             [
                 ['table' => 'users u', 'on' => 'd.user_id = u.id', 'type' => 'LEFT JOIN'],
                 ['table' => 'body_donation_consents bdc', 'on' => 'd.id = bdc.donor_id'],
-                ['table' => 'donor_pledges dp', 'on' => 'd.id = dp.donor_id AND dp.organ_id = 9', 'type' => 'LEFT JOIN'],
+                ['table' => 'donor_pledges dp', 'on' => 'd.id = dp.donor_id AND dp.organ_id = 10', 'type' => 'LEFT JOIN'],
                 ['table' => 'custodians c', 'on' => 'd.id = c.donor_id AND (c.custodian_number = 1 OR c.custodian_number IS NULL)', 'type' => 'LEFT JOIN']
             ],
             ['d.id' => $donorId, 'bdc.medical_school_id' => $schoolId],
@@ -291,7 +295,7 @@ class  MedicalSchoolModel {
                 'cis.track' => 'BODY',
                 $statusCondition
             ],
-            "dc.id as case_id, dc.case_number, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, COALESCE(cis.submission_date, cis.created_at) as request_at",
+            "dc.id as case_id, dc.case_number, dc.resolved_operational_track, d.first_name, d.last_name, d.nic_number, dd.date_of_death, dd.time_of_death, cis.id as cis_id, cis.request_status, COALESCE(cis.submission_date, cis.created_at) as request_at",
             "COALESCE(cis.submission_date, cis.created_at) DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];

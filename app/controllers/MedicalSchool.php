@@ -131,6 +131,14 @@ class MedicalSchool
         $auth = $this->checkAuth();
         $filter = $_GET['status'] ?? 'PENDING';
         $requests = $auth['model']->getSubmissionRequests($auth['school']->id, $filter);
+        $caseModel = new \App\Models\DonationCaseModel();
+        
+        foreach ($requests as &$req) {
+            $activeCase = $caseModel->getCaseByDonor($req->donor_id);
+            $deathDecl = $caseModel->getDeathDeclaration($req->donor_id);
+            $req->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+        }
+
         $stats = $auth['model']->getDashboardStats($auth['school']->id);
         
         $this->view('medical_schools/submission-requests', [
@@ -163,6 +171,19 @@ class MedicalSchool
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['request_id'] ?? null;
             if ($id) {
+                $requestData = $auth['model']->getSubmissionRequestDetails($auth['school']->id, $id);
+                if ($requestData) {
+                    $caseModel = new \App\Models\DonationCaseModel();
+                    $activeCase = $caseModel->getCaseByDonor($requestData->donor_id);
+                    $deathDecl = $caseModel->getDeathDeclaration($requestData->donor_id);
+                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+
+                    if ($window && $window['is_expired']) {
+                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. You can no longer accept this request.";
+                        redirect('medical-school/submission-requests');
+                        die();
+                    }
+                }
                 $auth['model']->updateRequestStatus($auth['school']->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
                 $_SESSION['flash_success'] = "Request accepted. Custodian can now submit the full bundle.";
             }
@@ -215,6 +236,14 @@ class MedicalSchool
         $auth = $this->checkAuth();
         $status = $_GET['status'] ?? 'ALL';
         $submissions = $auth['model']->getBodySubmissions($auth['school']->id, $status);
+        $caseModel = new \App\Models\DonationCaseModel();
+
+        foreach ($submissions as &$sub) {
+            $activeCase = $caseModel->getCaseByDonor($sub->donor_id);
+            $deathDecl = $caseModel->getDeathDeclaration($sub->donor_id);
+            $sub->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+        }
+
         $this->view('medical_schools/submissions', [
             'school' => $auth['school'], 
             'submissions' => $submissions,
@@ -252,6 +281,19 @@ class MedicalSchool
             ];
 
             if ($id && $extra['handover_date'] && $extra['handover_time']) {
+                $sub = $auth['model']->getSubmissionDetails($auth['school']->id, $id);
+                if ($sub) {
+                    $caseModel = new \App\Models\DonationCaseModel();
+                    $activeCase = $caseModel->getCaseByDonor($sub->donor_id);
+                    $deathDecl = $caseModel->getDeathDeclaration($sub->donor_id);
+                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+
+                    if ($window && $window['is_expired']) {
+                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. Final document verification cannot be completed.";
+                        redirect('medical-school/submissions');
+                        die();
+                    }
+                }
                 $auth['model']->updateDocumentStatus($auth['school']->id, $id, 'ACCEPTED', 'Documents Verified', $_SESSION['user_id'], $extra);
                 $_SESSION['flash_success'] = "Documents verified and accepted. Handover scheduled.";
             } else {

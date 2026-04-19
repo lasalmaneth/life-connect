@@ -14,6 +14,62 @@
 }
 
 /* Registration-Style Stepper Logic */
+.cp-case-summary-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+.cp-case-summary-card__header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    padding: 1.25rem 1.5rem;
+    color: #fff;
+}
+.cp-case-summary-card__header h2, .cp-case-summary-card__header p {
+    color: #fff !important;
+}
+.cp-case-summary-card__icon {
+    background: rgba(255, 255, 255, 0.1);
+    color: #38bdf8;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 1.25rem;
+}
+.cp-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+.summary-item {
+    background: #f8fafc;
+    padding: 1.25rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+.summary-item:hover {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    border-color: #cbd5e1;
+}
+.summary-item .cp-label-mini {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #64748b;
+    font-size: 0.70rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.summary-item .font-bold {
+    font-size: 0.95rem;
+    color: #0f172a;
+}
 .p-track-container {
     background: #fff; 
     border-radius: 16px; 
@@ -106,11 +162,366 @@
     .step:last-child::before { display: none; }
 }
 
-/* Report Death Action Card */
-.cp-report-death-card { background: linear-gradient(135deg, #fff0f4 0%, #fbdde4 100%); border-radius: 16px; box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.6); cursor: pointer; transition: all 0.3s ease; text-align: center; padding: 2.5rem; }
-.cp-report-death-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(239, 68, 68, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.6); }
-.cp-report-death-card i { font-size: 3.5rem; color: #f43f5e; text-shadow: 0 4px 8px rgba(244, 63, 94, 0.4); margin-bottom: 0.8rem; }
-.cp-report-death-card h2 { color: #e11d48; margin-bottom: 1rem; font-weight: 700; }
-.cp-report-death-card .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(225, 29, 72, 0.2), transparent); max-width: 500px; margin: 0 auto 1.5rem; }
-.cp-report-death-card p { font-size: 1.05rem; color: #334155; max-width: 600px; margin: 0 auto 1.5rem auto; line-height: 1.6; }
-.cp-report-death-card .btn-fake { display: inline-block; padding: 10px 24px; background: linear-gradient(180deg, #fb7185, #e11d48); color: white; border-radius: 8px; font-weight: 600; font-size: 1rem; box-shadow: 0 4px 10px rgba(225, 29, 72, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4); border: 1px solid #fda4af; }
+/* Report Death Action Card (Premium Redesign) */
+.cp-report-death-card {
+    background: #ffffff;
+    border: 1px solid #fee2e2;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px -10px rgba(225, 29, 72, 0.15), 0 4px 6px -4px rgba(225, 29, 72, 0.05);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    padding: 2.2rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.cp-report-death-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(180deg, #fb7185, #e11d48);
+}
+
+.cp-report-death-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -15px rgba(225, 29, 72, 0.2);
+    border-color: #fecaca;
+}
+
+.cp-report-death-icon {
+    width: 80px;
+    height: 80px;
+    background: #fff1f2;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.4s;
+}
+
+.cp-report-death-card:hover .cp-report-death-icon {
+    transform: scale(1.05) rotate(-5deg);
+    background: #ffe4e6;
+}
+
+.cp-report-death-icon i {
+    font-size: 2.5rem;
+    color: #e11d48;
+    filter: drop-shadow(0 4px 6px rgba(225, 29, 72, 0.2));
+}
+
+.cp-report-death-content {
+    flex: 1;
+}
+
+.cp-report-death-card h2 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+}
+
+.cp-report-death-card p {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+    max-width: 480px;
+}
+
+.cp-report-death-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #e11d48;
+    color: white;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+    transition: all 0.3s;
+    border: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cp-report-death-card:hover .cp-report-death-btn {
+    background: #be123c;
+    box-shadow: 0 8px 20px rgba(225, 29, 72, 0.4);
+    padding-right: 30px;
+}
+
+@media (max-width: 768px) {
+    .cp-report-death-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+        padding: 2rem;
+    }
+    .cp-report-death-card::before {
+        width: 100%;
+        height: 6px;
+    }
+    .cp-report-death-icon {
+        margin: 0 auto;
+    }
+}
+/* ── Guided Wisdom Overlay ── */
+.cp-guided-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 20px;
+}
+
+.cp-guided-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cp-guided-overlay__card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 550px;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cp-guided-overlay.active .cp-guided-overlay__card {
+    transform: translateY(0);
+}
+
+.cp-guided-overlay__close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f8fafc;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.cp-guided-overlay__close:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    transform: rotate(90deg);
+}
+
+.cp-guided-overlay__header {
+    padding: 40px 40px 20px;
+    text-align: center;
+}
+
+.cp-guided-overlay__icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto 20px;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.1);
+}
+
+.cp-guided-overlay__icon.is-urgent {
+    background: #fff1f2;
+    color: #e11d48;
+    box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.1);
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(225, 29, 72, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+}
+
+.cp-guided-overlay__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.cp-guided-overlay__body {
+    padding: 0 40px 30px;
+    text-align: center;
+}
+
+.cp-guided-overlay__text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #64748b;
+    margin-bottom: 24px;
+}
+
+.cp-guided-overlay__alert {
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #475569;
+    text-align: left;
+    line-height: 1.5;
+}
+
+.cp-guided-overlay__footer {
+    padding: 0 40px 40px;
+}
+
+.cp-btn--fw {
+    width: 100%;
+}
+
+/* Kidney Outcome Highlight (Brain-Dead Notification) */
+.cp-kidney-outcome {
+    border-left: 4px solid #f59e0b !important;
+    background: #fffcf0 !important;
+}
+.cp-kidney-outcome__body {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+.cp-kidney-outcome__icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #fef3c7;
+    color: #d97706;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+.cp-kidney-outcome__title {
+    color: #78350f !important;
+    font-weight: 800 !important;
+    margin: 0;
+}
+.cp-kidney-outcome__text {
+    margin: 0;
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+.cp-link-amber {
+    color: #b45309;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.cp-link-amber:hover {
+    color: #78350f;
+}
+
+/* Generic Helpers */
+.max-w-500 { max-width: 500px; }
+.opacity-10 { opacity: 0.1; }
+
+/* Action Items Styling */
+.cp-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+.cp-item-row.available { border-left: 4px solid #10b981; }
+.cp-item-row.expired { border-left: 4px solid #ef4444; opacity: 0.75; }
+.cp-item-row.actioned { border-left: 4px solid #3b82f6; background: #eff6ff; }
+.cp-item-row.failed { border-left: 4px solid #94a3b8; background: #f1f5f9; }
+
+.item-meta {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+.status-badge-mini {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: #e2e8f0;
+    color: #475569;
+}
+.countdown {
+    color: #059669;
+    background: #d1fae5;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+.cp-item-row.expired .countdown {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+/* Dashboard Layout Grid */
+.cp-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .cp-dashboard-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-4 { grid-column: span 4 / span 4; }
+
+@media (min-width: 768px) {
+    .md\:col-span-1 { grid-column: span 1 / span 1; }
+    .md\:col-span-2 { grid-column: span 2 / span 2; }
+    .md\:col-span-3 { grid-column: span 3 / span 3; }
+    .md\:col-span-4 { grid-column: span 4 / span 4; }
+}

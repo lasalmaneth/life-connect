@@ -1261,10 +1261,11 @@ class HospitalModel {
                 'cis.track' => 'ORGAN',
                 $statusCondition
             ],
-            "dc.id as case_id, dc.case_number, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
+            "dc.id as case_id, dc.case_number, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
             "COALESCE(cis.submission_date, cis.created_at) DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+        return $this->processIncludedItems($results);
     }
 
     public function getDeceasedRequestDetails($hospitalId, $cisId)
@@ -1277,9 +1278,11 @@ class HospitalModel {
                 ['table' => 'custodians c', 'on' => 'd.id = c.donor_id AND (c.custodian_number = 1 OR c.custodian_number IS NULL)', 'type' => 'LEFT JOIN']
             ],
             ['cis.id' => $cisId, 'cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
-            "cis.*, cis.id as cis_id, dc.case_number, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
+            "cis.*, cis.id as cis_id, cis.included_items_json, dc.case_number, dc.operational_items_json, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
             "", 1, 0, "case_institution_status cis"
-        )[0] ?? false;
+        );
+        $res = $this->processIncludedItems($res);
+        return $res[0] ?? false;
     }
 
     public function getCustodiansForDonor($donorId)
@@ -1341,10 +1344,11 @@ class HospitalModel {
                 'cis.request_status' => 'ACCEPTED',
                 $statusCondition
             ],
-            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "dc.id as case_id, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.document_action_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+        return $this->processIncludedItems($results);
     }
 
     public function getDeceasedFinalFlow($hospitalId, $status = 'ALL')
@@ -1364,10 +1368,33 @@ class HospitalModel {
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
             ],
             $where,
-            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
+            "dc.id as case_id, dc.operational_items_json, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, cis.included_items_json, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.final_exam_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
+        return $this->processIncludedItems($results);
+    }
+
+    private function processIncludedItems($results) {
+        if (!$results) return $results;
+        foreach ($results as &$row) {
+            if (!empty($row->included_items_json) && !empty($row->operational_items_json)) {
+                $itemIds = json_decode($row->included_items_json, true);
+                $snapshot = json_decode($row->operational_items_json, true);
+                if (is_array($itemIds) && is_array($snapshot)) {
+                    $names = [];
+                    foreach ($itemIds as $id) {
+                        if (isset($snapshot[$id])) {
+                            $names[] = $snapshot[$id]['name'];
+                        }
+                    }
+                    if (!empty($names)) {
+                        $row->requested_organs = implode(', ', $names);
+                    }
+                }
+            }
+        }
+        return $results;
     }
 
     public function updateDeceasedFinalFlowStatus($hospitalId, $cisId, $status, $reason, $notes, $userId)

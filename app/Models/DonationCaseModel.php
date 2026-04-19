@@ -15,7 +15,17 @@ class DonationCaseModel {
         'donation_type',
         'legal_status',
         'overall_status',
-        'bundle_status'
+        'bundle_status',
+        'resolved_deceased_mode',
+        'resolved_operational_track',
+        'operational_items_json',
+        'operational_time_limits_json',
+        'kidney_decision',
+        'kidney_decision_at',
+        'body_cornea_decision',
+        'guidance_message',
+        'show_kidney_popup',
+        'resolved_at'
     ];
 
     /**
@@ -64,7 +74,7 @@ class DonationCaseModel {
                  CASE 
                     WHEN cis.institution_type = "MEDICAL_SCHOOL" THEN ms.school_name 
                     WHEN cis.institution_type = "HOSPITAL" THEN h.name 
-                    ELSE "Akshidhana Sangamaya" 
+                    ELSE "LifeConnect Central" 
                  END AS institution_name,
                  CASE 
                     WHEN cis.institution_type = "MEDICAL_SCHOOL" THEN ms.address 
@@ -95,6 +105,7 @@ class DonationCaseModel {
             'case_institution_status cis'
         )[0] ?? null;
     }
+
     public function getCaseByDonor($donorId)
     {
         return $this->queryJoin(
@@ -144,7 +155,7 @@ class DonationCaseModel {
                            CASE
                              WHEN cis.institution_type = 'MEDICAL_SCHOOL' THEN ms.school_name
                              WHEN cis.institution_type = 'HOSPITAL' THEN h.name
-                             ELSE 'Akshidhana Sangamaya'
+                             ELSE 'LifeConnect Central'
                            END AS institution_name
                     FROM case_institution_status cis
                     LEFT JOIN medical_schools ms ON cis.institution_type = 'MEDICAL_SCHOOL' AND cis.institution_id = ms.id
@@ -200,9 +211,8 @@ class DonationCaseModel {
     /**
      * Get institutions available for a case
      */
-    public function getAvailableInstitutions($caseId, $track)
+    public function getAvailableInstitutions($caseId, $track, $targetType = null)
     {
-        // Get already-attempted institution IDs
         $attempted = $this->where(
             ['donation_case_id' => $caseId, 'track' => $track], 
             [], 
@@ -212,7 +222,7 @@ class DonationCaseModel {
         ) ?: [];
         $attemptedIds = array_map(fn($r) => $r->institution_id, $attempted);
 
-        if ($track === 'BODY' || $track === 'CORNEA') {
+        if ($targetType === 'MEDICAL_SCHOOL') {
             $institutions = $this->queryJoin(
                 [
                     ['table' => 'medical_schools ms', 'on' => 'bdc.medical_school_id = ms.id', 'type' => 'JOIN'],
@@ -263,7 +273,7 @@ class DonationCaseModel {
                  CASE 
                     WHEN cis.institution_type = "MEDICAL_SCHOOL" THEN ms.school_name 
                     WHEN cis.institution_type = "HOSPITAL" THEN h.name 
-                    ELSE "Akshidhana Sangamaya" 
+                    ELSE "LifeConnect Central" 
                  END AS institution_name';
 
         return $this->queryJoin(
@@ -278,5 +288,50 @@ class DonationCaseModel {
             0,
             'case_institution_status cis'
         );
+    }
+
+    /**
+     * Update the operational track for a case (used for clinical decisions)
+     */
+    public function updateTrack($caseId, $track)
+    {
+        return $this->update($caseId, ['resolved_operational_track' => $track]);
+    }
+
+    /**
+     * Central clinical clock resolver for all institutional workflows
+     */
+    public function getClinicalWindowStatus($case, $deathDecl)
+    {
+        if (!$case || !$deathDecl) return null;
+
+        // Use the resolver service to get item-specific limits
+        $resolver = new \App\Services\DonationResolver();
+        $timeOfDeath = $deathDecl->date_of_death . ' ' . $deathDecl->time_of_death;
+        
+        $donorId = $case->donor_id;
+        $snapshot = $resolver->resolveAtDeath($donorId, $deathDecl->is_brain_dead, $timeOfDeath, $case->kidney_decision, $case->body_cornea_decision);
+        
+        $activeItems = $snapshot['items'];
+        $expirations = $snapshot['time_limits'];
+        $currentDeadline = $deathDecl->window_expires_at; // 48h default
+
+        $track = $case->resolved_operational_track;
+        if (str_contains($track, 'HOSPITAL_TISSUE') || str_contains($track, 'ORGAN')) {
+            foreach ($activeItems as $id => $item) {
+                if ($item['type'] === 'HOSPITAL_TISSUE' && isset($expirations[$id])) {
+                    $currentDeadline = $expirations[$id];
+                    break;
+                }
+            }
+        }
+        
+        $now = time();
+        $deadlineTs = strtotime($currentDeadline);
+        return [
+            'deadline' => $currentDeadline,
+            'is_expired' => ($now > $deadlineTs),
+            'seconds_remaining' => ($deadlineTs - $now)
+        ];
     }
 }

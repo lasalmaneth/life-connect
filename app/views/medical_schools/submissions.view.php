@@ -42,6 +42,7 @@ ob_start();
                     <th>Case Info</th>
                     <th>NIC</th>
                     <th>Last Update</th>
+                    <th>Clinical Deadline</th>
                     <th>Document Status</th>
                     <th style="text-align: right;">Action</th>
                 </tr>
@@ -75,6 +76,20 @@ ob_start();
                             <td>
                                 <div class="cp-table__filename"><?= $sub->document_action_at ? date('d M Y', strtotime($sub->document_action_at)) : 'N/A' ?></div>
                                 <div class="cp-table__subtext"><?= $sub->document_action_at ? date('H:i', strtotime($sub->document_action_at)) : '' ?></div>
+                            </td>
+                            <td>
+                                <?php if (isset($sub->clinical_deadline)): ?>
+                                    <div class="countdown" 
+                                         data-expire="<?= htmlspecialchars($sub->clinical_deadline['deadline']) ?>"
+                                         style="font-weight: 700; font-family: monospace; font-size: 0.9rem;">
+                                        Calculating...
+                                    </div>
+                                    <div class="cp-table__subtext">
+                                        Limit: <?= date('d M, H:i', strtotime($sub->clinical_deadline['deadline'])) ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="cp-text-gray-400">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="cp-badge cp-badge--<?= strtolower(str_replace('_', '-', $sub->document_status)) === 'accepted' ? 'active' : 'pending' ?>">
@@ -112,6 +127,29 @@ function viewSubmissionDetails(id) {
             body.innerHTML = html;
         });
 }
+
+function updateCountdowns() {
+    const elements = document.querySelectorAll('.countdown');
+    elements.forEach(el => {
+        const expireTs = new Date(el.dataset.expire).getTime();
+        const now = new Date().getTime();
+        const dist = expireTs - now;
+        
+        if (dist < 0) {
+            el.innerText = "WINDOW CLOSED";
+            el.style.color = "#ef4444";
+            return;
+        }
+        
+        const h = Math.floor(dist / (1000 * 60 * 60));
+        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        el.innerText = h + "h " + m + "m left";
+        if (h < 12) el.style.color = "#d97706";
+        if (h < 4) el.style.color = "#ef4444";
+    });
+}
+setInterval(updateCountdowns, 60000);
+updateCountdowns();
 </script>
 
 <?php

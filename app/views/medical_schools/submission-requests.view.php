@@ -48,7 +48,8 @@ ob_start();
                     <th>Donor & Case</th>
                     <th>NIC Number</th>
                     <th>Date of Death</th>
-                    <th>Submission Age</th>
+                    <th>Submitted Date</th>
+                    <th>Clinical Deadline</th>
                     <th style="text-align: center;">Status</th>
                     <th style="text-align: right;">Action</th>
                 </tr>
@@ -77,6 +78,11 @@ ob_start();
                                             <?= htmlspecialchars($request->first_name . ' ' . $request->last_name) ?>
                                         </div>
                                         <div class="cp-table__subtext"><?= htmlspecialchars($request->case_number) ?></div>
+                                        <?php if ($request->resolved_operational_track === 'BODY_CORNEA_SPLIT'): ?>
+                                            <span class="cp-badge-mini cp-bg-amber-100 cp-text-amber-700 mt-1" style="font-size: 0.65rem;">
+                                                <i class="fas fa-eye"></i> Cornea Retrieval Priority
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </td>
@@ -86,14 +92,22 @@ ob_start();
                                 <div class="cp-table__subtext"><?= date('H:i', strtotime($request->date_of_death)) ?></div>
                             </td>
                             <td>
-                                <?php 
-                                    $submitted = strtotime($request->request_at);
-                                    $diff = max(0, time() - $submitted);
-                                    $hours = floor($diff / 3600);
-                                    $mins = floor(($diff % 3600) / 60);
-                                ?>
-                                <div class="cp-table__filename"><?= $hours ?>h <?= $mins ?>m ago</div>
-                                <div class="cp-table__subtext">Submitted on <?= date('M d', $submitted) ?></div>
+                                <div class="cp-table__filename"><?= date('d M Y', strtotime($request->request_at)) ?></div>
+                                <div class="cp-table__subtext"><?= date('H:i', strtotime($request->request_at)) ?></div>
+                            </td>
+                            <td>
+                                <?php if (isset($request->clinical_deadline)): ?>
+                                    <div class="countdown" 
+                                         data-expire="<?= htmlspecialchars($request->clinical_deadline['deadline']) ?>"
+                                         style="font-weight: 700; font-family: monospace; font-size: 0.9rem;">
+                                        Calculating...
+                                    </div>
+                                    <div class="cp-table__subtext">
+                                        Limit: <?= date('d M, H:i', strtotime($request->clinical_deadline['deadline'])) ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="cp-text-gray-400">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td style="text-align: center;">
                                 <span class="cp-badge cp-badge--<?= strtolower($request->request_status) === 'pending' ? 'pending' : 'active' ?>">
@@ -103,7 +117,7 @@ ob_start();
                             <td style="text-align: right;">
                                 <div class="cp-table__actions">
                                     <button class="cp-btn cp-btn--secondary cp-btn--sm"
-                                            onclick="openRequestDrawer(<?= $request->cis_id ?>)">
+                                             onclick="openRequestDrawer(<?= $request->cis_id ?>)">
                                         <i class="fas fa-search"></i> Request Details
                                     </button>
                                 </div>
@@ -117,6 +131,29 @@ ob_start();
 </div>
 
 <script>
+function updateCountdowns() {
+    const elements = document.querySelectorAll('.countdown');
+    elements.forEach(el => {
+        const expireTs = new Date(el.dataset.expire).getTime();
+        const now = new Date().getTime();
+        const dist = expireTs - now;
+        
+        if (dist < 0) {
+            el.innerText = "WINDOW CLOSED";
+            el.style.color = "var(--red-600)";
+            return;
+        }
+        
+        const h = Math.floor(dist / (1000 * 60 * 60));
+        const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+        el.innerText = h + "h " + m + "m left";
+        if (h < 12) el.style.color = "var(--amber-600)";
+        if (h < 4) el.style.color = "var(--red-600)";
+    });
+}
+setInterval(updateCountdowns, 60000);
+updateCountdowns();
+
 function openRequestDrawer(id) {
     const titleEl = document.getElementById('drawerTitle');
     const bodyEl  = document.getElementById('drawerBody');

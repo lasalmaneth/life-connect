@@ -69,16 +69,32 @@
             </div>
         </div>
         
-        <?php if ($donor->flag_reason): ?>
-            <div class="dr-alert-box dr-alert-box--warning mb-6">
-                <div class="dr-alert-box__title">
-                    <i class="fas fa-flag"></i> Flagged Reason
-                </div>
-                <div class="dr-alert-box__main">
-                    <?= htmlspecialchars($donor->flag_reason) ?>
+        <!-- Witnesses Section (Premium 'Nice Card' Style) -->
+        <div class="dr-card dr-card--blue shadow-sm mt-4">
+            <div class="dr-section-title">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-users-line"></i>
+                    <span>Witness Information</span>
                 </div>
             </div>
-        <?php endif; ?>
+            
+            <div class="dr-item-list">
+                <div class="dr-item">
+                    <span class="dr-item-marker">1</span>
+                    <div class="dr-item__header">Primary Witness</div>
+                    <div class="dr-value dr-value--accent mt-1">
+                        <?= htmlspecialchars($donor->witness1_name ?: 'N/A') ?>
+                    </div>
+                </div>
+                <div class="dr-item">
+                    <span class="dr-item-marker">2</span>
+                    <div class="dr-item__header">Secondary Witness</div>
+                    <div class="dr-value dr-value--accent mt-1">
+                        <?= htmlspecialchars($donor->witness2_name ?: 'N/A') ?>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="dr-card dr-card--dashed">
             <div class="flex items-center justify-between">
@@ -99,19 +115,5 @@
         </div>
     </div>
 
-    <div class="dr-section pt-6 border-t border-gray-100 mt-6">
-        <h4 class="dr-heading-sm text-red-700 mb-4 flex items-center gap-2">
-            <i class="fas fa-shield-halved"></i> Security Action: Flag Record
-        </h4>
-        <form action="<?= ROOT ?>/medical-school/consents/flag" method="POST">
-            <input type="hidden" name="donor_id" value="<?= $donor->id ?>">
-            <div class="mb-4">
-                <label class="dr-slim-label text-gray-600">Reason for Flagging:</label>
-                <textarea name="flag_reason" class="dr-slim-textarea border-red-100 focus:border-red-400" placeholder="Describe the discrepancy (e.g. missing signature, invalid NIC scan)..." required></textarea>
-            </div>
-            <button type="submit" class="cp-btn dr-btn-full bg-red-600 text-white shadow-red-200">
-                <i class="fas fa-flag mr-1"></i> Formally Flag for Follow-up
-            </button>
-        </form>
-    </div>
+    <!-- Flagging functionality removed as requested -->
 <?php endif; ?>
