@@ -80,7 +80,19 @@ class Hospital
         $deceased_requests = $hospitalModel->getDeceasedRequests($hospitalId, $_GET['status'] ?? 'PENDING') ?: [];
         $deceased_submissions = $hospitalModel->getDeceasedSubmissions($hospitalId, $_GET['sub_status'] ?? 'ALL') ?: [];
         $deceased_final_flow = $hospitalModel->getDeceasedFinalFlow($hospitalId, $_GET['flow_status'] ?? 'ALL') ?: [];
-        $deceased_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: []; // Filtering by type in view if needed
+        
+        $caseModel = new \App\Models\DonationCaseModel();
+        foreach ([$deceased_requests, $deceased_submissions, $deceased_final_flow] as $collection) {
+            foreach ($collection as &$item) {
+                if (isset($item->donor_id)) {
+                    $activeCase = $caseModel->getCaseByDonor($item->donor_id);
+                    $deathDecl = $caseModel->getDeathDeclaration($item->donor_id);
+                    $item->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+                }
+            }
+        }
+
+        $deceased_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: [];
 
         $aftercarePatientModel = new AftercarePatientModel();
         $aftercare_recipients = $aftercarePatientModel->getRecipientsByHospital($hospital_registration) ?: [];
@@ -259,6 +271,20 @@ class Hospital
             if ($id) {
                 $hospitalModel = new HospitalModel();
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                
+                $request = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
+                if ($request) {
+                    $caseModel = new \App\Models\DonationCaseModel();
+                    $activeCase = $caseModel->getCaseByDonor($request->donor_id);
+                    $deathDecl = $caseModel->getDeathDeclaration($request->donor_id);
+                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+
+                    if ($window && $window['is_expired']) {
+                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. Request cannot be accepted.";
+                        redirect('hospital/deceased-requests');
+                        die();
+                    }
+                }
                 $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
             }
             redirect('hospital/deceased-requests');
@@ -312,6 +338,20 @@ class Hospital
             if ($id) {
                 $hospitalModel = new HospitalModel();
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
+                
+                $sub = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
+                if ($sub) {
+                    $caseModel = new \App\Models\DonationCaseModel();
+                    $activeCase = $caseModel->getCaseByDonor($sub->donor_id);
+                    $deathDecl = $caseModel->getDeathDeclaration($sub->donor_id);
+                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+
+                    if ($window && $window['is_expired']) {
+                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. Verification cannot be completed.";
+                        redirect('hospital/deceased-documents');
+                        die();
+                    }
+                }
                 $hospitalModel->updateDocumentStatus($hospital->id, $id, 'ACCEPTED', 'Documents Verified', $_SESSION['user_id'], $extra);
             }
             redirect('hospital/deceased-documents');

@@ -1,49 +1,88 @@
-<!-- Deceased Final Flow Detail View (AJAX Body) -->
-<div class="cp-drawer-content">
+<div class="dr-content">
     <?php if (!$flow): ?>
-        <div class="cp-alert cp-alert--danger">Final flow record not found.</div>
+        <div class="dr-alert-box dr-alert-box--danger">
+            <div class="dr-alert-box__title"><i class="fas fa-exclamation-circle"></i> Error</div>
+            <div class="dr-alert-box__main">Final flow record not found or inaccessible.</div>
+        </div>
     <?php else: ?>
-        <div class="cp-detail-group">
-            <h3 class="cp-detail-group__title">Retrieval Completion Status</h3>
-            <div class="cp-detail-grid">
-                <div class="cp-detail-item">
-                    <div class="cp-detail-label">Donor Name</div>
-                    <div class="cp-detail-value"><?= htmlspecialchars($flow->first_name . ' ' . $flow->last_name) ?></div>
+        <!-- Premium Header -->
+        <div class="dr-header">
+            <div class="dr-header__inner">
+                <div class="dr-header__top">
+                    <span class="dr-tag">Recovery Request: <?= htmlspecialchars($flow->requested_organs ?: 'Organs Pending') ?></span>
+                    <span class="dr-badge dr-badge--success">
+                        <?= htmlspecialchars($flow->final_exam_status) ?>
+                    </span>
                 </div>
-                <div class="cp-detail-item">
-                    <div class="cp-detail-label">Status</div>
-                    <div class="cp-detail-value">
-                        <span class="cp-badge cp-badge--info"><?= htmlspecialchars($flow->final_exam_status) ?></span>
+                <h3>Case #<?= htmlspecialchars($flow->case_number) ?></h3>
+                <p><?= htmlspecialchars($flow->first_name . ' ' . $flow->last_name) ?></p>
+            </div>
+        </div>
+
+        <!-- Section: Status Header -->
+        <div class="dr-section">
+            <div class="dr-section-title">
+                <span><i class="fas fa-check-double"></i> Retrieval Completion Status</span>
+            </div>
+            
+            <div class="dr-card">
+                <div class="dr-grid dr-grid--2">
+                    <div class="dr-label-group">
+                        <span class="dr-label">Donor Name</span>
+                        <div class="dr-value--sub"><?= htmlspecialchars($flow->first_name . ' ' . $flow->last_name) ?></div>
                     </div>
+                    <div class="dr-label-group">
+                        <span class="dr-label">Examination Status</span>
+                        <div>
+                            <span class="dr-badge dr-badge--pending"><?= htmlspecialchars($flow->final_exam_status) ?></span>
+                        </div>
+                    </div>
+                    <?php if ($flow->handover_date): ?>
+                        <div class="dr-label-group">
+                            <span class="dr-label">Handover Date</span>
+                            <div class="dr-value--small"><?= date('M d, Y', strtotime($flow->handover_date)) ?></div>
+                        </div>
+                        <div class="dr-label-group">
+                            <span class="dr-label">Handover Time</span>
+                            <div class="dr-value--small"><?= htmlspecialchars($flow->handover_time) ?></div>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <?php if ($flow->handover_date): ?>
-                    <div class="cp-detail-item">
-                        <div class="cp-detail-label">Handover Date</div>
-                        <div class="cp-detail-value"><?= date('M d, Y', strtotime($flow->handover_date)) ?> at <?= htmlspecialchars($flow->handover_time) ?></div>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
 
         <?php if ($flow->final_exam_status === 'AWAITING'): ?>
-            <div class="cp-detail-group" style="margin-top: 2rem; border-top: 2px solid #f1f5f9; padding-top: 2rem;">
-                <h3 class="cp-detail-group__title">Confirm Successful Retrieval</h3>
-                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 2rem;">
-                    Marking this case as **Accepted** signifies that the organ retrieval was successful, all protocols were followed, and the institution assumes full responsibility. A formal Donation Certificate will be generated.
-                </p>
-                
+            <div class="dr-banner dr-banner--info">
+                <div class="dr-banner__content">
+                    <div class="dr-banner__main">
+                        <div class="dr-banner__title-sm">Final Institutional Confirmation</div>
+                        <div class="dr-banner__msg">
+                            Marking this case as <strong>Accepted</strong> signifies that the organ retrieval was successfully concluded and all institutional protocols were satisfied. 
+                            A formal <strong>Donation Certificate</strong> will be issued to the family.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8">
                 <form method="POST" action="<?= ROOT ?>/hospital/deceased-final-flow/accept">
                     <input type="hidden" name="flow_id" value="<?= $flow->cis_id ?>">
-                    <div style="display: flex; gap: 1rem;">
-                        <button type="submit" class="cp-btn cp-btn--primary" style="flex: 1; padding: 1rem;">
-                            <i class="fas fa-check-double cp-mr-2"></i> Confirm & Successfully Close Case
-                        </button>
-                    </div>
+                    <button type="submit" class="cp-btn cp-btn--primary dr-btn-full">
+                        <i class="fas fa-check-double mr-2"></i> Confirm Successfully Retrieval & Close Case
+                    </button>
                 </form>
             </div>
         <?php else: ?>
-            <div class="cp-alert cp-alert--success">
-                <i class="fas fa-certificate cp-mr-2"></i> This case was successfully completed and closed on <?= date('M d, Y', strtotime($flow->final_exam_at)) ?>.
+            <div class="dr-alert-box dr-alert-box--success">
+                <div class="dr-alert-box__title">
+                    <i class="fas fa-certificate"></i> Case Successfully Closed
+                </div>
+                <div class="dr-alert-box__main">
+                    This retrieval case was successfully completed and formally closed by the institution.
+                </div>
+                <div class="dr-alert-box__meta">
+                    Finalized on: <?= date('M d, Y', strtotime($flow->final_exam_at)) ?>
+                </div>
             </div>
         <?php endif; ?>
     <?php endif; ?>

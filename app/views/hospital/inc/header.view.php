@@ -47,6 +47,11 @@ $h_avatar = strtoupper(substr((string)$h_name, 0, 1) ?: 'H');
     <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/hospital.css">
     <link rel="stylesheet" href="<?php echo ROOT ?? '/life-connect'; ?>/public/assets/css/hospital/stories.css">
     
+    <!-- Shared Premium Design System (dr- prefix) -->
+    <link rel="stylesheet" href="<?php echo ROOT; ?>/public/assets/css/custodian/main.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?php echo ROOT; ?>/public/assets/css/custodian/drawer.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="<?php echo ROOT; ?>/public/assets/css/medicalschools/drawers.css?v=<?= time() ?>">
+    
     <title>Hospital Management - LifeConnect</title>
 </head>
 

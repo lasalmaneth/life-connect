@@ -3,29 +3,53 @@
  * Custodian Portal Document Checklist Component
  * Premium Overhaul: Step-by-Step Mandatory Workflow
  */
-// Calculation for time since death
+
+// [CONSOLIDATED LOGIC]
 $hoursSinceDeath = 0;
 $requiresEmbalming = false;
+$donationType = 'BODY'; // Default
 
-if ($activeCase && !empty($activeCase->date_of_death) && !empty($activeCase->time_of_death)) {
-    $now = new DateTime();
-    $deathDateTime = new DateTime($activeCase->date_of_death . ' ' . $activeCase->time_of_death);
-    $interval = $now->diff($deathDateTime);
-    $hoursSinceDeath = ($interval->days * 24) + $interval->h + ($interval->i / 60);
+if ($activeCase) {
+    // 1. Time Calculation
+    if (!empty($death_declaration->time_of_death)) {
+        $now = time();
+        $deathTs = strtotime($death_declaration->time_of_death);
+        $hoursSinceDeath = ($now - $deathTs) / 3600;
+    }
 
-    if (($consent['donation_type'] ?? '') !== 'ORGAN') {
-        if ($hoursSinceDeath > 8) { $requiresEmbalming = true; }
+    // 2. Donation Type Normalization (Bridge Legacy Flags)
+    $mode = $activeCase->resolved_deceased_mode;
+    $track = $activeCase->resolved_operational_track;
+    
+    if (str_contains($mode, 'BODY')) {
+        $donationType = str_contains($mode, 'CORNEA') ? 'BODY_AND_CORNEA' : 'BODY';
+    } elseif ($track === 'HOSPITAL_TISSUE' || str_contains($mode, 'ORGAN')) {
+        $donationType = 'ORGAN';
+    }
+
+    // 3. Embalming Rule
+    if ($donationType !== 'ORGAN' && $hoursSinceDeath > 8) {
+        $requiresEmbalming = true;
     }
 }
 
-$isACCEPTED = $currentInst && $currentInst->request_status === 'ACCEPTED';
+$anyAccepted = false;
+if (isset($allInstitutionStatuses)) {
+    foreach ($allInstitutionStatuses as $st) {
+        if (($st->institution_status ?? '') === 'ACCEPTED' || ($st->request_status ?? '') === 'ACCEPTED') {
+            $anyAccepted = true;
+            break;
+        }
+    }
+}
+$isACCEPTED = $anyAccepted || ($currentInstRequest && (($currentInstRequest->institution_status ?? '') === 'ACCEPTED' || ($currentInstRequest->request_status ?? '') === 'ACCEPTED'));
 $bundleStatus = $activeCase ? ($activeCase->bundle_status ?? 'PENDING') : 'PENDING';
-$donationType = $consent['donation_type'] ?? 'BODY';
 $isBody = ($donationType === 'BODY' || $donationType === 'BODY_AND_CORNEA');
 
 // Determine if the checklist should be interactive or hidden based on review status
-$isUnderReview = $review && $review->document_status === 'PENDING_REVIEW';
-$isReviewCompleted = $review && $review->document_status === 'ACCEPTED';
+$docStatus = $currentInstRequest->document_status ?? 'NOT_STARTED';
+$isUnderReview = ($docStatus === 'PENDING_REVIEW');
+$isReviewCompleted = ($docStatus === 'ACCEPTED');
 $showChecklist = !$isUnderReview && !$isReviewCompleted;
 ?>
 
@@ -173,13 +197,87 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
     pointer-events: none;
 }
 
+@keyframes cp-pulse-red {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.cp-banner--high-alert {
+    animation: cp-pulse-red 2s infinite ease-in-out;
+    border-color: #f87171 !important;
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+}
 </style>
 
 <div class="cp-workflow-container">
 
+    <!-- CLINICAL DEADLINE TIMER -->
+    <?php if ($activeCase && !$isReviewCompleted && isset($clinical_deadline)): ?>
+        <div class="cp-banner <?= $is_expired ? 'cp-banner--expired' : 'cp-banner--timer' ?>" 
+             style="background: <?= $is_expired ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)' ?>; 
+                    border: 1px solid <?= $is_expired ? '#fecaca' : '#fde68a' ?>; 
+                    border-left: 5px solid <?= $is_expired ? '#ef4444' : '#d97706' ?>; 
+                    padding: 18px 24px; border-radius: 12px; margin-bottom: 24px;
+                    display: flex; align-items: center; justify-content: space-between;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 48px; height: 48px; background: <?= $is_expired ? '#ef4444' : '#d97706' ?>; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">
+                    <i class="fas <?= $is_expired ? 'fa-calendar-times' : 'fa-hourglass-half' ?>"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; font-weight: 800; font-size: 0.95rem; color: <?= $is_expired ? '#991b1b' : '#92400e' ?>; text-transform: uppercase; letter-spacing: 0.02em;">
+                        <?= $is_expired ? 'Clinical Window Expired' : 'Clinical Deadline Approaching' ?>
+                    </h4>
+                    <p style="margin: 4px 0 0 0; font-size: 0.85rem; font-weight: 500; color: <?= $is_expired ? '#b91c1c' : '#b45309' ?>;">
+                        <?= $is_expired ? 'The clinical window for recovery has closed. Documentation can no longer be accepted.' : 'Documentation must be accepted by the institution within the clinical window.' ?>
+                    </p>
+                </div>
+            </div>
+            <?php if (!$is_expired): ?>
+                <div class="timer-display" style="text-align: right;">
+                    <div id="clinicalTimer" style="font-family: 'Courier New', monospace; font-size: 1.8rem; font-weight: 900; color: #92400e;">
+                        --:--:--
+                    </div>
+                    <span style="font-size: 0.65rem; font-weight: 800; color: #b45309; text-transform: uppercase;">Time Remaining</span>
+                </div>
+                <script>
+                    (function() {
+                        let seconds = <?= (int)($seconds_remaining ?? 0) ?>;
+                        const display = document.getElementById('clinicalTimer');
+                        const banner = display.closest('.cp-banner');
+                        
+                        function update() {
+                            if (seconds <= 0) {
+                                location.reload();
+                                return;
+                            }
+                            
+                            if (seconds < 3600) { // < 1 hour
+                                banner.classList.add('cp-banner--high-alert');
+                                display.style.color = '#ef4444';
+                            }
+
+                            const h = Math.floor(seconds / 3600);
+                            const m = Math.floor((seconds % 3600) / 60);
+                            const s = seconds % 60;
+                            display.textContent = 
+                                h.toString().padStart(2, '0') + ':' + 
+                                m.toString().padStart(2, '0') + ':' + 
+                                s.toString().padStart(2, '0');
+                            seconds--;
+                        }
+                        update();
+                        setInterval(update, 1000);
+                    })();
+                </script>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
     <!-- STATUS BANNERS (KEEP EXISTING LOGIC) -->
     <div id="statusBanners">
-        <?php if ($activeCase && $review && $review->document_status === 'REJECTED'): ?>
+        <?php if ($activeCase && $currentInstRequest && $currentInstRequest->document_status === 'REJECTED'): ?>
             <div class="cp-banner cp-banner--danger" style="background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); border: 1px solid #fecaca; border-left: 5px solid #e11d48; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
                 <div style="display: flex; gap: 16px;">
                     <div style="width: 44px; height: 44px; background: #e11d48; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
@@ -188,9 +286,9 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                     <div style="flex: 1;">
                         <h4 style="color: #9f1239; margin-bottom: 4px; font-weight: 700;">Corrections Required</h4>
                         
-                        <?php if ($review->rejection_reason_code === 'DOCS_MISSING'): ?>
+                        <?php if ($currentInstRequest->rejection_reason_code === 'DOCS_MISSING'): ?>
                             <p style="color: #9f1239; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Missing or Invalid Documents:</p>
-                            <?php $missingItems = json_decode($review->missing_documents_json, true) ?? []; ?>
+                            <?php $missingItems = json_decode($currentInstRequest->missing_documents_json, true) ?? []; ?>
                             <?php if (!empty($missingItems)): ?>
                                 <ul style="margin: 0; padding-left: 20px; color: #e11d48; font-size: 0.85rem; margin-bottom: 12px;">
                                     <?php foreach ($missingItems as $item): ?>
@@ -200,10 +298,10 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                             <?php endif; ?>
                         <?php endif; ?>
 
-                        <?php if (!empty($review->rejection_reason_text)): ?>
+                        <?php if (!empty($currentInstRequest->rejection_reason_text)): ?>
                              <p style="color: #4b5563; font-size: 0.9rem; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px; border: 1px dashed #fca5a5; margin-bottom: 12px;">
                                   <strong>Faculty Notes & Instructions:</strong><br/>
-                                  <?= nl2br(htmlspecialchars($review->rejection_reason_text)) ?>
+                                  <?= nl2br(htmlspecialchars($currentInstRequest->rejection_reason_text)) ?>
                              </p>
                         <?php else: ?>
                              <p style="color: #4b5563; font-size: 0.9rem; margin-bottom: 12px;">The institution has requested updates to your document bundle.</p>
@@ -213,7 +311,7 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                     </div>
                 </div>
             </div>
-        <?php elseif ($review && $review->document_status === 'ACCEPTED' && $review->final_exam_status !== 'ACCEPTED'): ?>
+        <?php elseif ($currentInstRequest && $currentInstRequest->document_status === 'ACCEPTED' && $currentInstRequest->final_exam_status !== 'ACCEPTED'): ?>
              <!-- Accepted banner logic remains similar but in premium style -->
              <div class="cp-banner" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #bae6fd; border-left: 5px solid #0284c7; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
                 <div style="display: flex; gap: 16px;">
@@ -222,11 +320,11 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                     </div>
                     <div>
                         <h4 style="color: #075985; margin: 0; font-weight: 700;">Documents Approved</h4>
-                        <p style="color: #0c4a6e; font-size: 0.9rem; margin-top: 4px;">Proceed with handover at <strong><?= date('g:i A', strtotime($review->handover_time)) ?></strong> on <strong><?= date('M j, Y', strtotime($review->handover_date)) ?></strong>.</p>
+                        <p style="color: #0c4a6e; font-size: 0.9rem; margin-top: 4px;">Proceed with handover at <strong><?= date('g:i A', strtotime($currentInstRequest->handover_time)) ?></strong> on <strong><?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?></strong>.</p>
                     </div>
                 </div>
              </div>
-        <?php elseif ($review && $review->document_status === 'PENDING_REVIEW'): ?>
+        <?php elseif ($currentInstRequest && $currentInstRequest->document_status === 'PENDING_REVIEW'): ?>
             <div class="cp-banner" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-left: 5px solid #16a34a; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
                 <div style="display: flex; gap: 16px; align-items: center;">
                     <div style="width: 44px; height: 44px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
@@ -254,7 +352,7 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
     </div>
 
     <!-- MAIN WORKFLOW STEPS -->
-    <div id="workflowSteps" class="<?= !$isACCEPTED ? 'cp-workflow--prep' : '' ?>">
+    <div id="workflowSteps" class="<?= (!$isACCEPTED || $is_expired) ? 'cp-workflow--prep' : '' ?>">
 
         <!-- STEP 1: LEGAL AFFIDAVITS (Always visible for printing, but simplified if submitted) -->
         <div class="cp-step cp-step--active" id="step1">
@@ -275,9 +373,9 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                             <span class="cp-item-title">Sworn Statement & Declaration</span>
                             <span class="cp-item-desc">Confirm your identity and the donor's consent legally.</span>
                         </div>
-                        <?php if (!$isACCEPTED): ?>
-                            <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="Waiting for medical school acceptance">
-                                <i class="fas fa-lock"></i> Locked
+                        <?php if (!$isACCEPTED || $is_expired): ?>
+                            <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="<?= $is_expired ? 'Clinical window expired' : 'Waiting for institutional acceptance' ?>">
+                                <i class="fas <?= $is_expired ? 'fa-calendar-times' : 'fa-lock' ?>"></i> <?= $is_expired ? 'Expired' : 'Locked' ?>
                             </button>
                         <?php else: ?>
                             <a href="<?= ROOT ?>/custodian/document-form?type=sworn" class="compact-action-btn <?= empty($hasSworn) ? 'compact-action-btn--primary' : 'compact-action-btn--outline' ?>">
@@ -292,9 +390,9 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                             <span class="cp-item-title">Cadaver Data Sheet</span>
                             <span class="cp-item-desc">Vital medical facts about the deceased.</span>
                         </div>
-                        <?php if (!$isACCEPTED): ?>
-                            <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="Waiting for medical school acceptance">
-                                <i class="fas fa-lock"></i> Locked
+                        <?php if (!$isACCEPTED || $is_expired): ?>
+                            <button class="compact-action-btn compact-action-btn--disabled" style="background: #e2e8f0; color: #64748b;" title="<?= $is_expired ? 'Clinical window expired' : 'Waiting for institutional acceptance' ?>">
+                                <i class="fas <?= $is_expired ? 'fa-calendar-times' : 'fa-lock' ?>"></i> <?= $is_expired ? 'Expired' : 'Locked' ?>
                             </button>
                         <?php elseif (empty($hasSworn)): ?>
                             <button class="compact-action-btn compact-action-btn--disabled"><i class="fas fa-lock"></i> Locked</button>
@@ -387,7 +485,7 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                             <!-- ORGAN SPECIFIC ADDITIONAL DOCS -->
                             <div class="cp-question-row mb-4">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                    <p style="font-weight: 600; font-size: 0.9rem; margin: 0;">Are there any of the following available or requested by the hospital?</p>
+                                    <p style="font-weight: 600; font-size: 0.9rem; margin: 0;">Are there any of the following available ?</p>
                                 </div>
                                 
                                 <?php 
@@ -547,11 +645,15 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                         </div>
 
                         <div id="actionContainer">
-                            <?php if (!$isACCEPTED): ?>
+                            <?php if ($is_expired): ?>
+                                <button class="compact-action-btn compact-action-btn--disabled" style="padding: 14px 40px; font-size: 1rem; background: #fee2e2; color: #ef4444 !important; border: 1px solid #fecaca;">
+                                    <i class="fas fa-calendar-times"></i> Window Expired
+                                </button>
+                            <?php elseif (!$isACCEPTED): ?>
                                 <button class="compact-action-btn compact-action-btn--disabled" style="padding: 14px 40px; font-size: 1rem;">
                                     <i class="fas fa-lock"></i> Awaiting Acceptance
                                 </button>
-                            <?php elseif ($review && $review->document_status === 'ACCEPTED'): ?>
+                            <?php elseif ($currentInstRequest && $currentInstRequest->document_status === 'ACCEPTED'): ?>
                                  <button class="compact-action-btn compact-action-btn--primary" style="padding: 14px 40px; font-size: 1rem; background: var(--cp-success);" disabled>
                                     <i class="fas fa-check-double"></i> Documents Approved
                                 </button>
@@ -638,8 +740,8 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                                                 <i class="fas fa-calendar-check"></i>
                                              </div>
                                              <div>
-                                                 <div style="font-weight: 800; font-size: 0.95rem; color: #166534;"><?= date('M j, Y', strtotime($review->handover_date)) ?></div>
-                                                 <div style="font-weight: 600; font-size: 0.8rem; color: #15803d;"><?= date('g:i A', strtotime($review->handover_time)) ?></div>
+                                                 <div style="font-weight: 800; font-size: 0.95rem; color: #166534;"><?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?></div>
+                                                 <div style="font-weight: 600; font-size: 0.8rem; color: #15803d;"><?= date('g:i A', strtotime($currentInstRequest->handover_time)) ?></div>
                                              </div>
                                          </div>
                                      </div>
@@ -663,9 +765,9 @@ input[type="checkbox"]:checked + .cp-custom-checkbox i { display: block; }
                                          <p style="font-size: 0.85rem; color: #92400e; margin: 0; line-height: 1.5;">
                                              <strong>Handover Instructions:</strong> Please bring the body and all physical document copies to the <strong><?= htmlspecialchars($currentInst->institution_name ?? 'Faculty') ?></strong>. Final physical examination will be conducted upon arrival.
                                          </p>
-                                         <?php if (!empty($review->handover_message)): ?>
+                                         <?php if (!empty($currentInstRequest->handover_message)): ?>
                                              <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
-                                                 <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">"<?= nl2br(htmlspecialchars($review->handover_message)) ?>"</p>
+                                                 <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">"<?= nl2br(htmlspecialchars($currentInstRequest->handover_message)) ?>"</p>
                                              </div>
                                          <?php endif; ?>
                                      </div>

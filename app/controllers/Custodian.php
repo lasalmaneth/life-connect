@@ -115,20 +115,61 @@ class Custodian {
         $fullTimeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
         $timeline = array_slice($fullTimeline, 0, 5);
 
+        // Pre-calculate registered summary if alive
+        $registeredSummary = 'NONE';
+        if (!$activeCase) {
+            $registry = $this->model->getConsentRegistry($donorId);
+            $names = [];
+            foreach ($registry as $item) {
+                if (($item->status ?? '') !== 'WITHDRAWN') {
+                    $names[] = $item->item_name;
+                }
+            }
+            if (!empty($names)) {
+                $registeredSummary = implode(', ', array_unique($names));
+            }
+        }
+
         $this->renderPage('custodian/dashboard', 'dashboard', 'Dashboard', $custodian, [
             'certificates' => $certificates,
             'appreciation_letters' => $appreciationLetters,
-            'timeline' => $timeline
+            'timeline' => $timeline,
+            'active_case' => $activeCase,
+            'registered_summary' => $registeredSummary
         ]);
     }
 
-    /** GET /custodian/consent */
-    public function consent()
+    /** GET /custodian/consent-registry */
+    public function consentRegistry()
     {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $this->renderPage('custodian/registered-consent', 'consent', 'Registered Consent', $custodian);
+        $donor = $this->model->getDonorForCustodian($custodian->id);
+        $registry = $this->model->getConsentRegistry($donor->id);
+        $outcomes = $this->model->getDonationOutcomes($donor->id);
+
+        $this->renderPage('custodian/consent-registry', 'consent-registry', 'Consent Registry', $custodian, [
+            'donor' => $donor,
+            'consent_registry' => $registry,
+            'donation_outcomes' => $outcomes
+        ]);
+    }
+
+
+    /** GET /api/custodian/get-registry-details */
+    public function getRegistryDetails()
+    {
+        $custodian = $this->requireCustodian();
+        if (!$custodian) return;
+
+        $type = $_GET['type'] ?? '';
+        $id = $_GET['id'] ?? 0;
+
+        $details = $this->model->getRegistryRecordDetails($type, $id);
+        if (!$details) return $this->json(['success' => false, 'error' => 'Record not found']);
+
+        return $this->json(['success' => true, 'data' => $details]);
     }
 
     /** GET /custodian/donor-profile */
@@ -180,46 +221,29 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $donorId = $custodian->donor_id;
-        $cidRaw = $custodian->id ?? $custodian->cid;
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         $docs = [];
         $hasSworn = false;
-        
         $hasDatasheet = false;
         
         if ($activeCase) {
             $docs = $this->model->getDocuments($activeCase->id) ?? [];
             $swornRecord = $this->model->getSwornStatement($activeCase->id);
-            if ($swornRecord && !empty($swornRecord->form_data)) {
-                $hasSworn = true;
-            }
-            $dataSheetRecord = $this->model->getCadaverDataSheet($activeCase->id);
-            if ($dataSheetRecord && !empty($dataSheetRecord->form_data)) {
-                $hasDatasheet = true;
-            }
+            $hasSworn = ($swornRecord && !empty($swornRecord->form_data));
+            
+            $dataSheetRecord = $this->model->getCadaverSheet($activeCase->id);
+            $hasDatasheet = ($dataSheetRecord && !empty($dataSheetRecord->form_data));
         }
 
-        // Resolve track and current institution
-        $consent = $this->model->resolveActiveConsent($custodian->donor_id);
-        $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = ($activeCase) ? $this->caseModel->getCurrentInstitution($activeCase->id, $track) : null;
-
-        // Fetch review status here to avoid calling model from view
-        $review = $this->model->getDocumentReviewStatus($activeCase->id ?? 0);
-
         // Get Recognition Documents
-        $certificates = $this->model->getDonationCertificates($activeCase->id ?? 0);
-        $appreciationLetters = $this->model->getAppreciationLetters($activeCase->id ?? 0);
+        $certificates = $activeCase ? $this->model->getDonationCertificates($activeCase->id) : [];
+        $appreciationLetters = $activeCase ? $this->model->getAppreciationLetters($activeCase->id) : [];
 
         $this->renderPage('custodian/documents', 'documents', 'Documents', $custodian, [
             'docs' => $docs,
             'activeCase' => $activeCase,
             'hasSworn' => $hasSworn,
             'hasDatasheet' => $hasDatasheet,
-            'review' => $review,
-            'currentInst' => $currentInst,
-            'consent' => $consent,
             'certificates' => $certificates,
             'appreciation_letters' => $appreciationLetters
         ]);
@@ -272,6 +296,16 @@ class Custodian {
         ]);
     }
 
+    public function persistSelection()
+    {
+        $this->requireCustodian();
+        $type = $_POST['type'] ?? 'HOSPITAL';
+        $items = $_POST['items'] ?? '';
+        $_SESSION["selected_recovery_items_$type"] = ($items !== '') ? explode(',', $items) : [];
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
     public function institutionRequests()
     {
         $custodian = $this->requireCustodian();
@@ -283,25 +317,57 @@ class Custodian {
 
         $availableInstitutions = [];
         $institutionStatuses = [];
-        $institutionType = 'MEDICAL_SCHOOL';
+        $institutionType = $_GET['type'] ?? null; // Allow explicit override (MEDICAL_SCHOOL | HOSPITAL)
+        
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
-        // show($activeCase);
         if ($activeCase) {
-            $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
-            // show($consent);
-            $track = $consent['donation_type'] ?? 'BODY';
-            $institutionType = ($track === 'BODY' || $track === 'BODY_AND_CORNEA') ? 'MEDICAL_SCHOOL' : 'HOSPITAL';
-            //  show($institutionType);
-            $availableInstitutions = $this->caseModel->getAvailableInstitutions($activeCase->id, $track) ?: [];
-            // show($availableInstitutions);
+            $track = $activeCase->resolved_operational_track ?? 'NONE';
+            
+            // If no explicit type requested, default based on donor's primary track
+            if (!$institutionType) {
+                $institutionType = (str_contains($track, 'BODY')) ? 'MEDICAL_SCHOOL' : 'HOSPITAL';
+            }
+
+            // --- SELECTION PERSISTENCE LOGIC ---
+            if (isset($_GET['items'])) {
+                // Save current selection to session
+                $_SESSION['cp_pending_items'] = $_GET['items'];
+            } elseif (!isset($_GET['refreshed'])) {
+                // If items missing but session exists, redirect one-time to include them
+                // This ensures the URL always matches the true selection state
+                if (!empty($_SESSION['cp_pending_items'])) {
+                    $redirectUrl = ROOT . "/custodian/institution-requests?type=" . $institutionType . "&items=" . $_SESSION['cp_pending_items'] . "&refreshed=1";
+                    header("Location: " . $redirectUrl);
+                    exit;
+                }
+            }
+
+            $availableInstitutions = $this->caseModel->getAvailableInstitutions($activeCase->id, $track, $institutionType) ?: [];
             $institutionStatuses = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
-            //  show($institutionStatuses);
         }
+
+        // Get the specific active request for the current filtered type (Hospital or Medical School)
+        $currentInstRequest = null;
+        foreach ($institutionStatuses as $is) {
+            if ($is->institution_type === $institutionType && in_array($is->institution_status, ['PENDING', 'ACCEPTED', 'SUBMITTED'])) {
+                $currentInstRequest = $is;
+                break;
+            }
+        }
+
+        $death_declaration = $this->caseModel->getDeathDeclaration($custodian->donor_id);
+        $cidRaw = $custodian->id ?? $custodian->cid;
+        $isLeader = ($death_declaration && $death_declaration->declared_by_custodian_id == $cidRaw);
 
         $this->renderPage('custodian/institution-requests', 'institution-requests', 'Institution Requests', $custodian, [
             'availableInstitutions' => $availableInstitutions,
             'institutionStatuses'   => $institutionStatuses,
-            'institutionType'       => $institutionType
+            'institutionType'       => $institutionType,
+            'currentInstRequest'    => $currentInstRequest,
+            'death_declaration'     => $death_declaration,
+            'leaderInfo'            => $death_declaration, 
+            'isLeader'              => $isLeader,
+            'activeCase'            => $activeCase
         ]);
     }
 
@@ -458,7 +524,7 @@ class Custodian {
         // Fetch core entities explicitly so all views have them
         $donor = $this->model->getDonorForCustodian($cidRaw);
         $coCustodian = null;
-        $consent = null;
+
         $deathDecl = null;
         $donationCase = null;
         $activeCase = null;
@@ -468,35 +534,54 @@ class Custodian {
         if ($donor) {
             $donorId = $donor->id ?? $donor->donor_id;
             $coCustodian = $this->model->getCoCustodian($donorId, $cidRaw);
-            $consent = $this->model->resolveActiveConsent($donorId);
             $deathDecl = $this->caseModel->getDeathDeclaration($donorId);
-            $donationCase = $this->caseModel->getCaseByDonor($donorId);
+            $activeCase = $this->caseModel->getCaseByDonor($donorId);
             
-            if ($donationCase) {
-                $activeCase = $donationCase;
+            if ($activeCase) {
                 // Check for system forms
-                $hasSworn = ($this->model->getSwornStatement($donationCase->id) !== null);
-                $hasDatasheet = ($this->model->getCadaverDataSheet($donationCase->id) !== null);
+                $hasSworn = ($this->model->getSwornStatement($activeCase->id) !== null);
+                $hasDatasheet = ($this->model->getCadaverSheet($activeCase->id) !== null);
 
                 // Get Recognition Documents
                 $certificates = $this->model->getDonationCertificates($activeCase->id);
                 $appreciationLetters = $this->model->getAppreciationLetters($activeCase->id);
 
                 // Get current institution request (Pending/Accepted/Rejected by Medical School)
-                $track = $consent['donation_type'] ?? 'BODY';
-                $currentInstRequest = $this->caseModel->getCurrentInstitution($donationCase->id, $track);
+                $opTrack = $activeCase->resolved_operational_track ?? 'NONE';
+                // Map operational track to CIS track enum (BODY, ORGAN, CORNEA)
+                if (str_contains($opTrack, 'BODY')) {
+                    $cisTrack = 'BODY';
+                } elseif (str_contains($opTrack, 'CORNEA') || $opTrack === 'HOSPITAL_TISSUE') {
+                    // For HOSPITAL_TISSUE, try ORGAN first; for cornea-specific, use CORNEA
+                    $cisTrack = 'ORGAN';
+                } else {
+                    $cisTrack = 'ORGAN';
+                }
                 
-                // CRITICAL: Bridge for stepper logic
+                $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
+                
+                // If no result on ORGAN, try BODY (for body-only cases) and vice versa
+                if (!$currentInstRequest && $cisTrack === 'ORGAN') {
+                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'BODY');
+                } elseif (!$currentInstRequest && $cisTrack === 'BODY') {
+                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'ORGAN');
+                }
+                // Also try CORNEA track for body+cornea cases
+                if (!$currentInstRequest && str_contains($opTrack, 'CORNEA')) {
+                    $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, 'CORNEA');
+                }
+                
                 $currentRequest = $currentInstRequest;
+                
+                // Get ALL institution statuses for dashboard timeline/history
+                $allInstitutionStatuses = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
             }
         }
-
-        // --- ENFORCE PROCESS LEADER LOGIC ---
-        // If death reported, the reporter is the leader. 
-        // If not reported, any custodian can become leader by reporting it.
-        $isLeader = true;
-        if ($deathDecl) {
-            $isLeader = ($deathDecl->declared_by_custodian_id == $cidRaw);
+        $window = $this->getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw);
+        if ($window) {
+            $extraData['clinical_deadline'] = $window['deadline'];
+            $extraData['is_expired']         = $window['is_expired'];
+            $extraData['seconds_remaining']  = $window['seconds_remaining'];
         }
 
         $viewData = array_merge([
@@ -508,7 +593,7 @@ class Custodian {
             'custodian_id_display'  => 'CID-' . str_pad($cidRaw, 5, '0', STR_PAD_LEFT),
             'donor'                 => $donor,
             'co_custodian'          => $coCustodian,
-            'consent'               => $consent,
+
             'death_declaration'     => $deathDecl,
             'isLeader'              => $isLeader,
             'leaderInfo'            => $deathDecl, // Contains declared_by_name, phone, email
@@ -516,8 +601,9 @@ class Custodian {
             'activeCase'            => $activeCase,
             'certificates'          => $certificates ?? [],
             'appreciation_letters'  => $appreciationLetters ?? [],
-            'currentRequest'        => $currentRequest,
             'currentInstRequest'    => $currentInstRequest,
+            'currentRequest'        => $currentRequest, // Alias for legacy/shared views
+            'allInstitutionStatuses' => $allInstitutionStatuses ?? [],
             'hasSworn'              => $hasSworn ?? false,
             'hasDatasheet'          => $hasDatasheet ?? false,
         ], $extraData);
@@ -540,7 +626,6 @@ class Custodian {
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $coCustodian = $this->model->getCoCustodian($custodian->donor_id, $custodian->id);
-        $consent = $this->model->resolveActiveConsent($custodian->donor_id);
         $deathDecl = $this->caseModel->getDeathDeclaration($custodian->donor_id);
         $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
 
@@ -548,11 +633,12 @@ class Custodian {
             'custodian' => $custodian,
             'co_custodian' => $coCustodian,
             'donor' => $donor,
-            'consent' => $consent,
             'death_declaration' => $deathDecl,
             'donation_case' => $donationCase,
             'is_deceased' => ($deathDecl !== null),
-            'window_remaining' => null
+            'window_remaining' => null,
+            'resolved_track' => $donationCase ? $donationCase->resolved_operational_track : null,
+            'snapshot_items' => $donationCase ? json_decode($donationCase->operational_items_json, true) : null
         ];
 
         // Calculate remaining time in the window
@@ -567,7 +653,7 @@ class Custodian {
 
     /**
      * POST /custodian/declare-death
-     * Body: date_of_death, time_of_death, place_of_death, cause_of_death, additional_notes
+     * Body: date_of_death, time_of_death, place_of_death, cause_of_death, additional_notes, is_brain_dead
      */
     public function declareDeath()
     {
@@ -579,52 +665,78 @@ class Custodian {
             return;
         }
 
-        // Check if already declared
-        $existing = $this->caseModel->getDeathDeclaration($custodian->donor_id);
-        if ($existing) {
-            $this->json(['error' => 'Death has already been declared for this donor'], 409);
-            return;
-        }
-
-        $data = [
-            'donor_id' => $custodian->donor_id,
-            'declared_by_custodian_id' => $custodian->id,
-            'date_of_death' => $_POST['date_of_death'] ?? '',
-            'time_of_death' => $_POST['time_of_death'] ?? '',
-            'place_of_death' => $_POST['place_of_death'] ?? '',
-            'cause_of_death' => $_POST['cause_of_death'] ?? '',
-            'additional_notes' => $_POST['additional_notes'] ?? null
-        ];
-
-        // Validate required fields
-        foreach (['date_of_death', 'time_of_death', 'place_of_death', 'cause_of_death'] as $field) {
-            if (empty($data[$field])) {
-                $this->json(['error' => "Field '$field' is required"], 422);
+        try {
+            // Check if already declared
+            $existing = $this->caseModel->getDeathDeclaration($custodian->donor_id);
+            if ($existing) {
+                $this->json(['error' => 'Death has already been declared for this donor'], 409);
                 return;
             }
+
+            $data = [
+                'donor_id' => $custodian->donor_id,
+                'declared_by_custodian_id' => $custodian->id,
+                'date_of_death' => $_POST['date_of_death'] ?? '',
+                'time_of_death' => $_POST['time_of_death'] ?? '',
+                'place_of_death' => $_POST['place_of_death'] ?? '',
+                'cause_of_death' => $_POST['cause_of_death'] ?? '',
+                'is_brain_dead'  => (int)($_POST['is_brain_dead'] ?? -1),
+                'additional_notes' => $_POST['additional_notes'] ?? null
+            ];
+
+            // Validate required fields
+            foreach (['date_of_death', 'time_of_death', 'place_of_death', 'cause_of_death'] as $field) {
+                if (empty($data[$field])) {
+                    $this->json(['error' => "Field '$field' is required"], 422);
+                    return;
+                }
+            }
+
+            $deathId = $this->caseModel->createDeathDeclaration($data);
+            if (!$deathId) {
+                throw new \Exception('Failed to create death declaration records.');
+            }
+
+            // --- RESOLUTION SNAPSHOT ---
+            $resolver = new \App\Services\DonationResolver();
+            $snapshot = $resolver->resolveAtDeath($custodian->donor_id, $data['is_brain_dead'], $data['date_of_death'] . ' ' . $data['time_of_death']);
+
+            // Create Donation Case with Snapshot
+            $caseData = array_merge([
+                'donor_id'             => $custodian->donor_id,
+                'death_declaration_id' => $deathId,
+                'donation_type'        => $snapshot['resolved_deceased_mode'] ?? 'NONE',
+                'resolved_deceased_mode' => $snapshot['resolved_deceased_mode'],
+                'resolved_operational_track' => $snapshot['resolved_operational_track'],
+                'operational_items_json' => $snapshot['operational_items_json'],
+                'operational_time_limits_json' => $snapshot['operational_time_limits_json'],
+                'kidney_decision'      => $snapshot['kidney_decision'],
+                'body_cornea_decision' => $snapshot['body_cornea_decision'],
+                'resolved_at'          => date('Y-m-d H:i:s')
+            ]);
+
+            $caseId = $this->caseModel->createDonationCase($caseData);
+            if (!$caseId) {
+                throw new \Exception('Failed to initialize the donation case snapshot.');
+            }
+
+            $this->json([
+                'success' => true,
+                'death_declaration_id' => $deathId,
+                'donation_case_id' => $caseId,
+                'donation_type' => $snapshot['resolved_deceased_mode'] ?? 'BODY',
+                'operational_track' => $snapshot['resolved_operational_track'] ?? 'NONE',
+                'guidance_message'  => $snapshot['guidance_message'] ?? '',
+                'show_kidney_popup' => $snapshot['show_kidney_popup'] ?? false,
+                'redirect' => ROOT . '/custodian/dashboard'
+            ]);
+
+        } catch (\Throwable $e) {
+            // Log error here if needed
+            $this->json([
+                'error' => 'An internal system error occurred during declaration: ' . $e->getMessage()
+            ], 500);
         }
-
-        $deathId = $this->caseModel->createDeathDeclaration($data);
-        if (!$deathId) {
-            $this->json(['error' => 'Failed to create death declaration'], 500);
-            return;
-        }
-
-        // Resolve consent and auto-create donation case
-        $consent = $this->model->resolveActiveConsent($custodian->donor_id);
-        $caseId = $this->caseModel->createDonationCase([
-            'donor_id' => $custodian->donor_id,
-            'death_declaration_id' => $deathId,
-            'donation_type' => $consent['donation_type']
-        ]);
-
-        $this->json([
-            'success' => true,
-            'death_declaration_id' => $deathId,
-            'donation_case_id' => $caseId,
-            'donation_type' => $consent['donation_type'],
-            'redirect' => ROOT . '/custodian/dashboard'
-        ]);
     }
 
     /**
@@ -665,8 +777,11 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $consent = $this->model->resolveActiveConsent($custodian->donor_id);
-        $this->json(['success' => true, 'data' => $consent]);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+        $this->json(['success' => true, 'data' => [
+            'donation_type' => $activeCase->resolved_deceased_mode ?? 'NONE',
+            'track' => $activeCase->resolved_operational_track ?? 'NONE'
+        ]]);
     }
 
     /**
@@ -844,7 +959,8 @@ class Custodian {
             $donationCase->id,
             $_POST['institution_id'] ?? 0,
             $_POST['institution_type'] ?? 'MEDICAL_SCHOOL',
-            $_POST['track'] ?? 'BODY'
+            $_POST['track'] ?? 'BODY',
+            $_POST['selected_items'] ?? null
         );
         // show($result);
         if ($result === false) {
@@ -984,12 +1100,11 @@ class Custodian {
 
         $formData = json_decode($_POST['form_data'] ?? '{}', true);
 
-        $this->model->saveCadaverSheet([
-            'donation_case_id' => $donationCase->id,
-            'case_institution_status_id' => $_POST['case_institution_status_id'] ?? 0,
-            'form_data' => $formData,
-            'status' => $_POST['status'] ?? 'DRAFT'
-        ]);
+        $this->model->saveCadaverSheet(
+            $donationCase->id,
+            $formData,
+            $_POST['status'] ?? 'DRAFT'
+        );
 
         $this->json(['success' => true, 'message' => 'Cadaver data sheet saved']);
     }
@@ -1003,8 +1118,8 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $statusId = $_GET['case_institution_status_id'] ?? 0;
-        $sheet = $this->model->getCadaverSheet($statusId);
+        $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+        $sheet = $donationCase ? $this->model->getCadaverSheet($donationCase->id) : null;
 
         $this->json(['success' => true, 'data' => $sheet]);
     }
@@ -1083,9 +1198,9 @@ class Custodian {
             }
         }
 
-        $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
-        $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $track);
+        $track = $activeCase->resolved_operational_track ?? 'BODY_ONLY';
+        $cisTrack = str_contains($track, 'BODY') ? 'BODY' : 'ORGAN';
+        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
         $instName = $currentInst ? $currentInst->institution_name : 'Department of Anatomy, University of Colombo';
         $instAddress = $currentInst ? $currentInst->institution_address : 'Kynsey Road, Colombo 08';
 
@@ -1094,7 +1209,7 @@ class Custodian {
             $record = $this->model->getSwornStatement($activeCase->id);
             $page_heading = 'Sworn Statement Form';
         } else {
-            $record = $this->model->getCadaverDataSheet($activeCase->id);
+            $record = $this->model->getCadaverSheet($activeCase->id);
             $page_heading = 'Cadaver Data Sheet Form';
             
             // If cadaver datasheet doesn't have form data yet, fetch the sworn statement to pre-fill common fields
@@ -1157,7 +1272,7 @@ class Custodian {
         if ($type === 'sworn') {
             $this->model->saveSwornStatement($activeCase->id, $formData);
         } else {
-            $this->model->saveCadaverDataSheet($activeCase->id, $formData);
+            $this->model->saveCadaverSheet($activeCase->id, $formData);
         }
         
         header('Location: ' . ROOT . '/custodian/document-form?type=' . urlencode($type) . '&saved=1');
@@ -1180,9 +1295,9 @@ class Custodian {
              exit;
         }
         
-        $consent = $this->model->resolveActiveConsent($activeCase->donor_id);
-        $track = $consent['donation_type'] ?? 'BODY';
-        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $track);
+        $track = $activeCase->resolved_operational_track ?? 'BODY_ONLY';
+        $cisTrack = str_contains($track, 'BODY') ? 'BODY' : 'ORGAN';
+        $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
         $instName = $currentInst ? $currentInst->institution_name : 'Department of Anatomy, University of Colombo';
         $instAddress = $currentInst ? $currentInst->institution_address : 'Kynsey Road, Colombo 08';
 
@@ -1190,7 +1305,7 @@ class Custodian {
         if ($type === 'sworn') {
             $record = $this->model->getSwornStatement($activeCase->id);
         } else {
-            $record = $this->model->getCadaverDataSheet($activeCase->id);
+            $record = $this->model->getCadaverSheet($activeCase->id);
         }
         if ($record && !empty($record->form_data)) {
             $formData = json_decode($record->form_data, true) ?? [];
@@ -1214,6 +1329,16 @@ class Custodian {
         $activeCase = $this->caseModel->getCaseByDonor($donorId);
 
         if ($activeCase) {
+            $deathDecl = $this->caseModel->getDeathDeclaration($donorId);
+            $cidRaw = $custodian->id ?? $custodian->cid;
+            $window = $this->getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw);
+
+            if ($window && $window['is_expired']) {
+                $_SESSION['flash_error'] = "The clinical window for this donation has expired. Document submission is no longer permitted.";
+                header('Location: ' . ROOT . '/custodian/documents');
+                exit;
+            }
+
             $statusRec = $this->model->query("SELECT id FROM case_institution_status WHERE donation_case_id = :id AND is_current = 1 AND request_status = 'ACCEPTED'", [':id' => $activeCase->id]);
             $statusId = $statusRec[0]->id ?? null;
 
@@ -1251,4 +1376,143 @@ class Custodian {
         header('Location: ' . ROOT . '/custodian/documents');
         exit;
     }
+
+    /**
+     * AJAX POST /custodian/skip-item
+     * JSON: item_id
+     */
+    public function skipItem()
+    {
+        $this->requireCustodian();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $itemId = (int)($_POST['item_id'] ?? 0);
+        $activeCase = $this->caseModel->getActiveCase($this->donor->id);
+
+        if (!$activeCase || !$itemId) {
+            $this->json(['error' => 'Invalid request'], 400);
+            return;
+        }
+
+        $items = json_decode($activeCase->operational_items_json, true);
+        if (isset($items[$itemId])) {
+            $items[$itemId]['status'] = 'skipped';
+            $this->caseModel->update($activeCase->id, ['operational_items_json' => json_encode($items)]);
+            $this->json(['success' => true]);
+        }
+    }
+
+    /**
+     * AJAX POST /custodian/decide-kidney
+     * Body: decision (PROCEED|DECLINED)
+     */
+    public function decideKidney()
+    {
+        $custodian = $this->requireCustodian();
+        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $decision = $_POST['decision'] ?? 'PENDING';
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+
+        if (!$activeCase) {
+            $this->json(['error' => 'Case not found'], 404);
+            return;
+        }
+
+        $this->caseModel->update($activeCase->id, [
+            'kidney_decision' => $decision,
+            'kidney_decision_at' => date('Y-m-d H:i:s')
+        ]);
+
+        // Re-resolve track
+        $resolver = new \App\Services\DonationResolver();
+        $death_declaration = $this->caseModel->getDeathDeclaration($custodian->donor_id);
+        $timeOfDeath = $death_declaration->date_of_death . ' ' . $death_declaration->time_of_death;
+        $snapshot = $resolver->resolveAtDeath($custodian->donor_id, $death_declaration->is_brain_dead, $timeOfDeath, $decision, $activeCase->body_cornea_decision);
+        
+        $this->caseModel->update($activeCase->id, [
+            'resolved_operational_track' => $snapshot['resolved_operational_track'],
+            'resolved_deceased_mode' => $snapshot['resolved_deceased_mode']
+        ]);
+
+        $this->json(['success' => true, 'redirect' => ROOT . '/custodian/dashboard']);
+    }
+
+    /**
+     * AJAX POST /custodian/decide-body-cornea
+     * Body: choice (BODY_ONLY|CORNEA_ONLY|BOTH)
+     */
+    public function decideBodyCornea()
+    {
+        $custodian = $this->requireCustodian();
+        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['error' => 'Method not allowed'], 405);
+            return;
+        }
+
+        $choice = $_POST['choice'] ?? 'PENDING';
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+
+        if (!$activeCase) {
+            $this->json(['error' => 'Case not found'], 404);
+            return;
+        }
+
+        $this->caseModel->update($activeCase->id, [
+            'body_cornea_decision' => $choice
+        ]);
+
+        // Re-resolve track
+        $resolver = new \App\Services\DonationResolver();
+        $death_declaration = $this->caseModel->getDeathDeclaration($custodian->donor_id);
+        $timeOfDeath = $death_declaration->date_of_death . ' ' . $death_declaration->time_of_death;
+        $snapshot = $resolver->resolveAtDeath($custodian->donor_id, $death_declaration->is_brain_dead, $timeOfDeath, $activeCase->kidney_decision, $choice);
+        
+        $this->caseModel->update($activeCase->id, [
+            'resolved_operational_track' => $snapshot['resolved_operational_track'],
+            'resolved_deceased_mode' => $snapshot['resolved_deceased_mode']
+        ]);
+
+        $this->json(['success' => true, 'redirect' => ROOT . '/custodian/dashboard']);
+    }
+
+    private function getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw)
+    {
+        if (!$activeCase || !$deathDecl) return null;
+
+        $resolver = new \App\Services\DonationResolver();
+        $timeOfDeath = $deathDecl->date_of_death . ' ' . $deathDecl->time_of_death;
+        
+        $donorId = $activeCase->donor_id;
+        $snapshot = $resolver->resolveAtDeath($donorId, $deathDecl->is_brain_dead, $timeOfDeath, $activeCase->kidney_decision, $activeCase->body_cornea_decision);
+        
+        $activeItems = $snapshot['items'];
+        $expirations = $snapshot['time_limits'];
+        $currentDeadline = $deathDecl->window_expires_at; // 48h default
+
+        $track = $activeCase->resolved_operational_track;
+        if (str_contains($track, 'HOSPITAL_TISSUE') || str_contains($track, 'ORGAN')) {
+            foreach ($activeItems as $id => $item) {
+                if ($item['type'] === 'HOSPITAL_TISSUE' && isset($expirations[$id])) {
+                    $currentDeadline = $expirations[$id];
+                    break;
+                }
+            }
+        }
+        
+        $now = time();
+        $deadlineTs = strtotime($currentDeadline);
+        return [
+            'deadline' => $currentDeadline,
+            'is_expired' => ($now > $deadlineTs),
+            'seconds_remaining' => ($deadlineTs - $now)
+        ];
+    }
 }
+

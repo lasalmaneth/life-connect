@@ -112,6 +112,29 @@ if (!isset($notifications) || !isset($unread_count)) {
     <?php require __DIR__ . '/partials/surgery_match_modal.view.php'; ?>
 
     <script>
+        function updateHospitalCountdowns() {
+            const elements = document.querySelectorAll('.hospital-countdown');
+            elements.forEach(el => {
+                const expireTs = new Date(el.dataset.expire).getTime();
+                const now = new Date().getTime();
+                const dist = expireTs - now;
+                
+                if (dist < 0) {
+                    el.innerText = "WINDOW CLOSED";
+                    el.style.color = "#ef4444";
+                    return;
+                }
+                
+                const h = Math.floor(dist / (1000 * 60 * 60));
+                const m = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
+                el.innerText = h + "h " + m + "m left";
+                if (h < 12) el.style.color = "#d97706";
+                if (h < 4) el.style.color = "#ef4444";
+            });
+        }
+        setInterval(updateHospitalCountdowns, 60000);
+        document.addEventListener('DOMContentLoaded', updateHospitalCountdowns);
+
         const ROOT = '<?php echo ROOT; ?>';
         const HOSPITAL_BASE_PATH = <?php echo json_encode($hospitalBasePath); ?>;
 

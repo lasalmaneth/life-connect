@@ -1,24 +1,15 @@
 <?php
-require_once __DIR__ . '/../app/core/config.php';
-require_once __DIR__ . '/../app/core/Database.php';
+require 'app/Core/config.php';
+$pdo = new PDO('mysql:host='.DBHOST.';dbname='.DBNAME, DBUSER, DBPASS);
 
-class Debug {
-    use App\Core\Database;
-    public function check() {
-        try {
-            $res = $this->query("SHOW TABLES LIKE 'support_vouchers'");
-            if ($res) {
-                echo "TABLE_EXISTS\n";
-                $cols = $this->query("DESCRIBE support_vouchers");
-                print_r($cols);
-            } else {
-                echo "TABLE_MISSING\n";
-            }
-        } catch (Exception $e) {
-            echo "ERROR: " . $e->getMessage() . "\n";
-        }
-    }
+echo "--- death_declarations ---\n";
+$stmt = $pdo->query('DESCRIBE death_declarations');
+while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo $row['Field'] . " (" . $row['Type'] . ")\n";
 }
-$d = new Debug();
-$d->check();
-?>
+
+echo "\n--- donation_cases ---\n";
+$stmt = $pdo->query('DESCRIBE donation_cases');
+while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo $row['Field'] . " (" . $row['Type'] . ")\n";
+}

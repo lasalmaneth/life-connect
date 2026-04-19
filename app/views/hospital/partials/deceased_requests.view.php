@@ -34,6 +34,7 @@
                         <th>Organs</th>
                         <th>NIC Number</th>
                         <th>Date of Death</th>
+                        <th>Clinical Deadline</th>
                         <th style="text-align: center;">Status</th>
                         <th style="text-align: right;">Action</th>
                     </tr>
@@ -68,9 +69,22 @@
                                     </div>
                                 </td>
                                 <td><code class="cp-nic-badge"><?= htmlspecialchars($request->nic_number) ?></code></td>
-                                <td>
                                     <div class="cp-table__filename"><?= date('d M Y', strtotime($request->date_of_death)) ?></div>
                                     <div class="cp-table__subtext"><?= date('H:i', strtotime($request->date_of_death)) ?></div>
+                                </td>
+                                <td>
+                                    <?php if (isset($request->clinical_deadline)): ?>
+                                        <div class="hospital-countdown" 
+                                             data-expire="<?= htmlspecialchars($request->clinical_deadline['deadline']) ?>"
+                                             style="font-weight: 700; font-family: monospace; font-size: 0.9rem;">
+                                            Calculating...
+                                        </div>
+                                        <div class="cp-table__subtext">
+                                            Limit: <?= date('d M, H:i', strtotime($request->clinical_deadline['deadline'])) ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="cp-text-gray-400">N/A</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td style="text-align: center;">
                                     <?php 

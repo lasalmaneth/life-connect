@@ -10,6 +10,8 @@ spl_autoload_register(function ($classname) {
     } elseif (strpos($classname, 'App\\Controllers\\') === 0) {
         // Note: controllers folder is lower-case in this repo
         $path = "../app/controllers/" . str_replace('App\\Controllers\\', '', $classname) . ".php";
+    } elseif (strpos($classname, 'App\\Services\\') === 0) {
+        $path = "../app/Services/" . str_replace('App\\Services\\', '', $classname) . ".php";
     } else {
         // Fallback for current messy structure during transition
         $parts = explode('\\', $classname);

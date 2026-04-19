@@ -138,6 +138,25 @@ ob_start();
                         <textarea name="additional_notes" class="cp-form-control" rows="2"></textarea>
                     </div>
 
+                    <div class="mb-5" style="background: #fdf2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 20px;">
+                        <label class="cp-form-label mb-2" style="color: #991b1b; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-brain"></i> Was the donor declared brain dead? <span class="cp-required">*</span>
+                        </label>
+                        <p style="font-size: 0.8rem; color: #b91c1c; margin-bottom: 12px; font-weight: 500;">This information is critical for determining organ recovery eligibility by hospital teams.</p>
+                        
+                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #991b1b;">
+                                <input type="radio" name="is_brain_dead" value="1" required style="width: 18px; height: 18px; accent-color: #dc2626;"> Yes
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #991b1b;">
+                                <input type="radio" name="is_brain_dead" value="0" style="width: 18px; height: 18px; accent-color: #dc2626;"> No
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: #991b1b;">
+                                <input type="radio" name="is_brain_dead" value="-1" style="width: 18px; height: 18px; accent-color: #dc2626;"> Unknown
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="cp-notice cp-notice--warning mb-4">
                         <i class="fas fa-triangle-exclamation"></i>
                         <p class="cp-text-xs">Warning: Reporting a death is irreversible and will immediately trigger donation case logic based on the donor's consent.</p>
@@ -206,9 +225,11 @@ document.addEventListener('DOMContentLoaded', function() {
         noCalendar: true,
         dateFormat: "H:i",
         altInput: true,
-        altFormat: "h:i K", // 12-hour format with AM/PM
+        altFormat: "h:i K",
         disableMobile: "true",
-        altInputClass: "cp-form-control flatpickr-padded"
+        altInputClass: "cp-form-control flatpickr-padded",
+        minuteIncrement: 1,
+        time_24hr: false
     });
 });
 </script>
