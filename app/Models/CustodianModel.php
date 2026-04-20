@@ -18,7 +18,8 @@ class CustodianModel
         'relationship',
         'phone',
         'email',
-        'address'
+        'address',
+        'age'
     ];
 
     // ─────────────────────────────────────────────────

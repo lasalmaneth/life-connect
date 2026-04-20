@@ -442,7 +442,8 @@ class Custodian
                 'relationship' => $_POST['relationship'] ?? '',
                 'phone' => $_POST['phone'] ?? '',
                 'email' => $_POST['email'] ?? '',
-                'address' => $_POST['address'] ?? ''
+                'address' => $_POST['address'] ?? '',
+                'age' => $_POST['age'] ?? ''
             ];
 
             if ($this->model->updateCustodianContact($custodian->id, $data)) {
