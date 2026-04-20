@@ -178,7 +178,12 @@ include __DIR__ . '/inc/sidebar.view.php';
                 </div>
 
                 <div class="d-sidebar-section">
-                    <div class="d-sidebar-section__title"><i class="fas fa-info-circle text-accent"></i> About Me</div>
+                    <div class="d-sidebar-section__title">
+                        <i class="fas fa-info-circle text-accent"></i> About Me
+                        <button onclick="openEditProfileModal()" style="margin-left: auto; background: none; border: none; color: var(--blue-600); cursor: pointer; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.background='var(--blue-50)'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-user-edit"></i> Edit
+                        </button>
+                    </div>
                     <div class="d-detail-item">
                         <label>National ID (NIC)</label>
                         <span><i class="fas fa-fingerprint text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['nic_number'] ?? 'N/A') ?></span>
@@ -192,8 +197,12 @@ include __DIR__ . '/inc/sidebar.view.php';
                         <span><i class="fas fa-calendar-alt text-blue-500" style="font-size:0.8rem;"></i> <?= $age ?> Years</span>
                     </div>
                     <div class="d-detail-item">
-                        <label>Contact Number</label>
-                        <span><i class="fas fa-phone text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['phone_number'] ?? 'N/A') ?></span>
+                        <label>Telephone Number</label>
+                        <span id="display_phone"><i class="fas fa-phone text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['phone_no'] ?? ($donor_data['contact_number'] ?? 'N/A')) ?></span>
+                    </div>
+                    <div class="d-detail-item">
+                        <label>Residential Address</label>
+                        <span id="display_address" style="display: block; line-height: 1.4;"><i class="fas fa-map-marker-alt text-blue-500" style="font-size:0.8rem;"></i> <?= htmlspecialchars($donor_data['address'] ?? 'N/A') ?></span>
                     </div>
                 </div>
 
@@ -308,14 +317,9 @@ include __DIR__ . '/inc/sidebar.view.php';
                                     <i class="fas fa-hand-holding-heart" style="font-size: 3rem; color: var(--blue-200);"></i>
                                 </div>
                             <?php endif; ?>
-                            <div class="d-feed-card__actions">
-                                <button class="d-feed-action d-feed-action--active"><i class="fas fa-heart"></i> Like</button>
-                                <button class="d-feed-action"><i class="fas fa-comment"></i> Comment</button>
-                                <button class="d-feed-action"><i class="fas fa-share"></i> Share</button>
-                            </div>
-                        </div>
+                         </div>
                     <?php endforeach; ?>
-                <?php else: ?>
+<?php else: ?>
                     <div class="d-feed-card" style="text-align: center; padding: 3rem;">
                         <i class="fas fa-stream" style="font-size: 3rem; color: var(--g100); margin-bottom: 1rem;"></i>
                         <h4 style="color: var(--g400);">Your activity feed is empty.</h4>
@@ -502,3 +506,118 @@ include __DIR__ . '/inc/sidebar.view.php';
 <?php endif; ?>
 
 <?php include __DIR__ . '/inc/footer.view.php'; ?>
+
+<!-- Edit Profile Modal -->
+<div id="editProfileModal" class="d-modal">
+    <div class="d-modal__body" style="max-width: 500px;">
+        <div class="d-modal__header">
+            <h3><i class="fas fa-user-edit text-accent"></i> Edit About Me</h3>
+            <button class="d-modal__close" onclick="closeEditProfileModal()">&times;</button>
+        </div>
+        <div class="d-modal__content">
+            <form id="editProfileForm">
+                <div class="d-form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--slate); margin-bottom: 0.5rem;">Telephone Number</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-phone" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--g400);"></i>
+                        <input type="text" name="phone" id="edit_phone" value="<?= htmlspecialchars($donor_data['phone_no'] ?? ($donor_data['contact_number'] ?? '')) ?>" 
+                               style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1.5px solid var(--g200); border-radius: 10px; font-size: 0.95rem;" placeholder="e.g. 0771234567">
+                    </div>
+                </div>
+                <div class="d-form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--slate); margin-bottom: 0.5rem;">Residential Address</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-map-marker-alt" style="position: absolute; left: 1rem; top: 1rem; color: var(--g400);"></i>
+                        <textarea name="address" id="edit_address" rows="3" 
+                                  style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1.5px solid var(--g200); border-radius: 10px; font-size: 0.95rem; resize: none;" 
+                                  placeholder="Enter your current residential address"><?= htmlspecialchars($donor_data['address'] ?? '') ?></textarea>
+                    </div>
+                </div>
+                <div id="editProfileMessage" style="margin-bottom: 1rem; font-size: 0.85rem; display: none;"></div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="d-btn d-btn--light d-btn--sm" onclick="closeEditProfileModal()">Cancel</button>
+                    <button type="submit" class="d-btn d-btn--primary d-btn--sm" id="saveProfileBtn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEditProfileModal() {
+        document.getElementById('editProfileModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeEditProfileModal() {
+        document.getElementById('editProfileModal').classList.remove('active');
+        document.body.style.overflow = 'auto';
+        document.getElementById('editProfileMessage').style.display = 'none';
+    }
+
+    document.getElementById('editProfileForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('saveProfileBtn');
+        const msg = document.getElementById('editProfileMessage');
+        const phone = document.getElementById('edit_phone').value.trim();
+        const address = document.getElementById('edit_address').value.trim();
+
+        if (!phone) {
+            msg.innerText = "Phone number is required.";
+            msg.style.color = "#be123c";
+            msg.style.display = "block";
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        const formData = new FormData();
+        formData.append('phone', phone);
+        formData.append('address', address);
+
+        try {
+            const response = await fetch('<?= ROOT ?>/donor/update_profile', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                msg.innerText = data.message || "Profile updated successfully!";
+                msg.style.color = "#10b981";
+                msg.style.display = "block";
+                
+                // Update the display on the page
+                document.getElementById('display_phone').innerHTML = `<i class="fas fa-phone text-blue-500" style="font-size:0.8rem;"></i> ${phone}`;
+                document.getElementById('display_address').innerHTML = `<i class="fas fa-map-marker-alt text-blue-500" style="font-size:0.8rem;"></i> ${address || 'N/A'}`;
+                
+                setTimeout(() => {
+                    closeEditProfileModal();
+                    // Optional: window.location.reload(); if other parts of the UI depend on this
+                }, 1500);
+            } else {
+                msg.innerText = data.message || "Failed to update profile.";
+                msg.style.color = "#be123c";
+                msg.style.display = "block";
+            }
+        } catch (error) {
+            console.error(error);
+            msg.innerText = "An error occurred. Please try again.";
+            msg.style.color = "#be123c";
+            msg.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Save Changes";
+        }
+    });
+
+    // Close modal if clicking outside
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('editProfileModal');
+        if (e.target === modal) {
+            closeEditProfileModal();
+        }
+    });
+</script>

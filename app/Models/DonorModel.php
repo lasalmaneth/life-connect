@@ -28,7 +28,8 @@ class DonorModel {
         'consent_status',
         'consent_date',
         'active_roles',
-        'opt_out_reason'
+        'opt_out_reason',
+        'phone_no'
     ];
 
     public function createDonor($userId, $personalData, $categoryId, $pledgeType = 'NONE')
@@ -650,6 +651,11 @@ class DonorModel {
         if (isset($data['phone']) || isset($data['contact_number'])) {
             $phone = $data['phone'] ?? $data['contact_number'];
             $this->query("UPDATE users SET phone = :phone WHERE id = :user_id", [
+                ':phone' => $phone,
+                ':user_id' => $userId
+            ]);
+            // Also update phone_no in donors table
+            $this->query("UPDATE donors SET phone_no = :phone WHERE user_id = :user_id", [
                 ':phone' => $phone,
                 ':user_id' => $userId
             ]);
