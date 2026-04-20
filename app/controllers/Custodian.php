@@ -153,7 +153,7 @@ class Custodian
                 $registeredSummary = implode(' + ', $summaryParts);
             }
         }
-
+            show($activeCase);
         $this->renderPage('custodian/dashboard', 'dashboard', 'Dashboard', $custodian, [
             'certificates' => $certificates,
             'appreciation_letters' => $appreciationLetters,

@@ -77,10 +77,7 @@ ob_start();
                     <label class="cp-label">LifeConnect ID</label>
                     <input type="text" class="cp-profile-input" value="D-<?= str_pad($donor->id, 5, '0', STR_PAD_LEFT) ?>" disabled />
                 </div>
-                <div class="cp-profile-form-group">
-                    <label class="cp-label">Initial Registration Type</label>
-                    <input type="text" class="cp-profile-input" value="<?= str_replace('_', ' ', $donor->pledge_type ?? 'NONE') ?>" disabled />
-                </div>
+                
                 <div class="cp-profile-form-group">
                     <label class="cp-label">Date of Registration</label>
                     <input type="text" class="cp-profile-input" value="<?= !empty($donor->created_at) ? date('M j, Y', strtotime($donor->created_at)) : 'N/A' ?>" disabled />

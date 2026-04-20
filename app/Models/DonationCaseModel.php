@@ -50,7 +50,8 @@ class DonationCaseModel {
     public function createDeathDeclaration($data)
     {
         $deathDateTime = $data['date_of_death'] . ' ' . $data['time_of_death'];
-        $data['window_expires_at'] = date('Y-m-d H:i:s', strtotime($deathDateTime . ' +48 hours'));
+        $data['window_expires_at'] = date('Y-m-d H:i:s', strtotime($deathDateTime . ' +1 hour '));
+        show($data);
         return $this->insert($data, 'death_declarations');
     }
 

@@ -20,7 +20,7 @@
             </div>
             
             <div class="cp-legal-inst-banner">
-                <?= htmlspecialchars($instName ?? 'Department of Anatomy, Faculty of Medicine, University of Colombo') ?>
+                <?= htmlspecialchars($instName ?? '') ?>
             </div>
 
             <div class="cp-legal-title">Data Sheet for Cadaver Donation</div>
