@@ -94,11 +94,15 @@ class  MedicalSchoolModel {
 
     public function getDashboardStats($schoolId)
     {
-        $totalConsents = $this->count(['medical_school_id' => $schoolId], [], "body_donation_consents");
+        $totalConsents = $this->queryJoin(
+            [['table' => 'donors d', 'on' => 'bdc.donor_id = d.id']],
+            ['bdc.medical_school_id' => $schoolId, 'd.verification_status' => 'APPROVED'],
+            "COUNT(*) as c", "", 1, 0, "body_donation_consents bdc"
+        )[0]->c ?? 0;
         
         $activeConsents = $this->queryJoin(
             [['table' => 'donors d', 'on' => 'bdc.donor_id = d.id']],
-            ['bdc.medical_school_id' => $schoolId, 'd.consent_status' => 'GIVEN'],
+            ['bdc.medical_school_id' => $schoolId, 'd.consent_status' => 'GIVEN', 'd.verification_status' => 'APPROVED'],
             "COUNT(*) as c", "", 1, 0, "body_donation_consents bdc"
         )[0]->c ?? 0;
         
@@ -203,7 +207,8 @@ class  MedicalSchoolModel {
 
     public function getPreDeathConsents($schoolId, $status = 'ALL')
     {
-        $statusMap = ['GIVEN' => 'GIVEN', 'WITHDRAWN' => 'WITHDRAWN'];
+
+        $statusMap = ['ACTIVE' => 'GIVEN', 'WITHDRAWN' => 'WITHDRAWN'];
         $where = [
             'bdc.medical_school_id' => $schoolId,
             'd.verification_status' => 'APPROVED'
@@ -293,9 +298,10 @@ class  MedicalSchoolModel {
                 'cis.institution_id' => $schoolId,
                 'cis.institution_type' => 'MEDICAL_SCHOOL',
                 'cis.track' => 'BODY',
+                'cis.is_current' => 1,
                 $statusCondition
             ],
-            "dc.id as case_id, dc.case_number, dc.resolved_operational_track, d.first_name, d.last_name, d.nic_number, dd.date_of_death, dd.time_of_death, cis.id as cis_id, cis.request_status, COALESCE(cis.submission_date, cis.created_at) as request_at",
+            "dc.id as case_id, dc.case_number, dc.donor_id as donor_id, dc.resolved_operational_track, d.first_name, d.last_name, d.nic_number, dd.date_of_death, dd.time_of_death, cis.id as cis_id, cis.request_status, COALESCE(cis.submission_date, cis.created_at) as request_at",
             "COALESCE(cis.submission_date, cis.created_at) DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
@@ -390,7 +396,7 @@ class  MedicalSchoolModel {
                 'cis.request_status' => 'ACCEPTED',
                 $statusCondition
             ],
-            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at",
+            "dc.id as case_id, dc.donor_id as donor_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at",
             "cis.document_action_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
@@ -567,19 +573,19 @@ class  MedicalSchoolModel {
 
     public function issueAppreciationLetter($usageId, $schoolId, $issuerId)
     {
-        if (!$this->first(['id' => $usageId, 'medical_school_id' => $schoolId], [], "id", "", "body_usage_logs")) return false;
-
+        // Prevent duplicate letters for the same usage log
         $exists = $this->first(['usage_log_id' => $usageId], [], "id", "", "appreciation_letters");
         if ($exists) return $exists->id;
 
-        $count = $this->count([], [], "appreciation_letters");
-        $ref = "BD-" . date('Y') . "-" . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+        // Use a guaranteed unique reference format (APP-Year-UsageID)
+        $ref = "APP-" . date('Y') . "-" . str_pad($usageId, 5, '0', STR_PAD_LEFT);
         
         return $this->insert([
             'usage_log_id' => $usageId,
             'ref_number'   => $ref,
             'issued_by_id' => $issuerId,
-            'status'       => 'ISSUED'
+            'status'       => 'ISSUED',
+            'issued_at'    => date('Y-m-d H:i:s')
         ], 'appreciation_letters');
     }
 

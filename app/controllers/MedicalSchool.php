@@ -239,9 +239,12 @@ class MedicalSchool
         $caseModel = new \App\Models\DonationCaseModel();
 
         foreach ($submissions as &$sub) {
-            $activeCase = $caseModel->getCaseByDonor($sub->donor_id);
-            $deathDecl = $caseModel->getDeathDeclaration($sub->donor_id);
-            $sub->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+            $donor_id = $sub->donor_id ?? $sub->DonorID ?? 0;
+            if ($donor_id) {
+                $activeCase = $caseModel->getCaseByDonor($donor_id);
+                $deathDecl = $caseModel->getDeathDeclaration($donor_id);
+                $sub->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
+            }
         }
 
         $this->view('medical_schools/submissions', [
@@ -313,10 +316,7 @@ class MedicalSchool
             $otherText = $_POST['reason_other'] ?? '';
             $missingDocs = $_POST['missing_docs'] ?? []; // Array of doc names
 
-            $reason = $code;
-            if ($code === 'Other' || empty($code)) {
-                $reason = $otherText;
-            }
+            $reason = !empty($otherText) ? $otherText : ($code ?: 'Rejected');
 
             $extra = [
                 'reason_code' => $code,
@@ -571,7 +571,7 @@ class MedicalSchool
 
             $data = [
                 'donor_id' => $_POST['donor_id'] ?? null,
-                'school_id' => $auth['school']->id,
+                'medical_school_id' => $auth['school']->id,
                 'usage_type' => $_POST['usage_type'] ?? 'Teaching',
                 'description' => $_POST['description'] ?? '',
                 'usage_date' => $_POST['usage_date'] ?? date('Y-m-d'),
@@ -583,10 +583,15 @@ class MedicalSchool
             ];
 
             if ($data['donor_id'] && $data['usage_date']) {
-                $auth['model']->recordUsage($data);
-                $_SESSION['flash_success'] = "Academic usage record added to the timeline successfully.";
+                $usageId = $auth['model']->recordUsage($data);
+                if ($usageId) {
+                    $auth['model']->issueAppreciationLetter($usageId, $auth['school']->id, $_SESSION['user_id']);
+                    $_SESSION['flash_success'] = "Academic usage recorded and Appreciation Letter issued successfully.";
+                } else {
+                    $_SESSION['flash_error'] = "Failed to record usage. Please try again.";
+                }
             } else {
-                $_SESSION['flash_error'] = "Required fields are missing.";
+                $_SESSION['flash_error'] = "Donor and Usage Date are required.";
             }
             redirect($_SERVER['HTTP_REFERER'] ?? 'medical-school/usage-logs');
             die();
@@ -624,9 +629,4 @@ class MedicalSchool
         ]);
     }
 
-    public function reports()
-    {
-        $auth = $this->checkAuth();
-        $this->view('medical_schools/reports', ['school' => $auth['school']]);
-    }
 }

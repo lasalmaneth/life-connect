@@ -13,8 +13,7 @@ ob_start();
 function consentBadgeClass($status)
 {
     return match ($status) {
-        'GIVEN' => 'active',
-        'PENDING' => 'pending',
+        'ACTIVE', 'GIVEN' => 'active',
         'WITHDRAWN' => 'danger',
         default => 'neutral',
     };
@@ -104,9 +103,9 @@ function consentBadgeClass($status)
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <span class="cp-badge cp-badge--<?= consentBadgeClass($donor->consent_status) ?>">
-                                    <?= ($donor->consent_status === 'GIVEN') ? 'ACTIVE' : htmlspecialchars($donor->consent_status) ?>
-                                </span>
+                                    <span class="cp-badge cp-badge--<?= consentBadgeClass($donor->consent_status) ?>">
+                                        <?= $donor->consent_status === 'GIVEN' ? 'ACTIVE' : htmlspecialchars($donor->consent_status) ?>
+                                    </span>
                                 <?php if ($donor->consent_status === 'WITHDRAWN'): ?>
                                     <div class="cp-table__subtext text-danger mt-1">
                                         <i class="fas fa-calendar-xmark"></i>

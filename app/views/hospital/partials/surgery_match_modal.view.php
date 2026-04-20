@@ -88,7 +88,7 @@
                 <div style="color: #475569; font-size: 0.9rem; font-weight: 500; line-height: 1.5;" id="hospitalRemarksText"></div>
             </div>
 
-            <!-- Action Form (Conditional) -->
+            <!-- Action Form (Conditional....) -->
             <div id="matchActionForm" style="display: none; margin-top: 30px; padding-top: 25px; border-top: 1px solid #e2e8f0;">
                 <h4 style="margin: 0 0 15px; color: #1e293b; font-size: 1rem; font-weight: 700;">Confirm Decision</h4>
                 <div class="form-group" style="margin-bottom: 20px;">
@@ -123,6 +123,25 @@
                             <div style="color: #64748b; font-size: 0.75rem;">Formal letter for the donor</div>
                         </div>
                     </a>
+                </div>
+            </div>
+
+            <!-- Surgery Completion Section (Visible only when IN_PROGRESS) -->
+            <div id="surgeryCompletionSection" style="display: none; margin-top: 30px; padding: 25px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="width: 45px; height: 45px; background: #10b981; color: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0; color: #065f46; font-size: 1.1rem; font-weight: 700;">Mark Surgery Completion</h4>
+                        <p style="margin: 3px 0 0; color: #065f46; opacity: 0.8; font-size: 0.85rem;">Finalize the transplant result in the central registry.</p>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button onclick="confirmSurgeryCompletion()" style="background: #059669; border: none; color: white; padding: 12px 28px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3); display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-vial"></i>
+                        Surgery Successfully Completed
+                    </button>
                 </div>
             </div>
         </div>

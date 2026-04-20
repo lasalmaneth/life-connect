@@ -75,25 +75,23 @@ class Hospital
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
         $eligibility_pledges = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
         $test_results = $hospitalModel->getTestResultsByHospitalId($hospitalId) ?: [];
-        $surgery_matches = $hospitalModel->getSurgeryMatches($hospital_registration) ?: [];
+        $all_matches = $hospitalModel->getSurgeryMatches($hospital_registration) ?: [];
+        
+        // "Matching Results" should only show things NOT in progress
+        $surgery_matches = array_filter($all_matches, function($m) {
+            return strtoupper($m->pledge_status ?? '') !== 'IN_PROGRESS';
+        });
+
+        // "Surgery Completion" should only show in-progress things
+        $inprogress_matches = array_filter($all_matches, function($m) {
+            return strtoupper($m->pledge_status ?? '') === 'IN_PROGRESS';
+        });
 
         // Deceased Organ Management Data
         $deceased_requests = $hospitalModel->getDeceasedRequests($hospitalId, $_GET['status'] ?? 'PENDING') ?: [];
         $deceased_submissions = $hospitalModel->getDeceasedSubmissions($hospitalId, $_GET['sub_status'] ?? 'ALL') ?: [];
         $deceased_final_flow = $hospitalModel->getDeceasedFinalFlow($hospitalId, $_GET['flow_status'] ?? 'ALL') ?: [];
-        
-        $caseModel = new \App\Models\DonationCaseModel();
-        foreach ([$deceased_requests, $deceased_submissions, $deceased_final_flow] as $collection) {
-            foreach ($collection as &$item) {
-                if (isset($item->donor_id)) {
-                    $activeCase = $caseModel->getCaseByDonor($item->donor_id);
-                    $deathDecl = $caseModel->getDeathDeclaration($item->donor_id);
-                    $item->clinical_deadline = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
-                }
-            }
-        }
-
-        $deceased_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: [];
+        $deceased_stories = $hospitalModel->getSuccessStories($hospital_registration) ?: []; // Filtering by type in view if needed
 
         $aftercarePatientModel = new AftercarePatientModel();
         $aftercare_recipients = $aftercarePatientModel->getRecipientsByHospital($hospital_registration) ?: [];
@@ -119,7 +117,7 @@ class Hospital
             'scheduled_appointments' => count(array_filter($aftercare_appointments, function ($apt) {
                 return $apt->status === 'Scheduled'; })),
             'pending_surgery_approvals' => count(array_filter($surgery_matches, function($m) {
-                return strtoupper(trim((string)($m->status ?? ''))) === 'PENDING' || strtoupper(trim((string)($m->status ?? ''))) === 'MATCH';
+                return strtoupper(trim((string)($m->hospital_match_status ?? ''))) === 'PENDING';
             }))
         ];
 
@@ -140,6 +138,7 @@ class Hospital
             'eligibility_pledges' => $eligibility_pledges,
             'eligible_donors' => $eligible_donors,
             'surgery_matches' => $surgery_matches,
+            'inprogress_matches' => $inprogress_matches,
             'deceased_requests' => $deceased_requests,
             'deceased_submissions' => $deceased_submissions,
             'deceased_final_flow' => $deceased_final_flow,
@@ -276,23 +275,9 @@ class Hospital
             if ($id) {
                 $hospitalModel = new HospitalModel();
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
-                
-                $request = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
-                if ($request) {
-                    $caseModel = new \App\Models\DonationCaseModel();
-                    $activeCase = $caseModel->getCaseByDonor($request->donor_id);
-                    $deathDecl = $caseModel->getDeathDeclaration($request->donor_id);
-                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
-
-                    if ($window && $window['is_expired']) {
-                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. Request cannot be accepted.";
-                        redirect('hospital/deceased-requests');
-                        die();
-                    }
-                }
                 $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'ACCEPTED', null, $_SESSION['user_id']);
             }
-            redirect('hospital/deceased-requests?tab=ACCEPTED');
+            redirect('hospital/deceased-requests');
         }
     }
 
@@ -306,7 +291,7 @@ class Hospital
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                 $hospitalModel->updateDeceasedRequestStatus($hospital->id, $id, 'REJECTED', $reason, $_SESSION['user_id']);
             }
-            redirect('hospital/deceased-requests?tab=REJECTED');
+            redirect('hospital/deceased-requests');
         }
     }
 
@@ -343,20 +328,6 @@ class Hospital
             if ($id) {
                 $hospitalModel = new HospitalModel();
                 $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
-                
-                $sub = $hospitalModel->getDeceasedRequestDetails($hospital->id, $id);
-                if ($sub) {
-                    $caseModel = new \App\Models\DonationCaseModel();
-                    $activeCase = $caseModel->getCaseByDonor($sub->donor_id);
-                    $deathDecl = $caseModel->getDeathDeclaration($sub->donor_id);
-                    $window = $caseModel->getClinicalWindowStatus($activeCase, $deathDecl);
-
-                    if ($window && $window['is_expired']) {
-                        $_SESSION['flash_error'] = "The clinical window for this donation has expired. Verification cannot be completed.";
-                        redirect('hospital/deceased-documents');
-                        die();
-                    }
-                }
                 $hospitalModel->updateDocumentStatus($hospital->id, $id, 'ACCEPTED', 'Documents Verified', $_SESSION['user_id'], $extra);
             }
             redirect('hospital/deceased-documents');
@@ -492,18 +463,18 @@ class Hospital
 
                 if ($hospitalModel->acceptAftercareAppointment($appointmentId, $regNo)) {
                     $apt = $hospitalModel->query(
-                        "SELECT user_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $targetUserId = $apt ? (int) ($apt[0]->user_id ?? 0) : 0;
+                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
                     $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
-                    if ($targetUserId > 0) {
+                    if ($patientNic !== '') {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $msg = 'Your aftercare appointment request was accepted by ' . $hName . '.';
                         if ($when)
                             $msg .= ' Scheduled for: ' . date('Y-m-d h:i A', strtotime($when)) . '.';
-                        $hospitalModel->notifyPatientByUserId($targetUserId, 'Aftercare appointment accepted', $msg, 'INFO');
+                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment accepted', $msg, 'INFO');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment accepted.';
                 } else {
@@ -525,12 +496,12 @@ class Hospital
 
                 if ($hospitalModel->rejectAftercareAppointment($appointmentId, $regNo, $reason)) {
                     $apt = $hospitalModel->query(
-                        "SELECT user_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
+                        "SELECT patient_id, appointment_date FROM aftercare_appointments WHERE appointment_id = :id AND hospital_registration_no = :reg_no LIMIT 1",
                         [':id' => $appointmentId, ':reg_no' => $regNo]
                     );
-                    $targetUserId = $apt ? (int) ($apt[0]->user_id ?? 0) : 0;
+                    $patientNic = $apt ? (string) ($apt[0]->patient_id ?? '') : '';
                     $when = $apt ? (string) ($apt[0]->appointment_date ?? '') : '';
-                    if ($targetUserId > 0) {
+                    if ($patientNic !== '') {
                         $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
                         $hName = $hospital->name ?? 'Hospital';
                         $phone = $hospital->contact_number ?? '';
@@ -540,7 +511,7 @@ class Hospital
                         $msg .= ' Reason: ' . $reason . '.';
                         if ($phone)
                             $msg .= ' Contact: ' . $phone . '.';
-                        $hospitalModel->notifyPatientByUserId($targetUserId, 'Aftercare appointment rejected', $msg, 'WARNING');
+                        $hospitalModel->notifyDonorByNic($patientNic, 'Aftercare appointment rejected', $msg, 'WARNING');
                     }
                     $_SESSION['flash_success'] = 'Aftercare appointment rejected.';
                 } else {
@@ -595,14 +566,6 @@ class Hospital
                 }
 
                 if ($hospitalModel->approveSupportRequest($requestId, $regNo, 'Hospital ' . (string) $regNo)) {
-                    $req = $hospitalModel->getSupportRequestById($requestId);
-                    if ($req && !empty($req->patient_nic)) {
-                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
-                        $hName = $hospital->name ?? 'Hospital';
-                        $type = $req->request_type ?? 'care support';
-                        $msg = 'Your ' . $type . ' request was approved by ' . $hName . '. The support will be coordinated shortly.';
-                        $hospitalModel->notifyPatientByNic($req->patient_nic, 'Support request approved', $msg, 'INFO');
-                    }
                     $_SESSION['flash_success'] = 'Support request approved.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to approve support request.';
@@ -622,14 +585,6 @@ class Hospital
                 }
 
                 if ($hospitalModel->rejectSupportRequest($requestId, $regNo, $reason, 'Hospital ' . (string) $regNo)) {
-                    $req = $hospitalModel->getSupportRequestById($requestId);
-                    if ($req && !empty($req->patient_nic)) {
-                        $hospital = $hospitalModel->getHospitalByUserId($_SESSION['user_id']);
-                        $hName = $hospital->name ?? 'Hospital';
-                        $type = $req->request_type ?? 'care support';
-                        $msg = 'Your ' . $type . ' request was declined by ' . $hName . '. Reason: ' . $reason;
-                        $hospitalModel->notifyPatientByNic($req->patient_nic, 'Support request declined', $msg, 'WARNING');
-                    }
                     $_SESSION['flash_success'] = 'Support request rejected.';
                 } else {
                     $_SESSION['flash_error'] = 'Failed to reject support request.';
@@ -1413,8 +1368,8 @@ class Hospital
             'hospital_name' => $hospital->name ?? ($_SESSION['hospital_name'] ?? 'Hospital'),
             'hospital_details' => $hospital_details,
             'hospital_registration' => $hospital_registration,
-            'donor_requests' => $hospitalModel->getDonorAftercareAppointments($hospital_registration) ?: [],
-            'recipient_requests' => $hospitalModel->getRecipientAftercareAppointments($hospital_registration) ?: [],
+            'donor_requests' => $hospitalModel->getAftercareSupportRequests($hospital_registration) ?: [],
+            'recipient_requests' => $hospitalModel->getAftercareAppointmentRequests($hospital_registration) ?: [],
             'current_page' => 'aftercare-management'
         ];
 
@@ -1437,12 +1392,10 @@ class Hospital
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim((string) ($_POST['recipient_name'] ?? ''));
             $nic = trim((string) ($_POST['recipient_nic'] ?? ''));
-            $email = trim((string) ($_POST['recipient_email'] ?? ''));
-            $phone = trim((string) ($_POST['recipient_phone'] ?? ''));
             $requestedReg = trim((string) ($_POST['registration_number'] ?? ''));
 
-            if ($name === '' || $nic === '' || $email === '' || $phone === '') {
-                $_SESSION['flash_error'] = 'Full name, NIC, Email, and Phone are required.';
+            if ($name === '' || $nic === '') {
+                $_SESSION['flash_error'] = 'Full name and NIC are required.';
                 redirect('hospital/addpatient/recipient');
             }
 
@@ -1452,8 +1405,6 @@ class Hospital
                 $registrationNumber = $aftercarePatientModel->createRecipientAccount([
                     'full_name' => $name,
                     'nic' => $nic,
-                    'email' => $email,
-                    'phone' => $phone,
                     'hospital_registration_no' => $hospital_registration,
                     'registration_number' => $requestedReg,
                     'age' => !empty($_POST['recipient_age']) ? (int) $_POST['recipient_age'] : null,
@@ -1935,5 +1886,31 @@ class Hospital
         }
 
         $this->view('hospital/print_letter', ['match' => $match]);
+    }
+
+    public function completeSurgery()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $matchId = (int)($_POST['match_id'] ?? 0);
+        if ($matchId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid match ID']);
+            exit;
+        }
+
+        $hospitalModel = new HospitalModel();
+        $success = $hospitalModel->markSurgeryAsCompleted($matchId);
+
+        if ($success) {
+            echo json_encode(['success' => true, 'message' => 'Surgery marked as completed successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to complete surgery']);
+        }
+        exit;
     }
 }

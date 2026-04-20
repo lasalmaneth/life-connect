@@ -60,15 +60,17 @@
                                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                                     <td style="padding: 15px;">
                                                         <div style="font-weight: 600; color: #0f172a;"><?= htmlspecialchars($req->patient_name ?? 'Donor') ?></div>
-                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($req->nic ?? 'N/A') ?></div>
+                                                        <div style="font-size: 0.8rem; color: #64748b; font-family: monospace;"><?= htmlspecialchars($req->patient_nic ?? 'N/A') ?></div>
                                                     </td>
-                                                    <td style="padding: 15px; color: #2563eb; font-weight: 700; font-size: 0.9rem;"><?= date('d/m/Y h:i A', strtotime($req->appointment_date)) ?></td>
-                                                    <td style="padding: 15px; color: #475569; font-size: 0.85rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= htmlspecialchars(($req->appointment_type ? '['.$req->appointment_type.'] ' : '') . ($req->description ?: 'No details provided')) ?></td>
+                                                    <td style="padding: 15px; color: #2563eb; font-weight: 700; font-size: 0.9rem;"><?= date('d/m/Y', strtotime($req->submitted_date ?? ($req->created_at ?? 'now'))) ?></td>
+                                                    <td style="padding: 15px; color: #475569; font-size: 0.85rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                        <?= htmlspecialchars(($req->reason ? '['.$req->reason.'] ' : '') . ($req->description ?: 'No details provided')) ?>
+                                                        <?php if(!empty($req->amount)): ?>
+                                                            <div style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Amount: <?= number_format($req->amount, 2) ?></div>
+                                                        <?php endif; ?>
+                                                    </td>
                                                     <td style="padding: 15px;">
-                                                        <div style="display: flex; gap: 8px;">
-                                                            <button onclick="respondToAppointment(<?= $req->appointment_id ?>, 'accept')" style="padding: 6px 12px; background: #10b981; border: none; color: white; border-radius: 8px; font-weight: 600; font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">Accept</button>
-                                                            <button onclick="respondToAppointment(<?= $req->appointment_id ?>, 'reject')" style="padding: 6px 12px; background: white; border: 1px solid #ef4444; color: #ef4444; border-radius: 8px; font-weight: 600; font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">Decline</button>
-                                                        </div>
+                                                        <button onclick="viewSupportDetails(<?= htmlspecialchars(json_encode($req)) ?>)" style="padding: 6px 16px; background: #2563eb; border: none; color: white; border-radius: 8px; font-weight: 600; font-size: 0.75rem; cursor: pointer; transition: all 0.2s;">View & Respond</button>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
