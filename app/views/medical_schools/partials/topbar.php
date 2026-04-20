@@ -33,12 +33,7 @@
                 </a>
             </nav>
 
-            <div class="cp-bell" title="Notifications" id="cp-bell-btn">
-                <i class="fas fa-bell"></i>
-                <?php if (isset($stats) && ($stats['pending_requests'] > 0 || $stats['active_submissions'] > 0)): ?>
-                    <span class="cp-bell__dot"></span>
-                <?php endif; ?>
-            </div>
+
 
             <div class="cp-user-chip" id="cp-user-chip">
                 <div class="cp-user-avatar">

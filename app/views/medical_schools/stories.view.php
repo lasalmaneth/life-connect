@@ -128,6 +128,7 @@ ob_start();
                     <div style="grid-column: span 2;">
                         <label class="cp-label">Story Type <span style="color: #ef4444;">*</span></label>
                         <select name="story_type" id="story_type_select" class="cp-input" onchange="handleTypeChange()" required>
+                            <option value="" selected disabled>-- Select Story Type --</option>
                             <option value="IMPACT">Impact (Stats-based)</option>
                             <option value="INSPIRATIONAL">Inspirational (Quote/Message)</option>
                             <option value="CASE">Case / Event (Narrative)</option>
@@ -161,11 +162,11 @@ ob_start();
                     <div id="stats-row" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div>
                             <label class="cp-label">Donors Involved</label>
-                            <input type="number" name="donors_count" class="cp-input" value="0">
+                            <input type="number" name="donors_count" class="cp-input" value="0" min="0" oninput="if(this.value < 0) this.value = 0">
                         </div>
                         <div>
                             <label class="cp-label">Students Impacted</label>
-                            <input type="number" name="students_helped" class="cp-input" value="0">
+                            <input type="number" name="students_helped" class="cp-input" value="0" min="0" oninput="if(this.value < 0) this.value = 0">
                         </div>
                     </div>
 

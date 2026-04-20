@@ -25,7 +25,11 @@ class HomePages {
 
     public function ourStory(){
         $homeModel = new \App\Models\HomeModel();
+        $storyModel = new \App\Models\SuccessStoryModel();
+        
         $data['stats'] = $homeModel->getHomepageStats();
+        $data['stories'] = $storyModel->getApprovedStories(3);
+        
         $this->view('home_pages/our-story', $data);
     }
 

@@ -5,7 +5,8 @@ namespace App\Models;
 use App\Core\Database;
 use App\Core\Model;
 
-class CustodianModel {
+class CustodianModel
+{
     use Model;
 
     protected $table = 'custodians';
@@ -114,7 +115,7 @@ class CustodianModel {
             0,
             'body_donation_consents bdc'
         ) ?: [];
-        
+
         // 3. Donation Outcomes (Medical History)
         $outcomes = $this->getDonationOutcomes($donorId) ?: [];
 
@@ -124,40 +125,46 @@ class CustodianModel {
 
         // 5. Align with Source-of-Truth Mode
         $maxOrganTs = 0;
-        foreach($organPledges as $p) {
-            if ($p->status === 'WITHDRAWN') continue;
+        foreach ($organPledges as $p) {
+            if ($p->status === 'WITHDRAWN')
+                continue;
             $ts = strtotime($p->pledge_date);
-            if ($ts > $maxOrganTs) $maxOrganTs = $ts;
+            if ($ts > $maxOrganTs)
+                $maxOrganTs = $ts;
         }
 
         $maxBodyTs = 0;
-        foreach($bodyConsents as $b) {
-            if ($b->status === 'WITHDRAWN') continue;
+        foreach ($bodyConsents as $b) {
+            if ($b->status === 'WITHDRAWN')
+                continue;
             $ts = strtotime($b->consent_date);
-            if ($ts > $maxBodyTs) $maxBodyTs = $ts;
+            if ($ts > $maxBodyTs)
+                $maxBodyTs = $ts;
         }
 
         $timeline = [];
-        
+
         foreach ($organPledges as $p) {
-            if ($p->organ_id == 10) continue; 
-            
+            if ($p->organ_id == 10)
+                continue;
+
             // Strictly exclude living donation pledges from the main registry
-            if (in_array($p->organ_id, [2, 3])) continue;
-            
+            if (in_array($p->organ_id, [2, 3]))
+                continue;
+
             $pTs = strtotime($p->pledge_date);
             $isCornea = ($p->organ_id == 4);
             $isSuperseded = ($p->status !== 'WITHDRAWN' && !$isCornea && $maxBodyTs > $pTs);
-            
+
             // Categorization
-            $category = "After-Death Case"; 
+            $category = "After-Death Case";
             if ($p->organ_id == 9) {
                 $category = "Brain-Dead Case";
             }
 
             $currentStatus = $p->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : ($isDonorApproved ? 'ACTIVE' : 'PENDING VERIFICATION'));
 
-            $timeline[] = (object)[
+            $timeline[] = (object) [
                 'id' => $p->id,
                 'organ_id' => $p->organ_id,
                 'type' => 'ORGAN_PLEDGE',
@@ -176,11 +183,11 @@ class CustodianModel {
         foreach ($bodyConsents as $b) {
             $bTs = strtotime($b->consent_date);
             $isSuperseded = ($b->status !== 'WITHDRAWN' && $maxOrganTs > $bTs);
-            
+
             $uName = $b->item_name ?? 'Medical School';
             $currentStatus = $b->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : ($isDonorApproved ? 'ACTIVE' : 'PENDING VERIFICATION'));
 
-            $timeline[] = (object)[
+            $timeline[] = (object) [
                 'id' => $b->id,
                 'organ_id' => 10,
                 'type' => 'BODY_CONSENT',
@@ -198,7 +205,7 @@ class CustodianModel {
         }
 
         foreach ($outcomes as $o) {
-            $timeline[] = (object)[
+            $timeline[] = (object) [
                 'id' => $o->history_id ?? 0,
                 'type' => 'LIVING_DONATION_OUTCOME',
                 'item_name' => $o->donated_organ ?? $o->item_name ?? 'Unknown',
@@ -225,7 +232,8 @@ class CustodianModel {
             // Only deduplicate deceased intents (Pledges/Consents), outcomes stay unique
             if (!$t->is_outcome) {
                 $key = $cleanName . '|' . $t->type;
-                if (isset($seenIntents[$key])) continue;
+                if (isset($seenIntents[$key]))
+                    continue;
                 $seenIntents[$key] = true;
             }
 
@@ -251,7 +259,7 @@ class CustodianModel {
      */
     public function getRegistryItemDetails($type, $id)
     {
-        $id = (int)$id;
+        $id = (int) $id;
         $details = [
             'type' => $type,
             'witnesses' => [],
@@ -267,7 +275,10 @@ class CustodianModel {
                 [['table' => 'organs o', 'on' => 'dp.organ_id = o.id', 'type' => 'JOIN']],
                 ['dp.id' => $id],
                 'dp.*, o.name AS organ_name',
-                '', 1, 0, 'donor_pledges dp'
+                '',
+                1,
+                0,
+                'donor_pledges dp'
             );
             if ($pledge) {
                 $p = $pledge[0];
@@ -275,13 +286,15 @@ class CustodianModel {
                 $details['status'] = $p->status;
                 $details['form_path'] = ($p->status === 'WITHDRAWN') ? $p->withdrawal_pdf_path : $p->signed_form_path;
                 $details['dates'] = ['Pledged On' => $p->pledge_date];
-                if ($p->withdrawal_date) $details['dates']['Withdrawn On'] = $p->withdrawal_date;
-                
-                if (in_array($p->organ_id, [2, 3])) $details['is_deceased_intent'] = false;
-                
+                if ($p->withdrawal_date)
+                    $details['dates']['Withdrawn On'] = $p->withdrawal_date;
+
+                if (in_array($p->organ_id, [2, 3]))
+                    $details['is_deceased_intent'] = false;
+
                 // Fetch witnesses from dedicated table for this specific organ
                 $details['witnesses'] = $this->query("SELECT name, nic_number, contact_number as phone, address FROM witnesses WHERE donor_id = :did AND organ_id = :oid", [':did' => $p->donor_id, ':oid' => $p->organ_id]) ?: [];
-                
+
                 // Fetch custodians
                 $details['custodians'] = $this->query("SELECT name, relationship, phone, email FROM custodians WHERE donor_id = :did ORDER BY custodian_number ASC", [':did' => $p->donor_id]) ?: [];
             }
@@ -290,27 +303,31 @@ class CustodianModel {
                 [['table' => 'medical_schools ms', 'on' => 'bdc.medical_school_id = ms.id', 'type' => 'LEFT']],
                 ['bdc.id' => $id],
                 'bdc.*, ms.school_name',
-                '', 1, 0, 'body_donation_consents bdc'
+                '',
+                1,
+                0,
+                'body_donation_consents bdc'
             );
             if ($consent) {
                 $c = $consent[0];
                 $details['item_name'] = 'Whole Body Donation';
                 $details['status'] = $c->status;
-                
-                $details['form_path'] = ($c->status === 'WITHDRAWN') ? $c->withdrawal_pdf_path : $c->signed_form_path; 
+
+                $details['form_path'] = ($c->status === 'WITHDRAWN') ? $c->withdrawal_pdf_path : $c->signed_form_path;
                 $details['dates'] = ['Consent Given' => $c->consent_date];
-                if ($c->withdrawal_date) $details['dates']['Withdrawn On'] = $c->withdrawal_date;
+                if ($c->withdrawal_date)
+                    $details['dates']['Withdrawn On'] = $c->withdrawal_date;
                 $details['description'] = "Designated Institution: " . ($c->school_name ?? 'Unspecified Medical School');
 
                 // Witnesses are stored inline for Body Consent
                 $details['witnesses'] = [];
                 if (!empty(trim($c->witness1_name))) {
-                    $details['witnesses'][] = (object)['name' => $c->witness1_name, 'nic_number' => $c->witness1_nic, 'phone' => $c->witness1_phone, 'address' => $c->witness1_address];
+                    $details['witnesses'][] = (object) ['name' => $c->witness1_name, 'nic_number' => $c->witness1_nic, 'phone' => $c->witness1_phone, 'address' => $c->witness1_address];
                 }
                 if (!empty(trim($c->witness2_name))) {
-                    $details['witnesses'][] = (object)['name' => $c->witness2_name, 'nic_number' => $c->witness2_nic, 'phone' => $c->witness2_phone, 'address' => $c->witness2_address];
+                    $details['witnesses'][] = (object) ['name' => $c->witness2_name, 'nic_number' => $c->witness2_nic, 'phone' => $c->witness2_phone, 'address' => $c->witness2_address];
                 }
-                
+
                 // Fetch custodians
                 $details['custodians'] = $this->query("SELECT name, relationship, phone, email FROM custodians WHERE donor_id = :did ORDER BY custodian_number ASC", [':did' => $c->donor_id]) ?: [];
             }
@@ -319,7 +336,10 @@ class CustodianModel {
                 [['table' => 'hospitals h', 'on' => 'dmh.hospital_id = h.id', 'type' => 'LEFT']],
                 ['dmh.history_id' => $id],
                 'dmh.*, h.name AS hospital_name',
-                '', 1, 0, 'donation_medical_history dmh'
+                '',
+                1,
+                0,
+                'donation_medical_history dmh'
             );
             if ($outcome) {
                 $o = $outcome[0];
@@ -397,10 +417,10 @@ class CustodianModel {
     {
         // Get already-attempted institution IDs
         $attempted = $this->where(
-            ['donation_case_id' => $caseId, 'track' => $track], 
-            [], 
-            'institution_id', 
-            '', 
+            ['donation_case_id' => $caseId, 'track' => $track],
+            [],
+            'institution_id',
+            '',
             'case_institution_status'
         ) ?: [];
         $attemptedIds = array_map(fn($r) => $r->institution_id, $attempted);
@@ -450,7 +470,8 @@ class CustodianModel {
             }
         }
 
-        if (!$isConsented) return false;
+        if (!$isConsented)
+            return false;
 
         // Check if there's already a current institution being reviewed
         $existingCount = $this->count(
@@ -464,7 +485,8 @@ class CustodianModel {
             'case_institution_status'
         );
 
-        if ($existingCount > 0) return false;
+        if ($existingCount > 0)
+            return false;
 
         // Also prevent if an institution for this track is already ACCEPTED
         $acceptedCount = $this->count(
@@ -478,7 +500,8 @@ class CustodianModel {
             'case_institution_status'
         );
 
-        if ($acceptedCount > 0) return false;
+        if ($acceptedCount > 0)
+            return false;
 
         // --- SEQUENCE ENFORCEMENT ---
         // Rule: If track is BODY and operational track is SPLIT, Cornea must be DONE, EXPIRED, or SKIPPED
@@ -487,10 +510,10 @@ class CustodianModel {
             $items = json_decode($activeCase->operational_items_json, true);
             $limits = json_decode($activeCase->operational_time_limits_json, true);
             $corneaId = 4;
-            
+
             $corneaStatus = $items[$corneaId]['status'] ?? 'none';
             $corneaExpired = isset($limits[$corneaId]) && time() > strtotime($limits[$corneaId]);
-            
+
             if ($corneaStatus === 'available' && !$corneaExpired) {
                 // Cornea is still actionable. Block Body.
                 return false;
@@ -516,7 +539,7 @@ class CustodianModel {
                 // If it's a hospital track item
                 if ($itemId != 9 && $itemId != 1 && $itemId != 10 && !str_starts_with($itemId, 'BODY_')) {
                     if ($itemData['status'] === 'available' || $itemData['status'] === 'requested') {
-                        if (in_array((int)$itemId, $selectedItemsList)) {
+                        if (in_array((int) $itemId, $selectedItemsList)) {
                             $itemData['status'] = 'requested';
                         } else {
                             $itemData['status'] = 'skipped';
@@ -529,17 +552,20 @@ class CustodianModel {
 
         // Map specific tracks to base ENUM values (BODY, ORGAN, CORNEA)
         $dbTrack = $track;
-        if (str_contains($track, 'BODY')) $dbTrack = 'BODY';
-        elseif (str_contains($track, 'ORGAN')) $dbTrack = 'ORGAN';
-        elseif (str_contains($track, 'CORNEA')) $dbTrack = 'CORNEA';
+        if (str_contains($track, 'BODY'))
+            $dbTrack = 'BODY';
+        elseif (str_contains($track, 'ORGAN'))
+            $dbTrack = 'ORGAN';
+        elseif (str_contains($track, 'CORNEA'))
+            $dbTrack = 'CORNEA';
 
         return $this->insert([
             'donation_case_id' => $caseId,
             'institution_type' => $institutionType,
-            'institution_id'   => $institutionId,
-            'track'            => $dbTrack,
-            'attempt_order'    => $nextOrder,
-            'is_current'       => 1,
+            'institution_id' => $institutionId,
+            'track' => $dbTrack,
+            'attempt_order' => $nextOrder,
+            'is_current' => 1,
             'custodian_action' => 'SUBMITTED',
             'included_items_json' => !empty($selectedItemsList) ? json_encode($selectedItemsList) : null
         ], 'case_institution_status');
@@ -582,7 +608,8 @@ class CustodianModel {
 
         // Fetch the request record to get case and track
         $cis = $this->first(['id' => $statusId], [], '*', '', 'case_institution_status');
-        if (!$cis) return false;
+        if (!$cis)
+            return false;
 
         // --- REVERSION LOGIC FOR REJECTED/WITHDRAWN REQUESTS ---
         if ($response === 'REJECTED' || $response === 'WITHDRAWN') {
@@ -590,13 +617,15 @@ class CustodianModel {
             if ($activeCase) {
                 $items = json_decode($activeCase->operational_items_json, true) ?? [];
                 $track = $cis->track;
-                
+
                 foreach ($items as $itemId => &$itemData) {
                     // Check if item belongs to this track (Hospital Tissues or Body)
                     $isMatch = false;
-                    if ($track === 'HOSPITAL_TISSUE' && ($itemData['type'] ?? '') === 'HOSPITAL_TISSUE') $isMatch = true;
-                    if ($track === 'BODY' && ($itemData['type'] ?? '') === 'BODY') $isMatch = true;
-                    
+                    if ($track === 'HOSPITAL_TISSUE' && ($itemData['type'] ?? '') === 'HOSPITAL_TISSUE')
+                        $isMatch = true;
+                    if ($track === 'BODY' && ($itemData['type'] ?? '') === 'BODY')
+                        $isMatch = true;
+
                     if ($isMatch) {
                         // Revert requested/skipped items back to available
                         if ($itemData['status'] === 'requested' || $itemData['status'] === 'skipped') {
@@ -604,7 +633,7 @@ class CustodianModel {
                         }
                     }
                 }
-                
+
                 $this->update($activeCase->id, ['operational_items_json' => json_encode($items)], 'id', 'donation_cases');
             }
         }
@@ -666,7 +695,7 @@ class CustodianModel {
         if ($existing) {
             return $this->update($existing->id, [
                 'form_data' => $formDataJson,
-                'status'    => $status
+                'status' => $status
             ], 'id', 'cadaver_data_sheets');
         } else {
             // Try to link to a current institution request if it exists
@@ -674,10 +703,10 @@ class CustodianModel {
             $cisId = $cis ? $cis->id : 0;
 
             return $this->insert([
-                'donation_case_id'           => $caseId,
+                'donation_case_id' => $caseId,
                 'case_institution_status_id' => $cisId,
-                'form_data'                  => $formDataJson,
-                'status'                     => $status
+                'form_data' => $formDataJson,
+                'status' => $status
             ], 'cadaver_data_sheets');
         }
     }
@@ -700,11 +729,13 @@ class CustodianModel {
 
     // --- DOCUMENT BUNDLE METHODS ---------------------------------------
 
-    public function getSwornStatement($caseId) {
+    public function getSwornStatement($caseId)
+    {
         return $this->first(['donation_case_id' => $caseId], [], '*', '', 'sworn_statements');
     }
 
-    public function saveSwornStatement($caseId, $formData) {
+    public function saveSwornStatement($caseId, $formData)
+    {
         $existing = $this->getSwornStatement($caseId);
         $json = json_encode($formData);
         if ($existing) {
@@ -715,18 +746,19 @@ class CustodianModel {
     }
 
 
-    public function submitBundle($caseId, $checklistJson = null) {
+    public function submitBundle($caseId, $checklistJson = null)
+    {
         $this->update($caseId, ['bundle_status' => 'SUBMITTED'], 'id', 'donation_cases');
-        
+
         $this->updateWhere(
             [
-                'document_status' => 'PENDING_REVIEW', 
+                'document_status' => 'PENDING_REVIEW',
                 'document_action_at' => date('Y-m-d H:i:s'),
                 'submitted_checklist_json' => $checklistJson
             ],
             [
-                'donation_case_id' => $caseId, 
-                'is_current' => 1, 
+                'donation_case_id' => $caseId,
+                'is_current' => 1,
                 'institution_status' => 'ACCEPTED'
             ],
             'case_institution_status'
@@ -764,7 +796,7 @@ class CustodianModel {
             0,
             'donation_cases dc'
         );
-        return $res ? (int)$res[0]->declared_by_custodian_id : null;
+        return $res ? (int) $res[0]->declared_by_custodian_id : null;
     }
 
     /**
@@ -773,8 +805,9 @@ class CustodianModel {
     public function isLeader($custodianId, $caseId)
     {
         $leaderId = $this->getLeaderId($caseId);
-        if ($leaderId === null) return true; // If no death declared yet, anyone is leader
-        return (int)$custodianId === $leaderId;
+        if ($leaderId === null)
+            return true; // If no death declared yet, anyone is leader
+        return (int) $custodianId === $leaderId;
     }
 
     /**
@@ -802,31 +835,26 @@ class CustodianModel {
      */
     public function getAppreciationLetters($caseId)
     {
-        // Letters can be issued from body usage records (Med School)
-        // OR directly from Handover Acceptance (Hospital/Organ)
+        // Letters are issued from body usage records or organ retrieval logs
         $case = $this->first(['id' => $caseId], [], 'donor_id', '', 'donation_cases');
-        if (!$case) return [];
+        if (!$case)
+            return [];
 
-        $query = "SELECT al.*, 
-                 CASE 
-                    WHEN al.usage_log_id IS NOT NULL THEN COALESCE(ms.school_name, h_bul.name, 'Host Institution')
-                    WHEN al.case_institution_request_id IS NOT NULL THEN h_cis.name
-                    ELSE 'Host Institution'
-                 END AS institution_name,
-                 CASE 
-                    WHEN al.usage_log_id IS NOT NULL THEN bul.usage_type
-                    ELSE 'Organ Recognition'
-                 END AS usage_type
-                 FROM appreciation_letters al
-                 LEFT JOIN body_usage_logs bul ON al.usage_log_id = bul.id
-                 LEFT JOIN medical_schools ms ON bul.medical_school_id = ms.id
-                 LEFT JOIN hospitals h_bul ON bul.medical_school_id = h_bul.id
-                 LEFT JOIN case_institution_status cis ON al.case_institution_request_id = cis.id
-                 LEFT JOIN hospitals h_cis ON cis.institution_id = h_cis.id
-                 WHERE (bul.donor_id = :did OR cis.donation_case_id = :cid)
-                 ORDER BY al.issued_at DESC, al.id DESC";
-
-        return $this->query($query, [':did' => $case->donor_id, ':cid' => $caseId]) ?: [];
+        return $this->queryJoin(
+            [
+                ['table' => 'body_usage_logs bul', 'on' => 'appreciation_letters.usage_log_id = bul.id', 'type' => 'JOIN'],
+                ['table' => 'medical_schools ms', 'on' => 'bul.medical_school_id = ms.id', 'type' => 'LEFT'],
+                ['table' => 'hospitals h', 'on' => 'bul.medical_school_id = h.id', 'type' => 'LEFT']
+            ],
+            ['bul.donor_id' => $case->donor_id],
+            'appreciation_letters.*, 
+             CASE WHEN bul.usage_type = "Organ Retrieval" THEN h.name ELSE COALESCE(ms.school_name, h.name, "Host Institution") END AS institution_name, 
+             bul.usage_type',
+            'appreciation_letters.issued_at DESC, appreciation_letters.id DESC',
+            100,
+            0,
+            'appreciation_letters'
+        ) ?: [];
     }
 
     /**

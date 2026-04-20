@@ -1,11 +1,12 @@
-<?php 
+<?php
 
 namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\CustodianModel;
 use App\Models\UserModel;
-class Custodian {
+class Custodian
+{
     use Controller;
 
     private $model;
@@ -22,7 +23,8 @@ class Custodian {
      */
     private function requireCustodian()
     {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE)
+            session_start();
         if (!isset($_SESSION['user_id'])) {
             if ($this->isAjax()) {
                 $this->json(['error' => 'Unauthorized'], 401);
@@ -48,7 +50,7 @@ class Custodian {
             return null;
         }
 
-        
+
         // --- SECURITY SETUP GUARD ---
         // Source of truth for security flag is the 'users' table
         // $userModel = new UserModel();
@@ -72,7 +74,7 @@ class Custodian {
     private function isAjax()
     {
         return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     /**
@@ -104,13 +106,14 @@ class Custodian {
     public function dashboard()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donorId = $custodian->donor_id;
         $activeCase = $this->caseModel->getCaseByDonor($donorId);
         $certificates = $activeCase ? $this->model->getDonationCertificates($activeCase->id) : [];
         $appreciationLetters = $activeCase ? $this->model->getAppreciationLetters($activeCase->id) : [];
-        
+
         // Fetch activity timeline (Limit to top 5 for dashboard)
         $fullTimeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
         $timeline = array_slice($fullTimeline, 0, 5);
@@ -121,9 +124,10 @@ class Custodian {
             $registry = $this->model->getConsentRegistry($donorId);
             $organs = [];
             $hasBody = false;
-            
+
             foreach ($registry as $item) {
-                if (($item->status ?? '') === 'WITHDRAWN') continue;
+                if (($item->status ?? '') === 'WITHDRAWN')
+                    continue;
                 if ($item->type === 'BODY_CONSENT') {
                     $hasBody = true;
                 } else {
@@ -131,7 +135,7 @@ class Custodian {
                     $organs[] = trim($cleanName);
                 }
             }
-            
+
             $summaryParts = [];
             if (!empty($organs)) {
                 $uniqueOrgans = array_unique($organs);
@@ -144,7 +148,7 @@ class Custodian {
             if ($hasBody) {
                 $summaryParts[] = "Whole Body";
             }
-            
+
             if (!empty($summaryParts)) {
                 $registeredSummary = implode(' + ', $summaryParts);
             }
@@ -163,7 +167,8 @@ class Custodian {
     public function consentRegistry()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $registry = $this->model->getConsentRegistry($donor->id);
@@ -181,13 +186,15 @@ class Custodian {
     public function getRegistryDetails()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $type = $_GET['type'] ?? '';
         $id = $_GET['id'] ?? 0;
 
         $details = $this->model->getRegistryRecordDetails($type, $id);
-        if (!$details) return $this->json(['success' => false, 'error' => 'Record not found']);
+        if (!$details)
+            return $this->json(['success' => false, 'error' => 'Record not found']);
 
         return $this->json(['success' => true, 'data' => $details]);
     }
@@ -196,7 +203,8 @@ class Custodian {
     public function donorProfile()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/donor-profile', 'donor-profile', 'Donor Profile', $custodian);
     }
@@ -205,7 +213,8 @@ class Custodian {
     public function coCustodian()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/co-custodian', 'co-custodian', 'Co-Custodian', $custodian);
     }
@@ -214,7 +223,8 @@ class Custodian {
     public function reportDeath()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/report-death', 'report-death', 'Report Death', $custodian);
     }
@@ -223,7 +233,8 @@ class Custodian {
     public function legalResponse()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/legal-response', 'legal-response', 'Legal Response', $custodian);
     }
@@ -239,18 +250,19 @@ class Custodian {
     public function documentsPage()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         $docs = [];
         $hasSworn = false;
         $hasDatasheet = false;
-        
+
         if ($activeCase) {
             $docs = $this->model->getDocuments($activeCase->id) ?? [];
             $swornRecord = $this->model->getSwornStatement($activeCase->id);
             $hasSworn = ($swornRecord && !empty($swornRecord->form_data));
-            
+
             $dataSheetRecord = $this->model->getCadaverSheet($activeCase->id);
             $hasDatasheet = ($dataSheetRecord && !empty($dataSheetRecord->form_data));
         }
@@ -273,7 +285,8 @@ class Custodian {
     public function coordinationPage()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/coordination', 'coordination', 'Coordination', $custodian);
     }
@@ -282,7 +295,8 @@ class Custodian {
     public function timelinePage()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/timeline', 'timeline', 'Timeline', $custodian);
     }
@@ -291,7 +305,8 @@ class Custodian {
     public function certificates()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donorId = $custodian->donor_id;
         $activeCase = $this->caseModel->getCaseByDonor($donorId);
@@ -304,11 +319,9 @@ class Custodian {
             // Check if any institution (Medical School) has accepted this case
             $statuses = $this->caseModel->getInstitutionStatuses($activeCase->id);
             foreach ($statuses as $s) {
-                if ($s->institution_status === 'ACCEPTED') {
-                    if ($s->track === 'MEDICAL_SCHOOL_BODY' || $s->institution_type === 'HOSPITAL') {
-                        $isAppreciationPending = true;
-                        break;
-                    }
+                if ($s->institution_status === 'ACCEPTED' && $s->track === 'MEDICAL_SCHOOL_BODY') {
+                    $isAppreciationPending = true;
+                    break;
                 }
             }
         }
@@ -324,17 +337,18 @@ class Custodian {
     public function activityHistory()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donorId = $custodian->donor_id;
         $activeCase = $this->caseModel->getCaseByDonor($donorId);
-        
+
         // Full activity timeline
         $timeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
 
         // Historical / Archived cases for this donor
         $archived = $this->model->getArchivedCases($donorId);
-        
+
         $this->renderPage('custodian/activity-history', 'activity-history', 'Activity History', $custodian, [
             'timeline' => $timeline,
             'archived' => $archived
@@ -354,7 +368,8 @@ class Custodian {
     public function institutionRequests()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
         // show($custodian);
         // $donorId = $custodian->donor_id;
         // show($donorId);
@@ -363,11 +378,11 @@ class Custodian {
         $availableInstitutions = [];
         $institutionStatuses = [];
         $institutionType = $_GET['type'] ?? null; // Allow explicit override (MEDICAL_SCHOOL | HOSPITAL)
-        
+
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if ($activeCase) {
             $track = $activeCase->resolved_operational_track ?? 'NONE';
-            
+
             // If no explicit type requested, default based on donor's primary track
             if (!$institutionType) {
                 $institutionType = (str_contains($track, 'BODY')) ? 'MEDICAL_SCHOOL' : 'HOSPITAL';
@@ -406,28 +421,29 @@ class Custodian {
 
         $this->renderPage('custodian/institution-requests', 'institution-requests', 'Institution Requests', $custodian, [
             'availableInstitutions' => $availableInstitutions,
-            'institutionStatuses'   => $institutionStatuses,
-            'institutionType'       => $institutionType,
-            'currentInstRequest'    => $currentInstRequest,
-            'death_declaration'     => $death_declaration,
-            'leaderInfo'            => $death_declaration, 
-            'isLeader'              => $isLeader,
-            'activeCase'            => $activeCase
+            'institutionStatuses' => $institutionStatuses,
+            'institutionType' => $institutionType,
+            'currentInstRequest' => $currentInstRequest,
+            'death_declaration' => $death_declaration,
+            'leaderInfo' => $death_declaration,
+            'isLeader' => $isLeader,
+            'activeCase' => $activeCase
         ]);
     }
 
     public function profile()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = [
-                'name'         => $_POST['name'] ?? '',
+                'name' => $_POST['name'] ?? '',
                 'relationship' => $_POST['relationship'] ?? '',
-                'phone'        => $_POST['phone'] ?? '',
-                'email'        => $_POST['email'] ?? '',
-                'address'      => $_POST['address'] ?? ''
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? '',
+                'address' => $_POST['address'] ?? ''
             ];
 
             if ($this->model->updateCustodianContact($custodian->id, $data)) {
@@ -442,9 +458,11 @@ class Custodian {
         $custodians = $this->model->getCustodiansByDonor($custodian->donor_id);
 
         // Put "Me" at the top of the list
-        usort($custodians, function($a, $b) use ($custodian) {
-            if ($a->id == $custodian->id) return -1;
-            if ($b->id == $custodian->id) return 1;
+        usort($custodians, function ($a, $b) use ($custodian) {
+            if ($a->id == $custodian->id)
+                return -1;
+            if ($b->id == $custodian->id)
+                return 1;
             return 0;
         });
 
@@ -457,7 +475,8 @@ class Custodian {
     public function authorityLimits()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $this->renderPage('custodian/authority-limits', 'authority-limits', 'Authority Limits', $custodian);
     }
@@ -466,7 +485,8 @@ class Custodian {
     public function securitySetup()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         // Fetch user object to get current username
         $userModel = new \App\Models\UserModel();
@@ -484,7 +504,8 @@ class Custodian {
     public function updateSecurity()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             redirect('custodian/security-setup');
@@ -510,10 +531,12 @@ class Custodian {
         // 2. Validate New Password (Registration strength: 8 chars, ULNS)
         if (strlen($newPassword) < 8) {
             $errors[] = "New password must be at least 8 characters.";
-        } elseif (!preg_match('/[A-Z]/', $newPassword) ||
-                  !preg_match('/[a-z]/', $newPassword) ||
-                  !preg_match('/[0-9]/', $newPassword) ||
-                  !preg_match('/[^A-Za-z0-9]/', $newPassword)) {
+        } elseif (
+            !preg_match('/[A-Z]/', $newPassword) ||
+            !preg_match('/[a-z]/', $newPassword) ||
+            !preg_match('/[0-9]/', $newPassword) ||
+            !preg_match('/[^A-Za-z0-9]/', $newPassword)
+        ) {
             $errors[] = "New password must include uppercase, lowercase, number and special character.";
         }
 
@@ -562,9 +585,9 @@ class Custodian {
     private function renderPage(string $viewName, string $activePage, string $pageTitle, $custodian, array $extraData = [])
     {
         $firstName = $custodian->first_name ?? $custodian->custodian_first_name ?? '';
-        $lastName  = $custodian->last_name  ?? $custodian->custodian_last_name  ?? '';
-        $fullName  = trim($firstName . ' ' . $lastName) ?: 'Custodian';
-        $cidRaw    = $custodian->id ?? $custodian->custodian_id ?? 0;
+        $lastName = $custodian->last_name ?? $custodian->custodian_last_name ?? '';
+        $fullName = trim($firstName . ' ' . $lastName) ?: 'Custodian';
+        $cidRaw = $custodian->id ?? $custodian->custodian_id ?? 0;
 
         // Fetch core entities explicitly so all views have them
         $donor = $this->model->getDonorForCustodian($cidRaw);
@@ -581,7 +604,7 @@ class Custodian {
             $coCustodian = $this->model->getCoCustodian($donorId, $cidRaw);
             $deathDecl = $this->caseModel->getDeathDeclaration($donorId);
             $activeCase = $this->caseModel->getCaseByDonor($donorId);
-            
+
             if ($activeCase) {
                 // Check for system forms
                 $hasSworn = ($this->model->getSwornStatement($activeCase->id) !== null);
@@ -602,9 +625,9 @@ class Custodian {
                 } else {
                     $cisTrack = 'ORGAN';
                 }
-                
+
                 $currentInstRequest = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
-                
+
                 // --- ROBUSTNESS FALLBACK ---
                 // If the specific track mapping failed (e.g. data corrupt or track mismatch), 
                 // look for ANY active request for this case to unlock the Documents page.
@@ -617,9 +640,9 @@ class Custodian {
                         }
                     }
                 }
-                
+
                 $currentRequest = $currentInstRequest;
-                
+
                 // Get ALL institution statuses for dashboard timeline/history
                 $allInstitutionStatuses = $this->caseModel->getInstitutionStatuses($activeCase->id) ?: [];
 
@@ -627,19 +650,19 @@ class Custodian {
                 $submittedDocs = [];
                 if ($activeCase->bundle_status === 'SUBMITTED' && $currentInstRequest && !empty($currentInstRequest->submitted_checklist_json)) {
                     $rawChecklist = $currentInstRequest->submitted_checklist_json;
-                    $docIds = is_string($rawChecklist) ? (json_decode($rawChecklist, true) ?: []) : (array)$rawChecklist;
-                    
+                    $docIds = is_string($rawChecklist) ? (json_decode($rawChecklist, true) ?: []) : (array) $rawChecklist;
+
                     $mapping = [
-                        'sworn'              => 'Sworn Statement of Legal Custodian',
-                        'datasheet'          => 'Cadaver Data Sheet (Clinical Details)',
-                        'death_certificate'  => 'Official Death Certificate',
-                        'nic_copy_donor'     => 'NIC Copy of Deceased',
+                        'sworn' => 'Sworn Statement of Legal Custodian',
+                        'datasheet' => 'Cadaver Data Sheet (Clinical Details)',
+                        'death_certificate' => 'Official Death Certificate',
+                        'nic_copy_donor' => 'NIC Copy of Deceased',
                         'nic_copy_custodian' => 'NIC Copy of Legal Custodian',
-                        'medical_summary'    => 'Medical Information Summary',
-                        'police_report'      => 'Police Report / Post-Mortem Authorization',
-                        'medico_legal'       => 'Medico-Legal Clearance',
-                        'hospital_records'   => 'Hospital Medical Records (BHT)',
-                        'pm_report'          => 'Pathology Post-Mortem Report'
+                        'medical_summary' => 'Medical Information Summary',
+                        'police_report' => 'Police Report / Post-Mortem Authorization',
+                        'medico_legal' => 'Medico-Legal Clearance',
+                        'hospital_records' => 'Hospital Medical Records (BHT)',
+                        'pm_report' => 'Pathology Post-Mortem Report'
                     ];
 
                     foreach ($docIds as $id) {
@@ -649,7 +672,8 @@ class Custodian {
                 $extraData['submittedDocs'] = $submittedDocs;
             }
         }
-        $isLeader = false;
+
+        $isLeader = false;
         if ($deathDecl) {
             $isLeader = ($deathDecl->declared_by_custodian_id == $cidRaw);
         }
@@ -657,34 +681,34 @@ class Custodian {
         $window = $this->getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw);
         if ($window) {
             $extraData['clinical_deadline'] = $window['deadline'];
-            $extraData['is_expired']         = $window['is_expired'];
-            $extraData['seconds_remaining']  = $window['seconds_remaining'];
+            $extraData['is_expired'] = $window['is_expired'];
+            $extraData['seconds_remaining'] = $window['seconds_remaining'];
         }
 
         $viewData = array_merge([
-            'ROOT'                  => ROOT,
-            'page_title'            => $pageTitle,
-            'active_page'           => $activePage,
-            'custodian'             => $custodian,
-            'custodian_name'        => $fullName,
-            'custodian_id_display'  => 'CID-' . str_pad($cidRaw, 5, '0', STR_PAD_LEFT),
-            'donor'                 => $donor,
-            'co_custodian'          => $coCustodian,
+            'ROOT' => ROOT,
+            'page_title' => $pageTitle,
+            'active_page' => $activePage,
+            'custodian' => $custodian,
+            'custodian_name' => $fullName,
+            'custodian_id_display' => 'CID-' . str_pad($cidRaw, 5, '0', STR_PAD_LEFT),
+            'donor' => $donor,
+            'co_custodian' => $coCustodian,
 
-            'death_declaration'     => $deathDecl,
-            'isLeader'              => $isLeader,
-            'leaderInfo'            => $deathDecl, // Contains declared_by_name, phone, email
-            'registered_summary'    => $donor ? ($donor->pledge_type ?? 'NONE') : 'NONE',
-            'donation_case'         => $donationCase,
-            'activeCase'            => $activeCase,
-            'certificates'          => $certificates ?? [],
-            'appreciation_letters'  => $appreciationLetters ?? [],
-            'currentInstRequest'    => $currentInstRequest,
-            'currentRequest'        => $currentRequest, // Alias for legacy/shared views
+            'death_declaration' => $deathDecl,
+            'isLeader' => $isLeader,
+            'leaderInfo' => $deathDecl, // Contains declared_by_name, phone, email
+            'registered_summary' => $donor ? ($donor->pledge_type ?? 'NONE') : 'NONE',
+            'donation_case' => $donationCase,
+            'activeCase' => $activeCase,
+            'certificates' => $certificates ?? [],
+            'appreciation_letters' => $appreciationLetters ?? [],
+            'currentInstRequest' => $currentInstRequest,
+            'currentRequest' => $currentRequest, // Alias for legacy/shared views
             'allInstitutionStatuses' => $allInstitutionStatuses ?? [],
-            'hasSworn'              => $hasSworn ?? false,
-            'hasDatasheet'          => $hasDatasheet ?? false,
-            'organQuestions'        => [
+            'hasSworn' => $hasSworn ?? false,
+            'hasDatasheet' => $hasDatasheet ?? false,
+            'organQuestions' => [
                 ['id' => 'medical_summary', 'title' => 'Medical Information Summary', 'q' => 'Is there a known medical history or a Medical Information Summary available?', 'desc' => 'Summary of past medical history.'],
                 ['id' => 'police_report', 'title' => 'Police Report', 'q' => 'Was the death accidental or does it require a Police Report?', 'desc' => 'Required for accidental or legal cases.'],
                 ['id' => 'medico_legal', 'title' => 'Medico-Legal Clearance', 'q' => 'Is Medico-Legal Clearance required for this case?', 'desc' => 'Legal permission for organ retrieval.'],
@@ -717,7 +741,7 @@ class Custodian {
                     ['l' => 'Execution', 'i' => 'fa-heart-pulse'],
                     ['l' => 'Completion', 'i' => 'fa-award']
                 ];
-            } 
+            }
             // Scenario B: Kidney Only (Bedside Coordination)
             elseif ($mode === 'KIDNEY_ONLY' && $isBrainDead) {
                 $stepperData['type'] = 'KIDNEY';
@@ -729,9 +753,12 @@ class Custodian {
                     ['l' => 'Retrieval', 'i' => 'fa-heart'],
                     ['l' => 'Honor', 'i' => 'fa-certificate']
                 ];
-                if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') $stepperData['current'] = 4;
-                if (!empty($certificates)) $stepperData['current'] = 5;
-                if (!empty($certificates) && (!empty($appreciation_letters) || ($activeCase->overall_status === 'COMPLETED'))) $stepperData['current'] = 6;
+                if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED')
+                    $stepperData['current'] = 4;
+                if (!empty($certificates))
+                    $stepperData['current'] = 5;
+                if (!empty($certificates) && (!empty($appreciation_letters) || ($activeCase->overall_status === 'COMPLETED')))
+                    $stepperData['current'] = 6;
             }
             // Scenario C: Organ / Hospital Track
             elseif (str_contains($mode, 'ORGAN') || $opTrack === 'HOSPITAL_TISSUE') {
@@ -746,12 +773,12 @@ class Custodian {
                 $step = 1;
                 if ($currentInstRequest) {
                     $step = 2; // Selection done, Documentation active
-                    
+
                     // If documents were accepted, move to Scheduling
                     if (($currentInstRequest->document_status ?? '') === 'ACCEPTED') {
                         $step = 3;
                     }
-                    
+
                     // If overall case is successful, move to Retrieval (meaning it just happened) or Certification
                     if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') {
                         $step = 4;
@@ -784,9 +811,12 @@ class Custodian {
                     $step = 2;
                     if ($hasSworn && $hasDatasheet) {
                         $step = 3;
-                        if ($activeCase->bundle_status === 'SUBMITTED' || ($currentInstRequest->document_status ?? '') === 'ACCEPTED') $step = 4;
-                        if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') $step = 5;
-                        if (($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') && !empty($certificates)) $step = 6;
+                        if ($activeCase->bundle_status === 'SUBMITTED' || ($currentInstRequest->document_status ?? '') === 'ACCEPTED')
+                            $step = 4;
+                        if ($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED')
+                            $step = 5;
+                        if (($activeCase->overall_status === 'SUCCESSFUL' || $activeCase->overall_status === 'COMPLETED') && !empty($certificates))
+                            $step = 6;
                     }
                 }
                 $stepperData['current'] = $step;
@@ -808,7 +838,8 @@ class Custodian {
     public function getDashboardData()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $coCustodian = $this->model->getCoCustodian($custodian->donor_id, $custodian->id);
@@ -824,8 +855,8 @@ class Custodian {
             'is_deceased' => ($deathDecl !== null),
             'window_remaining' => null,
             'resolved_track' => $donationCase ? $donationCase->resolved_operational_track : null,
-            'snapshot_items' => ($donationCase && !empty($donationCase->operational_items_json)) ? 
-                (is_string($donationCase->operational_items_json) ? json_decode($donationCase->operational_items_json, true) : (array)$donationCase->operational_items_json) : null
+            'snapshot_items' => ($donationCase && !empty($donationCase->operational_items_json)) ?
+                (is_string($donationCase->operational_items_json) ? json_decode($donationCase->operational_items_json, true) : (array) $donationCase->operational_items_json) : null
         ];
 
         // Calculate remaining time in the window
@@ -845,7 +876,8 @@ class Custodian {
     public function declareDeath()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -867,7 +899,7 @@ class Custodian {
                 'time_of_death' => $_POST['time_of_death'] ?? '',
                 'place_of_death' => $_POST['place_of_death'] ?? '',
                 'cause_of_death' => $_POST['cause_of_death'] ?? '',
-                'is_brain_dead'  => (int)($_POST['is_brain_dead'] ?? -1),
+                'is_brain_dead' => (int) ($_POST['is_brain_dead'] ?? -1),
                 'additional_notes' => $_POST['additional_notes'] ?? null
             ];
 
@@ -890,16 +922,16 @@ class Custodian {
 
             // Create Donation Case with Snapshot
             $caseData = array_merge([
-                'donor_id'             => $custodian->donor_id,
+                'donor_id' => $custodian->donor_id,
                 'death_declaration_id' => $deathId,
-                'donation_type'        => $snapshot['resolved_deceased_mode'] ?? 'NONE',
+                'donation_type' => $snapshot['resolved_deceased_mode'] ?? 'NONE',
                 'resolved_deceased_mode' => $snapshot['resolved_deceased_mode'],
                 'resolved_operational_track' => $snapshot['resolved_operational_track'],
                 'operational_items_json' => $snapshot['operational_items_json'],
                 'operational_time_limits_json' => $snapshot['operational_time_limits_json'],
-                'kidney_decision'      => $snapshot['kidney_decision'],
+                'kidney_decision' => $snapshot['kidney_decision'],
                 'body_cornea_decision' => $snapshot['body_cornea_decision'],
-                'resolved_at'          => date('Y-m-d H:i:s')
+                'resolved_at' => date('Y-m-d H:i:s')
             ]);
 
             $caseId = $this->caseModel->createDonationCase($caseData);
@@ -913,7 +945,7 @@ class Custodian {
                 'donation_case_id' => $caseId,
                 'donation_type' => $snapshot['resolved_deceased_mode'] ?? 'BODY',
                 'operational_track' => $snapshot['resolved_operational_track'] ?? 'NONE',
-                'guidance_message'  => $snapshot['guidance_message'] ?? '',
+                'guidance_message' => $snapshot['guidance_message'] ?? '',
                 'show_kidney_popup' => $snapshot['show_kidney_popup'] ?? false,
                 'redirect' => ROOT . '/custodian/dashboard'
             ]);
@@ -962,13 +994,17 @@ class Custodian {
     public function getConsent()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
-        $this->json(['success' => true, 'data' => [
-            'donation_type' => $activeCase->resolved_deceased_mode ?? 'NONE',
-            'track' => $activeCase->resolved_operational_track ?? 'NONE'
-        ]]);
+        $this->json([
+            'success' => true,
+            'data' => [
+                'donation_type' => $activeCase->resolved_deceased_mode ?? 'NONE',
+                'track' => $activeCase->resolved_operational_track ?? 'NONE'
+            ]
+        ]);
     }
 
     /**
@@ -978,15 +1014,19 @@ class Custodian {
     public function getProfile()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $nextOfKin = $this->model->getNextOfKin($custodian->donor_id);
 
-        $this->json(['success' => true, 'data' => [
-            'donor' => $donor,
-            'next_of_kin' => $nextOfKin
-        ]]);
+        $this->json([
+            'success' => true,
+            'data' => [
+                'donor' => $donor,
+                'next_of_kin' => $nextOfKin
+            ]
+        ]);
     }
 
     /**
@@ -996,7 +1036,8 @@ class Custodian {
     public function getCustodians()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $all = $this->model->getCustodiansByDonor($custodian->donor_id);
         $this->json(['success' => true, 'data' => $all]);
@@ -1009,7 +1050,8 @@ class Custodian {
     public function updateContact()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -1033,7 +1075,8 @@ class Custodian {
     public function submitLegalAction()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -1095,7 +1138,8 @@ class Custodian {
     public function getAvailableInstitutions()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
@@ -1108,10 +1152,13 @@ class Custodian {
         $institutions = $this->caseModel->getAvailableInstitutions($donationCase->id, $track, $targetType);
         $currentInst = $this->caseModel->getCurrentInstitution($donationCase->id, $track);
 
-        $this->json(['success' => true, 'data' => [
-            'available' => $institutions,
-            'current' => $currentInst
-        ]]);
+        $this->json([
+            'success' => true,
+            'data' => [
+                'available' => $institutions,
+                'current' => $currentInst
+            ]
+        ]);
     }
 
     /**
@@ -1121,14 +1168,15 @@ class Custodian {
     public function selectInstitution()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             // if ($this->isAjax()) {
             //     $this->json(['error' => 'Method not allowed'], 405);
             // } else {
-                redirect('custodian/institution-requests');
-            
+            redirect('custodian/institution-requests');
+
             return;
         }
 
@@ -1156,17 +1204,17 @@ class Custodian {
             // if ($this->isAjax()) {
             //     $this->json(['error' => $err], 409);
             // } else {
-                $_SESSION['error_message'] = $err;
-                redirect('custodian/institution-requests');
-            
+            $_SESSION['error_message'] = $err;
+            redirect('custodian/institution-requests');
+
             return;
         }
 
         // if ($this->isAjax()) {
         //     $this->json(['success' => true, 'case_institution_status_id' => $result]);
         // } else {
-            $_SESSION['success_message'] = "Institution request sent successfully.";
-            redirect('custodian/institution-requests');
+        $_SESSION['success_message'] = "Institution request sent successfully.";
+        redirect('custodian/institution-requests');
     }
 
     /**
@@ -1176,7 +1224,8 @@ class Custodian {
     public function uploadDocument()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -1229,7 +1278,8 @@ class Custodian {
     public function getDocuments()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $statusId = $_GET['case_institution_status_id'] ?? 0;
         if ($statusId) {
@@ -1249,7 +1299,8 @@ class Custodian {
     public function submitToInstitution()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -1273,7 +1324,8 @@ class Custodian {
     public function saveCadaverSheet()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
@@ -1304,7 +1356,8 @@ class Custodian {
     public function getCadaverSheet()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         $sheet = $donationCase ? $this->model->getCadaverSheet($donationCase->id) : null;
@@ -1319,7 +1372,8 @@ class Custodian {
     public function getCoordination()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
@@ -1338,7 +1392,8 @@ class Custodian {
     public function getTimeline()
     {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donationCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$donationCase) {
@@ -1352,9 +1407,11 @@ class Custodian {
 
     // ─── DOCUMENT FORMS & BUNDLE ──────────────────────────────────────────
 
-    public function documentForm() {
+    public function documentForm()
+    {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $donorId = $custodian->donor_id;
         $cidRaw = $custodian->id ?? $custodian->cid;
@@ -1372,17 +1429,17 @@ class Custodian {
 
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$activeCase) {
-             header('Location: ' . ROOT . '/custodian/documents');
-             exit;
+            header('Location: ' . ROOT . '/custodian/documents');
+            exit;
         }
 
         // Prevent accessing datasheet if sworn isn't filled
         if ($type === 'datasheet') {
             $swornRecord = $this->model->getSwornStatement($activeCase->id);
             if (!$swornRecord || empty($swornRecord->form_data)) {
-                 $_SESSION['flash_error'] = "You must fill out the Sworn Statement before the Data Sheet.";
-                 header('Location: ' . ROOT . '/custodian/documents');
-                 exit;
+                $_SESSION['flash_error'] = "You must fill out the Sworn Statement before the Data Sheet.";
+                header('Location: ' . ROOT . '/custodian/documents');
+                exit;
             }
         }
 
@@ -1399,28 +1456,28 @@ class Custodian {
         } else {
             $record = $this->model->getCadaverSheet($activeCase->id);
             $page_heading = 'Cadaver Data Sheet Form';
-            
+
             // If cadaver datasheet doesn't have form data yet, fetch the sworn statement to pre-fill common fields
             $swornRecord = $this->model->getSwornStatement($activeCase->id);
             if (empty($record->form_data) && $swornRecord && !empty($swornRecord->form_data)) {
                 $rawSworn = $swornRecord->form_data;
-                $formData = is_string($rawSworn) ? (json_decode($rawSworn, true) ?? []) : (array)$rawSworn;
+                $formData = is_string($rawSworn) ? (json_decode($rawSworn, true) ?? []) : (array) $rawSworn;
             }
         }
-        
+
         if ($record && !empty($record->form_data)) {
             $rawRec = $record->form_data;
-            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array)$rawRec;
+            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array) $rawRec;
         }
 
-        // --- AUTO-FILL REFINED DEMOGRAPHICS ---
+        // --- AUTO-FILL REFINED DEMOGRAPHICS (Locked Donor Fields) ---
         $donor = $this->model->getDonorForCustodian($custodian->id);
         if ($donor) {
             // 1. Race -> From Nationality
             if (empty($formData['race']) && !empty($donor->nationality)) {
                 $formData['race'] = $donor->nationality;
             }
-            // 2. Religion -> From Body Donation Consent (if available)
+            // 2. Religion -> From Body Donation Consent
             if (empty($formData['donor_religion'])) {
                 $bodyConsent = $this->model->query("SELECT religion FROM body_donation_consents WHERE donor_id = :did ORDER BY consent_date DESC LIMIT 1", [':did' => $donorId])[0] ?? null;
                 if ($bodyConsent && !empty($bodyConsent->religion)) {
@@ -1429,9 +1486,28 @@ class Custodian {
             }
         }
 
-        // Pre-populate place of death from death declaration if missing
-        if (empty($formData['place_of_death']) && $deathDecl) {
+        // Pre-populate place of death from death declaration (Strictly Locked)
+        if ($deathDecl) {
             $formData['place_of_death'] = $deathDecl->place_of_death;
+        }
+
+        // SECTION A: Person Handing Over (Cadaver) or Declarant (Sworn)
+        if (empty($formData['custodian_name'])) {
+             if ($type === 'sworn') {
+                 // For Sworn Statement, the registered custodian IS the declarant
+                 $formData['custodian_name'] = $custodian->name;
+                 $formData['custodian_nic'] = $custodian->nic_number;
+                 $formData['custodian_address'] = $custodian->address;
+                 $formData['custodian_relationship'] = $custodian->relationship;
+                 $formData['custodian_phone'] = $custodian->phone;
+             } else {
+                 // Section A starts empty and is manually filled for Datasheet
+                 $formData['custodian_name'] = '';
+                 $formData['custodian_nic'] = '';
+                 $formData['custodian_address'] = '';
+                 $formData['custodian_relationship'] = '';
+                 $formData['custodian_phone'] = '';
+             }
         }
 
         $this->renderPage('custodian/document-form', 'documents', $page_heading, $custodian, [
@@ -1441,19 +1517,21 @@ class Custodian {
             'instAddress' => $instAddress,
             'death_declaration' => $deathDecl,
             'activeCase' => $activeCase,
-            'donor' => $this->model->getDonorForCustodian($custodian->id)
+            'donor' => $donor
         ]);
     }
 
-    public function saveDocumentForm() {
+    public function saveDocumentForm()
+    {
         $custodian = $this->requireCustodian();
-        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST')
+            return;
         $type = $_POST['type'] ?? '';
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
-        
+
         if (!$activeCase || !in_array($type, ['sworn', 'datasheet'])) {
-             header('Location: ' . ROOT . '/custodian/documents');
-             exit;
+            header('Location: ' . ROOT . '/custodian/documents');
+            exit;
         }
 
         $formData = [
@@ -1480,14 +1558,16 @@ class Custodian {
         } else {
             $this->model->saveCadaverSheet($activeCase->id, $formData);
         }
-        
+
         header('Location: ' . ROOT . '/custodian/document-form?type=' . urlencode($type) . '&saved=1');
         exit;
     }
 
-    public function printDocument() {
+    public function printDocument()
+    {
         $custodian = $this->requireCustodian();
-        if (!$custodian) return;
+        if (!$custodian)
+            return;
 
         $type = $_GET['type'] ?? '';
         if (!in_array($type, ['sworn', 'datasheet'])) {
@@ -1497,10 +1577,10 @@ class Custodian {
 
         $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
         if (!$activeCase) {
-             header('Location: ' . ROOT . '/custodian/documents');
-             exit;
+            header('Location: ' . ROOT . '/custodian/documents');
+            exit;
         }
-        
+
         $track = $activeCase->resolved_operational_track ?? 'BODY_ONLY';
         $cisTrack = str_contains($track, 'BODY') ? 'BODY' : 'ORGAN';
         $currentInst = $this->caseModel->getCurrentInstitution($activeCase->id, $cisTrack);
@@ -1515,7 +1595,7 @@ class Custodian {
         }
         if ($record && !empty($record->form_data)) {
             $rawRec = $record->form_data;
-            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array)$rawRec;
+            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array) $rawRec;
         }
 
         $cwd = $custodian->id ?? $custodian->custodian_id ?? 0;
@@ -1527,9 +1607,11 @@ class Custodian {
         exit;
     }
 
-    public function submitBundle() {
+    public function submitBundle()
+    {
         $custodian = $this->requireCustodian();
-        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        if (!$custodian || $_SERVER['REQUEST_METHOD'] !== 'POST')
+            return;
 
         $donor = $this->model->getDonorForCustodian($custodian->id);
         $donorId = $donor->id ?? $donor->donor_id ?? $custodian->donor_id;
@@ -1590,14 +1672,14 @@ class Custodian {
      */
     public function skipItem()
     {
-        $custodian = $this->requireCustodian();
+        $this->requireCustodian();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
             return;
         }
 
-        $itemId = (int)($_POST['item_id'] ?? 0);
-        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
+        $itemId = (int) ($_POST['item_id'] ?? 0);
+        $activeCase = $this->caseModel->getActiveCase($this->donor->id);
 
         if (!$activeCase || !$itemId) {
             $this->json(['error' => 'Invalid request'], 400);
@@ -1605,7 +1687,7 @@ class Custodian {
         }
 
         $rawItems = $activeCase->operational_items_json;
-        $items = is_string($rawItems) ? json_decode($rawItems, true) : (array)$rawItems;
+        $items = is_string($rawItems) ? json_decode($rawItems, true) : (array) $rawItems;
         if (isset($items[$itemId])) {
             $items[$itemId]['status'] = 'skipped';
             $this->caseModel->update($activeCase->id, ['operational_items_json' => json_encode($items)]);
@@ -1643,7 +1725,7 @@ class Custodian {
         $death_declaration = $this->caseModel->getDeathDeclaration($custodian->donor_id);
         $timeOfDeath = $death_declaration->date_of_death . ' ' . $death_declaration->time_of_death;
         $snapshot = $resolver->resolveAtDeath($custodian->donor_id, $death_declaration->is_brain_dead, $timeOfDeath, $decision, $activeCase->body_cornea_decision);
-        
+
         $this->caseModel->update($activeCase->id, [
             'resolved_operational_track' => $snapshot['resolved_operational_track'],
             'resolved_deceased_mode' => $snapshot['resolved_deceased_mode']
@@ -1681,7 +1763,7 @@ class Custodian {
         $death_declaration = $this->caseModel->getDeathDeclaration($custodian->donor_id);
         $timeOfDeath = $death_declaration->date_of_death . ' ' . $death_declaration->time_of_death;
         $snapshot = $resolver->resolveAtDeath($custodian->donor_id, $death_declaration->is_brain_dead, $timeOfDeath, $activeCase->kidney_decision, $choice);
-        
+
         $this->caseModel->update($activeCase->id, [
             'resolved_operational_track' => $snapshot['resolved_operational_track'],
             'resolved_deceased_mode' => $snapshot['resolved_deceased_mode']
@@ -1692,15 +1774,16 @@ class Custodian {
 
     private function getClinicalWindowStatus($activeCase, $deathDecl, $cidRaw)
     {
-        if (!$activeCase || !$deathDecl) return null;
+        if (!$activeCase || !$deathDecl)
+            return null;
 
         $resolver = new \App\Services\DonationResolver();
         $timeOfDeath = $deathDecl->date_of_death . ' ' . $deathDecl->time_of_death;
-        
+
         $donorId = $activeCase->donor_id;
-        $isBrainDead = (int)($deathDecl->is_brain_dead ?? 0);
+        $isBrainDead = (int) ($deathDecl->is_brain_dead ?? 0);
         $snapshot = $resolver->resolveAtDeath($donorId, $isBrainDead, $timeOfDeath, $activeCase->kidney_decision, $activeCase->body_cornea_decision);
-        
+
         $activeItems = $snapshot['items'] ?? [];
         $expirations = $snapshot['time_limits'] ?? [];
         $currentDeadline = $deathDecl->window_expires_at; // 48h default
@@ -1714,7 +1797,7 @@ class Custodian {
                 }
             }
         }
-        
+
         $now = time();
         $deadlineTs = strtotime($currentDeadline);
         return [

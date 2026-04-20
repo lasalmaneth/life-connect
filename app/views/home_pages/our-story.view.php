@@ -142,51 +142,7 @@
         </div>
     </section>
 
-    <!-- Team Section -->
-    <section class="section-padding" style="background:var(--blue-25)">
-        <div class="container">
-            <div class="sec-header">
-                <h2>Meet Our Team</h2>
-                <div class="underline"></div>
-                <p>The passionate individuals behind LifeConnect Sri Lanka, dedicated to saving lives and supporting
-                    families.</p>
-            </div>
-            <div class="info-grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
-                <div class="team-card">
-                    <div class="team-photo"><i class="fas fa-user-md"></i></div>
-                    <h3>Dr. Priya Fernando</h3>
-                    <p class="team-role" style="color:var(--blue-600); font-weight:600; font-size:.85rem; margin-bottom:12px">Founder & Medical Director</p>
-                    <p class="team-bio" style="color:var(--g500); line-height:1.6; font-size:.85rem; margin-bottom:14px">Leading transplant surgeon with 15+ years experience. Passionate about making
-                        organ donation accessible to all Sri Lankan families.</p>
-                    <div class="team-social" style="display:flex; justify-content:center; gap:12px"><i class="fab fa-linkedin" style="color:var(--blue-600); cursor:pointer"></i><i class="fas fa-envelope" style="color:var(--blue-600); cursor:pointer"></i></div>
-                </div>
-                <div class="team-card">
-                    <div class="team-photo"><i class="fas fa-code"></i></div>
-                    <h3>Nuwan Perera</h3>
-                    <p class="team-role" style="color:var(--blue-600); font-weight:600; font-size:.85rem; margin-bottom:12px">Tech Lead & Co-Founder</p>
-                    <p class="team-bio" style="color:var(--g500); line-height:1.6; font-size:.85rem; margin-bottom:14px">Software engineer specializing in healthcare technology. Committed to building
-                        secure, user-friendly platforms that save lives.</p>
-                    <div class="team-social" style="display:flex; justify-content:center; gap:12px"><i class="fab fa-linkedin" style="color:var(--blue-600); cursor:pointer"></i><i class="fas fa-envelope" style="color:var(--blue-600); cursor:pointer"></i></div>
-                </div>
-                <div class="team-card">
-                    <div class="team-photo"><i class="fas fa-gavel"></i></div>
-                    <h3>Adv. Ravi Silva</h3>
-                    <p class="team-role" style="color:var(--blue-600); font-weight:600; font-size:.85rem; margin-bottom:12px">Legal Advisor</p>
-                    <p class="team-bio" style="color:var(--g500); line-height:1.6; font-size:.85rem; margin-bottom:14px">Legal expert ensuring LifeConnect complies with all Sri Lankan laws and
-                        regulations. Advocate for donor and recipient rights.</p>
-                    <div class="team-social" style="display:flex; justify-content:center; gap:12px"><i class="fab fa-linkedin" style="color:var(--blue-600); cursor:pointer"></i><i class="fas fa-envelope" style="color:var(--blue-600); cursor:pointer"></i></div>
-                </div>
-                <div class="team-card">
-                    <div class="team-photo"><i class="fas fa-heart"></i></div>
-                    <h3>Amali Perera</h3>
-                    <p class="team-role" style="color:var(--blue-600); font-weight:600; font-size:.85rem; margin-bottom:12px">Family Support Coordinator</p>
-                    <p class="team-bio" style="color:var(--g500); line-height:1.6; font-size:.85rem; margin-bottom:14px">Dedicated to supporting families through the donation process. Ensures every
-                        family feels supported and informed.</p>
-                    <div class="team-social" style="display:flex; justify-content:center; gap:12px"><i class="fab fa-linkedin" style="color:var(--blue-600); cursor:pointer"></i><i class="fas fa-envelope" style="color:var(--blue-600); cursor:pointer"></i></div>
-                </div>
-            </div>
-        </div>
-    </section>
+
 
     <!-- Impact & Stats Section -->
     <section class="section-padding">
@@ -223,40 +179,67 @@
                 </div>
             </div>
 
-            <!-- Testimonials -->
+            <!-- Success Stories -->
             <div style="margin-top:60px">
                 <div class="sec-header">
-                    <h2>What Families Say</h2>
+                    <h2>Success Stories</h2>
                     <div class="underline"></div>
+                    <p>Real experiences and milestones from our community and partner institutions.</p>
                 </div>
                 <div class="info-grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
-                    <div class="test-card">
-                        <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
-                        <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"LifeConnect made the impossible possible. When my father passed, his organs saved three
-                            lives. The platform guided us through every step with compassion and clarity."</p>
-                        <div class="test-author">
-                            <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Mrs. Kamala Wickramasinghe</strong>
-                            <span style="color:var(--blue-600); font-size:.8rem">Daughter of organ donor</span>
+                    <?php if (!empty($stories)): ?>
+                        <?php foreach ($stories as $story): ?>
+                            <div class="test-card">
+                                <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6">
+                                    <?php if ($story->story_type === 'IMPACT'): ?>
+                                        <i class="fas fa-chart-line"></i>
+                                    <?php elseif ($story->story_type === 'INSPIRATIONAL'): ?>
+                                        <i class="fas fa-quote-left"></i>
+                                    <?php else: ?>
+                                        <i class="fas fa-award"></i>
+                                    <?php endif; ?>
+                                </div>
+                                <h4 style="margin-bottom: 10px; color: var(--blue-900); font-weight: 800;"><?= htmlspecialchars($story->title) ?></h4>
+                                <p style="color:var(--g500); line-height:1.7; font-size:.9rem; margin-bottom:16px">
+                                    "<?= htmlspecialchars(strlen($story->description) > 150 ? substr($story->description, 0, 150) . '...' : $story->description) ?>"
+                                </p>
+                                <div class="test-author">
+                                    <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">
+                                        <?= htmlspecialchars($story->author_name ?: 'Medical Partner') ?>
+                                    </strong>
+                                    <span style="color:var(--blue-600); font-size:.8rem">
+                                        <?= date('M d, Y', strtotime($story->success_date)) ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <!-- Fallback static stories if none approved in DB -->
+                        <div class="test-card">
+                            <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
+                            <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"LifeConnect made the impossible possible. When my father passed, his organs saved three lives."</p>
+                            <div class="test-author">
+                                <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Mrs. Kamala Wickramasinghe</strong>
+                                <span style="color:var(--blue-600); font-size:.8rem">Daughter of organ donor</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="test-card">
-                        <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
-                        <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"As a transplant surgeon, I've seen how LifeConnect streamlines the donation process. It's a
-                            game-changer for Sri Lankan healthcare."</p>
-                        <div class="test-author">
-                            <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Dr. Suresh Mendis</strong>
-                            <span style="color:var(--blue-600); font-size:.8rem">Transplant Surgeon, National Hospital</span>
+                        <div class="test-card">
+                            <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
+                            <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"As a transplant surgeon, I've seen how LifeConnect streamlines the donation process."</p>
+                            <div class="test-author">
+                                <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Dr. Suresh Mendis</strong>
+                                <span style="color:var(--blue-600); font-size:.8rem">Transplant Surgeon</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="test-card">
-                        <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
-                        <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"The transparency and support provided by LifeConnect gave our family peace of mind during a
-                            difficult time. We knew our loved one's wishes were being honored."</p>
-                        <div class="test-author">
-                            <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Mr. Rajesh Kumar</strong>
-                            <span style="color:var(--blue-600); font-size:.8rem">Family member</span>
+                        <div class="test-card">
+                            <div class="test-quote" style="color:var(--blue-600); font-size:1.6rem; margin-bottom:14px; opacity:.6"><i class="fas fa-quote-left"></i></div>
+                            <p style="color:var(--g500); line-height:1.7; font-style:italic; font-size:.9rem; margin-bottom:16px">"The transparency and support provided by LifeConnect gave our family peace of mind."</p>
+                            <div class="test-author">
+                                <strong style="color:var(--slate); font-size:.88rem; display:block; margin-bottom:2px">Mr. Rajesh Kumar</strong>
+                                <span style="color:var(--blue-600); font-size:.8rem">Family member</span>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

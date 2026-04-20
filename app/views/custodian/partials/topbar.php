@@ -52,9 +52,7 @@
                 </a>
             </nav>
 
-            <div class="cp-bell" title="Notifications" id="cp-bell-btn">
-                <i class="fas fa-bell"></i>
-            </div>
+
 
             <div class="cp-user-chip" id="cp-user-chip">
                 <div class="cp-user-avatar">
