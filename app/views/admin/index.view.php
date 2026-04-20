@@ -609,6 +609,15 @@
     if (session_status() === PHP_SESSION_NONE) session_start();
     $db = new class { use \App\Core\Database; };
     $uId = $_SESSION['user_id'] ?? 0;
+    
+    // Total Users
+    $res = $db->query("SELECT COUNT(*) as count FROM users");
+    $stats['totalUsers'] = $res[0]->count ?? 0;
+
+    // Total Aftercare Patients
+    $resPatient = $db->query("SELECT COUNT(*) as count FROM aftercare_patients");
+    $stats['totalPatients'] = $resPatient[0]->count ?? 0;
+
     $adminData = $db->query("SELECT a.*, u.email, u.status 
                              FROM admins a 
                              JOIN users u ON a.user_id = u.id 
@@ -807,7 +816,7 @@
                                             <div class="legend-left">
                                                 <div class="legend-color" style="background:#a4c8e1"></div>Patients
                                             </div>
-                                            <div class="legend-count">0</div>
+                                            <div class="legend-count"><?= $stats['totalPatients'] ?></div>
                                         </div>
                                         <div class="legend-item">
                                             <div class="legend-left">
@@ -823,7 +832,7 @@
                                         </div>
                                         <div class="legend-item">
                                             <div class="legend-left">
-                                                <div class="legend-color" style="background:#e8f5e8"></div>Medical
+                                                <div class="legend-color" style="background:#16a34a"></div>Medical
                                                 Schools
                                             </div>
                                             <div class="legend-count">0</div>
@@ -1943,17 +1952,17 @@
         function updateUserChart(stats) {
             const data = [
                 { label: "Donors", value: Number(stats.role_DONOR || 0), color: "#005baa" },
-                { label: "Patients", value: Number(stats.role_PATIENT || 0), color: "#a4c8e1" },
+                { label: "Patients", value: Number(stats.totalPatients || 0), color: "#a4c8e1" },
                 { label: "Custodians", value: Number(stats.role_CUSTODIAN || 0), color: "#059669" },
                 { label: "Hospitals", value: Number(stats.role_HOSPITAL || 0), color: "#74b9ff" },
-                { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#80c880ff" }
+                { label: "Medical Schools", value: Number(stats.role_MEDICAL_SCHOOL || 0), color: "#16a34a" }
             ];
 
             // Update HTML legend counts
             const legendCounts = document.querySelectorAll('.chart-legend .legend-count');
             if (legendCounts.length >= 5) {
                 legendCounts[0].textContent = stats.role_DONOR || 0;
-                legendCounts[1].textContent = stats.role_PATIENT || 0;
+                legendCounts[1].textContent = stats.totalPatients || 0;
                 legendCounts[2].textContent = stats.role_CUSTODIAN || 0;
                 legendCounts[3].textContent = stats.role_HOSPITAL || 0;
                 legendCounts[4].textContent = stats.role_MEDICAL_SCHOOL || 0;

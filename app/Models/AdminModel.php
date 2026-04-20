@@ -16,6 +16,10 @@ class AdminModel
         $res = $this->query("SELECT COUNT(*) as count FROM users");
         $stats['totalUsers'] = $res[0]->count ?? 0;
 
+        // Total Aftercare Patients
+        $resPatient = $this->query("SELECT COUNT(*) as count FROM aftercare_patients");
+        $stats['totalPatients'] = $resPatient[0]->count ?? 0;
+
         // Count by Status
         $res = $this->query("SELECT status, COUNT(*) as count FROM users GROUP BY status");
         foreach ($res as $row) {
@@ -261,12 +265,11 @@ class AdminModel
         );
 
         // 2. Sync verification_status in role-specific profile tables
-        //    Map users.status → profile table verification_status value
         $profileStatus = match (strtoupper($status)) {
             'ACTIVE' => 'APPROVED',
             'PENDING' => 'PENDING',
             'WITHDRAW_REQUEST' => 'REJECTED',
-            default => null // SUSPENDED is not an ENUM in profile tables
+            default => null
         };
 
         if ($profileStatus !== null) {
@@ -290,16 +293,13 @@ class AdminModel
                 "UPDATE custodians SET status = :vs WHERE user_id = :uid",
                 ['vs' => $profileStatus, 'uid' => $userId]
             );
-            // aftercare_patients table schema has been updated and no longer maintains a status column.
 
             // Recipient Patients table (Sync status if they have a profile)
             $res = $this->query(
-                "SELECT r.registration_number 
-                 FROM aftercare_patients ap
-                 JOIN recipient_patient r ON ap.user_id = r.user_id 
-                 WHERE ap.user_id = :uid",
+                "SELECT r.registration_number FROM aftercare_patients ap JOIN users u ON ap.user_id = u.id JOIN recipient_patient r ON u.username = r.registration_number WHERE ap.user_id = :uid",
                 ['uid' => $userId]
             );
+
             if (!empty($res) && !empty($res[0]->registration_number)) {
                 $regNo = $res[0]->registration_number;
                 $this->query(

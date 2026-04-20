@@ -1,7 +1,7 @@
 <?php
 /**
  * Shared Administrative Profile Component
- * Includes the Dropdown Card and Edit Modal
+ * Includes the Dropdown Card with Inline Editing
  * 
  * Expected variables:
  * @var object $admin - The admin record (contains first_name, last_name, staff_id, designation, etc.)
@@ -14,13 +14,118 @@ $adminName = ($admin->first_name ?? '') . ' ' . ($admin->last_name ?? '');
 $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
 ?>
 
+<style>
+    /* Visibility Toggling - Use !important to override global styles */
+    .profile-dropdown .edit-mode { display: none !important; }
+    .profile-dropdown .view-mode { display: flex !important; }
+
+    .profile-dropdown.is-editing .view-mode { display: none !important; }
+    .profile-dropdown.is-editing .edit-mode { display: flex !important; }
+    
+    .profile-dropdown .card-avatar {
+        flex-shrink: 0;
+        width: 64px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .profile-dropdown .inline-input {
+        width: 100%;
+        padding: 4px 0;
+        border: none;
+        border-bottom: 2px solid #3b82f6;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+        background: transparent;
+        transition: all 0.2s;
+        text-align: right;
+        font-family: inherit;
+    }
+    .profile-dropdown .inline-input:focus {
+        outline: none;
+        background: rgba(59, 130, 246, 0.05);
+        border-bottom-color: #2563eb;
+    }
+    .profile-dropdown .card-name-input {
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-align: left;
+        width: 100px;
+        color: #1e293b;
+    }
+    
+    .profile-dropdown .info-value {
+        word-break: break-all;
+        max-width: 180px;
+        text-align: right;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    /* Button Consistency Group */
+    .profile-dropdown .card-btn {
+        flex: 1;
+        height: 48px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .profile-dropdown .card-btn-outline {
+        background: #ffffff;
+        color: #003b6e;
+        border: 1.5px solid #e2e8f0;
+    }
+    .profile-dropdown .card-btn-outline:hover {
+        background: #f8fafc;
+        border-color: #003b6e;
+    }
+    
+    .profile-dropdown .card-btn-primary {
+        background: #005baa;
+        color: white;
+        border: none;
+    }
+    .profile-dropdown .card-btn-primary:hover {
+        background: #004a8c;
+    }
+    
+    .profile-dropdown .card-btn-danger {
+        background: #ef4444;
+        color: white;
+        border: none;
+    }
+    .profile-dropdown .card-btn-danger:hover {
+        background: #dc2626;
+    }
+</style>
+
 <!-- Profile Dropdown -->
-<div class="profile-dropdown" id="<?= $dropdownId ?>">
+<div class="profile-dropdown" id="<?= $dropdownId ?>" onclick="event.stopPropagation()">
     <div class="profile-card-header">
         <div class="card-avatar"><?= $avatarLetter ?></div>
         <div class="card-title-group">
-            <div class="card-name"><?= htmlspecialchars($adminName) ?></div>
-            <div class="card-role"><?= htmlspecialchars($adminRoleTitle ?? 'Administrator') ?></div>
+            <div class="view-mode">
+                <div class="card-name"><?= htmlspecialchars($adminName) ?></div>
+                <div class="card-role"><?= htmlspecialchars($adminRoleTitle ?? 'Administrator') ?></div>
+            </div>
+            <div class="edit-mode">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="inline_first_name" class="inline-input card-name-input" placeholder="First" value="<?= htmlspecialchars($admin->first_name ?? '') ?>">
+                    <input type="text" id="inline_last_name" class="inline-input card-name-input" placeholder="Last" value="<?= htmlspecialchars($admin->last_name ?? '') ?>">
+                </div>
+                <div class="card-role"><?= htmlspecialchars($adminRoleTitle ?? 'Administrator') ?></div>
+            </div>
         </div>
     </div>
     <div class="profile-card-body">
@@ -34,13 +139,16 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
         </div>
         <div class="info-row">
             <span class="info-label">Phone:</span>
-            <span class="info-value"><?= htmlspecialchars($admin->contact_number ?? ($admin->phone ?? 'N/A')) ?></span>
+            <span class="info-value view-mode"><?= htmlspecialchars($admin->contact_number ?? ($admin->phone ?? 'N/A')) ?></span>
+            <div class="info-value edit-mode" style="flex: 1;">
+                <input type="text" id="inline_phone" class="inline-input" value="<?= htmlspecialchars($admin->contact_number ?? ($admin->phone ?? '')) ?>">
+            </div>
         </div>
         <div class="info-row">
             <span class="info-label">Designation:</span>
             <span class="info-value"><?= htmlspecialchars($admin->designation ?? 'N/A') ?></span>
         </div>
-        <div class="info-row">
+        <div class="info-row view-mode">
             <span class="info-label">Status:</span>
             <span class="info-value">
                 <span class="status-badge active"><?= htmlspecialchars($admin->status ?? 'ACTIVE') ?></span>
@@ -48,78 +156,59 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
         </div>
     </div>
     <div class="profile-card-footer">
-        <a href="javascript:void(0)" onclick="toggleAdminProfileModal(true)" class="card-btn card-btn-outline">
+        <!-- View Mode Buttons -->
+        <a href="javascript:void(0)" onclick="toggleAdminProfileEdit(true)" class="card-btn card-btn-outline view-mode">
             <i class="fa-solid fa-user-pen"></i>
             <span>Edit Profile</span>
         </a>
-        <a href="<?= ROOT ?>/logout" class="card-btn card-btn-danger">
+        <a href="<?= ROOT ?>/logout" class="card-btn card-btn-danger view-mode">
             <i class="fa-solid fa-right-from-bracket"></i>
             <span>Logout</span>
         </a>
-    </div>
-</div>
 
-<!-- Edit Profile Modal -->
-<div class="modal" id="adminProfileModal">
-    <div class="modal-content">
-        <div class="modal-header" style="padding: 24px 32px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0;">Edit Admin Profile</h3>
-            <button onclick="toggleAdminProfileModal(false)" style="background: none; border: none; font-size: 1.8rem; color: #64748b; cursor: pointer; line-height: 1;">&times;</button>
-        </div>
-        <div style="padding: 32px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                <div class="form-group">
-                    <label class="form-label">First Name</label>
-                    <input type="text" id="modal_first_name" class="form-input" value="<?= htmlspecialchars($admin->first_name ?? '') ?>">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Last Name</label>
-                    <input type="text" id="modal_last_name" class="form-input" value="<?= htmlspecialchars($admin->last_name ?? '') ?>">
-                </div>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label class="form-label">Email Address</label>
-                <input type="email" id="modal_email" class="form-input" value="<?= htmlspecialchars($admin->email ?? '') ?>">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label class="form-label">Contact Number</label>
-                <input type="text" id="modal_phone" class="form-input" value="<?= htmlspecialchars($admin->contact_number ?? ($admin->phone ?? '')) ?>">
-            </div>
-            <div style="margin-bottom: 32px;">
-                <label class="form-label">Designation</label>
-                <input type="text" id="modal_designation" class="form-input" value="<?= htmlspecialchars($admin->designation ?? '') ?>">
-            </div>
-            <button onclick="saveAdminProfileAjax()" class="btn btn-primary" id="saveAdminProfileBtn" style="width: 100%; height: 52px; border-radius: 12px; font-size: 1rem; justify-content: center;">
-                Update Information
-            </button>
-        </div>
+        <!-- Edit Mode Buttons -->
+        <a href="javascript:void(0)" onclick="saveAdminProfileInline()" class="card-btn card-btn-primary edit-mode" id="btnSaveInline">
+            <i class="fa-solid fa-check"></i>
+            <span>Save</span>
+        </a>
+        <a href="javascript:void(0)" onclick="toggleAdminProfileEdit(false)" class="card-btn card-btn-outline edit-mode">
+            <i class="fa-solid fa-xmark"></i>
+            <span>Cancel</span>
+        </a>
     </div>
 </div>
 
 <script>
-    function toggleAdminProfileModal(show) {
-        const modal = document.getElementById('adminProfileModal');
+    function toggleAdminProfileEdit(show) {
         const dropdown = document.getElementById('<?= $dropdownId ?>');
         if (show) {
-            modal.classList.add('show');
-            if (dropdown) dropdown.classList.remove('active');
+            dropdown.classList.add('is-editing');
+            setTimeout(() => {
+                const firstInput = document.getElementById('inline_first_name');
+                if (firstInput) {
+                    firstInput.focus();
+                    firstInput.setSelectionRange(firstInput.value.length, firstInput.value.length);
+                }
+            }, 50);
         } else {
-            modal.classList.remove('show');
+            dropdown.classList.remove('is-editing');
         }
     }
 
-    function saveAdminProfileAjax() {
-        const btn = document.getElementById('saveAdminProfileBtn');
+    function saveAdminProfileInline() {
+        const btn = document.getElementById('btnSaveInline');
+        
         const data = {
-            first_name: document.getElementById('modal_first_name').value,
-            last_name: document.getElementById('modal_last_name').value,
-            email: document.getElementById('modal_email').value,
-            contact_number: document.getElementById('modal_phone').value,
-            designation: document.getElementById('modal_designation').value
+            first_name: document.getElementById('inline_first_name').value,
+            last_name: document.getElementById('inline_last_name').value,
+            contact_number: document.getElementById('inline_phone').value,
+            email: '<?= $admin->email ?? "" ?>',
+            designation: '<?= $admin->designation ?? "" ?>'
         };
 
-        btn.innerText = 'Updating...';
-        btn.disabled = true;
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving...</span>';
+        btn.style.pointerEvents = 'none';
 
         fetch('<?= ROOT ?>/user-admin/ajaxUpdateProfile', {
             method: 'POST',
@@ -128,32 +217,49 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
         })
         .then(res => res.json())
         .then(result => {
-            btn.innerText = 'Update Information';
-            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+            btn.style.pointerEvents = 'auto';
+            
             if (result.success) {
-                toggleAdminProfileModal(false);
-                window.location.reload(); 
+                if (typeof showToast === 'function') {
+                    showToast('success', 'Profile updated successfully!');
+                } else if (typeof showToastNotification === 'function') {
+                    showToastNotification('success', 'Profile updated successfully!');
+                } else {
+                    alert('Profile updated successfully!');
+                }
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 800);
             } else {
-                alert(result.message);
+                alert(result.message || 'Failed to update profile');
             }
         })
         .catch(err => {
-            btn.innerText = 'Update Information';
-            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+            btn.style.pointerEvents = 'auto';
             console.error('Save error:', err);
             alert('An error occurred while saving.');
         });
     }
 
-    // Shared outside-click logic
     document.addEventListener('click', function(e) {
         const dropdown = document.getElementById('<?= $dropdownId ?>');
-        const toggle = document.querySelector('[data-profile-toggle]'); // Centralized toggle selector
+        const toggle = document.querySelector('[data-profile-toggle]');
         
         if (dropdown && dropdown.classList.contains('active')) {
+            if (dropdown.classList.contains('is-editing') && dropdown.contains(e.target)) {
+                return;
+            }
             if (!dropdown.contains(e.target) && (!toggle || !toggle.contains(e.target))) {
                 dropdown.classList.remove('active');
+                dropdown.classList.remove('is-editing');
             }
         }
+    });
+
+    document.querySelectorAll('.inline-input').forEach(input => {
+        input.addEventListener('click', e => e.stopPropagation());
     });
 </script>
