@@ -595,15 +595,17 @@ ob_start();
                     </div>
                 <?php endif; ?>
 
+                <!-- 3. SUPPORT SECTIONS -->
+                <div class="col-span-1 md:col-span-2">
+                    <?php require __DIR__ . '/partials/co-custodian-approvals.php'; ?>
+                </div>
+                <div class="col-span-1 md:col-span-2">
+                    <?php require __DIR__ . '/partials/activity-timeline.php'; ?>
+                </div>
+
             </div>
 
         <?php endif; ?>
-
-        <!-- 3. SUPPORT SECTIONS -->
-        <div class="cp-grid-2">
-            <?php require __DIR__ . '/partials/co-custodian-approvals.php'; ?>
-            <?php require __DIR__ . '/partials/activity-timeline.php'; ?>
-        </div>
 
     <?php endif; ?>
 

@@ -121,13 +121,15 @@ ob_start();
                     <div class="mb-4">
                         <label class="cp-form-label mb-2">Place of Death <span class="cp-required">*</span></label>
                         <input type="text" name="place_of_death" class="cp-form-control"
-                            placeholder="e.g. Hospital name, Home address" required>
+                            placeholder="e.g. Hospital name, Home address" required minlength="5">
+                        <div class="cp-val-feedback" style="display:none; color: #dc2626; font-size: 0.75rem; margin-top: 4px;">Please provide a more detailed location (min 5 characters).</div>
                     </div>
 
                     <div class="mb-4">
                         <label class="cp-form-label mb-2">Primary Cause of Death <span class="cp-required">*</span></label>
                         <textarea name="cause_of_death" class="cp-form-control" rows="2"
-                            placeholder="As stated by medical professional" required></textarea>
+                            placeholder="As stated by medical professional" required minlength="10"></textarea>
+                        <div class="cp-val-feedback" style="display:none; color: #dc2626; font-size: 0.75rem; margin-top: 4px;">Please provide a valid medical cause (min 10 characters).</div>
                     </div>
 
                     <div class="mb-4">
@@ -135,7 +137,7 @@ ob_start();
                         <textarea name="additional_notes" class="cp-form-control" rows="2"></textarea>
                     </div>
 
-                    <div class="mb-5"
+                    <div class="mb-5 cp-brain-death-box"
                         style="background: #fdf2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 20px;">
                         <label class="cp-form-label mb-2"
                             style="color: #991b1b; display: flex; align-items: center; gap: 8px;">
@@ -166,8 +168,7 @@ ob_start();
 
                     <div class="cp-notice cp-notice--warning mb-4">
                         <i class="fas fa-triangle-exclamation"></i>
-                        <p class="cp-text-xs">Warning: Reporting a death is irreversible and will immediately trigger
-                            donation case logic based on the donor's consent.</p>
+                        <p class="cp-text-xs">Warning: Reporting a death is irreversible and will immediately trigger donation case logic based on the donor's consent.</p>
                     </div>
 
                     <div style="display:flex; justify-content:center; margin-top: 2rem;">
@@ -188,8 +189,18 @@ ob_start();
         const form = document.getElementById('report-death-form');
         const formData = new FormData(form);
 
+        // Clear existing feedback
+        document.querySelectorAll('.cp-val-feedback').forEach(f => f.style.display = 'none');
+
         if (!form.checkValidity()) {
             form.reportValidity();
+            // Show custom feedback
+            if (form.place_of_death.value.length < 5) {
+               form.place_of_death.nextElementSibling.style.display = 'block';
+            }
+            if (form.cause_of_death.value.length < 10) {
+               form.cause_of_death.nextElementSibling.style.display = 'block';
+            }
             return;
         }
 

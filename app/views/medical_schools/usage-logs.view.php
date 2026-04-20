@@ -295,11 +295,11 @@ ob_start();
                         <label class="cp-label">Select Target Cadaver <span style="color: #ef4444;">*</span></label>
                         <select name="donor_id" class="cp-input" required>
                             <?php if ($caseInfo && $caseInfo->usage_count == 0): ?>
-                                <option value="<?= $caseInfo->donor_id ?>">
+                                <option value="<?= $caseInfo->donor_id ?>" selected>
                                     <?= htmlspecialchars($caseInfo->first_name . ' ' . $caseInfo->last_name) ?>
                                     (#<?= $caseInfo->case_number ?>)</option>
                             <?php else: ?>
-                                <option value="">-- Select Unused Body --</option>
+                                <option value="" selected disabled>-- Select Unused Body --</option>
                                 <?php foreach ($inventory as $inv): ?>
                                     <?php if ($inv->usage_count == 0): ?>
                                         <option value="<?= $inv->donor_id ?>">
@@ -365,8 +365,17 @@ ob_start();
                     </div>
 <!-- to do dropdown , subject , dept dropdown fix  -->
                     <div>
-                        <label class="cp-label">Duration</label>
-                        <input type="text" name="duration" placeholder="e.g. 2 hours" class="cp-input">
+                        <label class="cp-label">Duration <span style="color: #ef4444;">*</span></label>
+                        <select name="duration" class="cp-input" required>
+                            <option value="" selected disabled>-- Select Duration --</option>
+                            <option value="1 hour">1 hour</option>
+                            <option value="2 hours">2 hours</option>
+                            <option value="3 hours">3 hours</option>
+                            <option value="4 hours">4 hours</option>
+                            <option value="Half Day">Half Day</option>
+                            <option value="Full Day">Full Day</option>
+                            <option value="Multi-day">Multi-day</option>
+                        </select>
                     </div>
 
                     <div>

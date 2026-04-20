@@ -11,9 +11,18 @@ class SuccessStoryModel {
 
     public function getStoriesByInstitution($id, $type) {
         $query = "SELECT * FROM {$this->table} 
-                  WHERE institution_id = :id AND institution_type = :type 
-                  ORDER BY created_at DESC";
+                   WHERE institution_id = :id AND institution_type = :type 
+                   ORDER BY created_at DESC";
         return $this->query($query, ['id' => $id, 'type' => $type]) ?: [];
+    }
+
+    public function getApprovedStories($limit = 3) {
+        $limit = (int)$limit;
+        $query = "SELECT * FROM {$this->table} 
+                  WHERE status = 'Approved' 
+                  ORDER BY success_date DESC 
+                  LIMIT $limit";
+        return $this->query($query) ?: [];
     }
 
     public function getAllStories() {

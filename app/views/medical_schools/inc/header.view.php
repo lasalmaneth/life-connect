@@ -22,35 +22,7 @@
       </div>
     </div>
     <div class="d-header__right">
-      <div style="position:relative;">
-        <div class="d-bell" onclick="toggleNotifications()">
-          <i class="fas fa-bell"></i>
-          <span class="d-bell__badge">5</span>
-        </div>
-        <div id="notificationPanel" class="d-notif-panel">
-          <div class="d-notif-panel__header"><i class="fas fa-bell"></i> Notifications</div>
-          <div class="d-notif-item unread">
-            <div class="d-notif-item__title"><i class="fas fa-file-signature" style="color:var(--blue-400);"></i> New Pre-Death Consent</div>
-            <div class="d-notif-item__desc">John Doe submitted willingness form - pending verification</div>
-            <div class="d-notif-item__time">1 hour ago</div>
-          </div>
-          <div class="d-notif-item unread">
-            <div class="d-notif-item__title"><i class="fas fa-user-times" style="color:#f59e0b;"></i> Donor Withdrawal</div>
-            <div class="d-notif-item__desc">Jane Smith cancelled donation - consent withdrawn</div>
-            <div class="d-notif-item__time">3 hours ago</div>
-          </div>
-          <div class="d-notif-item unread">
-            <div class="d-notif-item__title"><i class="fas fa-upload" style="color:#10b981;"></i> Documents Submitted</div>
-            <div class="d-notif-item__desc">Custodian uploaded post-death documents for Mr. Ranjan Perera</div>
-            <div class="d-notif-item__time">5 hours ago</div>
-          </div>
-          <div class="d-notif-item">
-            <div class="d-notif-item__title"><i class="fas fa-check-circle" style="color:#10b981;"></i> Body Accepted</div>
-            <div class="d-notif-item__desc">Physical verification completed for BODY-2025-001</div>
-            <div class="d-notif-item__time">1 day ago</div>
-          </div>
-        </div>
-      </div>
+
       <div class="d-user-chip" style="position: relative;" onclick="document.getElementById('medicalSchoolDropdown').classList.toggle('show')">
         <div class="d-user-avatar" style="cursor: pointer;"><?= isset($school) ? strtoupper(substr($school->school_name ?? 'MS', 0, 2)) : 'MS' ?></div>
         <div style="cursor: pointer;">

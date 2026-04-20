@@ -322,7 +322,7 @@
                 <form class="contact-form" id="contactForm" action="<?= ROOT ?>/home/submit" method="POST">
                     <div class="f-group">
                         <label for="full_name">Full Name</label>
-                        <input type="text" id="full_name" name="full_name" placeholder="Enter your name" required>
+                        <input type="text" id="full_name" name="full_name" placeholder="Enter your name" required minlength="3" pattern="^[a-zA-Z\s\.]+$" title="Please enter a valid name (letters only).">
                         <?php if(isset($_SESSION['contact_errors']) && in_array("Name is required", $_SESSION['contact_errors'])): ?>
                             <span class="f-err" style="display:block;">Name is required</span>
                         <?php endif; ?>
@@ -336,7 +336,7 @@
                     </div>
                     <div class="f-group">
                         <label for="message">Message</label>
-                        <textarea id="message" name="message" rows="5" placeholder="Write your message" required></textarea>
+                        <textarea id="message" name="message" rows="5" placeholder="Write your message" required minlength="15"></textarea>
                         <?php if(isset($_SESSION['contact_errors']) && in_array("Message is required", $_SESSION['contact_errors'])): ?>
                             <span class="f-err" style="display:block;">Message cannot be empty</span>
                         <?php endif; ?>

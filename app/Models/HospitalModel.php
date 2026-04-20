@@ -1112,7 +1112,7 @@ class HospitalModel {
     public function issueDonationCertificate($cisId, $hospitalId)
     {
         // 1. Get Case Details
-        $caseRec = $this->query("SELECT cis.donation_case_id, h.name as institution_name FROM case_institution_status cis 
+        $caseRec = $this->query("SELECT donation_case_id, institution_name FROM case_institution_status cis 
                                  JOIN hospitals h ON cis.institution_id = h.id
                                  WHERE cis.id = :id AND cis.institution_id = :h_id", 
                                  [':id' => $cisId, ':h_id' => $hospitalId])[0] ?? null;
@@ -1121,54 +1121,22 @@ class HospitalModel {
         
         $caseId = $caseRec->donation_case_id;
 
-        // Prevent duplicate certificates
-        $exists = $this->first(['case_institution_request_id' => $cisId], [], "id", "", "donation_certificates");
-        if ($exists) return $exists->id;
-
-        // 2. Sync Statuses (Already handled in updateDeceasedFinalFlowStatus but making sure)
-        $this->update($caseId, ['overall_status' => 'SUCCESSFUL'], 'id', 'donation_cases');
-        $this->update($cisId, ['institution_status' => 'ACCEPTED'], 'id', 'case_institution_status');
+        // 2. Sync Status
+        $this->query("UPDATE donation_cases SET overall_status = 'SUCCESSFUL' WHERE id = :case_id", [':case_id' => $caseId]);
+        $this->query("UPDATE case_institution_status SET institution_status = 'ACCEPTED' WHERE id = :cis_id", [':cis_id' => $cisId]);
 
         // 3. Issue Certificate
-        $certNum = "CERT-H-" . date('Y') . "-" . str_pad($cisId, 5, '0', STR_PAD_LEFT);
-        return $this->insert([
-            'donation_case_id' => $caseId,
-            'case_institution_request_id' => $cisId,
-            'certificate_number' => $certNum,
-            'file_path' => 'generated_system',
-            'issued_by_name' => $caseRec->institution_name ?? 'Donation Hospital'
-        ], "donation_certificates");
-    }
-
-    /**
-     * Issue Appreciation Letter for Organ Donation
-     */
-    public function issueAppreciationLetter($cisId, $hospitalId, $issuerId)
-    {
-        // 1. Get Case Details
-        $caseRec = $this->query("SELECT cis.donation_case_id, h.name as institution_name FROM case_institution_status cis 
-                                 JOIN hospitals h ON cis.institution_id = h.id
-                                 WHERE cis.id = :id AND cis.institution_id = :h_id", 
-                                 [':id' => $cisId, ':h_id' => $hospitalId])[0] ?? null;
+        $certNum = "CERT-H-" . date('Y') . "-" . str_pad($caseId, 4, '0', STR_PAD_LEFT);
+        $this->query("INSERT INTO donation_certificates (donation_case_id, case_institution_request_id, certificate_number, file_path, issued_by_name)
+                      VALUES (:case_id, :cis_id, :cert_num, :path, :issuer)", [
+                        ':case_id' => $caseId,
+                        ':cis_id' => $cisId,
+                        ':cert_num' => $certNum,
+                        ':path' => 'pending', 
+                        ':issuer' => $caseRec->institution_name ?? 'Donation Hospital'
+                      ]);
         
-        if (!$caseRec) return false;
-
-        $caseId = $caseRec->donation_case_id;
-
-        // Prevent duplicate letters
-        $exists = $this->first(['case_institution_request_id' => $cisId], [], "id", "", "appreciation_letters");
-        if ($exists) return $exists->id;
-
-        // 2. Issue Letter (Linked directly to CIS for Hospitals)
-        $refNum = "APP-H-" . date('Y') . "-" . str_pad($cisId, 5, '0', STR_PAD_LEFT);
-        return $this->insert([
-            'usage_log_id' => null, // Not a med school usage log
-            'case_institution_request_id' => $cisId,
-            'ref_number' => $refNum,
-            'issued_at' => date('Y-m-d H:i:s'),
-            'issued_by_id' => $issuerId,
-            'status' => 'ISSUED'
-        ], "appreciation_letters");
+        return true;
     }
 
     // --- Deceased Organ Management (Case Institution Status Integration) ---
@@ -1316,9 +1284,8 @@ class HospitalModel {
                 $caseId = $caseRec->donation_case_id;
                 $this->update($caseId, ['overall_status' => 'SUCCESSFUL'], 'id', 'donation_cases');
                 
-                // Issue BOTH Certificate and Appreciation Letter immediately for Hospitals
+                // Issue certificate
                 $this->issueDonationCertificate($cisId, $hospitalId);
-                $this->issueAppreciationLetter($cisId, $hospitalId, $userId);
             }
         }
         return true;
@@ -1378,6 +1345,26 @@ class HospitalModel {
                           AND test_type LIKE '% - %'
                           ORDER BY created_at DESC LIMIT 1) as latest_tests_done
                   FROM donors d
+                  JOIN upcoming_appointments ua ON ua.donor_id = d.id
+                  JOIN donor_pledges dp ON d.id = dp.donor_id
+                  JOIN organs o ON dp.organ_id = o.id
+                  WHERE UPPER(TRIM(dp.status)) = 'APPROVED'
+                    AND UPPER(TRIM(ua.status)) IN ('ACCEPTED', 'SCHEDULED', 'APPROVED', 'COMPLETED', 'SUCCESS')
+                    AND ua.hospital_registration_no = (SELECT registration_number FROM hospitals WHERE id = :hid)
+                    AND $whereHospital
+                    AND NOT EXISTS (
+                        SELECT 1 FROM consent_withdrawals cw 
+                        WHERE cw.donor_id = dp.donor_id 
+                        AND (cw.organ_id = dp.organ_id OR (dp.organ_id = 9 AND cw.organ_id = 9))
+                        AND cw.status = 'PENDING_UPLOAD'
+                    )
+                  GROUP BY d.id
+                  ORDER BY d.first_name ASC";
+
+        return $this->query($query, [':hid' => $hospitalId]) ?: [];
+    }
+}
+
                   JOIN upcoming_appointments ua ON ua.donor_id = d.id
                   JOIN donor_pledges dp ON d.id = dp.donor_id
                   JOIN organs o ON dp.organ_id = o.id
