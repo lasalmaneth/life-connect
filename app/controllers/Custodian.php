@@ -324,6 +324,7 @@ class Custodian {
     public function activityHistory()
     {
         $custodian = $this->requireCustodian();
+        show($custodian);
         if (!$custodian) return;
 
         $donorId = $custodian->donor_id;
@@ -649,7 +650,8 @@ class Custodian {
                 $extraData['submittedDocs'] = $submittedDocs;
             }
         }
-        $isLeader = false;
+
+        $isLeader = false;
         if ($deathDecl) {
             $isLeader = ($deathDecl->declared_by_custodian_id == $cidRaw);
         }
