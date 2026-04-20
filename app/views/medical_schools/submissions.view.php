@@ -148,6 +148,28 @@ function updateCountdowns() {
         if (h < 4) el.style.color = "#ef4444";
     });
 }
+
+function toggleDocWorkflow(action) {
+    const accArea = document.getElementById('doc_acceptArea');
+    const rejArea = document.getElementById('doc_rejectArea');
+    const accBtn = document.getElementById('doc_accBtn');
+    const rejBtn = document.getElementById('doc_rejBtn');
+
+    if (!accArea || !rejArea) return;
+
+    if (action === 'approve') {
+        accArea.style.display = 'block';
+        rejArea.style.display = 'none';
+        accBtn.classList.add('active');
+        rejBtn.classList.remove('active');
+    } else {
+        rejArea.style.display = 'block';
+        accArea.style.display = 'none';
+        rejBtn.classList.add('active');
+        accBtn.classList.remove('active');
+    }
+}
+
 setInterval(updateCountdowns, 60000);
 updateCountdowns();
 </script>

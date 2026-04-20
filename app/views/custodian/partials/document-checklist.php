@@ -365,6 +365,9 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                             <p
                                 style="color: #4b5563; font-size: 0.9rem; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px; border: 1px dashed #fca5a5; margin-bottom: 12px;">
                                 <strong>Faculty Notes & Instructions:</strong><br />
+                                <?php if (!empty($currentInstRequest->rejection_reason_code) && $currentInstRequest->rejection_reason_code !== $currentInstRequest->rejection_reason_text): ?>
+                                    <span style="font-weight: 800; color: #9f1239; font-size: 0.75rem; display: block; margin-bottom: 4px;">CATEGORY: <?= htmlspecialchars($currentInstRequest->rejection_reason_code) ?></span>
+                                <?php endif; ?>
                                 <?= nl2br(htmlspecialchars($currentInstRequest->rejection_reason_text)) ?>
                             </p>
                         <?php else: ?>
@@ -448,6 +451,31 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                             are completed. You can re-print them here if needed for physical handover.</p>
                     <?php endif; ?>
 
+                <!-- Rejection Alert -->
+                <?php if ($docStatus === 'REJECTED'): ?>
+                    <div
+                        style="background: #fef2f2; border: 1px solid #fee2e2; border-left: 5px solid #ef4444; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                        <div style="display: flex; gap: 15px; align-items: start;">
+                            <div
+                                style="background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; font-weight: 800; color: #991b1b;">Bundle Submission Rejected</h4>
+                                <p style="margin: 0; font-size: 0.85rem; color: #b91c1c; line-height: 1.5;">
+                                    <?php if (!empty($currentInst->rejection_reason_code) && $currentInst->rejection_reason_code !== $currentInst->rejection_reason_text): ?>
+                                        <strong>Category:</strong> <?= htmlspecialchars($currentInst->rejection_reason_code) ?><br/>
+                                    <?php endif; ?>
+                                    <strong>Instruction:</strong> <?= htmlspecialchars($currentInst->rejection_reason_text ?? 'Please review your documents and re-submit.') ?>
+                                </p>
+                                <div style="margin-top: 10px; font-size: 0.75rem; color: #b91c1c; font-weight: 600; text-transform: uppercase;">
+                                    <i class="fas fa-arrow-right mr-1"></i> Check Step 4 to re-upload the fixed bundle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                     <?php if ($donationType === 'ORGAN'): ?>
                         <div
                             style="background: var(--cp-blue-50); border: 1px solid var(--cp-blue-100); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center;">
@@ -505,8 +533,8 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                     <?= $is_expired ? 'Expired' : 'Locked' ?>
                                 </button>
                             <?php elseif (empty($hasSworn)): ?>
-                                <button class="compact-action-btn compact-action-btn--disabled"><i class="fas fa-lock"></i>
-                                    Locked</button>
+                                <button class="compact-action-btn compact-action-btn--disabled" title="Complete the Sworn Statement first to unlock this form">
+                                    <i class="fas fa-lock"></i> Complete Step 1</button>
                             <?php else: ?>
                                 <a href="<?= ROOT ?>/custodian/document-form?type=datasheet"
                                     class="compact-action-btn <?= empty($hasDatasheet) ? 'compact-action-btn--primary' : 'compact-action-btn--outline' ?>">
@@ -570,8 +598,9 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                                 <span class="cp-item-desc"><?= $item['desc'] ?></span>
                                             </div>
                                             <button type="button" class="compact-action-btn compact-action-btn--disabled"
-                                                style="background: #e2e8f0; color: #64748b;">
-                                                <i class="fas fa-lock"></i> Locked
+                                                style="background: #e2e8f0; color: #64748b;"
+                                                title="Complete both the Sworn Statement and Cadaver Data Sheet to unlock this checklist">
+                                                <i class="fas fa-lock"></i> Complete Step 1
                                             </button>
                                         <?php else: ?>
                                             <input type="checkbox" class="required-check d-none" name="<?= $item['name'] ?>"
@@ -957,7 +986,7 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                             <div class="cp-completion-icon">
                                                 <i class="fas fa-check"></i>
                                             </div>
-                                            <h4 class="cp-completion-title">Anatomical Donation Successfully Completed</h4>
+                                            <h4 class="cp-completion-title"><?= ($donationType === 'ORGAN') ? 'Organ' : 'Anatomical' ?> Donation Successfully Completed</h4>
                                             <p class="cp-completion-text">
                                                 The whole <?= ($donationType === 'ORGAN') ? 'organ' : 'body' ?> donation process for
                                                 <strong><?= htmlspecialchars($donor->first_name) ?></strong> has been formally
@@ -977,21 +1006,17 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                                         View Recognition Bundle
                                                     </a>
                                                 <?php else: ?>
-                                                    <!-- Separate Buttons for Body Donation -->
-                                                    <?php
-                                                    $certUrl = !empty($certificates) ? ROOT . "/medical-school/certificates/view?id=" . $certificates[0]->id : '#';
-                                                    $letterUrl = !empty($appreciation_letters) ? ROOT . "/medical-school/appreciation/view?id=" . $appreciation_letters[0]->id : '#';
-                                                    ?>
-                                                    <a href="<?= $certUrl ?>" target="_blank" class="cp-btn-bundle"
-                                                        style="background: var(--cp-accent); color: white; padding: 12px 20px; border-radius: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);">
+                                                    <!-- Separate Buttons for Body Donation --                                                    <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn-bundle"
+                                                        style="background: var(--cp-accent); color: white; padding: 12px 20px; border-radius: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
                                                         <i class="fas fa-certificate text-warning"></i>
                                                         View Certificate
                                                     </a>
-                                                    <a href="<?= $letterUrl ?>" target="_blank" class="cp-btn-bundle"
+                                                    <a href="<?= ROOT ?>/custodian/certificates" class="cp-btn-bundle"
                                                         style="background: white; color: var(--cp-accent); border: 2px solid var(--cp-accent); padding: 12px 20px; border-radius: 12px; font-weight: 700; text-decoration: none; display: flex; align-items: center; gap: 8px;">
                                                         <i class="fas fa-envelope-open-text"></i>
                                                         View Resolution Letter
                                                     </a>
+>
                                                 <?php endif; ?>
                                             </div>
                                         </div>

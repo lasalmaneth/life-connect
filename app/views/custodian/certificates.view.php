@@ -20,7 +20,10 @@ $letterUrl = !empty($appreciation_letters) ? ROOT . "/medical-school/appreciatio
 
 <div class="cp-content__body">
 
-    <?php if (!$activeCase || $activeCase->overall_status !== 'COMPLETED' || (empty($certificates) && empty($appreciation_letters))): ?>
+    <?php 
+    $canShow = ($activeCase && in_array($activeCase->overall_status, ['SUCCESSFUL', 'COMPLETED'])) || !empty($certificates) || !empty($appreciation_letters);
+    if (!$canShow): 
+    ?>
         <div class="cp-empty-state-premium mt-12">
             <div class="cp-empty-state-premium__content">
                 <div class="cp-empty-state-premium__icon-wrap">
@@ -210,6 +213,22 @@ $letterUrl = !empty($appreciation_letters) ? ROOT . "/medical-school/appreciatio
                     </div>
                 </div>
             <?php endforeach; ?>
+
+            <!-- Pending Appreciation Placeholder (High-Fidelity Feedback) -->
+            <?php if ($is_appreciation_pending && empty($appreciation_letters)): ?>
+                <div class="cp-info-card cp-card-appreciation" style="opacity: 0.8; border-style: dashed; background: #fafbfc;">
+                    <div class="cp-info-card__header" style="background: #f8fafc; border-bottom: 1px dashed #e2e8f0;">
+                        <div class="cp-info-card__title" style="color: var(--g400);"><i class="fas fa-clock"></i> Appreciation Letter</div>
+                    </div>
+                    <div class="cp-info-card__body p-4 text-center">
+                        <h4 class="mb-2 cp-font-bold" style="color: var(--g400);">Institutional Recognition</h4>
+                        <div class="cp-text-xs cp-text-g400 mb-4 uppercase tracking-wider font-bold">Status: Pending Usage</div>
+                        <div class="p-3 bg-white rounded-lg border border-slate-100 text-xs text-slate-500 leading-relaxed italic">
+                            "A commemorative appreciation letter will be formally issued once institutional academic usage begins."
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 

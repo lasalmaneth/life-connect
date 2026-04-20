@@ -118,7 +118,11 @@ class CustodianModel {
         // 3. Donation Outcomes (Medical History)
         $outcomes = $this->getDonationOutcomes($donorId) ?: [];
 
-        // 4. Align with Source-of-Truth Mode
+        // 4. Donor Verification Status
+        $donor = $this->first(['id' => $donorId], [], 'verification_status', '', 'donors');
+        $isDonorApproved = ($donor && $donor->verification_status === 'APPROVED');
+
+        // 5. Align with Source-of-Truth Mode
         $maxOrganTs = 0;
         foreach($organPledges as $p) {
             if ($p->status === 'WITHDRAWN') continue;
@@ -151,13 +155,15 @@ class CustodianModel {
                 $category = "Brain-Dead Case";
             }
 
+            $currentStatus = $p->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : ($isDonorApproved ? 'ACTIVE' : 'PENDING VERIFICATION'));
+
             $timeline[] = (object)[
                 'id' => $p->id,
                 'organ_id' => $p->organ_id,
                 'type' => 'ORGAN_PLEDGE',
                 'item_name' => htmlspecialchars($p->item_name),
                 'date' => $p->pledge_date,
-                'status' => $p->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : 'ACTIVE'),
+                'status' => $currentStatus,
                 'category' => $category,
                 'signed_form_path' => $p->signed_form_path,
                 'withdrawal_pdf_path' => $p->withdrawal_pdf_path,
@@ -172,6 +178,8 @@ class CustodianModel {
             $isSuperseded = ($b->status !== 'WITHDRAWN' && $maxOrganTs > $bTs);
             
             $uName = $b->item_name ?? 'Medical School';
+            $currentStatus = $b->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : ($isDonorApproved ? 'ACTIVE' : 'PENDING VERIFICATION'));
+
             $timeline[] = (object)[
                 'id' => $b->id,
                 'organ_id' => 10,
@@ -179,7 +187,7 @@ class CustodianModel {
                 'item_name' => "Whole Body Donation",
                 'holding_entity' => $uName,
                 'date' => $b->consent_date,
-                'status' => $b->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : 'ACTIVE'),
+                'status' => $currentStatus,
                 'category' => "Medical School Path",
                 'signed_form_path' => $b->signed_form_path,
                 'withdrawal_pdf_path' => $b->withdrawal_pdf_path,
@@ -397,7 +405,7 @@ class CustodianModel {
         ) ?: [];
         $attemptedIds = array_map(fn($r) => $r->institution_id, $attempted);
 
-        if ($track === 'BODY' || $track === 'CORNEA') {
+        if (str_contains($track, 'BODY') || str_contains($track, 'CORNEA')) {
             // Strict Rule: ONLY fetch medical schools that the donor explicitly consented to
             $institutions = $this->queryJoin(
                 [
@@ -519,11 +527,17 @@ class CustodianModel {
             $this->update($activeCase->id, ['operational_items_json' => json_encode($items)], 'id', 'donation_cases');
         }
 
+        // Map specific tracks to base ENUM values (BODY, ORGAN, CORNEA)
+        $dbTrack = $track;
+        if (str_contains($track, 'BODY')) $dbTrack = 'BODY';
+        elseif (str_contains($track, 'ORGAN')) $dbTrack = 'ORGAN';
+        elseif (str_contains($track, 'CORNEA')) $dbTrack = 'CORNEA';
+
         return $this->insert([
             'donation_case_id' => $caseId,
             'institution_type' => $institutionType,
             'institution_id'   => $institutionId,
-            'track'            => $track,
+            'track'            => $dbTrack,
             'attempt_order'    => $nextOrder,
             'is_current'       => 1,
             'custodian_action' => 'SUBMITTED',
@@ -788,23 +802,31 @@ class CustodianModel {
      */
     public function getAppreciationLetters($caseId)
     {
-        // Letters are issued from body usage records or organ retrieval logs
-        return $this->queryJoin(
-            [
-                ['table' => 'body_usage_logs bul', 'on' => 'appreciation_letters.usage_log_id = bul.id', 'type' => 'JOIN'],
-                ['table' => 'medical_schools ms', 'on' => 'bul.medical_school_id = ms.id', 'type' => 'LEFT'],
-                ['table' => 'hospitals h', 'on' => 'bul.medical_school_id = h.id', 'type' => 'LEFT'],
-                ['table' => 'donation_cases dc', 'on' => 'bul.donor_id = dc.donor_id', 'type' => 'JOIN']
-            ],
-            ['dc.id' => $caseId],
-            'appreciation_letters.*, 
-             CASE WHEN bul.usage_type = "Organ Retrieval" THEN h.name ELSE COALESCE(ms.school_name, h.name, "Host Institution") END AS institution_name, 
-             bul.usage_type',
-            'appreciation_letters.issued_at DESC',
-            100,
-            0,
-            'appreciation_letters'
-        ) ?: [];
+        // Letters can be issued from body usage records (Med School)
+        // OR directly from Handover Acceptance (Hospital/Organ)
+        $case = $this->first(['id' => $caseId], [], 'donor_id', '', 'donation_cases');
+        if (!$case) return [];
+
+        $query = "SELECT al.*, 
+                 CASE 
+                    WHEN al.usage_log_id IS NOT NULL THEN COALESCE(ms.school_name, h_bul.name, 'Host Institution')
+                    WHEN al.case_institution_request_id IS NOT NULL THEN h_cis.name
+                    ELSE 'Host Institution'
+                 END AS institution_name,
+                 CASE 
+                    WHEN al.usage_log_id IS NOT NULL THEN bul.usage_type
+                    ELSE 'Organ Recognition'
+                 END AS usage_type
+                 FROM appreciation_letters al
+                 LEFT JOIN body_usage_logs bul ON al.usage_log_id = bul.id
+                 LEFT JOIN medical_schools ms ON bul.medical_school_id = ms.id
+                 LEFT JOIN hospitals h_bul ON bul.medical_school_id = h_bul.id
+                 LEFT JOIN case_institution_status cis ON al.case_institution_request_id = cis.id
+                 LEFT JOIN hospitals h_cis ON cis.institution_id = h_cis.id
+                 WHERE (bul.donor_id = :did OR cis.donation_case_id = :cid)
+                 ORDER BY al.issued_at DESC, al.id DESC";
+
+        return $this->query($query, [':did' => $case->donor_id, ':cid' => $caseId]) ?: [];
     }
 
     /**

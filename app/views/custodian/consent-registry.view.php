@@ -85,6 +85,8 @@ ob_start();
                                         <span class="cp-badge cp-badge--danger">WITHDRAWN</span>
                                     <?php elseif ($isSuperseded): ?>
                                         <span class="cp-badge cp-badge--secondary">SUPERSEDED</span>
+                                    <?php elseif ($t->status === 'PENDING VERIFICATION'): ?>
+                                        <span class="cp-badge cp-badge--info">PENDING VERIFICATION</span>
                                     <?php else: ?>
                                         <span class="cp-badge cp-badge--success">ACTIVE</span>
                                     <?php endif; ?>

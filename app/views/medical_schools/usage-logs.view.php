@@ -497,10 +497,10 @@ ob_start();
                 <!-- Appreciation Badge -->
                 <div style="padding: 1rem; border-radius: 12px; border: 1px solid ${log.letter_id ? '#dcfce7' : '#f1f5f9'}; background: ${log.letter_id ? '#f0fdf4' : '#fff'}; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <i class="fas ${log.letter_id ? 'fa-check-circle' : 'fa-clock'}" style="color: ${log.letter_id ? '#059669' : '#94a3b8'}; font-size: 1rem;"></i>
+                        <i class="fas ${log.letter_id ? 'fa-check-circle' : 'fa-clock'}" style="color: ${log.letter_id ? '#059669' : '#f59e0b'}; font-size: 1rem;"></i>
                         <div>
-                            <div style="font-weight: 800; color: ${log.letter_id ? '#064e3b' : '#475569'}; font-size: 0.8rem;">${log.letter_id ? 'Appreciation Letter Sent' : 'Appreciation Pending'}</div>
-                            <div style="font-size: 0.65rem; color: ${log.letter_id ? '#059669' : '#94a3b8'}; font-weight: 600;">
+                            <div style="font-weight: 800; color: ${log.letter_id ? '#064e3b' : '#92400e'}; font-size: 0.8rem;">${log.letter_id ? 'Appreciation Letter Sent' : 'Appreciation Pending'}</div>
+                            <div style="font-size: 0.65rem; color: ${log.letter_id ? '#059669' : '#b45309'}; font-weight: 600;">
                                 ${log.letter_id ? 'Formally issued on ' + new Date(log.letter_issued_at).toLocaleDateString() : 'Awaiting institutional issuance.'}
                             </div>
                         </div>
@@ -585,8 +585,21 @@ ob_start();
             closeUsageDetail();
         }
     });
+
+    // Auto-open modal if a specific case is targeted via URL
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('cis_id')) {
+            // Slight delay ensures the UI has settled before the modal pops
+            setTimeout(openUsageModal, 400);
+        }
+    });
 </script>
 
+<!-- Hidden form for manual letter issuance from drawer -->
+<form id="issueLetterForm" action="<?= ROOT ?>/medical-school/appreciation/issue" method="POST" style="display: none;">
+    <input type="hidden" name="usage_id" id="formUsageId">
+</form>
 
 <?php
 $page_content = ob_get_clean();

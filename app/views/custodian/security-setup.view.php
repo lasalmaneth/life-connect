@@ -54,7 +54,7 @@
                     <label for="current_password">Current Password (NIC)</label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="current_password" name="current_password" placeholder="••••••••" required>
+                        <input type="password" id="current_password" name="current_password" value="<?= htmlspecialchars($user->username ?? '') ?>" placeholder="••••••••" required>
                         <button type="button" class="eye-btn" onclick="tPw('current_password', this)"><i class="fas fa-eye"></i></button>
                     </div>
                 </div>

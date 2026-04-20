@@ -41,22 +41,45 @@ class DonationResolver
                       WHERE bdc.donor_id = :did AND bdc.status = 'ACTIVE'";
         $bodyConsents = $this->query($bodyQuery, [':did' => $donorId]) ?: [];
 
+        // --- LATEST INTENT WINS LOGIC ---
+        // Determine latest organ pledge (excluding Cornea) vs latest Body consent
+        $latestOrganTs = 0;
+        foreach ($organPledges as $p) {
+            if ($p->organ_id == 4) continue; // Cornea does NOT supersede or get superseded
+            $ts = strtotime($p->pledge_date);
+            if ($ts > $latestOrganTs) $latestOrganTs = $ts;
+        }
+
+        $latestBodyTs = 0;
+        foreach ($bodyConsents as $bc) {
+            $ts = strtotime($bc->consent_date);
+            if ($ts > $latestBodyTs) $latestBodyTs = $ts;
+        }
+
+        $organsSuperseded = ($latestBodyTs > $latestOrganTs && $latestOrganTs > 0);
+        $bodySuperseded   = ($latestOrganTs > $latestBodyTs && $latestBodyTs > 0);
+
         // Flags
         $hasKidney = false;
         $hasCornea = false;
-        $hasOther = false;
-        $hasBody = !empty($bodyConsents);
+        $hasOther  = false;
+        $hasBody   = !empty($bodyConsents) && !$bodySuperseded;
 
         foreach ($organPledges as $p) {
-            // IDs 1 and 9 are Kidney in this schema
-            if (in_array($p->organ_id, [1, 9]))
-                $hasKidney = true;
-            // ID 4 is Cornea
-            elseif ($p->organ_id == 4)
+            // ID 4 is Cornea (NEVER superseded)
+            if ($p->organ_id == 4) {
                 $hasCornea = true;
-            // Any other organ (ID 2 Liver, etc.) is 'Other'
-            else
-                $hasOther = true;
+                continue;
+            }
+
+            // Other organs are only active if not superseded by a newer body consent
+            if (!$organsSuperseded) {
+                if (in_array($p->organ_id, [1, 9])) {
+                    $hasKidney = true;
+                } else {
+                    $hasOther = true;
+                }
+            }
         }
 
         $items = [];
