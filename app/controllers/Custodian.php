@@ -324,18 +324,18 @@ class Custodian {
     public function activityHistory()
     {
         $custodian = $this->requireCustodian();
-        show($custodian);
+        // show($custodian);
         if (!$custodian) return;
 
         $donorId = $custodian->donor_id;
         $activeCase = $this->caseModel->getCaseByDonor($donorId);
-        
+        // show($activeCase);
         // Full activity timeline
         $timeline = $activeCase ? $this->caseModel->getTimeline($activeCase->id) : [];
-
+        // show($timeline);
         // Historical / Archived cases for this donor
         $archived = $this->model->getArchivedCases($donorId);
-        
+        // show($archived);
         $this->renderPage('custodian/activity-history', 'activity-history', 'Activity History', $custodian, [
             'timeline' => $timeline,
             'archived' => $archived
@@ -1592,14 +1592,14 @@ class Custodian {
      */
     public function skipItem()
     {
-        $this->requireCustodian();
+        $custodian = $this->requireCustodian();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['error' => 'Method not allowed'], 405);
             return;
         }
 
         $itemId = (int)($_POST['item_id'] ?? 0);
-        $activeCase = $this->caseModel->getActiveCase($this->donor->id);
+        $activeCase = $this->caseModel->getCaseByDonor($custodian->donor_id);
 
         if (!$activeCase || !$itemId) {
             $this->json(['error' => 'Invalid request'], 400);

@@ -363,11 +363,16 @@ ob_start();
                         <label class="cp-label">Handled By</label>
                         <input type="text" name="handled_by" placeholder="e.g. Dr. Smith" class="cp-input" required>
                     </div>
-
+<!-- to do dropdown , subject , dept dropdown fix  -->
                     <div>
                         <label class="cp-label">Duration</label>
                         <input type="text" name="duration" placeholder="e.g. 2 hours" class="cp-input">
                     </div>
+
+                    <div>
+                        <label class="cp-label">Test</label>
+                        <input type="text" name="test" placeholder="e.g. test" class="cp-input">
+                    </div> 
 
                     <div style="grid-column: span 2;">
                         <label class="cp-label">Activity Description</label>
@@ -484,6 +489,12 @@ ob_start();
                                 <label style="display: block; font-size: 0.6rem; font-weight: 800; color: var(--g400); text-transform: uppercase; margin-bottom: 4px;">Duration</label>
                                 <div style="font-weight: 700; color: var(--blue-900);">${log.duration || 'N/A'}</div>
                             </div>
+
+                             <div>
+                                <label style="display: block; font-size: 0.6rem; font-weight: 800; color: var(--g400); text-transform: uppercase; margin-bottom: 4px;">test</label>
+                                <div style="font-weight: 700; color: var(--blue-900);">${log.test || 'N/A'}</div>
+                            </div>
+
                         </div>
                         <div>
                             <label style="display: block; font-size: 0.6rem; font-weight: 800; color: var(--g400); text-transform: uppercase; margin-bottom: 6px;">Activity Description</label>

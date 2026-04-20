@@ -237,7 +237,7 @@ class MedicalSchool
         $status = $_GET['status'] ?? 'ALL';
         $submissions = $auth['model']->getBodySubmissions($auth['school']->id, $status);
         $caseModel = new \App\Models\DonationCaseModel();
-
+        // show($submissions);
         foreach ($submissions as &$sub) {
             $donor_id = $sub->donor_id ?? $sub->DonorID ?? 0;
             if ($donor_id) {
@@ -367,6 +367,7 @@ class MedicalSchool
         $auth = $this->checkAuth();
         $status = $_GET['status'] ?? 'ALL';
         $exams = $auth['model']->getFinalExaminations($auth['school']->id, $status);
+        // show($auth);
         $this->view('medical_schools/final-examinations', [
             'school' => $auth['school'], 
             'exams' => $exams,
@@ -548,6 +549,7 @@ class MedicalSchool
         }
 
         $logs = $auth['model']->getUsageLogs($auth['school']->id, $cisId);
+        show($logs);
         $inventory = $auth['model']->getAnatomicalInventory($auth['school']->id);
         $inventoryStats = $auth['model']->getInventoryStats($auth['school']->id);
         
@@ -579,6 +581,7 @@ class MedicalSchool
                 'subject_area' => $subject,
                 'handled_by' => $_POST['handled_by'] ?? '',
                 'duration' => $_POST['duration'] ?? '',
+                'test' => $_POST['test'] ?? '',
                 'other_notes' => $_POST['other_notes'] ?? ''
             ];
 

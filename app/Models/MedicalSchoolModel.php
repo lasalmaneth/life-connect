@@ -453,7 +453,7 @@ class  MedicalSchoolModel {
                 ['table' => 'donors d', 'on' => 'dc.donor_id = d.id']
             ],
             $where,
-            "dc.id as case_id, d.first_name, d.last_name, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number",
+            "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number",
             "cis.final_exam_at DESC",
             50, 0, "case_institution_status cis"
         ) ?: [];
