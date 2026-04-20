@@ -104,7 +104,7 @@ ob_start();
         </div>
     </section>
 
-    <!-- 2. ACHIEVEMENT REGISTRY -->
+    <!-- 2. ACHIEVEMENT REGISTRY yyy -->
     <section class="cp-timeline-section">
         <div class="cp-timeline-header">
             <div>
