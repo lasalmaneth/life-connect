@@ -212,6 +212,7 @@ ob_start();
             <div class="cp-dashboard-grid mb-4">
 
                 <!-- [SECTION 2] DONATION OUTCOME & GUIDANCE CARD -->
+                <?php if ($mode === 'KIDNEY_ONLY' || ($hasKidney && ($hasCornea || $hasOther)) || $mode === 'BODY_PLUS_CORNEA'): ?>
                 <div class="col-span-1 md:col-span-2">
                     
                     <!-- SCENARIO 1/2: KIDNEY ONLY -->
@@ -390,6 +391,7 @@ ob_start();
 
                     <!-- [SECTION 3 & 4] ACTIONS & NOTICES RESTRUCTURING NEXT -->
                 </div>
+                <?php endif; ?>
 
                 <!-- [SECTION 3] OPERATIONAL ACTION AREA -->
                 
@@ -595,15 +597,20 @@ ob_start();
                     </div>
                 <?php endif; ?>
 
+                <!-- 3. SUPPORT SECTIONS -->
+                <?php if (!empty($custodianApprovals)): ?>
+                <div class="col-span-1 md:col-span-2">
+                    <?php require __DIR__ . '/partials/co-custodian-approvals.php'; ?>
+                </div>
+                <?php endif; ?>
+                
+                <div class="col-span-1 md:col-span-2">
+                    <?php require __DIR__ . '/partials/activity-timeline.php'; ?>
+                </div>
+
             </div>
 
         <?php endif; ?>
-
-        <!-- 3. SUPPORT SECTIONS -->
-        <div class="cp-grid-2">
-            <?php require __DIR__ . '/partials/co-custodian-approvals.php'; ?>
-            <?php require __DIR__ . '/partials/activity-timeline.php'; ?>
-        </div>
 
     <?php endif; ?>
 

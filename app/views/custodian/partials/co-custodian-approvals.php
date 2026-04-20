@@ -4,7 +4,7 @@
  */
 if (empty($custodianApprovals)) return;
 ?>
-<div class="cp-section-card mb-4 mt-5">
+<div class="cp-section-card mb-4">
     <div class="cp-section-card__header">
         <div class="cp-section-card__title"><i class="fas fa-users"></i> Other Custodian Approvals</div>
     </div>

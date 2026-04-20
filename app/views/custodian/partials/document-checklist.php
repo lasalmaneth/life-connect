@@ -366,7 +366,9 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                 style="color: #4b5563; font-size: 0.9rem; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px; border: 1px dashed #fca5a5; margin-bottom: 12px;">
                                 <strong>Faculty Notes & Instructions:</strong><br />
                                 <?php if (!empty($currentInstRequest->rejection_reason_code) && $currentInstRequest->rejection_reason_code !== $currentInstRequest->rejection_reason_text): ?>
-                                    <span style="font-weight: 800; color: #9f1239; font-size: 0.75rem; display: block; margin-bottom: 4px;">CATEGORY: <?= htmlspecialchars($currentInstRequest->rejection_reason_code) ?></span>
+                                    <span
+                                        style="font-weight: 800; color: #9f1239; font-size: 0.75rem; display: block; margin-bottom: 4px;">CATEGORY:
+                                        <?= htmlspecialchars($currentInstRequest->rejection_reason_code) ?></span>
                                 <?php endif; ?>
                                 <?= nl2br(htmlspecialchars($currentInstRequest->rejection_reason_text)) ?>
                             </p>
@@ -394,7 +396,8 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                         <h4 style="color: #075985; margin: 0; font-weight: 700;">Documents Approved</h4>
                         <p style="color: #0c4a6e; font-size: 0.9rem; margin-top: 4px;">Proceed with handover at
                             <strong><?= date('g:i A', strtotime($currentInstRequest->handover_time)) ?></strong> on
-                            <strong><?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?></strong>.</p>
+                            <strong><?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?></strong>.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -451,30 +454,34 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                             are completed. You can re-print them here if needed for physical handover.</p>
                     <?php endif; ?>
 
-                <!-- Rejection Alert -->
-                <?php if ($docStatus === 'REJECTED'): ?>
-                    <div
-                        style="background: #fef2f2; border: 1px solid #fee2e2; border-left: 5px solid #ef4444; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
-                        <div style="display: flex; gap: 15px; align-items: start;">
-                            <div
-                                style="background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-exclamation-circle"></i>
-                            </div>
-                            <div>
-                                <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; font-weight: 800; color: #991b1b;">Bundle Submission Rejected</h4>
-                                <p style="margin: 0; font-size: 0.85rem; color: #b91c1c; line-height: 1.5;">
-                                    <?php if (!empty($currentInst->rejection_reason_code) && $currentInst->rejection_reason_code !== $currentInst->rejection_reason_text): ?>
-                                        <strong>Category:</strong> <?= htmlspecialchars($currentInst->rejection_reason_code) ?><br/>
-                                    <?php endif; ?>
-                                    <strong>Instruction:</strong> <?= htmlspecialchars($currentInst->rejection_reason_text ?? 'Please review your documents and re-submit.') ?>
-                                </p>
-                                <div style="margin-top: 10px; font-size: 0.75rem; color: #b91c1c; font-weight: 600; text-transform: uppercase;">
-                                    <i class="fas fa-arrow-right mr-1"></i> Check Step 4 to re-upload the fixed bundle.
+                    <!-- Rejection Alert -->
+                    <?php if ($docStatus === 'REJECTED'): ?>
+                        <div
+                            style="background: #fef2f2; border: 1px solid #fee2e2; border-left: 5px solid #ef4444; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                            <div style="display: flex; gap: 15px; align-items: start;">
+                                <div
+                                    style="background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; font-weight: 800; color: #991b1b;">
+                                        Bundle Submission Rejected</h4>
+                                    <p style="margin: 0; font-size: 0.85rem; color: #b91c1c; line-height: 1.5;">
+                                        <?php if (!empty($currentInst->rejection_reason_code) && $currentInst->rejection_reason_code !== $currentInst->rejection_reason_text): ?>
+                                            <strong>Category:</strong>
+                                            <?= htmlspecialchars($currentInst->rejection_reason_code) ?><br />
+                                        <?php endif; ?>
+                                        <strong>Instruction:</strong>
+                                        <?= htmlspecialchars($currentInst->rejection_reason_text ?? 'Please review your documents and re-submit.') ?>
+                                    </p>
+                                    <div
+                                        style="margin-top: 10px; font-size: 0.75rem; color: #b91c1c; font-weight: 600; text-transform: uppercase;">
+                                        <i class="fas fa-arrow-right mr-1"></i> Check Step 4 to re-upload the fixed bundle.
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
 
                     <?php if ($donationType === 'ORGAN'): ?>
                         <div
@@ -533,7 +540,8 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                     <?= $is_expired ? 'Expired' : 'Locked' ?>
                                 </button>
                             <?php elseif (empty($hasSworn)): ?>
-                                <button class="compact-action-btn compact-action-btn--disabled" title="Complete the Sworn Statement first to unlock this form">
+                                <button class="compact-action-btn compact-action-btn--disabled"
+                                    title="Complete the Sworn Statement first to unlock this form">
                                     <i class="fas fa-lock"></i> Complete Step 1</button>
                             <?php else: ?>
                                 <a href="<?= ROOT ?>/custodian/document-form?type=datasheet"
@@ -653,7 +661,8 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                             <div
                                                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                                 <p style="font-weight: 600; font-size: 0.9rem; margin: 0;">
-                                                    <?= htmlspecialchars($oq['q']) ?></p>
+                                                    <?= htmlspecialchars($oq['q']) ?>
+                                                </p>
                                                 <?php if (!$isACCEPTED): ?>
                                                     <button type="button" class="compact-action-btn compact-action-btn--disabled"
                                                         style="background: #e2e8f0; color: #64748b;">
@@ -810,7 +819,8 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                         <div class="cp-checklist-body text-center">
                             <p style="font-size: 0.9rem; color: var(--cp-gray-500); margin-bottom: 1.5rem;">Merge all your
                                 ticked documents and generated PDFs into a single <strong>ZIP</strong> or
-                                <strong>PDF</strong> file.</p>
+                                <strong>PDF</strong> file.
+                            </p>
 
                             <form action="<?= ROOT ?>/custodian/submit-bundle" method="POST" enctype="multipart/form-data"
                                 id="finalBundleForm">
@@ -986,7 +996,7 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
                                             <div class="cp-completion-icon">
                                                 <i class="fas fa-check"></i>
                                             </div>
-                                            <h4 class="cp-completion-title"><?= ($donationType === 'ORGAN') ? 'Organ' : 'Anatomical' ?> Donation Successfully Completed</h4>
+                                            <h4 class="cp-completion-title">Anatomical Donation Successfully Completed</h4>
                                             <p class="cp-completion-text">
                                                 The whole <?= ($donationType === 'ORGAN') ? 'organ' : 'body' ?> donation process for
                                                 <strong><?= htmlspecialchars($donor->first_name) ?></strong> has been formally
@@ -1024,143 +1034,156 @@ $showChecklist = !$isUnderReview && !$isReviewCompleted;
 
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                                         <!-- Sleek Appointment Card -->
-                                        <div
-                                            style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 12px; opacity: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? '0.6' : '1' ?>;">
-                                            <span
-                                                style="display: block; font-size: 0.65rem; font-weight: 800; color: #15803d; text-transform: uppercase; margin-bottom: 8px;">Scheduled
-                                                Handover</span>
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div
-                                                    style="width: 36px; height: 36px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #166534; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
-                                                    <i class="fas fa-calendar-check"></i>
+                                            <div
+                                                style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 12px; opacity: <?= (($currentInst->final_exam_status ?? '') === 'ACCEPTED') ? '0.6' : '1' ?>;">
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; font-weight: 800; color: #15803d; text-transform: uppercase; margin-bottom: 8px;">Scheduled
+                                                    Handover</span>
+                                                <div style="display: flex; align-items: center; gap: 12px;">
+                                                    <div
+                                                        style="width: 36px; height: 36px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #166534; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
+                                                        <i class="fas fa-calendar-check"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-weight: 800; font-size: 0.95rem; color: #166534;">
+                                                            <?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?>
+                                                        </div>
+                                                        <div style="font-weight: 600; font-size: 0.8rem; color: #15803d;">
+                                                            <?= date('g:i A', strtotime($currentInstRequest->handover_time)) ?>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style="font-weight: 800; font-size: 0.95rem; color: #166534;">
-                                                        <?= date('M j, Y', strtotime($currentInstRequest->handover_date)) ?>
-                                                    </div>
-                                                    <div style="font-weight: 600; font-size: 0.8rem; color: #15803d;">
-                                                        <?= date('g:i A', strtotime($currentInstRequest->handover_time)) ?>
-                                                    </div>
+                                            </div>
+
+                                            <!-- Emergency Coordination Card -->
+                                            <div
+                                                style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px;">
+                                                <span
+                                                    style="display: block; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Emergency
+                                                    Coordination</span>
+                                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                                    <?php if (!empty($currentInst->contact_phone)): ?>
+                                                        <div style="font-size: 0.85rem; font-weight: 700; color: #334155;"><i
+                                                                class="fas fa-phone mr-2 text-primary"></i>
+                                                            <?= htmlspecialchars($currentInst->contact_phone) ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($currentInst->contact_email)): ?>
+                                                        <div style="font-size: 0.75rem; font-weight: 600; color: #64748b;"><i
+                                                                class="fas fa-envelope mr-2 text-primary"></i>
+                                                            <?= htmlspecialchars($currentInst->contact_email) ?></div>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Emergency Coordination Card -->
-                                        <div
-                                            style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px;">
-                                            <span
-                                                style="display: block; font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Emergency
-                                                Coordination</span>
-                                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                                <?php if (!empty($currentInst->contact_phone)): ?>
-                                                    <div style="font-size: 0.85rem; font-weight: 700; color: #334155;"><i
-                                                            class="fas fa-phone mr-2 text-primary"></i>
-                                                        <?= htmlspecialchars($currentInst->contact_phone) ?></div>
-                                                <?php endif; ?>
-                                                <?php if (!empty($currentInst->contact_email)): ?>
-                                                    <div style="font-size: 0.75rem; font-weight: 600; color: #64748b;"><i
-                                                            class="fas fa-envelope mr-2 text-primary"></i>
-                                                        <?= htmlspecialchars($currentInst->contact_email) ?></div>
+                                        <?php if (($currentInst->final_exam_status ?? '') !== 'ACCEPTED'): ?>
+                                            <div
+                                                style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                                                <p style="font-size: 0.85rem; color: #92400e; margin: 0; line-height: 1.5;">
+                                                    <strong>Next Steps:</strong>
+                                                    <?= ($donationType === 'ORGAN') ? 'Please proceed to the clinical ward for the <strong>Final Physical Examination</strong>.' : 'Please bring the body and all physical document copies to the <strong>Faculty</strong>.' ?>
+                                                </p>
+                                                <?php if (!empty($currentInstRequest->handover_message)): ?>
+                                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
+                                                        <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">
+                                                            "<?= nl2br(htmlspecialchars($currentInstRequest->handover_message)) ?>"</p>
+                                                    </div>
                                                 <?php endif; ?>
                                             </div>
+                                        <?php endif; ?>
+
+                                        <!-- Location Footer -->
+                                        <div style="display: flex; align-items: center; gap: 10px; padding: 0 5px;">
+                                            <i class="fas fa-location-dot" style="color: #64748b; font-size: 0.8rem;"></i>
+                                            <span
+                                                style="font-size: 0.8rem; color: #64748b; font-weight: 500;"><?= htmlspecialchars($currentInst->institution_address ?? 'Contact facility for exact location.') ?></span>
                                         </div>
                                     </div>
 
-                                    <?php if (($currentInst->final_exam_status ?? '') !== 'ACCEPTED'): ?>
+                                    <!-- LEGAL RULES & CONDITIONS ACCORDION -->
+                                    <div
+                                        style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
                                         <div
-                                            style="background: #fffbeb; border: 1px solid #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                                            <p style="font-size: 0.85rem; color: #92400e; margin: 0; line-height: 1.5;">
-                                                <strong>Next Steps:</strong>
-                                                <?= ($donationType === 'ORGAN') ? 'Please proceed to the clinical ward for the <strong>Final Physical Examination</strong>.' : 'Please bring the body and all physical document copies to the <strong>Faculty</strong>.' ?>
-                                            </p>
-                                            <?php if (!empty($currentInstRequest->handover_message)): ?>
-                                                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
-                                                    <p style="font-size: 0.8rem; color: #b45309; font-style: italic; margin: 0;">
-                                                        "<?= nl2br(htmlspecialchars($currentInstRequest->handover_message)) ?>"</p>
-                                                </div>
+                                            style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; font-weight: 800; color: #334155; font-size: 0.9rem;">
+                                            <i class="fas fa-scale-balanced mr-2"></i>
+                                            <?= ($donationType === 'ORGAN') ? 'Organ Retrieval – Protocols & Conditions' : 'Body Donation – Rules & Conditions' ?>
+                                        </div>
+                                        <div
+                                            style="padding: 20px; font-size: 0.8rem; color: #475569; max-height: 350px; overflow-y: auto; line-height: 1.6;">
+                                            <?php if ($donationType === 'ORGAN'): ?>
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Clinical
+                                                    Suitability</strong>
+                                                Organ retrieval is contingent upon the clinical condition of the patient at the
+                                                designated time. Medical suitability for transplantation is determined by the
+                                                surgical
+                                                team.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Mandatory
+                                                    Physical Examination</strong>
+                                                A final physical examination and medical assessment will be conducted by the
+                                                hospital
+                                                team prior to the scheduling of the recovery theater.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Guardian /
+                                                    Custodian Presence</strong>
+                                                The legal custodian must be present at the hospital to sign the final 'Consent for
+                                                Organ
+                                                Recovery' form after the medical explanation is provided by the clinical
+                                                coordinator.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Coordination
+                                                    with
+                                                    Recovery Team</strong>
+                                                The retrieval process is high-priority and depends on the specialized surgical
+                                                team's
+                                                availability. Custodians must follow the logistical instructions of the transplant
+                                                coordinator exactly.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">5.
+                                                    Post-Retrieval
+                                                    Handover</strong>
+                                                After the successful recovery of organs/tissues, the deceased will be handed back to
+                                                the
+                                                family for final rites at the hospital morgue or as per the agreed arrangement.
+                                            <?php else: ?>
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Legal and
+                                                    Consent
+                                                    Requirements</strong>
+                                                Body donation is accepted only with the consent of the legal custodian. The
+                                                custodian is
+                                                responsible for the entire handover process.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Coordination
+                                                    with
+                                                    Faculty</strong>
+                                                The custodian must contact the relevant faculty or department and follow the
+                                                instructions provided before bringing the body for donation.<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Conditions
+                                                    for
+                                                    Acceptance</strong>
+                                                The faculty reserves the right to refuse acceptance of a body if it is not suitable
+                                                for
+                                                medical education (e.g., infectious conditions, major disfigurement).<br><br>
+
+                                                <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Finality of
+                                                    Donation</strong>
+                                                Once the body is accepted by the faculty, the donation is final. The body will not
+                                                be
+                                                returned under any circumstances.
                                             <?php endif; ?>
                                         </div>
-                                    <?php endif; ?>
-
-                                    <!-- Location Footer -->
-                                    <div style="display: flex; align-items: center; gap: 10px; padding: 0 5px;">
-                                        <i class="fas fa-location-dot" style="color: #64748b; font-size: 0.8rem;"></i>
-                                        <span
-                                            style="font-size: 0.8rem; color: #64748b; font-weight: 500;"><?= htmlspecialchars($currentInst->institution_address ?? 'Contact facility for exact location.') ?></span>
                                     </div>
                                 </div>
 
-                                <!-- LEGAL RULES & CONDITIONS ACCORDION -->
-                                <div
-                                    style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-                                    <div
-                                        style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; font-weight: 800; color: #334155; font-size: 0.9rem;">
-                                        <i class="fas fa-scale-balanced mr-2"></i>
-                                        <?= ($donationType === 'ORGAN') ? 'Organ Retrieval – Protocols & Conditions' : 'Body Donation – Rules & Conditions' ?>
-                                    </div>
-                                    <div
-                                        style="padding: 20px; font-size: 0.8rem; color: #475569; max-height: 350px; overflow-y: auto; line-height: 1.6;">
-                                        <?php if ($donationType === 'ORGAN'): ?>
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Clinical
-                                                Suitability</strong>
-                                            Organ retrieval is contingent upon the clinical condition of the patient at the
-                                            designated time. Medical suitability for transplantation is determined by the surgical
-                                            team.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Mandatory
-                                                Physical Examination</strong>
-                                            A final physical examination and medical assessment will be conducted by the hospital
-                                            team prior to the scheduling of the recovery theater.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Guardian /
-                                                Custodian Presence</strong>
-                                            The legal custodian must be present at the hospital to sign the final 'Consent for Organ
-                                            Recovery' form after the medical explanation is provided by the clinical
-                                            coordinator.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Coordination with
-                                                Recovery Team</strong>
-                                            The retrieval process is high-priority and depends on the specialized surgical team's
-                                            availability. Custodians must follow the logistical instructions of the transplant
-                                            coordinator exactly.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">5. Post-Retrieval
-                                                Handover</strong>
-                                            After the successful recovery of organs/tissues, the deceased will be handed back to the
-                                            family for final rites at the hospital morgue or as per the agreed arrangement.
-                                        <?php else: ?>
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">1. Legal and Consent
-                                                Requirements</strong>
-                                            Body donation is accepted only with the consent of the legal custodian. The custodian is
-                                            responsible for the entire handover process.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">2. Coordination with
-                                                Faculty</strong>
-                                            The custodian must contact the relevant faculty or department and follow the
-                                            instructions provided before bringing the body for donation.<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">3. Conditions for
-                                                Acceptance</strong>
-                                            The faculty reserves the right to refuse acceptance of a body if it is not suitable for
-                                            medical education (e.g., infectious conditions, major disfigurement).<br><br>
-
-                                            <strong style="color: #1e293b; display: block; margin-bottom: 5px;">4. Finality of
-                                                Donation</strong>
-                                            Once the body is accepted by the faculty, the donation is final. The body will not be
-                                            returned under any circumstances.
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
                             </div>
-
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
 
-</div>
+    </div>
 </div>
 
 <?php require __DIR__ . '/recognition-viewer.php'; ?>
