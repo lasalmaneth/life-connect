@@ -47,7 +47,7 @@
         <div class="menu-section-title" style="margin-top: 1rem;">SURGERY MANAGEMENT</div>
         <a href="<?php echo ROOT; ?>/hospital/surgery-prep" class="menu-item" data-section="surgery-prep" onclick="hcShowSection('surgery-prep', this); return false;" style="text-decoration:none; color: inherit; display: flex; text-align: left;">
             <span class="icon"><i class="fas fa-procedures"></i></span>
-            <span>Details</span>
+            <span>Surgery Completion</span>
         </a>
 
         <div class="menu-section-title" style="margin-top: 1rem;">DECEASED ORGAN MANAGEMENT</div>

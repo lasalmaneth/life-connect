@@ -258,11 +258,12 @@ class HospitalModel {
     // Organ Requests
     public function getAvailableOrgans()
     {
-        // Hospital organ request UI should not include full-body donation options
+        // Hospital organ request UI should not include full-body donation options or post-death kidneys
         $query = "SELECT id, name, description, is_available
                   FROM organs
                   WHERE is_available = 1
                     AND LOWER(TRIM(name)) NOT LIKE 'full body%'
+                    AND LOWER(TRIM(name)) NOT LIKE 'kidney(after death)%'
                   ORDER BY id ASC";
         return $this->query($query) ?: [];
     }
@@ -292,14 +293,15 @@ class HospitalModel {
         $query = "SELECT m.*, 
                          d.first_name as donor_first_name, d.last_name as donor_last_name, 
                          o.name as organ_name,
-                         r.status as request_status
+                         r.status as request_status,
+                         dp.status as pledge_status
                   FROM donor_patient_match m
                   JOIN donor_pledges dp ON m.donor_pledge_id = dp.id
                   JOIN donors d ON dp.donor_id = d.id
                   JOIN organ_requests r ON m.request_id = r.id
                   JOIN organs o ON r.organ_id = o.id
                   WHERE r.hospital_id = (SELECT id FROM hospitals WHERE registration_number = :reg_no)
-                  AND (m.donor_status = 'APPROVED' OR m.donor_status = 'ACCEPTED')
+                  AND (m.donor_status = 'PENDING' OR m.donor_status = 'ACCEPTED')
                   ORDER BY m.surgery_date DESC";
         return $this->query($query, [':reg_no' => $regNo]) ?: [];
     }
@@ -339,6 +341,19 @@ class HospitalModel {
             ':h_status' => $hStat,
             ':mid' => $matchId
         ]);
+    }
+
+    public function markSurgeryAsCompleted($matchId)
+    {
+        // 1. Get the pledge_id from the match
+        $match = $this->query("SELECT donor_pledge_id FROM donor_patient_match WHERE match_id = :mid", [':mid' => $matchId]);
+        if (!$match) return false;
+        $pledgeId = $match[0]->donor_pledge_id;
+
+        // 2. Update donor_pledges status to COMPLETED
+        $this->query("UPDATE donor_pledges SET status = 'COMPLETED' WHERE id = :pid", [':pid' => $pledgeId]);
+        
+        return true;
     }
 
     public function addOrganRequest($data)
@@ -731,10 +746,15 @@ class HospitalModel {
     public function getAftercareAppointmentRequests($regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $query = "SELECT * FROM aftercare_appointments
-                  WHERE hospital_registration_no = :reg_no
-                    AND status = 'Requested'
-                  ORDER BY appointment_date ASC";
+        $query = "SELECT aa.*, 
+                         COALESCE(rp.full_name, CONCAT(d.first_name, ' ', d.last_name), 'Patient') as patient_name,
+                         COALESCE(rp.nic, d.nic_number, 'N/A') as nic
+                  FROM aftercare_appointments aa
+                  LEFT JOIN recipient_patient rp ON aa.user_id = rp.user_id
+                  LEFT JOIN donors d ON aa.user_id = d.user_id
+                  WHERE aa.hospital_registration_no = :reg_no
+                    AND aa.status = 'Requested'
+                  ORDER BY aa.appointment_date ASC";
         return $this->query($query, [':reg_no' => $regNo]) ?: [];
     }
 

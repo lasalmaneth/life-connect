@@ -585,7 +585,7 @@
                     <div class="table-cell" data-label="Status">${request.status || 'PENDING'}</div>
                     <div class="table-cell" data-label="Actions">
                         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: nowrap;">
-                            <button class="btn btn-secondary btn-small" onclick="viewDetails(${request.id})" style="white-space: nowrap;">More Details</button>
+                            <button class="btn btn-secondary btn-small" onclick="viewDetails(${request.id})" style="white-space: nowrap;">Details</button>
                             <button class="btn btn-secondary btn-small" onclick="editRequest(${request.id})" style="white-space: nowrap;">Edit</button>
                             <button class="btn btn-danger btn-small" onclick="deleteRequest(${request.id})" style="white-space: nowrap;">Delete</button>
                         </div>

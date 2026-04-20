@@ -109,7 +109,7 @@ class Aftercare
             );
             $patient = $rows ? $rows[0] : null;
 
-            if (!$patient || strtoupper((string)($patient->status ?? 'ACTIVE')) !== 'ACTIVE') {
+            if (!$patient || !in_array(strtoupper((string)($patient->status ?? 'ACTIVE')), ['ACTIVE', 'PENDING'])) {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit;
             }
@@ -201,7 +201,7 @@ class Aftercare
             );
             $patient = $rows ? $rows[0] : null;
 
-            if (!$patient || strtoupper((string)($patient->status ?? 'ACTIVE')) !== 'ACTIVE') {
+            if (!$patient || !in_array(strtoupper((string)($patient->status ?? 'ACTIVE')), ['ACTIVE', 'PENDING'])) {
                 echo json_encode(['success' => false, 'message' => 'Unauthorized']);
                 exit;
             }
@@ -302,12 +302,8 @@ class Aftercare
             redirect('login');
         }
 
-        if (!empty($patient->status) && strtoupper((string)$patient->status) !== 'ACTIVE') {
-            if (strtoupper((string)$patient->status) === 'PENDING') {
-                $_SESSION['aftercare_flash_error'] = 'Your registration is pending approval from the administrator.';
-            } else {
-                $_SESSION['aftercare_flash_error'] = 'Your account is currently inactive. Please contact your hospital.';
-            }
+        if (!empty($patient->status) && !in_array(strtoupper((string)$patient->status), ['ACTIVE', 'PENDING'])) {
+            $_SESSION['aftercare_flash_error'] = 'Your account is currently inactive. Please contact your hospital.';
             redirect('login');
         }
 

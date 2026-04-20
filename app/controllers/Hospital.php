@@ -75,7 +75,17 @@ class Hospital
         $lab_reports = $hospitalModel->getLabReports($hospital_registration) ?: [];
         $eligibility_pledges = $hospitalModel->getApprovedPledgesForEligibility($hospitalId) ?: [];
         $test_results = $hospitalModel->getTestResultsByHospitalId($hospitalId) ?: [];
-        $surgery_matches = $hospitalModel->getSurgeryMatches($hospital_registration) ?: [];
+        $all_matches = $hospitalModel->getSurgeryMatches($hospital_registration) ?: [];
+        
+        // "Matching Results" should only show things NOT in progress
+        $surgery_matches = array_filter($all_matches, function($m) {
+            return strtoupper($m->pledge_status ?? '') !== 'IN_PROGRESS';
+        });
+
+        // "Surgery Completion" should only show in-progress things
+        $inprogress_matches = array_filter($all_matches, function($m) {
+            return strtoupper($m->pledge_status ?? '') === 'IN_PROGRESS';
+        });
 
         // Deceased Organ Management Data
         $deceased_requests = $hospitalModel->getDeceasedRequests($hospitalId, $_GET['status'] ?? 'PENDING') ?: [];
@@ -107,7 +117,7 @@ class Hospital
             'scheduled_appointments' => count(array_filter($aftercare_appointments, function ($apt) {
                 return $apt->status === 'Scheduled'; })),
             'pending_surgery_approvals' => count(array_filter($surgery_matches, function($m) {
-                return strtoupper(trim((string)($m->status ?? ''))) === 'PENDING' || strtoupper(trim((string)($m->status ?? ''))) === 'MATCH';
+                return strtoupper(trim((string)($m->hospital_match_status ?? ''))) === 'PENDING';
             }))
         ];
 
@@ -128,6 +138,7 @@ class Hospital
             'eligibility_pledges' => $eligibility_pledges,
             'eligible_donors' => $eligible_donors,
             'surgery_matches' => $surgery_matches,
+            'inprogress_matches' => $inprogress_matches,
             'deceased_requests' => $deceased_requests,
             'deceased_submissions' => $deceased_submissions,
             'deceased_final_flow' => $deceased_final_flow,
@@ -1875,5 +1886,31 @@ class Hospital
         }
 
         $this->view('hospital/print_letter', ['match' => $match]);
+    }
+
+    public function completeSurgery()
+    {
+        header('Content-Type: application/json');
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')) !== 'HOSPITAL') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $matchId = (int)($_POST['match_id'] ?? 0);
+        if ($matchId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid match ID']);
+            exit;
+        }
+
+        $hospitalModel = new HospitalModel();
+        $success = $hospitalModel->markSurgeryAsCompleted($matchId);
+
+        if ($success) {
+            echo json_encode(['success' => true, 'message' => 'Surgery marked as completed successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to complete surgery']);
+        }
+        exit;
     }
 }
