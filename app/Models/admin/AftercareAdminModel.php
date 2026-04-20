@@ -24,7 +24,8 @@ class AftercareAdminModel {
                          r.hospital_registration_no,
                          COALESCE(r.created_at, d.created_at) as created_at
                   FROM {$this->table} a
-                  LEFT JOIN recipient_patient r ON a.user_id = r.user_id
+                  JOIN users u ON a.user_id = u.id
+                  LEFT JOIN recipient_patient r ON u.username = r.registration_number
                   LEFT JOIN donors d ON a.user_id = d.user_id
                   WHERE 1=1";
 
@@ -72,7 +73,8 @@ class AftercareAdminModel {
                          r.hospital_registration_no,
                          COALESCE(r.created_at, d.created_at) as created_at
                     FROM {$this->table} a
-                    LEFT JOIN recipient_patient r ON a.user_id = r.user_id
+                    JOIN users u ON a.user_id = u.id
+                    LEFT JOIN recipient_patient r ON u.username = r.registration_number
                     LEFT JOIN donors d ON a.user_id = d.user_id
                     WHERE a.id = :id LIMIT 1";
         

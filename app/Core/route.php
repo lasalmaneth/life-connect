@@ -239,6 +239,7 @@ route('user-admin/getDetailedUser', 'admin\UserAdmin@getDetailedUser');
 route('user-admin/updateUser', 'admin\UserAdmin@updateUser');
 route('user-admin/reviewUser', 'admin\UserAdmin@reviewUser');
 route('user-admin/profile', 'admin\UserAdmin@profile');
+route('user-admin/ajaxUpdateProfile', 'admin\UserAdmin@ajaxUpdateProfile');
 route('user-admin/checkUsername', 'admin\UserAdmin@checkUsername');
 route('user-admin/getFeedbacks', 'admin\UserAdmin@getFeedbacks');
 route('user-admin/updateFeedbackStatus', 'admin\UserAdmin@updateFeedbackStatus');
