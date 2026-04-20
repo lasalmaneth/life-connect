@@ -135,14 +135,14 @@
             <div class="dr-grid dr-grid--2 mb-4">
                 <form action="<?= ROOT ?>/medical-school/submission-requests/accept" method="POST">
                     <input type="hidden" name="request_id" value="<?= $request->cis_id ?>">
-                    <button type="submit" class="cp-btn dr-btn-full bg-emerald-600 text-white shadow-emerald-200">
+                    <button type="submit" class="cp-btn cp-btn--success dr-btn-full">
                         <i class="fas fa-check mr-1"></i> Accept Request
                     </button>
                     <p class="dr-doc-meta text-center mt-2 px-1">Approves outreach and unlocks document submission.</p>
                 </form>
 
                 <div>
-                    <button type="button" class="cp-btn dr-btn-full bg-red-600 text-white shadow-red-200" onclick="document.getElementById('rejectRequestArea').classList.toggle('active')">
+                    <button type="button" class="cp-btn cp-btn--danger dr-btn-full" onclick="document.getElementById('rejectRequestArea').classList.toggle('active')">
                         <i class="fas fa-times mr-1"></i> Reject Request
                     </button>
                     <p class="dr-doc-meta text-center mt-2 px-1">Declines the request with a formal rejection reason.</p>

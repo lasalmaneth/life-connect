@@ -293,7 +293,32 @@ class Custodian {
         $custodian = $this->requireCustodian();
         if (!$custodian) return;
 
-        $this->renderPage('custodian/certificates', 'certificates', 'Certificates', $custodian);
+        $donorId = $custodian->donor_id;
+        $activeCase = $this->caseModel->getCaseByDonor($donorId);
+        $certificates = $activeCase ? $this->model->getDonationCertificates($activeCase->id) : [];
+        $appreciationLetters = $activeCase ? $this->model->getAppreciationLetters($activeCase->id) : [];
+
+        // Determine if an appreciation letter is "Pending" (Accepted but not used yet)
+        $isAppreciationPending = false;
+        if ($activeCase && empty($appreciationLetters)) {
+            // Check if any institution (Medical School) has accepted this case
+            $statuses = $this->caseModel->getInstitutionStatuses($activeCase->id);
+            foreach ($statuses as $s) {
+                if ($s->institution_status === 'ACCEPTED') {
+                    if ($s->track === 'MEDICAL_SCHOOL_BODY' || $s->institution_type === 'HOSPITAL') {
+                        $isAppreciationPending = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        $this->renderPage('custodian/certificates', 'certificates', 'Certificates', $custodian, [
+            'activeCase' => $activeCase,
+            'certificates' => $certificates,
+            'appreciation_letters' => $appreciationLetters,
+            'is_appreciation_pending' => $isAppreciationPending
+        ]);
     }
 
     public function activityHistory()
@@ -601,7 +626,8 @@ class Custodian {
                 // --- SUBMITTED DOCUMENTS MAPPING ---
                 $submittedDocs = [];
                 if ($activeCase->bundle_status === 'SUBMITTED' && $currentInstRequest && !empty($currentInstRequest->submitted_checklist_json)) {
-                    $docIds = json_decode($currentInstRequest->submitted_checklist_json, true) ?: [];
+                    $rawChecklist = $currentInstRequest->submitted_checklist_json;
+                    $docIds = is_string($rawChecklist) ? (json_decode($rawChecklist, true) ?: []) : (array)$rawChecklist;
                     
                     $mapping = [
                         'sworn'              => 'Sworn Statement of Legal Custodian',
@@ -798,7 +824,8 @@ class Custodian {
             'is_deceased' => ($deathDecl !== null),
             'window_remaining' => null,
             'resolved_track' => $donationCase ? $donationCase->resolved_operational_track : null,
-            'snapshot_items' => $donationCase ? json_decode($donationCase->operational_items_json, true) : null
+            'snapshot_items' => ($donationCase && !empty($donationCase->operational_items_json)) ? 
+                (is_string($donationCase->operational_items_json) ? json_decode($donationCase->operational_items_json, true) : (array)$donationCase->operational_items_json) : null
         ];
 
         // Calculate remaining time in the window
@@ -1077,7 +1104,8 @@ class Custodian {
         }
 
         $track = $_GET['track'] ?? 'BODY';
-        $institutions = $this->caseModel->getAvailableInstitutions($donationCase->id, $track);
+        $targetType = (str_contains($track, 'BODY') || str_contains($track, 'CORNEA')) ? 'MEDICAL_SCHOOL' : 'HOSPITAL';
+        $institutions = $this->caseModel->getAvailableInstitutions($donationCase->id, $track, $targetType);
         $currentInst = $this->caseModel->getCurrentInstitution($donationCase->id, $track);
 
         $this->json(['success' => true, 'data' => [
@@ -1375,12 +1403,30 @@ class Custodian {
             // If cadaver datasheet doesn't have form data yet, fetch the sworn statement to pre-fill common fields
             $swornRecord = $this->model->getSwornStatement($activeCase->id);
             if (empty($record->form_data) && $swornRecord && !empty($swornRecord->form_data)) {
-                $formData = json_decode($swornRecord->form_data, true) ?? [];
+                $rawSworn = $swornRecord->form_data;
+                $formData = is_string($rawSworn) ? (json_decode($rawSworn, true) ?? []) : (array)$rawSworn;
             }
         }
         
         if ($record && !empty($record->form_data)) {
-            $formData = json_decode($record->form_data, true) ?? [];
+            $rawRec = $record->form_data;
+            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array)$rawRec;
+        }
+
+        // --- AUTO-FILL REFINED DEMOGRAPHICS ---
+        $donor = $this->model->getDonorForCustodian($custodian->id);
+        if ($donor) {
+            // 1. Race -> From Nationality
+            if (empty($formData['race']) && !empty($donor->nationality)) {
+                $formData['race'] = $donor->nationality;
+            }
+            // 2. Religion -> From Body Donation Consent (if available)
+            if (empty($formData['donor_religion'])) {
+                $bodyConsent = $this->model->query("SELECT religion FROM body_donation_consents WHERE donor_id = :did ORDER BY consent_date DESC LIMIT 1", [':did' => $donorId])[0] ?? null;
+                if ($bodyConsent && !empty($bodyConsent->religion)) {
+                    $formData['donor_religion'] = $bodyConsent->religion;
+                }
+            }
         }
 
         // Pre-populate place of death from death declaration if missing
@@ -1468,7 +1514,8 @@ class Custodian {
             $record = $this->model->getCadaverSheet($activeCase->id);
         }
         if ($record && !empty($record->form_data)) {
-            $formData = json_decode($record->form_data, true) ?? [];
+            $rawRec = $record->form_data;
+            $formData = is_string($rawRec) ? (json_decode($rawRec, true) ?? []) : (array)$rawRec;
         }
 
         $cwd = $custodian->id ?? $custodian->custodian_id ?? 0;
@@ -1557,7 +1604,8 @@ class Custodian {
             return;
         }
 
-        $items = json_decode($activeCase->operational_items_json, true);
+        $rawItems = $activeCase->operational_items_json;
+        $items = is_string($rawItems) ? json_decode($rawItems, true) : (array)$rawItems;
         if (isset($items[$itemId])) {
             $items[$itemId]['status'] = 'skipped';
             $this->caseModel->update($activeCase->id, ['operational_items_json' => json_encode($items)]);

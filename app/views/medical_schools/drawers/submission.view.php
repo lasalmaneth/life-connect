@@ -7,17 +7,128 @@
 <?php else: ?>
     <!-- Premium Drawer Content -->
     <div class="dr-content">
+        <style>
+            .dr-time-presets {
+                display: flex;
+                gap: 6px;
+                margin-top: 10px;
+                flex-wrap: wrap;
+            }
+            .dr-time-chip {
+                padding: 6px 14px;
+                background: rgba(22, 163, 74, 0.06);
+                border: 1px solid rgba(22, 163, 74, 0.15);
+                border-radius: 30px;
+                font-size: 0.7rem;
+                font-weight: 700;
+                color: #16a34a;
+                cursor: pointer;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                user-select: none;
+            }
+            .dr-time-chip:hover {
+                background: #16a34a;
+                color: white;
+                border-color: #16a34a;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+            }
+            .dr-time-chip:active {
+                transform: translateY(0);
+            }
+            .dr-time-row {
+                display: flex;
+                gap: 2px;
+                align-items: center;
+                background: #f8fafc;
+                padding: 2px;
+                border: 1px solid #cbd5e1;
+                border-radius: 10px;
+                margin-top: 5px;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+                height: 42px; /* Matches standard slim input */
+            }
+            .dr-time-row:focus-within {
+                border-color: #16a34a;
+                background: white;
+                box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), inset 0 1px 2px rgba(0,0,0,0.05);
+            }
+            .dr-time-select {
+                flex: 1;
+                border: none;
+                background: transparent;
+                font-size: 0.9rem;
+                font-weight: 800;
+                color: #334155;
+                padding: 0 4px;
+                height: 100%;
+                cursor: pointer;
+                outline: none;
+                text-align: center;
+                -webkit-appearance: none;
+                appearance: none;
+                border-radius: 6px;
+                transition: all 0.2s;
+            }
+            .dr-time-select:hover {
+                background: rgba(22, 163, 74, 0.08);
+                color: #16a34a;
+            }
+            .dr-time-sep {
+                font-weight: 900;
+                color: #94a3b8;
+                font-size: 1.1rem;
+                opacity: 0.4;
+                user-select: none;
+            }
+
+            /* Unified Bubble Badges */
+            .cp-status-bubble {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.65rem;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                border: 1px solid transparent;
+            }
+            .cp-status-bubble--accepted { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+            .cp-status-bubble--rejected { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+            .cp-status-bubble--awaiting { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+            .cp-status-bubble--pending { background: #fef9c3; color: #854d0e; border-color: #fef08a; }
+
+            .dr-case-tag {
+                background: #f1f5f9;
+                color: #64748b;
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 0.65rem;
+                font-weight: 800;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .dr-form-area {
+                padding: 16px;
+                border-radius: 12px;
+                margin-bottom: 16px;
+            }
+            .dr-grid--2 {
+                gap: 12px;
+            }
+        </style>
         
         <!-- Slimmed Premium Header -->
         <div class="dr-header">
             <div class="dr-header__inner">
-                <div class="dr-header__top">
-                    <span class="dr-tag">
-                        Case #<?= htmlspecialchars($submission->case_number) ?>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="cp-status-bubble cp-status-bubble--<?= strtolower($submission->document_status) ?>">
+                        <i class="fas fa-circle mr-2" style="font-size: 0.4rem; opacity: 0.8;"></i>
+                        <?= htmlspecialchars(str_replace('_', ' ', $submission->document_status)) ?>
                     </span>
-                    <span class="cp-status-badge dr-status-badge">
-                        <i class="fas fa-clock mr-1"></i> <?= htmlspecialchars(str_replace('_', ' ', $submission->document_status)) ?>
-                    </span>
+                    <div class="dr-case-tag">Case #<?= htmlspecialchars($submission->case_number) ?></div>
                 </div>
                 <h3>Document Bundle Review</h3>
                 <p>Verify legal and medical paperwork for the deceased donor.</p>
@@ -168,22 +279,22 @@
             <div class="dr-workflow-box">
                 <div class="dr-tabs">
                     <button type="button" 
-                            onclick="toggleWorkflowAction('approve')" 
-                            id="accBtn"
+                            onclick="toggleDocWorkflow('approve')" 
+                            id="doc_accBtn"
                             class="dr-tab-btn dr-tab-btn--success active">
                         APPROVE
                     </button>
                     <button type="button" 
-                            onclick="toggleWorkflowAction('reject')" 
-                            id="rejBtn"
+                            onclick="toggleDocWorkflow('reject')" 
+                            id="doc_rejBtn"
                             class="dr-tab-btn dr-tab-btn--danger">
                         REJECT
                     </button>
                 </div>
 
                 <!-- Accept Form Section -->
-                <div id="acceptArea" class="dr-workflow-action active">
-                    <form action="<?= ROOT ?>/medical-school/submissions/accept" method="POST">
+                <div id="doc_acceptArea" class="dr-workflow-action active">
+                    <form id="approveForm" action="<?= ROOT ?>/medical-school/submissions/accept" method="POST" onsubmit="syncCustomTime()">
                         <input type="hidden" name="submission_id" value="<?= $submission->cis_id ?>">
                         
                         <div class="dr-form-area dr-form-area--success">
@@ -194,7 +305,32 @@
                                 </div>
                                 <div>
                                     <label class="dr-slim-label">Arrival Time</label>
-                                    <input type="time" name="handover_time" class="dr-slim-input" required>
+                                    <input type="hidden" name="handover_time" id="handover_time_input" value="09:00" required>
+                                    
+                                    <div class="dr-time-row">
+                                        <select id="cust_hr" class="dr-time-select" onchange="syncCustomTime()">
+                                            <?php for($i=1; $i<=12; $i++): ?>
+                                                <option value="<?= str_pad($i, 2, '0', STR_PAD_LEFT) ?>" <?= ($i==9 ? 'selected' : '') ?>><?= str_pad($i, 2, '0', STR_PAD_LEFT) ?></option>
+                                            <?php endfor; ?>
+                                        </select>
+                                        <span class="dr-time-sep">:</span>
+                                        <select id="cust_min" class="dr-time-select" onchange="syncCustomTime()">
+                                            <?php for($i=0; $i<60; $i+=5): ?>
+                                                <option value="<?= str_pad($i, 2, '0', STR_PAD_LEFT) ?>"><?= str_pad($i, 2, '0', STR_PAD_LEFT) ?></option>
+                                            <?php endfor; ?>
+                                        </select>
+                                        <select id="cust_ampm" class="dr-time-select" onchange="syncCustomTime()">
+                                            <option value="AM" selected>AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="dr-time-presets" style="display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
+                                        <div class="dr-time-chip" onclick="setTimeVal('09:00')">09:00 AM</div>
+                                        <div class="dr-time-chip" onclick="setTimeVal('11:00')">11:00 AM</div>
+                                        <div class="dr-time-chip" onclick="setTimeVal('14:00')">02:00 PM</div>
+                                        <div class="dr-time-chip" onclick="setTimeVal('16:00')">04:00 PM</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -211,7 +347,7 @@
                 </div>
 
                 <!-- Reject Form Section -->
-                <div id="rejectArea" class="dr-workflow-action">
+                <div id="doc_rejectArea" class="dr-workflow-action">
                     <form action="<?= ROOT ?>/medical-school/submissions/reject" method="POST">
                         <input type="hidden" name="submission_id" value="<?= $submission->cis_id ?>">
                         
@@ -252,24 +388,58 @@
         <?php endif; ?>
     </div>
 
+    <!-- Toggle logic moved to main page script -->
     <script>
-        function toggleWorkflowAction(action) {
-            const accArea = document.getElementById('acceptArea');
-            const rejArea = document.getElementById('rejectArea');
-            const accBtn = document.getElementById('accBtn');
-            const rejBtn = document.getElementById('rejBtn');
+        /**
+         * Robust sync function to ensure hidden input matches dropdowns
+         */
+        function syncCustomTime() {
+            const hrField = document.getElementById('cust_hr');
+            const minField = document.getElementById('cust_min');
+            const ampmField = document.getElementById('cust_ampm');
+            const targetInput = document.getElementById('handover_time_input');
 
-            if (action === 'approve') {
-                accArea.classList.add('active');
-                rejArea.classList.remove('active');
-                accBtn.classList.add('active');
-                rejBtn.classList.remove('active');
-            } else {
-                rejArea.classList.add('active');
-                accArea.classList.remove('active');
-                rejBtn.classList.add('active');
-                accBtn.classList.remove('active');
+            if (!hrField || !minField || !ampmField || !targetInput) return;
+
+            const hr = hrField.value;
+            const min = minField.value;
+            const ampm = ampmField.value;
+            
+            let hrInt = parseInt(hr);
+            if (ampm === 'PM' && hrInt < 12) hrInt += 12;
+            if (ampm === 'AM' && hrInt === 12) hrInt = 0;
+            
+            const finalTime = hrInt.toString().padStart(2, '0') + ':' + min;
+            targetInput.value = finalTime;
+            return true;
+        }
+
+        function setTimeVal(val) {
+            const input = document.getElementById('handover_time_input');
+            if (input) {
+                input.value = val;
+                
+                // Update visuals
+                const [h, m] = val.split(':');
+                const hInt = parseInt(h);
+                const ampm = hInt >= 12 ? 'PM' : 'AM';
+                const displayHr = hInt % 12 || 12;
+                
+                const hrSelect = document.getElementById('cust_hr');
+                const minSelect = document.getElementById('cust_min');
+                const ampmSelect = document.getElementById('cust_ampm');
+
+                if (hrSelect) hrSelect.value = displayHr.toString().padStart(2, '0');
+                if (minSelect) minSelect.value = m;
+                if (ampmSelect) ampmSelect.value = ampm;
+                
+                input.dispatchEvent(new Event('change'));
             }
         }
+
+        // Immediate initialization + brief delay for AJAX race conditions
+        syncCustomTime();
+        setTimeout(syncCustomTime, 100);
+        setTimeout(syncCustomTime, 500); 
     </script>
 <?php endif; ?>

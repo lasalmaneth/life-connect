@@ -35,7 +35,6 @@ $ms_nav_items = [
         'items' => [
             ['href' => ROOT . '/medical-school/usage-logs',   'icon' => 'fa-clipboard-list',     'label' => 'Cadaver Usage Logs',   'key' => 'usage-logs'],
             ['href' => ROOT . '/medical-school/stories',      'icon' => 'fa-star',               'label' => 'Success Stories',      'key' => 'stories'],
-            ['href' => ROOT . '/medical-school/reports',      'icon' => 'fa-chart-bar',          'label' => 'Reports',              'key' => 'reports'],
         ],
     ],
 ];
