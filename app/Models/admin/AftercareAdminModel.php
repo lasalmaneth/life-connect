@@ -82,34 +82,4 @@ class AftercareAdminModel {
         return $results ? $results[0] : null;
     }
 
-    /**
-     * Get statistics specifically for the aftercare admin dashboard
-     */
-    public function getPatientStats() {
-        $stats = [
-            'total_patients' => 0,
-            'recipient_patients' => 0,
-            'donor_patients' => 0,
-            'average_age' => 0
-        ];
-
-        // Total Counts
-        $res = $this->query("SELECT patient_type, COUNT(*) as count FROM {$this->table} GROUP BY patient_type");
-        if ($res) {
-            foreach ($res as $row) {
-                $count = (int)$row->count;
-                $stats['total_patients'] += $count;
-                if ($row->patient_type === 'RECIPIENT') $stats['recipient_patients'] = $count;
-                if ($row->patient_type === 'DONOR') $stats['donor_patients'] = $count;
-            }
-        }
-
-        // Average Age (calculated from recipient_patient table)
-        $resAge = $this->query("SELECT AVG(age) as avg_age FROM recipient_patient WHERE age IS NOT NULL");
-        if ($resAge) {
-            $stats['average_age'] = round($resAge[0]->avg_age ?? 0);
-        }
-
-        return $stats;
-    }
 }

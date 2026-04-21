@@ -1,3 +1,5 @@
+<!--support_requests.tab.php-->
+<?php /*
 <div id="support-requests" class="content-section" style="display: none;">
     <div class="content-header">
         <h2>Patient Support Requests</h2>
@@ -28,7 +30,6 @@
             <div style="font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Rejected Requests</div>
             <div id="support-rejected-count" style="font-size: 1.5rem; font-weight: 700; color: #f43f5e;"><?= $support_stats['rejected'] ?? 0 ?></div>
         </div>
-        
     </div>
 
     <!-- Filter and Search Bar -->
@@ -39,7 +40,16 @@
                 style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem; border-radius: 14px; border: 1px solid #e2e8f0; outline: none; font-size: 0.95rem; transition: border-color 0.2s;"
                 onkeyup="filterSupportRequests()">
         </div>
-        
+        <div style="display: flex; gap: 0.75rem;">
+            <select id="amount-filter" onchange="filterSupportRequests()"
+            style="padding: 0.75rem 1rem; border-radius: 14px; border: 1px solid #e2e8f0; background: white; color: #475569; outline: none; cursor: pointer; font-size: 0.95rem;">
+                <option value="ALL">All Amounts</option>
+                <option value="small">less than 10000</option>
+                <option value="medium">10000 - 50000</option>
+                <option value="large">more than 50000</option>
+                <option value="very large">more than 100000</option>
+            </select>
+        </div>
         <div style="display: flex; gap: 0.75rem;">
             <select id="support-status-filter" onchange="filterSupportRequests()"
                 style="padding: 0.75rem 1rem; border-radius: 14px; border: 1px solid #e2e8f0; background: white; color: #475569; outline: none; cursor: pointer; font-size: 0.95rem;">
@@ -75,7 +85,7 @@
                     <?php foreach ($support_requests as $req): ?>
                         <tr class="support-row" 
                             data-status="<?= $req->status ?>" 
-            
+                            data-amount="<?= $req->amount ?>"
                             data-search="<?= strtolower($req->patient_name . ' ' . $req->patient_nic . ' ' . $req->reason) ?>" 
                             onclick="openSupportDetails(<?= htmlspecialchars(json_encode($req)) ?>)"
                             style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s; cursor: pointer;">
@@ -214,3 +224,41 @@
         to { opacity: 1; transform: translateY(0); }
     }
 </style>
+
+finance.js
+// Support Requests State
+let currentSupportReq = null;
+
+// Filter Support Requests (Local Search)
+function filterSupportRequests() {
+    const query = document.getElementById('support-search-input').value.toLowerCase();
+    const statusFilter = document.getElementById('support-status-filter').value;
+    const amountFilter = document.getElementById('amount-filter').value;
+    const rows = document.querySelectorAll('.support-row');
+
+    rows.forEach(row => {
+        const searchData = row.getAttribute('data-search');
+        const statusData = row.getAttribute('data-status');
+        const amountData = parseFloat(row.getAttribute('data-amount') || 0);
+
+        const matchesSearch = searchData.includes(query);
+        const matchesStatus = (statusFilter === 'ALL' || statusData === statusFilter);
+
+        let matchesAmount = true;
+        if (amountFilter === 'small') {
+            matchesAmount = amountData < 10000;
+        } else if (amountFilter === 'medium') {
+            matchesAmount = amountData >= 10000 && amountData < 50000;
+        } else if (amountFilter === 'large') {
+            matchesAmount = amountData >= 50000 && amountData < 100000;
+        } else if (amountFilter === 'very large') {
+            matchesAmount = amountData >= 100000;
+        }
+
+
+        row.style.display = (matchesSearch && matchesStatus && matchesAmount) ? 'table-row' : 'none';
+    });
+}
+
+*/
+?>

@@ -1836,7 +1836,7 @@ function downloadPledge(id) {
         <html>
         <head>
             <title>Pledge Certification</title>
-            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
             ${styles}
             <style>
                 body { background: white !important; margin: 0; padding: 40px; }

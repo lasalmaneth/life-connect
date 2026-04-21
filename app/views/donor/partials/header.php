@@ -32,7 +32,7 @@ unset($_SESSION['success_message'], $_SESSION['error_message']);
     
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/style.css">
     <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/donor/donor.css">
-    <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/fontawesome.min.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <?php if (!empty($page_css)): foreach ($page_css as $css): ?>
         <link rel="stylesheet" href="<?= ROOT ?>/public/assets/css/donor/<?= $css ?>">
     <?php endforeach; endif; ?>

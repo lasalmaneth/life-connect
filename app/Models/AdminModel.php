@@ -330,31 +330,6 @@ class AdminModel
         ]);
     }
 
-    public function sendBulkNotification($target, $title, $message, $type, $senderId, $role = null)
-    {
-        $query = "";
-        $params = [
-            'sender_id' => $senderId,
-            'title' => $title,
-            'message' => $message,
-            'type' => $type
-        ];
-
-        if ($target === 'all') {
-            $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) 
-                      SELECT id, :sender_id, :title, :message, :type FROM users WHERE status = 'active'";
-        } elseif ($target === 'role' && $role) {
-            $query = "INSERT INTO notifications (user_id, sender_id, title, message, type) 
-                      SELECT id, :sender_id, :title, :message, :type FROM users WHERE role = :role AND status = 'active'";
-            $params['role'] = $role;
-        }
-
-        if (!empty($query)) {
-            return $this->query($query, $params);
-        }
-        return false;
-    }
-
     public function logAdminAction($adminId, $targetUserId, $action, $oldValue = null, $newValue = null, $notes = null)
     {
         // Permanent audit record — never shown to end users
@@ -564,56 +539,6 @@ class AdminModel
         return $user;
     }
 
-    public function updateUserDetails($id, $role, $data)
-    {
-        // Update users table phone
-        if (isset($data['phone'])) {
-            $this->query("UPDATE users SET phone = :phone WHERE id = :id", ['phone' => $data['phone'], 'id' => $id]);
-        }
-
-        $role = strtoupper($role);
-        // Update role tables first name and last name
-        if ($role === 'DONOR') {
-            $this->query("UPDATE donors SET first_name = :fn, last_name = :ln WHERE user_id = :id", [
-                'fn' => $data['first_name'] ?? '',
-                'ln' => $data['last_name'] ?? '',
-                'id' => $id
-            ]);
-        } elseif ($role === 'FINANCIAL_DONOR') {
-            $this->query("UPDATE donors SET first_name = :fn, last_name = :ln WHERE user_id = :id", [
-                'fn' => $data['first_name'] ?? '',
-                'ln' => $data['last_name'] ?? '',
-                'id' => $id
-            ]);
-        } elseif ($role === 'HOSPITAL') {
-            $this->query("UPDATE hospitals SET name = :nm WHERE user_id = :id", [
-                'nm' => $data['first_name'] ?? '',
-                'id' => $id
-            ]);
-        } elseif ($role === 'MEDICAL_SCHOOL') {
-            $this->query("UPDATE medical_schools SET name = :nm WHERE user_id = :id", [
-                'nm' => $data['first_name'] ?? '',
-                'id' => $id
-            ]);
-        } elseif ($role === 'PATIENT') {
-            $this->query("UPDATE patients SET first_name = :fn, last_name = :ln WHERE user_id = :id", [
-                'fn' => $data['first_name'] ?? '',
-                'ln' => $data['last_name'] ?? '',
-                'id' => $id
-            ]);
-        } elseif (in_array($role, ['ADMIN', 'U_ADMIN', 'F_ADMIN', 'AC_ADMIN', 'D_ADMIN'])) {
-            $this->query("UPDATE admins SET first_name = :fn, last_name = :ln, staff_id = :sid, designation = :des, contact_number = :con WHERE user_id = :id", [
-                'fn' => $data['first_name'] ?? '',
-                'ln' => $data['last_name'] ?? '',
-                'sid' => $data['staff_id'] ?? '',
-                'des' => $data['designation'] ?? '',
-                'con' => $data['contact_number'] ?? '',
-                'id' => $id
-            ]);
-        }
-
-        return true;
-    }
 
     public function updateUser($id, $data)
     {
@@ -638,11 +563,6 @@ class AdminModel
         return $this->query("SELECT * FROM contact_messages ORDER BY id DESC") ?: [];
     }
 
-    public function getFeedbackById($id)
-    {
-        $res = $this->query("SELECT * FROM contact_messages WHERE id = :id", ['id' => $id]);
-        return $res[0] ?? null;
-    }
 
     public function updateFeedbackStatus($id, $status)
     {

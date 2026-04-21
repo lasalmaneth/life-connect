@@ -12,7 +12,7 @@ require_once __DIR__ . '/nondonor.view.php';
     <!-- CSS Files -->
     <link rel="stylesheet" href="/life-connect/public/assets/css/nondonor/layout.css">
     <link rel="stylesheet" href="/life-connect/public/assets/css/nondonor/index.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
 

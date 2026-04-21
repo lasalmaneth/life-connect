@@ -386,10 +386,6 @@ function closeMatchModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// Legacy function mapping
-function viewMatchingDetails(matchId) {
-    viewMatchDetails(matchId);
-}
 
 // Close modal when clicking outside
 window.addEventListener('click', function(event) {

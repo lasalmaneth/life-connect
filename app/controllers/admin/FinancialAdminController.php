@@ -78,8 +78,4 @@ class FinancialAdminController {
         session_destroy();
         redirect('login');
     }
-
-    public function logoLogout() {
-        $this->logout();
-    }
 }

@@ -353,6 +353,9 @@ class HospitalModel {
         // 2. Update donor_pledges status to COMPLETED
         $this->query("UPDATE donor_pledges SET status = 'COMPLETED' WHERE id = :pid", [':pid' => $pledgeId]);
         
+        // 3. Update the match record status so it moves out of IN_PROGRESS
+        $this->query("UPDATE donor_patient_match SET donor_status = 'COMPLETED' WHERE match_id = :mid", [':mid' => $matchId]);
+
         return true;
     }
 
@@ -1088,7 +1091,6 @@ class HospitalModel {
 
     public function addTestResult($data)
     {
-        // Focus only on donor test results now that the recipients waitlist is removed.
         $query = "INSERT INTO test_results (donor_id, test_name, result_value, document_path, test_date, verified_by_hospital_id)
                   VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :verified_by_hospital_id)";
 

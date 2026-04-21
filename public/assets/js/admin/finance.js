@@ -35,10 +35,6 @@ function showContent(sectionId, element) {
     if (element) element.classList.add('active');
 }
 
-// Initialize Dashboard
-function initializeDashboard() {
-    // Stats are rendered server-side via PHP; nothing to do here.
-}
 
 // Setup Event Listeners
 function setupEventListeners() {
@@ -237,16 +233,6 @@ function handleSearch(event) {
 }
 
 // Date Helpers
-function isSameDay(d1, d2) {
-    return d1.getDate() === d2.getDate() && d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
-}
-function isSameWeek(d1, d2) {
-    const start = new Date(d2); start.setDate(d2.getDate() - d2.getDay()); start.setHours(0, 0, 0, 0);
-    const end = new Date(start); end.setDate(start.getDate() + 6); end.setHours(23, 59, 59, 999);
-    return d1 >= start && d1 <= end;
-}
-function isSameMonth(d1, d2) { return d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear(); }
-function isSameQuarter(d1, d2) { return Math.floor(d1.getMonth() / 3) === Math.floor(d2.getMonth() / 3) && d1.getFullYear() === d2.getFullYear(); }
 
 function formatDate(dateString) {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };

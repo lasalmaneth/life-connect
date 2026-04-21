@@ -229,9 +229,15 @@
                                         </div>
                                     </div>
 
-                                    <div class="form-group">
-                                        <label class="form-label">Contact Number</label>
-                                        <input type="text" name="contact_number" class="form-input" value="<?= htmlspecialchars($admin->contact_number ?? '') ?>" required>
+                                    <div class="feature-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Contact Number</label>
+                                            <input type="text" name="contact_number" class="form-input" value="<?= htmlspecialchars($admin->contact_number ?? '') ?>" required>
+                                        </div>
+                                        <div class="form-group" style="margin-bottom: 0;">
+                                            <label class="form-label">Address</label>
+                                            <input type="text" name="address" class="form-input" value="<?= htmlspecialchars($admin->address ?? '') ?>">
+                                        </div>
                                     </div>
 
                                     <div class="section-title" style="margin-top: 2.5rem;">Security Settings</div>

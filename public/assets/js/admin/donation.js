@@ -163,7 +163,7 @@ function setupEventListeners() {
     // Search functionality
     const searchInput = document.getElementById('organ-search');
     if (searchInput) {
-        searchInput.addEventListener('input', handleOrganSearch);
+        searchInput.addEventListener('input', handleOrganFilter);
     }
 
     // Filter functionality
@@ -317,10 +317,6 @@ function renderOrgansTable(organs) {
     handleOrganFilter();
 }
 
-// Handle organ search
-function handleOrganSearch(event) {
-    handleOrganFilter(); // Combined filter approach
-}
 
 // Combined filter for search text and status/type/blood dropdowns + date range
 function handleOrganFilter() {
@@ -775,17 +771,6 @@ window.addEventListener('click', function (event) {
 
 
 
-// Fallback to sample stats
-function loadSampleStats() {
-    console.log('Loading sample stats as fallback');
-    const sampleStats = {
-        totalDonors: 156,
-        totalOrgans: 243,
-        pendingApprovals: 23,
-        completedDonations: 89
-    };
-    updateDashboardStats(sampleStats);
-}
 
 // --- Hospital Requests Functions ---
 async function fetchHospitalRequests() {

@@ -320,23 +320,6 @@ function closeTributeModal() {
 }
 
 
-// Utility for toasts - Standard implementation using the global #toast element
-function showToast(type, message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
-    
-    if (toast && toastMessage) {
-        toastMessage.textContent = message;
-        toast.className = 'notification show ' + type; // success, error, warning
-        
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
-    } else {
-        console.log('Toast feedback:', message);
-    }
-}
-
 // Close modals when clicking outside
 document.addEventListener('click', function (e) {
     if (e.target.id === 'tributeModal') closeTributeModal();

@@ -155,6 +155,7 @@ route('hospital/get-surgery-match-details', 'Hospital@getSurgeryMatchDetails');
 route('hospital/handle-match-action', 'Hospital@handleMatchAction');
 route('hospital/view-donation-certificate', 'Hospital@viewDonationCertificate');
 route('hospital/view-appreciation-letter', 'Hospital@viewAppreciationLetter');
+route('hospital/complete-surgery', 'Hospital@completeSurgery');
 route('medical-school', 'MedicalSchool@index');
 route('medical-school', 'MedicalSchool@dashboard');
 route('medical-school/dashboard', 'MedicalSchool@dashboard');

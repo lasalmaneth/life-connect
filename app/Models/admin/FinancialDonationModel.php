@@ -123,30 +123,6 @@ class FinancialDonationModel
         return $kpis;
     }
 
-    public function getDonationsPastMonth()
-    {
-        $result = $this->query(
-            "SELECT COUNT(*) AS total FROM $this->table WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)"
-        );
-        return $result ? $result[0]->total : 0;
-    }
-
-    public function getDonationsPast3Months()
-    {
-        $result = $this->query(
-            "SELECT COUNT(*) AS total FROM $this->table WHERE created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)"
-        );
-        return $result ? $result[0]->total : 0;
-    }
-
-    public function getDonationsThisYear()
-    {
-        $result = $this->query(
-            "SELECT COUNT(*) AS total FROM $this->table WHERE YEAR(created_at) = YEAR(CURDATE())"
-        );
-        return $result ? $result[0]->total : 0;
-    }
-
     public function getAllDonations()
     {
         $query = "SELECT
@@ -172,28 +148,6 @@ class FinancialDonationModel
         return $this->query($query, [':donor_id' => $donorId]);
     }
 
-    public function getDonationById($id)
-    {
-        $query = "SELECT * FROM donations WHERE id = :id LIMIT 1";
-        $res = $this->query($query, [':id' => $id]);
-        return $res ? $res[0] : null;
-    }
-
-    public function createDonation($data)
-    {
-        $query = "INSERT INTO donations (user_id, amount, note, status, created_at)
-                  VALUES (:donor_id, :amount, :note, :status, NOW())";
-
-        $this->query($query, [
-            ':donor_id' => $data['donor_id'],
-            ':amount' => $data['amount'],
-            ':note' => $data['note'] ?? null,
-            ':status' => $data['status'] ?? 'SUCCESS'
-        ]);
-
-        return true;
-    }
-
     /**
      * Get Total Cumulative Amount Donated by a user
      */
@@ -202,5 +156,22 @@ class FinancialDonationModel
         $query = "SELECT SUM(amount) as total FROM donations WHERE user_id = :uid AND status = 'SUCCESS'";
         $res = $this->query($query, [':uid' => $userId]);
         return $res ? (float) ($res[0]->total ?? 0) : 0.0;
+    }
+
+    /**
+     * Create a new donation record
+     */
+    public function createDonation($data)
+    {
+        // Align donor_id from controller to user_id in database schema
+        $insertData = [
+            'user_id' => $data['donor_id'] ?? $data['user_id'],
+            'amount' => $data['amount'],
+            'note' => $data['note'] ?? '',
+            'status' => $data['status'] ?? 'SUCCESS',
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+
+        return $this->insert($insertData);
     }
 }

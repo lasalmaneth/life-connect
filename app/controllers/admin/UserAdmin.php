@@ -27,6 +27,7 @@ class UserAdmin {
         $firstName = $data['first_name'] ?? '';
         $lastName = $data['last_name'] ?? '';
         $contactNumber = $data['contact_number'] ?? '';
+        $address = $data['address'] ?? '';
         $email = $data['email'] ?? '';
         $designation = $data['designation'] ?? '';
 
@@ -43,11 +44,12 @@ class UserAdmin {
                 'id' => $userId
             ]);
 
-            // Update admins table (first_name, last_name, contact_number, designation)
-            $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact, designation = :des WHERE user_id = :id", [
+            // Update admins table (first_name, last_name, contact_number, address, designation)
+            $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact, address = :addr, designation = :des WHERE user_id = :id", [
                 'fname' => $firstName,
                 'lname' => $lastName,
                 'contact' => $contactNumber,
+                'addr' => $address,
                 'des' => $designation,
                 'id' => $userId
             ]);
@@ -95,6 +97,7 @@ class UserAdmin {
             $firstName = $_POST['first_name'] ?? '';
             $lastName = $_POST['last_name'] ?? '';
             $contactNumber = $_POST['contact_number'] ?? '';
+            $address = $_POST['address'] ?? '';
             $currentPassword = $_POST['current_password'] ?? '';
             $newPassword = $_POST['new_password'] ?? '';
             $confirmPassword = $_POST['confirm_password'] ?? '';
@@ -115,15 +118,17 @@ class UserAdmin {
 
                 // 2. Update admins table (personal details)
                 if ($admin) {
-                    $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact WHERE user_id = :id", [
+                    $this->query("UPDATE admins SET first_name = :fname, last_name = :lname, contact_number = :contact, address = :addr WHERE user_id = :id", [
                         'fname' => $firstName,
                         'lname' => $lastName,
                         'contact' => $contactNumber,
+                        'addr' => $address,
                         'id' => $userId
                     ]);
                     $admin->first_name = $firstName;
                     $admin->last_name = $lastName;
                     $admin->contact_number = $contactNumber;
+                    $admin->address = $address;
                 }
 
                 $message = "Profile details updated successfully.";
@@ -319,41 +324,6 @@ class UserAdmin {
         }
     }
 
-    public function sendNotification() {
-        header('Content-Type: application/json');
-        try {
-            $input = json_decode(file_get_contents('php://input'), true);
-            $target  = $input['target']   ?? 'specific'; // all, role, specific
-            $role    = $input['role']     ?? null;
-            $userId  = $input['user_id']  ?? null;
-            $title   = $input['title']    ?? null;
-            $message = $input['message']  ?? null;
-            $type    = $input['type']     ?? 'GENERAL';
-            $senderId = $_SESSION['user_id'] ?? null;
-
-            if (!$title || !$message) {
-                echo json_encode(['success' => false, 'message' => 'Missing title or message']);
-                return;
-            }
-
-            $adminModel = new AdminModel();
-            
-            if ($target === 'specific') {
-                if (!$userId) {
-                    echo json_encode(['success' => false, 'message' => 'Missing user ID']);
-                    return;
-                }
-                $adminModel->sendNotification($userId, $title, $message, $type, $senderId);
-            } else {
-                // Bulk sending (all or role)
-                $adminModel->sendBulkNotification($target, $title, $message, $type, $senderId, $role);
-            }
-
-            echo json_encode(['success' => true, 'message' => 'Notification dispatched successfully']);
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-        }
-    }
 
     public function getUser() {
         header('Content-Type: application/json');

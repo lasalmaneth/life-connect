@@ -20,6 +20,20 @@ class Hospital
         redirect('hospital/organ-requests');
     }
 
+    public function debugSchema()
+    {
+        $db = new HospitalModel();
+        foreach(['donors','test_results'] as $t) {
+            echo "<h3>Table: $t</h3><pre>";
+            try {
+                $res = $db->query("DESCRIBE $t");
+                print_r($res);
+            } catch(\Exception $e) { echo $e->getMessage(); }
+            echo "</pre>";
+        }
+        die();
+    }
+
     public function index()
     {
         // Session check
@@ -926,30 +940,13 @@ class Hospital
                 break;
 
             case 'submit_test_result':
-                $patientType = strtoupper(trim((string) ($_POST['patient_type'] ?? 'DONOR')));
                 $donorId = (int) ($_POST['donor_id'] ?? 0);
-                $recipientId = (int) ($_POST['recipient_id'] ?? 0);
                 $testName = trim((string) ($_POST['test_name'] ?? ''));
                 $testDate = trim((string) ($_POST['test_date'] ?? ''));
                 $resultValue = trim((string) ($_POST['result_value'] ?? ''));
 
-                if (!in_array($patientType, ['DONOR', 'RECIPIENT'], true)) {
-                    $_SESSION['flash_error'] = 'Invalid patient type.';
-                    break;
-                }
-
-                if ($testName === '' || $testDate === '') {
-                    $_SESSION['flash_error'] = 'Please select patient, test name, and test date.';
-                    break;
-                }
-
-                if ($patientType === 'DONOR' && $donorId <= 0) {
-                    $_SESSION['flash_error'] = 'Please select a donor patient.';
-                    break;
-                }
-
-                if ($patientType === 'RECIPIENT' && $recipientId <= 0) {
-                    $_SESSION['flash_error'] = 'Please select a recipient patient.';
+                if ($testName === '' || $testDate === '' || $donorId <= 0) {
+                    $_SESSION['flash_error'] = 'Please select donor, test name, and test date.';
                     break;
                 }
 
@@ -982,9 +979,7 @@ class Hospital
                 }
 
                 $payload = [
-                    'patient_type' => $patientType,
-                    'donor_id' => $patientType === 'DONOR' ? $donorId : null,
-                    'recipient_id' => $patientType === 'RECIPIENT' ? $recipientId : null,
+                    'donor_id' => $donorId,
                     'test_name' => $testName,
                     'result_value' => $resultValue,
                     'document_path' => $documentPath,
@@ -993,21 +988,15 @@ class Hospital
                 ];
 
                 if ($hospitalModel->addTestResult($payload)) {
-                    if ($patientType === 'DONOR') {
-                        $hospitalModel->notifyDonor(
-                            $donorId,
-                            'New test result available',
-                            'A new test result (' . $testName . ') was uploaded to your profile. You can view it under Test Results.',
-                            'INFO'
-                        );
-                    }
+                    $hospitalModel->notifyDonor(
+                        $donorId,
+                        'New test result available',
+                        'A new test result (' . $testName . ') was uploaded to your profile. You can view it under Test Results.',
+                        'INFO'
+                    );
                     $_SESSION['flash_success'] = 'Test result uploaded successfully.';
                 } else {
-                    if ($patientType === 'RECIPIENT') {
-                        $_SESSION['flash_error'] = 'Failed to upload recipient test result. Your database may need an update to support recipient test results.';
-                    } else {
-                        $_SESSION['flash_error'] = 'Failed to upload test result.';
-                    }
+                    $_SESSION['flash_error'] = 'Failed to upload test result.';
                 }
                 break;
 

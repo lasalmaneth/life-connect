@@ -15,21 +15,23 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
 ?>
 
 <style>
-    /* Visibility Toggling - Use !important to override global styles */
+    /* Profile Dropdown Overrides for Cleaner Style */
+    .profile-dropdown { width: 360px !important; font-size: 0.85rem !important; }
+    .profile-dropdown .profile-card-header { padding: 16px 20px !important; gap: 14px !important; }
+    .profile-dropdown .card-avatar { width: 50px !important; height: 50px !important; font-size: 1.2rem !important; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .profile-dropdown .card-name { font-size: 1rem !important; }
+    .profile-dropdown .card-role { font-size: 0.7rem !important; }
+    .profile-dropdown .info-row { padding: 10px 20px !important; }
+    .profile-dropdown .info-label { font-size: 0.85rem !important; }
+    .profile-dropdown .info-value { font-size: 0.85rem !important; max-width: 200px !important; }
+    .profile-dropdown .card-btn { height: 40px !important; font-size: 0.85rem !important; border-radius: 8px !important; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    
+    /* Visibility Toggling */
     .profile-dropdown .edit-mode { display: none !important; }
     .profile-dropdown .view-mode { display: flex !important; }
-
     .profile-dropdown.is-editing .view-mode { display: none !important; }
     .profile-dropdown.is-editing .edit-mode { display: flex !important; }
     
-    .profile-dropdown .card-avatar {
-        flex-shrink: 0;
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
     
     .profile-dropdown .inline-input {
         width: 100%;
@@ -57,29 +59,9 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
         color: #1e293b;
     }
     
-    .profile-dropdown .info-value {
-        word-break: break-all;
-        max-width: 180px;
-        text-align: right;
-        font-weight: 700;
-        color: #1e293b;
-    }
     
-    /* Button Consistency Group */
-    .profile-dropdown .card-btn {
-        flex: 1;
-        height: 48px;
-        border-radius: 12px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        text-decoration: none;
-        transition: all 0.2s;
-        cursor: pointer;
-    }
+    
+    
     
     .profile-dropdown .card-btn-outline {
         background: #ffffff;
@@ -145,6 +127,13 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
             </div>
         </div>
         <div class="info-row">
+            <span class="info-label">Address:</span>
+            <span class="info-value view-mode"><?= htmlspecialchars($admin->address ?? 'N/A') ?></span>
+            <div class="info-value edit-mode" style="flex: 1;">
+                <input type="text" id="inline_address" class="inline-input" value="<?= htmlspecialchars($admin->address ?? '') ?>">
+            </div>
+        </div>
+        <div class="info-row">
             <span class="info-label">Designation:</span>
             <span class="info-value"><?= htmlspecialchars($admin->designation ?? 'N/A') ?></span>
         </div>
@@ -202,6 +191,7 @@ $avatarLetter = strtoupper(substr($admin->first_name ?? 'A', 0, 1));
             first_name: document.getElementById('inline_first_name').value,
             last_name: document.getElementById('inline_last_name').value,
             contact_number: document.getElementById('inline_phone').value,
+            address: document.getElementById('inline_address').value,
             email: '<?= $admin->email ?? "" ?>',
             designation: '<?= $admin->designation ?? "" ?>'
         };
