@@ -163,7 +163,7 @@ class CustodianModel
             }
 
             $currentStatus = $p->status === 'WITHDRAWN' ? 'WITHDRAWN' : ($isSuperseded ? 'SUPERSEDED' : ($isDonorApproved ? 'ACTIVE' : 'PENDING VERIFICATION'));
-
+            
             $timeline[] = (object) [
                 'id' => $p->id,
                 'organ_id' => $p->organ_id,

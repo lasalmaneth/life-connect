@@ -154,6 +154,15 @@ class Custodian
             }
         }
 
+        $clinical_deadline = null;
+        $seconds_remaining = null;
+        $death_declaration = $activeCase ? $this->caseModel->getDeathDeclaration($activeCase->donor_id) : null;
+        if ($activeCase && $death_declaration) {
+            $window = $this->getClinicalWindowStatus($activeCase, $death_declaration, $custodian->id ?? $custodian->cid);
+            $clinical_deadline = $window['deadline'] ?? null;
+            $seconds_remaining = $window['seconds_remaining'] ?? null;
+        }
+        // show($seconds_remaining);
         $this->renderPage('custodian/dashboard', 'dashboard', 'Dashboard', $custodian, [
             'certificates' => $certificates,
             'appreciation_letters' => $appreciationLetters,

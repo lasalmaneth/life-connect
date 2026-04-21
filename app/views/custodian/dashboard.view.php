@@ -541,12 +541,38 @@ ob_start();
                                 </div>
                             <?php elseif ($canShowMedicalSchoolSection): ?>
                                 <div class="cp-label-mini mb-3">Education Donation Flow</div>
-                                <div class="cp-item-row available mb-4">
+
+                                <div class="cp-item-row available mb-4" style="display: flex; align-items: center; justify-content: space-between;">
                                     <span class="font-bold cp-text-sm">Whole Body Donation</span>
-                                    <div class="item-meta">
-                                        <span class="countdown" data-expire="<?= $timeLimits[10] ?? ($timeLimits['BODY_DEFAULT'] ?? '') ?>">...</span>
-                                    </div>
+                                    <?php if (!empty($seconds_remaining) && $seconds_remaining > 0): ?>
+                                    <span id="clinicalTimerDashboard" style="background: #d1fae5; color: #059669; font-weight: 700; border-radius: 8px; padding: 4px 14px; font-family: 'Courier New', monospace; font-size: 1rem; margin-left: 12px; min-width: 110px; text-align: center; display: inline-block;">
+                                        --:--:--
+                                    </span>
+                                    <script>
+                                        (function () {
+                                            let seconds = <?= (int)($seconds_remaining) ?>;
+                                            console.log(seconds)
+                                            const display = document.getElementById('clinicalTimerDashboard');
+                                            function update() {
+                                                if (seconds <= 0) {
+                                                    display.textContent = '00:00:00';
+                                                    display.style.background = '#fee2e2';
+                                                    display.style.color = '#b91c1c';
+                                                    return;
+                                                }
+                                                let h = Math.floor(seconds / 3600);
+                                                let m = Math.floor((seconds % 3600) / 60);
+                                                let s = seconds % 60;
+                                                display.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                                                seconds--;
+                                                setTimeout(update, 1000);
+                                            }
+                                            update();
+                                        })();
+                                    </script>
+                                    <?php endif; ?>
                                 </div>
+
 
                                 <?php 
                                     // Isolate medical school request
