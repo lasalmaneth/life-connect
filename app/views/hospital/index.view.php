@@ -125,8 +125,6 @@ if (!isset($notifications) || !isset($unread_count)) {
     <?php require __DIR__ . '/partials/story_modal.view.php'; ?>
     <?php require __DIR__ . '/partials/request_modal.view.php'; ?>
     <?php require __DIR__ . '/partials/request_details_modal.view.php'; ?>
-    <?php require __DIR__ . '/partials/lab_report_modal.view.php'; ?>
-    <?php require __DIR__ . '/partials/test_result_modal.view.php'; ?>
     <?php require __DIR__ . '/partials/export_modal.view.php'; ?>
     <?php require __DIR__ . '/partials/consent_modal.view.php'; ?>
     <?php require __DIR__ . '/partials/surgery_match_modal.view.php'; ?>

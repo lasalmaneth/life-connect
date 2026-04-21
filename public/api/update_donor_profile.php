@@ -19,10 +19,10 @@ if (!isset($_SESSION['user_id']) || strtoupper((string)($_SESSION['role'] ?? '')
     exit;
 }
 
-$donorId = (int)($_POST['donor_id'] ?? 0);
+$donorId = (int)($_POST['id_or_nic'] ?? 0);
 if ($donorId <= 0) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid donor']);
+    echo json_encode(['success' => false, 'message' => 'Invalid patient identifier']);
     exit;
 }
 
@@ -78,7 +78,7 @@ try {
 
     // Authorization: donor must be visible to this hospital via existing search logic.
     $visible = false;
-    $donors = $hospitalModel->searchDonorsForHospital($hospitalId, '');
+    $donors = $hospitalModel->getEligibleDonors($hospitalId);
     foreach (($donors ?: []) as $d) {
         if ((int)($d->id ?? 0) === $donorId) {
             $visible = true;
