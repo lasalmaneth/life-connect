@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Models\AftercarePatientModel;
+use App\Models\Hospital\AftercarePatientModel;
 use App\Models\LoginModel;
 use App\Models\UserModel;
 

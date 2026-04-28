@@ -1,5 +1,5 @@
 <?php
-// Hospital Portal — Add Recipient Aftercare Account
+// Hospital Portal — Add Recipient Aftercare Account DECIMAL(5,2)
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -7,21 +7,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="<?php echo ROOT; ?>/assets/css/hospital/hospital.css">
     <title>Add Recipient - Aftercare Portal</title>
     <style>
-        .ac-alert { padding: 1rem; border-radius: 10px; margin-bottom: 1.25rem; border-left: 4px solid; font-weight: 600; }
-        .ac-alert.success { background: #ecfdf5; color: #065f46; border-left-color: #10b981; }
-        .ac-alert.error { background: #fef2f2; color: #991b1b; border-left-color: #ef4444; }
-        .cred-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; margin-top: 0.75rem; }
-        .cred-row { display:flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #e5e7eb; }
-        .cred-row:last-child { border-bottom: none; }
-        .cred-k { color: #475569; font-weight: 700; }
-        .cred-v { color: #0f172a; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-        .cred-actions { display:flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
-        .btn-inline { padding: 0.55rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; background: #fff; font-weight: 700; }
-        .btn-inline.primary { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .ac-alert {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.25rem;
+            border-left: 4px solid;
+            font-weight: 600;
+        }
+
+        .ac-alert.success {
+            background: #ecfdf5;
+            color: #065f46;
+            border-left-color: #10b981;
+        }
+
+        .ac-alert.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left-color: #ef4444;
+        }
+
+        .cred-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        .cred-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .cred-row:last-child {
+            border-bottom: none;
+        }
+
+        .cred-k {
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .cred-v {
+            color: #0f172a;
+            font-weight: 800;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        .cred-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-inline {
+            padding: 0.55rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            background: #fff;
+            font-weight: 700;
+        }
+
+        .btn-inline.primary {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+        }
     </style>
 </head>
 
@@ -36,58 +98,97 @@
                 <div class="content-section" style="display:block;">
                     <div class="content-header">
                         <h2>Add Recipient Patient</h2>
-                        <p>Create an Aftercare Portal account using a registration number (auto-generated if left empty).</p>
+                        <p>Create an Aftercare Portal account using a registration number (auto-generated if left
+                            empty).</p>
                     </div>
 
                     <div class="content-body">
                         <?php if (!empty($_SESSION['flash_error'])): ?>
-                            <div class="ac-alert error"><?php echo htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?></div>
+                            <div class="ac-alert error">
+                                <?php echo htmlspecialchars($_SESSION['flash_error']);
+                                unset($_SESSION['flash_error']); ?>
+                            </div>
                         <?php endif; ?>
 
                         <?php if (!empty($_SESSION['flash_success'])): ?>
-                            <div class="ac-alert success"><?php echo htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?></div>
+                            <div class="ac-alert success">
+                                <?php echo htmlspecialchars($_SESSION['flash_success']);
+                                unset($_SESSION['flash_success']); ?>
+                            </div>
                         <?php endif; ?>
 
                         <?php if (!empty($_SESSION['generated_aftercare_credentials'])): ?>
-                            <?php $cred = $_SESSION['generated_aftercare_credentials']; unset($_SESSION['generated_aftercare_credentials']); ?>
+                            <?php $cred = $_SESSION['generated_aftercare_credentials'];
+                            unset($_SESSION['generated_aftercare_credentials']); ?>
                             <div class="ac-alert success">
                                 Credentials generated successfully. Save them now — they will not be shown again.
                                 <div class="cred-box" id="credBox">
-                                    <div class="cred-row"><div class="cred-k">Registration Number</div><div class="cred-v" id="credReg"><?php echo htmlspecialchars($cred['registration_number'] ?? ''); ?></div></div>
-                                    <div class="cred-row"><div class="cred-k">Default Password</div><div class="cred-v" id="credPass"><?php echo htmlspecialchars($cred['password'] ?? ''); ?></div></div>
+                                    <div class="cred-row">
+                                        <div class="cred-k">Registration Number</div>
+                                        <div class="cred-v" id="credReg">
+                                            <?php echo htmlspecialchars($cred['registration_number'] ?? ''); ?>
+                                        </div>
+                                    </div>
+                                    <div class="cred-row">
+                                        <div class="cred-k">Default Password</div>
+                                        <div class="cred-v" id="credPass">
+                                            <?php echo htmlspecialchars($cred['password'] ?? ''); ?>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="cred-actions">
-                                    <button type="button" class="btn-inline primary" onclick="copyCredentials()">Copy</button>
+                                    <button type="button" class="btn-inline primary"
+                                        onclick="copyCredentials()">Copy</button>
                                     <button type="button" class="btn-inline" onclick="printCredentials()">Print</button>
                                 </div>
                             </div>
                         <?php endif; ?>
 
-                        <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                        <div
+                            style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
                             <form action="<?php echo ROOT; ?>/hospital/addpatient/recipient" method="POST">
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Full Name *</label>
-                                        <input type="text" name="recipient_name" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Full
+                                            Name *</label>
+                                        <input type="text" name="recipient_name" required
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">NIC *</label>
-                                        <input type="text" name="recipient_nic" id="recipient_nic" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">NIC
+                                            *</label>
+                                        <input type="text" name="recipient_nic" id="recipient_nic" required
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Registration Number</label>
-                                        <input type="text" name="registration_number" placeholder="e.g., REG-2026-0001 (optional)" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Registration
+                                            Number</label>
+                                        <input type="text" name="registration_number"
+                                            placeholder="e.g., REG-2026-0001 (optional)"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                 </div>
 
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Age</label>
-                                        <input type="number" name="recipient_age" id="recipient_age" min="0" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Age</label>
+                                        <input type="number" name="recipient_age" id="recipient_age" min="0"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
+
+
+
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Gender</label>
-                                        <select name="recipient_gender" id="recipient_gender" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Gender</label>
+                                        <select name="recipient_gender" id="recipient_gender"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
                                             <option value="">Select</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
@@ -95,54 +196,119 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Blood Group</label>
-                                        <select name="recipient_blood_group" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
+                                        <label
+                                            style="display: none; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Weight
+                                            (kg)</label>
+                                        <input type="number" name="recipient_weight" step="0.1" placeholder="e.g. 70.5"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;display: none;">
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Blood
+                                            Group</label>
+                                        <select name="recipient_blood_group"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background: white;">
                                             <option value="">Select</option>
-                                            <option value="A+">A+</option><option value="A-">A-</option>
-                                            <option value="B+">B+</option><option value="B-">B-</option>
-                                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                                            <option value="O+">O+</option><option value="O-">O-</option>
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
                                         </select>
                                     </div>
-                                </div>
 
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Email Address *</label>
-                                        <input type="email" name="recipient_email" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                                    </div>
-                                    <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Phone Number *</label>
-                                        <input type="text" name="recipient_phone" required style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: none; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Type</label>
+                                        <input type="text" name="recipient_type" placeholder="e.g. Internal"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;display:none">
                                     </div>
                                 </div>
 
-                                <div style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Contact Address</label>
-                                    <input type="text" name="recipient_contact" placeholder="Home address or primary location" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                                </div>
-
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Surgery Type</label>
-                                        <input type="text" name="surgery_type" placeholder="e.g., Kidney Transplant" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Email
+                                            Address *</label>
+                                        <input type="email" name="recipient_email" required
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                     <div>
-                                        <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Date of Surgery</label>
-                                        <input type="date" name="surgery_date" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Phone
+                                            Number *</label>
+                                        <input type="text" name="recipient_phone" required
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                     </div>
                                 </div>
 
                                 <div style="margin-bottom: 1.5rem;">
-                                    <label style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Medical Details (Optional)</label>
-                                    <textarea name="recipient_medical" rows="3" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;" placeholder="Treatment notes..."></textarea>
+                                    <label
+                                        style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Contact
+                                        Address</label>
+                                    <input type="text" name="recipient_contact"
+                                        placeholder="Home address or primary location"
+                                        style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                                 </div>
 
-                                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer;">Register & Generate Credentials</button>
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                                    <div>
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Surgery
+                                            Type</label>
+                                        <input type="text" name="surgery_type" placeholder="e.g., Kidney Transplant"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
+                                    <div>
+                                        <label
+                                            style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Date
+                                            of Surgery</label>
+                                        <input type="date" name="surgery_date"
+                                            style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label
+                                        style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">Medical
+                                        Details (Optional)</label>
+                                    <textarea name="recipient_medical" rows="3"
+                                        style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;"
+                                        placeholder="Treatment notes..."></textarea>
+                                </div>
+
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label
+                                        style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">disabilities
+                                        ?</label>
+                                    <textarea name="recipient_disabilities" rows="3"
+                                        style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;"
+                                        placeholder="disability notes..."></textarea>
+                                </div>
+
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label
+                                        style="display: none; font-weight: 700; margin-bottom: 0.5rem; color: var(--secondary-text-color);">statistic
+                                        (Optional)</label>
+                                    <textarea name="recipient_statistic" rows="3"
+                                        style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;display:none"
+                                        placeholder="Treatment notes..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary"
+                                    style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer;">Register &
+                                    Generate Credentials</button>
                             </form>
 
                             <div style="margin-top: 1.25rem; color:#64748b; font-size: 0.9rem; line-height: 1.5;">
-                                Login details: use the generated registration number. Default password is the NIC (first login only).
+                                Login details: use the generated registration number. Default password is the NIC (first
+                                login only).
                             </div>
                         </div>
 
@@ -168,7 +334,7 @@
                 ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
-                try { document.execCommand('copy'); showServerMessage('Credentials copied.', 'success'); } catch(e) { showServerMessage('Copy failed.', 'error'); }
+                try { document.execCommand('copy'); showServerMessage('Credentials copied.', 'success'); } catch (e) { showServerMessage('Copy failed.', 'error'); }
                 ta.remove();
             }
         }
@@ -207,7 +373,7 @@
         }
 
         // NIC to Age and Gender logic
-        document.getElementById('recipient_nic')?.addEventListener('input', function() {
+        document.getElementById('recipient_nic')?.addEventListener('input', function () {
             const nic = this.value.trim();
             let year, days, gender;
 

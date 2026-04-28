@@ -3,8 +3,8 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Models\AftercarePatientModel;
-use App\Models\HospitalModel;
+use App\Models\Hospital\AftercarePatientModel;
+use App\Models\Hospital\HospitalModel;
 use App\Models\MedicalHistoryModel;
 use App\Models\LoginModel;
 use App\Models\UserModel;

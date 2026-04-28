@@ -1,4 +1,73 @@
-<?php
+js antribution...AbortController.apply.apply.apply
+
+
+addpatient - recipient.view.php
+hospital.php-- - views > hospital line 160 wage
+
+    < !-- < div class="table-cell" data - label="WEIGHT" > 
+                                            <? php echo htmlspecialchars($recipient -> weight ?? 'N/A'); ?> kg
+                                        </div > -->
+                                        < !-- < div class="table-cell" data - label="TYPE" > 
+                                            <? php echo htmlspecialchars($recipient -> type ?? 'N/A'); ?>
+                                        </div > -->
+
+
+    aftercarepatientmodel(370, 263, 246, 229) === model - hospital - sure
+
+Hospital - aftercare recipient view----166 line
+
+
+to fetch data from DB we type; app / models / hospitals / aftercarepatientmodel.php
+
+
+call the getRecipientByHospital / ()
+
+
+===========================
+
+app>models>hospital>aftercarepatientmodel.php> ====NIC
+
+        // NIC Validation: 9 digits + V/X (Old) or 12 digits (New)
+        if (!preg_match('/^\d{9}[vVxX]$/', $nic) && !preg_match('/^\d{12}$/', $nic)) {
+            throw new \InvalidArgumentException('Invalid NIC format. Must be 9 digits + "V/X" or exactly 12 digits.');
+        }
+
+
+        same 89-112 should put
+
+            public function createRecipientAccount(array $data): string
+    {
+        $fullName  = trim((string)($data['full_name'] ?? ''));
+        $nic       = trim((string)($data['nic'] ?? ''));
+        $hospitalReg  = trim((string)($data['hospital_registration_no'] ?? ''));
+        $requestedReg = trim((string)($data['registration_number'] ?? ''));
+
+        if ($fullName === '' || $nic === '' || $hospitalReg === '') {
+            throw new \InvalidArgumentException('Full name, NIC, and Hospital Registration are required.');
+        }
+
+        // NIC Validation: 9 digits + V/X (Old) or 12 digits (New)
+        if (!preg_match('/^\d{9}[vVxX]$/', $nic) && !preg_match('/^\d{12}$/', $nic)) {
+            throw new \InvalidArgumentException('Invalid NIC format. Must be 9 digits + "V/X" or exactly 12 digits.');
+        }
+
+        // Check NIC only in aftercare_patients (source of truth)
+        $existing = $this->query(
+            "SELECT id FROM {$this->table} WHERE nic = :nic LIMIT 1",
+            [':nic' => $nic]
+        );
+        if ($existing) {
+            throw new \RuntimeException("A patient with NIC '$nic' is already registered.");
+        }
+
+
+
+        =====================
+        =====================
+
+        $func app=>views=>hospital=>aftercare-recipient.view.php cp pst
+
+        <?php
 //recipient
 ?>
 <!DOCTYPE html>
@@ -139,6 +208,33 @@
                         </div>
                     </div>
 
+                    <div class="filters-container" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Filter by Organ</label>
+                            <select id="organ-filter" onchange="filterRecipients()" style="width: 100%; padding: 0.625rem; border: 1px solid #e2e8f0; border-radius: 8px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
+                                <option value="all">All Organs</option>
+                                <?php
+                                    $organs = array_unique(array_column($aftercare_recipients, 'surgery_type'));
+                                    foreach ($organs as $organ): if($organ):
+                                ?>
+                                    <option value="<?php echo htmlspecialchars($organ); ?>"><?php echo htmlspecialchars($organ); ?></option>
+                                <?php endif; endforeach; ?>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.025em;">Filter by Urgency / Type</label>
+                            <select id="urgency-filter" onchange="filterRecipients()" style="width: 100%; padding: 0.625rem; border: 1px solid #e2e8f0; border-radius: 8px; color: #1e293b; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
+                                <option value="all">All Urgency</option>
+                                <?php
+                                    $types = array_unique(array_column($aftercare_recipients, 'type'));
+                                    foreach ($types as $type): if($type):
+                                ?>
+                                    <option value="<?php echo htmlspecialchars($type); ?>"><?php echo htmlspecialchars($type); ?></option>
+                                <?php endif; endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="table-container">
                         <div class="table-content">
                             <div class="table-header table-row aftercare-recipients-grid">
@@ -147,30 +243,35 @@
                                 <!-- <div class="table-cell">WEIGHT</div> -->
                                 <!-- <div class="table-cell">TYPE</div> -->
                                 <div class="table-cell">ORGAN RECEIVED</div>
-                                <div class="table-cell">BLOOD GROUP</div>
+                                <div class="table-cell" onclick="sortRecipientsByDate(event)" style="cursor: pointer; display: flex; align-items: center; gap: 5px; user-select: none;">
+                                    SURGERY DATE <i class="fas fa-sort" id="date-sort-icon"></i>
+                                </div>
                                 <div class="table-cell">STATUS</div>
                             </div>
 
                             <?php if (!empty($aftercare_recipients)): ?>
                                 <?php foreach ($aftercare_recipients as $recipient): ?>
-                                    <div class="table-row aftercare-recipients-grid">
+                                    <div class="table-row aftercare-recipients-grid recipient-row"
+                                         data-date="<?php echo htmlspecialchars($recipient->surgery_date ?? '0000-00-00'); ?>"
+                                         data-organ="<?php echo htmlspecialchars($recipient->surgery_type ?? ''); ?>"
+                                         data-urgency="<?php echo htmlspecialchars($recipient->type ?? ''); ?>">
                                         <div class="table-cell" data-label="NIC">
                                             <?php echo htmlspecialchars($recipient->nic ?? 'N/A'); ?>
                                         </div>
                                         <div class="table-cell" data-label="NAME">
                                             <?php echo htmlspecialchars($recipient->full_name ?? 'N/A'); ?>
                                         </div>
-                                        <!-- <div class="table-cell" data-label="WEIGHT"> 
+                                        <!-- <div class="table-cell" data-label="WEIGHT">
                                             <?php echo htmlspecialchars($recipient->weight ?? 'N/A'); ?> kg
                                         </div>-->
-                                        <!-- <div class="table-cell" data-label="TYPE"> 
+                                        <!-- <div class="table-cell" data-label="TYPE">
                                             <?php echo htmlspecialchars($recipient->type ?? 'N/A'); ?>
                                         </div>-->
                                         <div class="table-cell" data-label="ORGAN RECEIVED">
                                             <?php echo htmlspecialchars($recipient->surgery_type ?? 'N/A'); ?>
                                         </div>
-                                        <div class="table-cell" data-label="BLOOD GROUP">
-                                            <?php echo htmlspecialchars($recipient->blood_group ?? 'N/A'); ?>
+                                        <div class="table-cell" data-label="SURGERY DATE">
+                                            <?php echo !empty($recipient->surgery_date) ? date('d/m/Y', strtotime($recipient->surgery_date)) : 'N/A'; ?>
                                         </div>
                                         <div class="table-cell" data-label="STATUS">
                                             <span
@@ -196,6 +297,68 @@
     </div>
 
     <script>
+        let sortDirection = 'desc';
+
+        function sortRecipientsByDate(event) {
+            const container = document.querySelector('.table-content');
+            const rows = Array.from(container.querySelectorAll('.recipient-row'));
+            const icon = document.getElementById('date-sort-icon');
+
+            sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+
+            rows.sort((a, b) => {
+                const dateA = new Date(a.dataset.date);
+                const dateB = new Date(b.dataset.date);
+                if (dateA.toString() === 'Invalid Date') return 1;
+                if (dateB.toString() === 'Invalid Date') return -1;
+
+                return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            rows.forEach(row => container.appendChild(row));
+
+            // Update icon
+            if (icon) {
+                icon.className = `fas fa-sort-amount-${sortDirection === 'asc' ? 'up' : 'down'}`;
+                icon.style.color = '#3b82f6'; // Brighten color when active
+            }
+        }
+
+        function filterRecipients() {
+            const organValue = document.getElementById('organ-filter').value;
+            const urgencyValue = document.getElementById('urgency-filter').value;
+            const rows = document.querySelectorAll('.recipient-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const organMatch = organValue === 'all' || row.dataset.organ === organValue;
+                const urgencyMatch = urgencyValue === 'all' || row.dataset.urgency === urgencyValue;
+
+                if (organMatch && urgencyMatch) {
+                    row.style.display = 'grid';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Handle "No results found" logic
+            const noResults = document.getElementById('no-filter-results');
+            if (visibleCount === 0) {
+                if (!noResults) {
+                    const msg = document.createElement('div');
+                    msg.id = 'no-filter-results';
+                    msg.style.padding = '3rem';
+                    msg.style.textAlign = 'center';
+                    msg.style.color = '#64748b';
+                    msg.innerHTML = '<p>No patients match the selected filters.</p>';
+                    document.querySelector('.table-content').appendChild(msg);
+                }
+            } else if (noResults) {
+                noResults.remove();
+            }
+        }
+
         function openExportModal() {
             const modal = document.getElementById('export-modal');
             if (modal) modal.classList.add('show');
@@ -322,3 +485,10 @@
     </script>
     <?php include __DIR__ . '/partials/export_modal.view.php'; ?>
     <?php include __DIR__ . '/inc/footer.view.php'; ?>
+
+    ALTER TABLE organ_requests ADD COLUMN [new_field_name] VARCHAR(255) NULL;
+    ALTER TABLE recipient_patient ADD COLUMN witnesss VARCHAR(255) DEFAULT NULL;
+
+    UPDATE upcoming_appoinments
+SET test_completion_status = 'Completed'
+WHERE appointment_id = 101;

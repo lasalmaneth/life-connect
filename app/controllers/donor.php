@@ -1753,7 +1753,7 @@ class Donor
 
             // Ensure donor is in aftercare_patients mapping table
             $currentUserId = (int) $_SESSION['user_id'];
-            $aftercareModel = new \App\Models\AftercarePatientModel();
+            $aftercareModel = new \App\Models\Hospital\AftercarePatientModel();
             $aftercareModel->upsertDonorPatient($nic, $donorFullName, $hospitalRegistrationNo, $currentUserId);
 
             $this->query(

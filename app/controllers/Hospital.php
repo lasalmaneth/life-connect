@@ -3,8 +3,8 @@
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Models\AftercarePatientModel;
-use App\Models\HospitalModel;
+use App\Models\Hospital\AftercarePatientModel;
+use App\Models\Hospital\HospitalModel;
 
 class Hospital
 {
@@ -1414,6 +1414,9 @@ class Hospital
                     'medical_details' => !empty($_POST['recipient_medical']) ? trim((string) $_POST['recipient_medical']) : null,
                     'surgery_type' => !empty($_POST['surgery_type']) ? trim((string) $_POST['surgery_type']) : null,
                     'surgery_date' => !empty($_POST['surgery_date']) ? trim((string) $_POST['surgery_date']) : null,
+                    'weight' => !empty($_POST['recipient_weight']) ? (float) $_POST['recipient_weight'] : null,
+                    'type' => !empty($_POST['recipient_type']) ? trim((string) $_POST['recipient_type']) : null,
+                    'disabilities' => !empty($_POST['recipient_disabilities']) ? trim((string) $_POST['recipient_disabilities']) : null,
                 ]);
 
                 $_SESSION['flash_success'] = 'Recipient aftercare account created successfully.';

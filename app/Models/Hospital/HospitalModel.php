@@ -1,10 +1,11 @@
 <?php
-
-namespace App\Models;
+//hmodel
+namespace App\Models\Hospital;
 
 use App\Core\Model;
 
-class HospitalModel {
+class HospitalModel
+{
     use Model;
 
     protected $table = 'hospitals';
@@ -63,8 +64,9 @@ class HospitalModel {
 
     private function donorPledgeHasColumn($column)
     {
-        $column = (string)$column;
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column)) return false;
+        $column = (string) $column;
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $column))
+            return false;
 
         try {
             // Use a literal for SHOW ... LIKE to avoid driver limitations with placeholders in SHOW statements.
@@ -77,23 +79,28 @@ class HospitalModel {
 
     private function getDonorPledgesHospitalColumn()
     {
-        if ($this->donorPledgeHasColumn('preferred_hospital_id')) return 'preferred_hospital_id';
-        if ($this->donorPledgeHasColumn('hospital_id')) return 'hospital_id';
+        if ($this->donorPledgeHasColumn('preferred_hospital_id'))
+            return 'preferred_hospital_id';
+        if ($this->donorPledgeHasColumn('hospital_id'))
+            return 'hospital_id';
         return null;
     }
 
     private function getDonorPledgesHospitalColumns(): array
     {
         $cols = [];
-        if ($this->donorPledgeHasColumn('preferred_hospital_id')) $cols[] = 'preferred_hospital_id';
-        if ($this->donorPledgeHasColumn('hospital_id')) $cols[] = 'hospital_id';
+        if ($this->donorPledgeHasColumn('preferred_hospital_id'))
+            $cols[] = 'preferred_hospital_id';
+        if ($this->donorPledgeHasColumn('hospital_id'))
+            $cols[] = 'hospital_id';
         return $cols;
     }
 
     private function donorPledgeHospitalWhereSql(string $alias = ''): ?string
     {
         $cols = $this->getDonorPledgesHospitalColumns();
-        if (empty($cols)) return null;
+        if (empty($cols))
+            return null;
 
         $pfx = $alias !== '' ? rtrim($alias, '.') . '.' : '';
         if (count($cols) === 1) {
@@ -106,15 +113,17 @@ class HospitalModel {
 
     public function getApprovedPledgesForEligibility($hospitalId)
     {
-        $hospitalId = (int)$hospitalId;
-        if ($hospitalId <= 0) return [];
+        $hospitalId = (int) $hospitalId;
+        if ($hospitalId <= 0)
+            return [];
 
         $where = $this->donorPledgeHospitalWhereSql('dp');
-        if (!$where) return [];
+        if (!$where)
+            return [];
 
-                                // Donors that selected this hospital and are ready for hospital-side eligibility screening.
-                                // Include relevant in-flight states so the hospital can still see assigned pledges.
-                $query = "SELECT 
+        // Donors that selected this hospital and are ready for hospital-side eligibility screening.
+        // Include relevant in-flight states so the hospital can still see assigned pledges.
+        $query = "SELECT 
                     dp.id AS pledge_id,
                     dp.donor_id,
                     dp.organ_id,
@@ -141,26 +150,28 @@ class HospitalModel {
                     AND $where
                   ORDER BY dp.pledge_date DESC";
 
-                return $this->query($query, [':hid' => $hospitalId]) ?: [];
+        return $this->query($query, [':hid' => $hospitalId]) ?: [];
     }
 
     public function getHospitalIdByRegistrationNo($regNo)
     {
-        $regNo = trim((string)$regNo);
-        if ($regNo === '') return 0;
+        $regNo = trim((string) $regNo);
+        if ($regNo === '')
+            return 0;
 
         $res = $this->query(
             "SELECT id FROM hospitals WHERE registration_number = :reg_no LIMIT 1",
             [':reg_no' => $regNo]
         );
 
-        return (int)($res[0]->id ?? 0);
+        return (int) ($res[0]->id ?? 0);
     }
 
     public function getPledgeDetails($pledgeId)
     {
-        $pledgeId = (int)$pledgeId;
-        if ($pledgeId <= 0) return false;
+        $pledgeId = (int) $pledgeId;
+        if ($pledgeId <= 0)
+            return false;
 
         $query = "SELECT 
                     dp.*, 
@@ -179,12 +190,14 @@ class HospitalModel {
 
     private function pledgeBelongsToHospital($pledgeId, $hospitalId)
     {
-        $pledgeId = (int)$pledgeId;
-        $hospitalId = (int)$hospitalId;
-        if ($pledgeId <= 0 || $hospitalId <= 0) return false;
+        $pledgeId = (int) $pledgeId;
+        $hospitalId = (int) $hospitalId;
+        if ($pledgeId <= 0 || $hospitalId <= 0)
+            return false;
 
         $where = $this->donorPledgeHospitalWhereSql();
-        if (!$where) return false;
+        if (!$where)
+            return false;
 
         $res = $this->query(
             "SELECT id, status FROM donor_pledges WHERE id = :pid AND $where LIMIT 1",
@@ -196,32 +209,36 @@ class HospitalModel {
 
     private function setPledgeStatusForHospital($pledgeId, $hospitalId, $newStatus, $onlyIfStatusIn = [])
     {
-        $newStatus = strtoupper(trim((string)$newStatus));
-        if ($newStatus === '') return false;
+        $newStatus = strtoupper(trim((string) $newStatus));
+        if ($newStatus === '')
+            return false;
 
         $pledge = $this->pledgeBelongsToHospital($pledgeId, $hospitalId);
-        if (!$pledge) return false;
+        if (!$pledge)
+            return false;
 
-        $current = strtoupper(trim((string)($pledge->status ?? '')));
+        $current = strtoupper(trim((string) ($pledge->status ?? '')));
         if (!empty($onlyIfStatusIn)) {
-            $allowed = array_map(fn($s) => strtoupper(trim((string)$s)), (array)$onlyIfStatusIn);
-            if (!in_array($current, $allowed, true)) return false;
+            $allowed = array_map(fn($s) => strtoupper(trim((string) $s)), (array) $onlyIfStatusIn);
+            if (!in_array($current, $allowed, true))
+                return false;
         }
 
         $where = $this->donorPledgeHospitalWhereSql();
-        if (!$where) return false;
+        if (!$where)
+            return false;
 
         $this->query(
             "UPDATE donor_pledges SET status = :status WHERE id = :pid AND $where",
-            [':status' => $newStatus, ':pid' => (int)$pledgeId, ':hid' => (int)$hospitalId]
+            [':status' => $newStatus, ':pid' => (int) $pledgeId, ':hid' => (int) $hospitalId]
         );
 
         $verify = $this->query(
             "SELECT status FROM donor_pledges WHERE id = :pid AND $where LIMIT 1",
-            [':pid' => (int)$pledgeId, ':hid' => (int)$hospitalId]
+            [':pid' => (int) $pledgeId, ':hid' => (int) $hospitalId]
         );
 
-        return (bool)($verify && strtoupper(trim((string)($verify[0]->status ?? ''))) === $newStatus);
+        return (bool) ($verify && strtoupper(trim((string) ($verify[0]->status ?? ''))) === $newStatus);
     }
 
     public function approveEligibilityPledge($pledgeId, $hospitalId)
@@ -241,14 +258,14 @@ class HospitalModel {
         $query = "UPDATE hospitals 
                   SET name = :name, address = :address, contact_number = :contact_number
                   WHERE registration_number = :reg_no";
-        
+
         $params = [
             ':name' => $data['name'],
             ':address' => $data['address'] ?? '',
             ':contact_number' => $data['phone'] ?? null,
             ':reg_no' => $data['registration']
         ];
-        
+
         return $this->query($query, $params);
     }
 
@@ -271,7 +288,7 @@ class HospitalModel {
             [':id' => $organId]
         );
 
-        return (bool)($result && isset($result[0]->id));
+        return (bool) ($result && isset($result[0]->id));
     }
 
     public function getOrganRequests($regNo)
@@ -323,7 +340,7 @@ class HospitalModel {
     public function updateSurgeryMatchStatus($matchId, $status, $reason = null)
     {
         $hStat = ($status === 'APPROVED') ? 'ACCEPTED' : (($status === 'REJECTED') ? 'REJECTED' : 'PENDING');
-        
+
         $query = "UPDATE donor_patient_match 
                   SET hospital_reject_reason = :reason, 
                       hospital_match_status = :h_status,
@@ -344,7 +361,7 @@ class HospitalModel {
         if (isset($data['organ_id']) && $data['organ_id'] !== '') {
             $candidate = filter_var($data['organ_id'], FILTER_VALIDATE_INT);
             if ($candidate !== false && $candidate > 0 && $this->organExistsById($candidate)) {
-                $organId = (int)$candidate;
+                $organId = (int) $candidate;
             } else {
                 return false;
             }
@@ -459,18 +476,25 @@ class HospitalModel {
 
     private function mapUrgencyToPriorityLevel($urgency)
     {
-        $value = strtolower(trim((string)$urgency));
+        $value = strtolower(trim((string) $urgency));
 
         // New UI categories
-        if ($value === 'emergency') return 'CRITICAL';
-        if ($value === 'high') return 'URGENT';
-        if ($value === 'medium') return 'NORMAL';
-        if ($value === 'low') return 'NORMAL';
+        if ($value === 'emergency')
+            return 'CRITICAL';
+        if ($value === 'high')
+            return 'URGENT';
+        if ($value === 'medium')
+            return 'NORMAL';
+        if ($value === 'low')
+            return 'NORMAL';
 
         // Backwards compatibility (older labels)
-        if ($value === 'critical') return 'CRITICAL';
-        if ($value === 'urgent') return 'URGENT';
-        if ($value === 'normal') return 'NORMAL';
+        if ($value === 'critical')
+            return 'CRITICAL';
+        if ($value === 'urgent')
+            return 'URGENT';
+        if ($value === 'normal')
+            return 'NORMAL';
 
         // Already enum-style
         $upper = strtoupper($value);
@@ -483,7 +507,7 @@ class HospitalModel {
 
     private function normalizeOrganName($organType)
     {
-        $name = trim((string)$organType);
+        $name = trim((string) $organType);
         $name = str_replace(['_', '-'], ' ', $name);
         $name = preg_replace('/\s+/', ' ', $name);
         return $name;
@@ -497,7 +521,7 @@ class HospitalModel {
             [':name' => $organName]
         );
         if ($result && isset($result[0]->id)) {
-            return (int)$result[0]->id;
+            return (int) $result[0]->id;
         }
 
         // Create on demand (organs table may be empty on fresh installs)
@@ -511,7 +535,7 @@ class HospitalModel {
             [':name' => $organName]
         );
         if ($result && isset($result[0]->id)) {
-            return (int)$result[0]->id;
+            return (int) $result[0]->id;
         }
 
         return null;
@@ -585,9 +609,9 @@ class HospitalModel {
 
         $count = 0;
         if ($result && isset($result[0]->c)) {
-            $count = (int)$result[0]->c;
+            $count = (int) $result[0]->c;
         } elseif ($result && isset($result[0]->C)) {
-            $count = (int)$result[0]->C;
+            $count = (int) $result[0]->C;
         }
 
         return $count > 0;
@@ -614,8 +638,8 @@ class HospitalModel {
     {
         // Get the actual hospital ID for institution_id
         $hRes = $this->query("SELECT id, user_id FROM hospitals WHERE registration_number = :reg_no LIMIT 1", [':reg_no' => $data['hospital_registration_no']]);
-        $hospitalId = $hRes ? (int)$hRes[0]->id : null;
-        $userId = $hRes ? (int)$hRes[0]->user_id : null;
+        $hospitalId = $hRes ? (int) $hRes[0]->id : null;
+        $userId = $hRes ? (int) $hRes[0]->user_id : null;
 
         $query = "INSERT INTO success_stories (
                     title, description, story_type, author_name, donors_count, students_helped, 
@@ -625,20 +649,20 @@ class HospitalModel {
                     :title, :description, :story_type, :author_name, :donors_count, :students_helped, 
                     :success_date, :user_id, :institution_id, 'HOSPITAL', 'Pending', NOW()
                   )";
-        
+
         $params = [
             ':title' => $data['title'],
             ':description' => $data['description'],
             ':story_type' => $data['story_type'] ?? 'CASE',
             ':author_name' => $data['author_name'] ?? null,
-            ':donors_count' => (int)($data['donors_count'] ?? 0),
-            ':students_helped' => (int)($data['students_helped'] ?? 0),
+            ':donors_count' => (int) ($data['donors_count'] ?? 0),
+            ':students_helped' => (int) ($data['students_helped'] ?? 0),
             ':success_date' => $data['success_date'],
             ':user_id' => $userId,
             ':institution_id' => $hospitalId
         ];
 
-        return (bool)$this->query($query, $params);
+        return (bool) $this->query($query, $params);
     }
 
     public function updateSuccessStory($data)
@@ -654,26 +678,26 @@ class HospitalModel {
                       status = :status, 
                       updated_at = NOW() 
                   WHERE story_id = :id";
-        
+
         $params = [
             ':title' => $data['title'],
             ':description' => $data['description'],
             ':story_type' => $data['story_type'] ?? 'CASE',
             ':author_name' => $data['author_name'] ?? null,
-            ':donors_count' => (int)($data['donors_count'] ?? 0),
-            ':students_helped' => (int)($data['students_helped'] ?? 0),
+            ':donors_count' => (int) ($data['donors_count'] ?? 0),
+            ':students_helped' => (int) ($data['students_helped'] ?? 0),
             ':success_date' => $data['success_date'],
             ':status' => $data['status'],
             ':id' => $data['story_id']
         ];
-        
-        return (bool)$this->query($query, $params);
+
+        return (bool) $this->query($query, $params);
     }
 
     public function deleteSuccessStory($id)
     {
         $query = "DELETE FROM success_stories WHERE story_id = :id";
-        return (bool)$this->query($query, [':id' => $id]);
+        return (bool) $this->query($query, [':id' => $id]);
     }
 
     // Aftercare Appointments
@@ -704,18 +728,22 @@ class HospitalModel {
         // Ensure status enum contains 'Requested'
         try {
             $statusCol = $this->query("SHOW COLUMNS FROM aftercare_appointments LIKE 'status'");
-            if (empty($statusCol) || empty($statusCol[0]->Type)) return;
-            $type = (string)$statusCol[0]->Type;
-            if (stripos($type, 'enum(') === false) return;
+            if (empty($statusCol) || empty($statusCol[0]->Type))
+                return;
+            $type = (string) $statusCol[0]->Type;
+            if (stripos($type, 'enum(') === false)
+                return;
 
             preg_match_all("/'([^']*)'/", $type, $m);
             $vals = $m[1] ?? [];
-            if (empty($vals)) return;
-            if (in_array('Requested', $vals, true)) return;
+            if (empty($vals))
+                return;
+            if (in_array('Requested', $vals, true))
+                return;
 
             // Preserve existing values; add Requested first.
             $newVals = array_values(array_unique(array_merge(['Requested'], $vals)));
-            $enumSql = "ENUM('" . implode("','", array_map(fn($v) => str_replace("'", "\\'", (string)$v), $newVals)) . "')";
+            $enumSql = "ENUM('" . implode("','", array_map(fn($v) => str_replace("'", "\\'", (string) $v), $newVals)) . "')";
             $con = $this->connect();
             $con->exec("ALTER TABLE aftercare_appointments MODIFY status $enumSql DEFAULT 'Scheduled'");
         } catch (\Throwable $e) {
@@ -736,9 +764,10 @@ class HospitalModel {
     public function acceptAftercareAppointment($appointmentId, $regNo)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $appointmentId = (int)$appointmentId;
-        $regNo = trim((string)$regNo);
-        if ($appointmentId <= 0 || $regNo === '') return false;
+        $appointmentId = (int) $appointmentId;
+        $regNo = trim((string) $regNo);
+        if ($appointmentId <= 0 || $regNo === '')
+            return false;
 
         $this->query(
             "UPDATE aftercare_appointments
@@ -752,10 +781,11 @@ class HospitalModel {
     public function rejectAftercareAppointment($appointmentId, $regNo, $reason)
     {
         $this->ensureAftercareAppointmentsSchema();
-        $appointmentId = (int)$appointmentId;
-        $regNo = trim((string)$regNo);
-        $reason = trim((string)$reason);
-        if ($appointmentId <= 0 || $regNo === '' || $reason === '') return false;
+        $appointmentId = (int) $appointmentId;
+        $regNo = trim((string) $regNo);
+        $reason = trim((string) $reason);
+        if ($appointmentId <= 0 || $regNo === '' || $reason === '')
+            return false;
 
         $this->query(
             "UPDATE aftercare_appointments
@@ -768,20 +798,23 @@ class HospitalModel {
 
     public function notifyDonorByNic($nic, $title, $message, $type = 'INFO')
     {
-        $nic = trim((string)$nic);
-        if ($nic === '') return false;
+        $nic = trim((string) $nic);
+        if ($nic === '')
+            return false;
 
         $res = $this->query("SELECT user_id FROM donors WHERE nic_number = :nic LIMIT 1", [':nic' => $nic]);
-        if (!$res) return false;
-        $userId = (int)$res[0]->user_id;
+        if (!$res)
+            return false;
+        $userId = (int) $res[0]->user_id;
         return $this->createNotification($userId, $title, $message, $type);
     }
 
     // Aftercare Support Requests
     public function getAftercareSupportRequests($regNo, $limit = 50)
     {
-        $limit = (int)$limit;
-        if ($limit <= 0) $limit = 50;
+        $limit = (int) $limit;
+        if ($limit <= 0)
+            $limit = 50;
 
         $query = "SELECT *
                   FROM support_requests
@@ -794,9 +827,10 @@ class HospitalModel {
 
     public function approveSupportRequest($requestId, $regNo, $reviewedBy = 'Hospital')
     {
-        $requestId = (int)$requestId;
-        $regNo = trim((string)$regNo);
-        if ($requestId <= 0 || $regNo === '') return false;
+        $requestId = (int) $requestId;
+        $regNo = trim((string) $regNo);
+        if ($requestId <= 0 || $regNo === '')
+            return false;
 
         $query = "UPDATE support_requests
                   SET status = 'APPROVED',
@@ -808,17 +842,18 @@ class HospitalModel {
         $this->query($query, [
             ':id' => $requestId,
             ':reg_no' => $regNo,
-            ':reviewed_by' => (string)$reviewedBy,
+            ':reviewed_by' => (string) $reviewedBy,
         ]);
         return true;
     }
 
     public function rejectSupportRequest($requestId, $regNo, $reason, $reviewedBy = 'Hospital')
     {
-        $requestId = (int)$requestId;
-        $regNo = trim((string)$regNo);
-        $reason = trim((string)$reason);
-        if ($requestId <= 0 || $regNo === '' || $reason === '') return false;
+        $requestId = (int) $requestId;
+        $regNo = trim((string) $regNo);
+        $reason = trim((string) $reason);
+        if ($requestId <= 0 || $regNo === '' || $reason === '')
+            return false;
 
         // Persist the rejection reason in the description using a marker so the patient can see it.
         $reviewBlock = "[Hospital Review]\nStatus: REJECTED\nReason: " . $reason;
@@ -837,7 +872,7 @@ class HospitalModel {
         $this->query($query, [
             ':id' => $requestId,
             ':reg_no' => $regNo,
-            ':reviewed_by' => (string)$reviewedBy,
+            ':reviewed_by' => (string) $reviewedBy,
             ':review_block' => $reviewBlock,
         ]);
 
@@ -856,7 +891,7 @@ class HospitalModel {
                   LEFT JOIN donors d ON ua.donor_id = d.id
                   WHERE ua.hospital_registration_no = :reg_no
                   ORDER BY ua.test_date DESC";
-        
+
         $results = $this->query($query, [':reg_no' => $regNo]);
         return $results;
     }
@@ -865,7 +900,7 @@ class HospitalModel {
     {
         $query = "INSERT INTO upcoming_appointments (donor_id, hospital_registration_no, test_type, description, test_date, scheduled_date_1, scheduled_date_2, scheduled_date_3, status, notes)
                   VALUES (:donor_id, :reg_no, :test_type, :description, :test_date, :sd1, :sd2, :sd3, :status, :notes)";
-        
+
         $params = [
             ':donor_id' => $data['donor_id'] ?? null,
             ':reg_no' => $data['hospital_registration_no'],
@@ -878,7 +913,7 @@ class HospitalModel {
             ':status' => $data['result_status'],
             ':notes' => $data['result_notes'] ?? ''
         ];
-        
+
         try {
             $this->query($query, $params);
             return true;
@@ -900,7 +935,7 @@ class HospitalModel {
                       status = :status, 
                       notes = :notes
                   WHERE id = :id";
-        
+
         $params = [
             ':id' => $reportId,
             ':donor_id' => $data['donor_id'] ?? null,
@@ -913,7 +948,7 @@ class HospitalModel {
             ':status' => $data['result_status'],
             ':notes' => $data['result_notes'] ?? ''
         ];
-        
+
         $this->query($query, $params);
         return true;
     }
@@ -927,7 +962,7 @@ class HospitalModel {
 
     public function updateLabReportStatus($reportId, $status, $reason = null)
     {
-        $status = strtoupper(trim((string)$status));
+        $status = strtoupper(trim((string) $status));
         $query = "UPDATE upcoming_appointments SET status = :status WHERE id = :id";
         $this->query($query, [':id' => $reportId, ':status' => $status]);
 
@@ -937,7 +972,7 @@ class HospitalModel {
             if ($apt && isset($apt[0]->donor_id)) {
                 $donorId = $apt[0]->donor_id;
                 $eligible = ($status === 'ACCEPTED') ? 'Yes' : 'No';
-                
+
                 // Update donors table
                 $this->query(
                     "UPDATE donors SET eligible_to_donate = :eligible, rejected_reason = :reason WHERE id = :id",
@@ -945,22 +980,24 @@ class HospitalModel {
                 );
             }
         }
-        
+
         return true;
     }
 
     public function getLabReportById($reportId)
     {
-        $reportId = (int)$reportId;
-        if ($reportId <= 0) return null;
+        $reportId = (int) $reportId;
+        if ($reportId <= 0)
+            return null;
         $res = $this->query("SELECT * FROM upcoming_appointments WHERE id = :id LIMIT 1", [':id' => $reportId]);
         return $res ? $res[0] : null;
     }
 
     public function softDeleteLabReport($reportId)
     {
-        $reportId = (int)$reportId;
-        if ($reportId <= 0) return false;
+        $reportId = (int) $reportId;
+        if ($reportId <= 0)
+            return false;
 
         // Keep record for audit/history and for showing in Hospital Test Results UI.
         // Append a marker in notes so staff can see it later.
@@ -974,10 +1011,11 @@ class HospitalModel {
 
     public function getOrganNameById($organId)
     {
-        $organId = (int)$organId;
-        if ($organId <= 0) return null;
+        $organId = (int) $organId;
+        if ($organId <= 0)
+            return null;
         $res = $this->query("SELECT name FROM organs WHERE id = :id LIMIT 1", [':id' => $organId]);
-        return $res ? (string)$res[0]->name : null;
+        return $res ? (string) $res[0]->name : null;
     }
 
     /**
@@ -986,13 +1024,15 @@ class HospitalModel {
      */
     public function searchDonorsForHospital($hospitalId, $searchQuery = '')
     {
-        $hospitalId = (int)$hospitalId;
-        if ($hospitalId <= 0) return [];
+        $hospitalId = (int) $hospitalId;
+        if ($hospitalId <= 0)
+            return [];
 
         $whereHospital = $this->donorPledgeHospitalWhereSql('dp');
-        if (!$whereHospital) return [];
+        if (!$whereHospital)
+            return [];
 
-        $searchQuery = trim((string)$searchQuery);
+        $searchQuery = trim((string) $searchQuery);
         $params = [':hid' => $hospitalId];
 
         $whereSearch = '';
@@ -1032,26 +1072,29 @@ class HospitalModel {
 
     public function createNotification($userId, $title, $message, $type = 'INFO')
     {
-        $userId = (int)$userId;
-        if ($userId <= 0) return false;
+        $userId = (int) $userId;
+        if ($userId <= 0)
+            return false;
 
         $query = "INSERT INTO notifications (user_id, title, message, type) VALUES (:user_id, :title, :message, :type)";
         return $this->query($query, [
             ':user_id' => $userId,
-            ':title' => (string)$title,
-            ':message' => (string)$message,
-            ':type' => (string)$type,
+            ':title' => (string) $title,
+            ':message' => (string) $message,
+            ':type' => (string) $type,
         ]);
     }
 
     public function notifyDonor($donorId, $title, $message, $type = 'INFO')
     {
-        $donorId = (int)$donorId;
-        if ($donorId <= 0) return false;
+        $donorId = (int) $donorId;
+        if ($donorId <= 0)
+            return false;
 
         $res = $this->query("SELECT user_id FROM donors WHERE id = :id LIMIT 1", [':id' => $donorId]);
-        if (!$res) return false;
-        $userId = (int)$res[0]->user_id;
+        if (!$res)
+            return false;
+        $userId = (int) $res[0]->user_id;
         return $this->createNotification($userId, $title, $message, $type);
     }
 
@@ -1062,15 +1105,16 @@ class HospitalModel {
                   VALUES (:donor_id, :test_name, :result_value, :document_path, :test_date, :verified_by_hospital_id)";
 
         $params = [
-            ':donor_id' => !empty($data['donor_id']) ? (int)$data['donor_id'] : 0,
-            ':test_name' => (string)($data['test_name'] ?? ''),
+            ':donor_id' => !empty($data['donor_id']) ? (int) $data['donor_id'] : 0,
+            ':test_name' => (string) ($data['test_name'] ?? ''),
             ':result_value' => $data['result_value'] ?? null,
             ':document_path' => $data['document_path'] ?? null,
-            ':test_date' => (string)($data['test_date'] ?? ''),
-            ':verified_by_hospital_id' => !empty($data['verified_by_hospital_id']) ? (int)$data['verified_by_hospital_id'] : null,
+            ':test_date' => (string) ($data['test_date'] ?? ''),
+            ':verified_by_hospital_id' => !empty($data['verified_by_hospital_id']) ? (int) $data['verified_by_hospital_id'] : null,
         ];
 
-        if ($params[':donor_id'] <= 0 || $params[':test_name'] === '' || $params[':test_date'] === '') return false;
+        if ($params[':donor_id'] <= 0 || $params[':test_name'] === '' || $params[':test_date'] === '')
+            return false;
 
         $this->query($query, $params);
         return true;
@@ -1078,9 +1122,10 @@ class HospitalModel {
 
     public function getTestResultsByHospitalId($hospitalId, $limit = 200)
     {
-        $hospitalId = (int)$hospitalId;
-        $limit = (int)$limit;
-        if ($limit <= 0) $limit = 200;
+        $hospitalId = (int) $hospitalId;
+        $limit = (int) $limit;
+        if ($limit <= 0)
+            $limit = 200;
 
         $query = "SELECT tr.*, 
                          d.nic_number AS donor_nic,
@@ -1103,11 +1148,13 @@ class HospitalModel {
         // 1. Get Case Details
         $caseRec = $this->query("SELECT donation_case_id, institution_name FROM case_institution_status cis 
                                  JOIN hospitals h ON cis.institution_id = h.id
-                                 WHERE cis.id = :id AND cis.institution_id = :h_id", 
-                                 [':id' => $cisId, ':h_id' => $hospitalId])[0] ?? null;
-        
-        if (!$caseRec) return false;
-        
+                                 WHERE cis.id = :id AND cis.institution_id = :h_id",
+            [':id' => $cisId, ':h_id' => $hospitalId]
+        )[0] ?? null;
+
+        if (!$caseRec)
+            return false;
+
         $caseId = $caseRec->donation_case_id;
 
         // 2. Sync Status
@@ -1118,13 +1165,13 @@ class HospitalModel {
         $certNum = "CERT-H-" . date('Y') . "-" . str_pad($caseId, 4, '0', STR_PAD_LEFT);
         $this->query("INSERT INTO donation_certificates (donation_case_id, case_institution_request_id, certificate_number, file_path, issued_by_name)
                       VALUES (:case_id, :cis_id, :cert_num, :path, :issuer)", [
-                        ':case_id' => $caseId,
-                        ':cis_id' => $cisId,
-                        ':cert_num' => $certNum,
-                        ':path' => 'pending', 
-                        ':issuer' => $caseRec->institution_name ?? 'Donation Hospital'
-                      ]);
-        
+            ':case_id' => $caseId,
+            ':cis_id' => $cisId,
+            ':cert_num' => $certNum,
+            ':path' => 'pending',
+            ':issuer' => $caseRec->institution_name ?? 'Donation Hospital'
+        ]);
+
         return true;
     }
 
@@ -1153,7 +1200,9 @@ class HospitalModel {
             ],
             "dc.id as case_id, dc.case_number, d.first_name, d.last_name, d.nic_number, dd.date_of_death, cis.id as cis_id, cis.request_status, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs, COALESCE(cis.submission_date, cis.created_at) as request_at",
             "COALESCE(cis.submission_date, cis.created_at) DESC",
-            50, 0, "case_institution_status cis"
+            50,
+            0,
+            "case_institution_status cis"
         ) ?: [];
     }
 
@@ -1168,26 +1217,29 @@ class HospitalModel {
             ],
             ['cis.id' => $cisId, 'cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
             "cis.*, cis.id as cis_id, dc.case_number, d.id as donor_id, d.first_name, d.last_name, d.date_of_birth, d.gender, d.nic_number, d.nationality, d.blood_group, dd.date_of_death, c.name as custodian_name, c.relationship as custodian_rel, c.phone as custodian_phone, c.email as custodian_email, c.nic_number as custodian_nic",
-            "", 1, 0, "case_institution_status cis"
+            "",
+            1,
+            0,
+            "case_institution_status cis"
         )[0] ?? false;
     }
 
     public function updateDeceasedRequestStatus($hospitalId, $cisId, $status, $reason, $userId)
     {
         $data = [
-            'request_status' => $status, 
-            'request_action_reason' => $reason, 
-            'request_action_at' => date('Y-m-d H:i:s'), 
+            'request_status' => $status,
+            'request_action_reason' => $reason,
+            'request_action_at' => date('Y-m-d H:i:s'),
             'request_action_by' => $userId
         ];
-        
+
         if ($status === 'REJECTED') {
             $data['institution_status'] = 'REJECTED';
             $data['rejection_message'] = $reason;
         } elseif ($status === 'ACCEPTED') {
             $data['institution_status'] = 'ACCEPTED';
         }
-        
+
         $this->updateWhere($data, ['id' => $cisId, 'institution_id' => $hospitalId, 'institution_type' => 'HOSPITAL'], "case_institution_status");
 
         if ($status === 'ACCEPTED') {
@@ -1228,14 +1280,16 @@ class HospitalModel {
             ],
             "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.document_status, cis.document_action_at, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.document_action_at DESC",
-            50, 0, "case_institution_status cis"
+            50,
+            0,
+            "case_institution_status cis"
         ) ?: [];
     }
 
     public function getDeceasedFinalFlow($hospitalId, $status = 'ALL')
     {
         $where = [
-            'cis.institution_id' => $hospitalId, 
+            'cis.institution_id' => $hospitalId,
             'cis.institution_type' => 'HOSPITAL',
             'cis.document_status' => 'ACCEPTED'
         ];
@@ -1251,28 +1305,30 @@ class HospitalModel {
             $where,
             "dc.id as case_id, d.first_name, d.last_name, d.nic_number, cis.id as cis_id, cis.final_exam_status, cis.final_exam_at, dc.case_number, (SELECT GROUP_CONCAT(DISTINCT o.name SEPARATOR ', ') FROM donor_pledges dp2 JOIN organs o ON dp2.organ_id = o.id WHERE dp2.donor_id = d.id AND dp2.status != 'WITHDRAWN') as requested_organs",
             "cis.final_exam_at DESC",
-            50, 0, "case_institution_status cis"
+            50,
+            0,
+            "case_institution_status cis"
         ) ?: [];
     }
 
     public function updateDeceasedFinalFlowStatus($hospitalId, $cisId, $status, $reason, $notes, $userId)
     {
         $this->updateWhere([
-            'final_exam_status' => $status, 
-            'final_exam_reason' => $reason, 
+            'final_exam_status' => $status,
+            'final_exam_reason' => $reason,
             'final_exam_notes' => $notes,
-            'final_exam_at' => date('Y-m-d H:i:s'), 
+            'final_exam_at' => date('Y-m-d H:i:s'),
             'final_exam_by' => $userId
         ], ['id' => $cisId, 'institution_id' => $hospitalId, 'institution_type' => 'HOSPITAL'], "case_institution_status");
-        
-        if($status === 'ACCEPTED') {
+
+        if ($status === 'ACCEPTED') {
             $this->updateWhere(['institution_status' => 'ACCEPTED'], ['id' => $cisId], "case_institution_status");
-            
+
             $caseRec = $this->first(['id' => $cisId], [], "donation_case_id", "", "case_institution_status");
             if ($caseRec) {
                 $caseId = $caseRec->donation_case_id;
                 $this->update($caseId, ['overall_status' => 'SUCCESSFUL'], 'id', 'donation_cases');
-                
+
                 // Issue certificate
                 $this->issueDonationCertificate($cisId, $hospitalId);
             }
@@ -1291,16 +1347,20 @@ class HospitalModel {
             ['cis.institution_id' => $hospitalId, 'cis.institution_type' => 'HOSPITAL'],
             "dc.*, d.first_name, d.last_name, cis.final_exam_at",
             "dc.issued_at DESC",
-            50, 0, "donation_certificates dc"
+            50,
+            0,
+            "donation_certificates dc"
         ) ?: [];
     }
     public function getEligibleDonors($hospitalId)
     {
-        $hospitalId = (int)$hospitalId;
-        if ($hospitalId <= 0) return [];
+        $hospitalId = (int) $hospitalId;
+        if ($hospitalId <= 0)
+            return [];
 
         $whereHospital = $this->donorPledgeHospitalWhereSql('dp');
-        if (!$whereHospital) return [];
+        if (!$whereHospital)
+            return [];
 
         // Fetch donors who have an APPROVED pledge and a signed form for this hospital's area.
         // We also fetch the latest appointment info if exist
